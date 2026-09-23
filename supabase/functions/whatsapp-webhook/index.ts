@@ -113,7 +113,7 @@ serve(async (req) => {
     const event = body.EventType || body.event || body.type || "messages";
     if (event === "test") return ok({ ok: true, message: "webhook ok" });
     if (event === "dry_run") return await runDryRun(body);
-    if (event === "connection" || event === "connection.update") return ok();
+    if (event === "connection" || event === "connection.update") return await handleConnection(body);
 
     const { text, media, fromMe, phone, isGroup, contactName, instanceName, instanceToken, instanceOwner } =
       extractText(body);
@@ -401,6 +401,79 @@ serve(async (req) => {
     return ok({ ok: false, error: e.message });
   }
 });
+
+/**
+ * Evento de conexão da Uazapi. Sem isto o status da instância ficava congelado
+ * no banco: o WhatsApp caía (bateria, chip removido, sessão expirada) e o painel
+ * seguia dizendo "connected" — o problema só aparecia quando um cliente reclamava
+ * de não ter sido respondido.
+ */
+async function handleConnection(body: any) {
+  const inst = body?.instance ?? {};
+  const token: string | null = body?.token || inst?.token || null;
+  const name: string = String(inst?.name || body?.instanceName || "").trim();
+  const ownerPhone = jidToPhone(body?.owner || inst?.owner || "");
+
+  const raw = String(
+    inst?.status ?? body?.status ?? inst?.state ?? body?.state ?? body?.connection ?? "",
+  ).toLowerCase();
+
+  let status: string | null = null;
+  if (/disconnect|close|logout|banned|removed/.test(raw)) status = "disconnected";
+  else if (/connecting|qr|pairing|syncing/.test(raw)) status = "connecting";
+  else if (/connected|open|online/.test(raw)) status = "connected";
+
+  console.log("[webhook] connection", { raw, status, has_token: !!token, name, ownerPhone });
+
+  if (!status) return ok();
+
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+
+  // Mesma cascata de identificação usada para mensagens: token, depois nome, depois telefone.
+  let instRow: any = null;
+  if (token) {
+    const { data } = await supabase
+      .from("whatsapp_instances")
+      .select("id, name, status")
+      .eq("instance_token", token)
+      .maybeSingle();
+    instRow = data ?? null;
+  }
+  if (!instRow && (name || ownerPhone)) {
+    const { data } = await supabase
+      .from("whatsapp_instances")
+      .select("id, name, status, phone")
+      .not("instance_token", "is", null)
+      .order("updated_at", { ascending: false })
+      .limit(20);
+    instRow =
+      (data || []).find((r: any) => name && normalizeName(r.name) === normalizeName(name)) ||
+      (data || []).find((r: any) => ownerPhone && r.phone === ownerPhone) ||
+      null;
+  }
+
+  if (!instRow) {
+    console.error("[webhook] connection: instancia nao encontrada", { name, ownerPhone });
+    return ok();
+  }
+  if (instRow.status === status) return ok();
+
+  const patch: Record<string, unknown> = { status };
+  if (status === "disconnected") patch.last_disconnected_at = new Date().toISOString();
+
+  const { error } = await supabase
+    .from("whatsapp_instances")
+    .update(patch)
+    .eq("id", instRow.id);
+
+  if (error) console.error("[webhook] connection: update falhou", error.message);
+  else console.log("[webhook] connection: status atualizado", { de: instRow.status, para: status });
+
+  return ok();
+}
 
 async function runDryRun(body: any) {
   const inName: string = String(body?.instance?.name || "").trim();

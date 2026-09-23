@@ -261,7 +261,7 @@ serve(async (req) => {
       const webhookBody = {
         enabled: true,
         url: webhook_url,
-        events: ["messages"],
+        events: ["messages", "connection"],
         excludeMessages: ["wasSentByApi"],
         addUrlEvents: false,
       };
