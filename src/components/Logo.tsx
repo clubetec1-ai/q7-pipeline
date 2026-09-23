@@ -26,7 +26,7 @@ export const Logo = ({
         <Bot size={size} className="text-primary shrink-0" strokeWidth={1.75} />
         {showTitle && (
           <span className="font-sans font-bold uppercase tracking-tight leading-none text-primary text-lg sm:text-xl">
-            Q7 Pipeline
+            ClubeCRM
           </span>
         )}
       </div>
@@ -42,7 +42,7 @@ export const Logo = ({
             Plataforma de IA
           </span>
           <span className="font-sans font-bold uppercase tracking-tight leading-none text-primary text-5xl">
-            Q7 Pipeline
+            ClubeCRM
           </span>
         </div>
       )}

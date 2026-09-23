@@ -87,7 +87,7 @@ export default function SetupRequired({ problems }: { problems: EnvProblem[] }) 
     <div style={s.page}>
       <div style={s.card}>
         <span style={s.badge}>Configuração incompleta</span>
-        <h1 style={s.h1}>O Q7 Pipeline ainda não está conectado ao seu Supabase</h1>
+        <h1 style={s.h1}>O ClubeCRM ainda não está conectado ao seu Supabase</h1>
         <p style={s.lead}>
           O app carregou, mas não sabe com qual banco falar. Corrija os itens abaixo
           e ele sobe normalmente.

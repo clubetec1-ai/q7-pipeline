@@ -135,7 +135,7 @@ const Login = () => {
           </div>
         </div>
 
-        <p className="text-center text-xs text-muted-foreground">© 2026 Q7 Educação</p>
+        <p className="text-center text-xs text-muted-foreground">© 2026 Clubetec</p>
       </div>
     </div>
   );

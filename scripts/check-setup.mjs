@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Q7 Pipeline — verificador de instalação.
+ * ClubeCRM — verificador de instalação.
  *
  *   npm run check                      # usa o .env local
  *   npm run check -- <URL> <ANON_KEY>  # verifica um projeto específico
@@ -62,7 +62,7 @@ const FUNCTIONS = [
 ];
 
 async function main() {
-  console.log(`${C.bold}${C.cyan}Q7 Pipeline — verificação de instalação${C.reset}`);
+  console.log(`${C.bold}${C.cyan}ClubeCRM — verificação de instalação${C.reset}`);
 
   // --- 1. Variáveis de ambiente ------------------------------------------
   head("1. Variáveis de ambiente");
