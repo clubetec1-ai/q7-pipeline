@@ -211,6 +211,12 @@ e `(organization_id, department_id)` em `conversations`.
   **Não existe caminho para o navegador ler um segredo.** A interface mostra
   apenas "configurada ✓" e a data da última troca.
 - Troca de segredo gera linha no `audit_log` (sem o valor).
+- **Referências ao Vault são sempre pelo nome do segredo, nunca pelo `id`**,
+  com nomes determinísticos: `org:<organization_id>:<nome>`,
+  `instance:<instance_id>:token`, `platform:<nome>`. Motivo: numa restauração
+  em outro projeto (§15), os segredos são recriados com ids novos; referência
+  por nome continua válida sem remapeamento. As colunas `secret_id` citadas
+  neste spec são, portanto, `secret_name text`.
 
 ### 6.4 RLS
 
@@ -462,8 +468,16 @@ backup externo continua sendo a defesa contra comprometimento da conta.
 
 | Bucket | Conteúdo | Object lock (modo compliance) | Ciclo de vida |
 |---|---|---|---|
-| `clubecrm-backup-daily` | dump diário + segredos + mídia | 35 dias | apaga após 36 dias |
-| `clubecrm-backup-monthly` | dump do dia 1 + segredos | 365 dias | apaga após 366 dias |
+| `clubecrm-backup-daily` | dump diário + segredos | 35 dias | oculta após 36 dias, apaga 1 dia depois |
+| `clubecrm-backup-monthly` | dump do dia 1 + segredos | 365 dias | oculta após 366 dias, apaga 1 dia depois |
+| `clubecrm-backup-media` | espelho cifrado do Storage | 35 dias | versões ocultas (arquivo apagado ou substituído na origem) apagadas após 365 dias |
+
+A mídia tem bucket próprio porque é copiada de forma incremental: um arquivo
+enviado uma vez não é reenviado, então uma regra "apaga após 36 dias" o
+removeria do backup enquanto ele ainda existe no Storage. No bucket de mídia,
+o `rclone sync` oculta (não apaga) o que sumiu da origem, e o ciclo de vida
+remove essas versões ocultas após 365 dias — coerente com "backups expiram em
+até 12 meses".
 
 - Modo **compliance**: nem a conta dona do bucket consegue apagar ou encurtar a
   retenção antes do prazo.
@@ -479,9 +493,12 @@ backup externo continua sendo a defesa contra comprometimento da conta.
    chave do próprio projeto; restaurado em outro projeto, não abre. O job lê
    `vault.decrypted_secrets` e envia **direto por pipe** para a cifragem — o
    conteúdo em claro nunca toca o disco do runner.
-3. **Arquivos do Storage** (bucket `media`), copiados de forma incremental
-   (`rclone copy`, sem deleções) para `media/` no bucket diário, com
-   `rclone crypt`.
+3. **Arquivos do Storage** (todos os buckets), espelhados de forma incremental
+   (`rclone sync`, que no B2 oculta em vez de apagar) para
+   `clubecrm-backup-media`, com `rclone crypt`.
+
+O dump de dados exclui `vault.secrets` (cifrado com a chave do projeto, inútil
+em outro projeto); os segredos vão pelo item 2.
 
 ### 15.4 Cifragem
 
