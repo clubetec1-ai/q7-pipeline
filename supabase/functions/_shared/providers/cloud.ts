@@ -20,7 +20,7 @@ import type {
 import { EMPTY_INBOUND } from "./types.ts";
 
 /** Versão do Graph API. Ponto único de atualização. */
-export const GRAPH_VERSION = "v21.0";
+export const GRAPH_VERSION = "v26.0";
 const GRAPH = `https://graph.facebook.com/${GRAPH_VERSION}`;
 
 /** Erro da Meta para envio fora da janela de 24h. */
