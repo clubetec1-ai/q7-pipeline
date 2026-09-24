@@ -597,6 +597,9 @@ requisito de implementação do subprojeto indicado.
    `X-Content-Type-Options: nosniff`, `Referrer-Policy:
    strict-origin-when-cross-origin`, `Permissions-Policy` (microfone só
    `self`, para o áudio; câmera e geolocalização desligadas).
+   Exceção única (subprojeto 4, Embedded Signup): `script-src` libera
+   `https://connect.facebook.net`; `frame-src`/`connect-src` liberam
+   `https://www.facebook.com` e `https://web.facebook.com`.
 10. **XSS**: o token de sessão do Supabase fica no `localStorage`, então XSS =
     sequestro de conta. Regras: proibido `dangerouslySetInnerHTML` com dado de
     usuário/cliente (lint); links em mensagens com `rel="noopener noreferrer"`
