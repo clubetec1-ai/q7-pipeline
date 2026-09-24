@@ -210,6 +210,15 @@ nos dois provedores. Resultado vira decisão registrada no plano.
   (retorna falso em qualquer formato inválido, sem erro), exige membro ativo da
   org e `can_see_conversation`.
 - Sem policy de update/delete para `authenticated`.
+- O bucket é criado com `file_size_limit` (100 MB) e `allowed_mime_types`
+  (lista fechada; **sem** `text/html`, `image/svg+xml`, JavaScript ou
+  executáveis) — a checagem vale no upload direto do navegador, antes mesmo da
+  `send-message`.
+- **Arquivos recebidos perigosos** (extensões executáveis ou de script:
+  `.exe`, `.bat`, `.cmd`, `.scr`, `.js`, `.vbs`, `.msi`, `.apk`, `.jar`, `.html`,
+  `.svg`...): gravados com `application/octet-stream`, e baixar exige
+  confirmar o aviso "este arquivo pode ser perigoso". Nunca são exibidos
+  inline.
 - Frontend usa URLs assinadas de 10 minutos.
 - Uso por organização (soma de `media_size`) no painel da Plataforma.
 
@@ -231,9 +240,23 @@ contact_fields  id, organization_id, key, label, type (text|number|date|select),
 - Visibilidade: um contato é visível se o usuário vê ao menos uma conversa dele,
   ou tem `view_all`.
 - **LGPD** (só `org.settings`): exportar dados do contato (JSON + mídia) e
-  anonimizar (limpa nome, e-mail, documento, `custom`, conteúdo das mensagens e
-  apaga a mídia; mantém métricas dos atendimentos). Ambos no `audit_log`;
-  anonimizar pede confirmação digitando o telefone.
+  anonimizar. Ambos no `audit_log`; anonimizar pede confirmação digitando o
+  telefone. A anonimização cobre **todos** os lugares onde o dado aparece:
+  - `contacts` (nome, e-mail, documento, `custom`, notas; telefone substituído
+    por um hash);
+  - `messages.content` e mídia no Storage das conversas do contato;
+  - `internal_notes` dessas conversas;
+  - `inbound_events.payload` do telefone;
+  - `ticket_events.meta`, `tickets.close_note`;
+  - `conversations.contact_name` / `contact_phone`;
+  - (subprojeto 3) `flow_runs.vars`, `tickets.rating_comment`.
+  Mantém protocolos, horários e motivos (métricas). Backups expiram em até
+  12 meses, conforme contrato.
+- **Campos sensíveis**: `contact_fields.sensitive` (ex.: CPF, convênio) são
+  mascarados na interface (`***.***.***-12`) até um clique em "mostrar".
+- **Retenção configurável** por organização (`settings.retention_months`,
+  padrão desligado): um job mensal anonimiza contatos sem atendimento há mais
+  de N meses. Recomendado ligar; o cliente decide (é o controlador).
 
 ### 7.2 Etiquetas
 

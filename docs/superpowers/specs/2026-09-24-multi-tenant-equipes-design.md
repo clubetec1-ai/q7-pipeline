@@ -548,3 +548,94 @@ Registra a exportação no `audit_log`.
 
 O runbook é executado de verdade uma vez, em homologação, antes de ser
 considerado pronto.
+
+## 16. Revisão de segurança e LGPD (transversal aos subprojetos 1–3)
+
+Achados da revisão feita após o desenho dos três subprojetos. Cada item é
+requisito de implementação do subprojeto indicado.
+
+### 16.1 Banco e API (subprojeto 1)
+
+1. **Privilégios do `anon`.** As permissões padrão do Supabase concedem acesso
+   ao papel `anon` em tabelas novas de `public`. A migration faz
+   `REVOKE ALL ON ALL TABLES/SEQUENCES/FUNCTIONS IN SCHEMA public FROM anon` e
+   ajusta `ALTER DEFAULT PRIVILEGES` para que tabelas futuras nasçam sem
+   acesso do `anon`. Todas as policies novas usam `TO authenticated`.
+2. **Funções expostas como RPC.** Toda função em `public` é chamável pela API.
+   Regras: funções internas ficam em `private` (não exposto); funções RPC em
+   `public` começam validando `auth.uid()` e permissão; `REVOKE EXECUTE … FROM
+   PUBLIC, anon` em todas.
+3. **Sentinelas adicionais** em `isolation.sql`: falha se `anon` tiver qualquer
+   privilégio em tabela de `public`; falha se houver função `SECURITY DEFINER`
+   em `public` executável por `anon`; falha se alguma função `SECURITY
+   DEFINER` não tiver `search_path` fixo.
+4. **Realtime**: usar só `postgres_changes` (respeita RLS). Não usar canais
+   `broadcast`/`presence` públicos; se forem necessários no futuro, só com
+   canais privados e Realtime Authorization.
+5. **Enumeração de e-mails**: `manage-members` responde de forma idêntica se o
+   e-mail convidado já tem conta ou não.
+6. **Membro desativado**: além de perder acesso pela RLS (imediato), tem as
+   sessões encerradas (`auth.admin.signOut` no escopo global).
+
+### 16.2 Logs (subprojeto 1)
+
+7. **Dado pessoal em log.** Hoje o webhook registra telefone completo
+   (`console.log` com `phone`). Regra: logs nunca contêm conteúdo de mensagem,
+   nome ou telefone completo; telefone aparece mascarado (`5511*****4321`);
+   ids internos são permitidos. Helper `_shared/log.ts` com a máscara;
+   revisão de código confere.
+8. O segredo da Uazapi vai na query string (`?k=`) e pode aparecer em logs de
+   requisição da plataforma. Aceito (acesso aos logs é restrito aos
+   operadores); o segredo pode ser trocado a qualquer momento pela tela do
+   número.
+
+### 16.3 Frontend e hospedagem (subprojeto 1)
+
+9. **Cabeçalhos de segurança** no `vercel.json`: `Content-Security-Policy`
+   (scripts só do próprio domínio; `connect-src` só o Supabase do projeto;
+   `frame-ancestors 'none'`), `Strict-Transport-Security`,
+   `X-Content-Type-Options: nosniff`, `Referrer-Policy:
+   strict-origin-when-cross-origin`, `Permissions-Policy` (microfone só
+   `self`, para o áudio; câmera e geolocalização desligadas).
+10. **XSS**: o token de sessão do Supabase fica no `localStorage`, então XSS =
+    sequestro de conta. Regras: proibido `dangerouslySetInnerHTML` com dado de
+    usuário/cliente (lint); links em mensagens com `rel="noopener noreferrer"`
+    e só `http(s)`; a CSP acima é a segunda barreira.
+11. **Senhas e login**: mínimo de 10 caracteres, proteção contra senhas
+    vazadas, limites de tentativa do Supabase Auth. **MFA:** obrigatório para
+    operadores; `require_mfa_admins` passa a vir **ligado por padrão** para
+    owner e admin (podem desligar, fica no `audit_log`).
+12. **Dependências**: Dependabot e `npm audit --audit-level=high` no CI; a
+    dependência `xlsx` via CDN fica fixada por versão.
+
+### 16.4 Operação (subprojeto 1)
+
+13. **Acesso de suporte** notifica o owner da organização por e-mail no momento
+    da abertura (além do aviso na tela e do `audit_log`).
+14. **Retenção do `audit_log`**: 5 anos; apagamento só por job da plataforma.
+15. **Encerramento de organização** (cliente cancela): exportação entregue
+    (`export-org`), organização suspensa, **exclusão definitiva após 30 dias**
+    (com confirmação de um operador, registrada), incluindo Storage e segredos
+    do Vault. Os backups expiram naturalmente em até 12 meses — informado no
+    contrato.
+16. Job de backup: `set +x` e mascaramento de segredos nos logs do GitHub
+    Actions; nenhum arquivo em claro gravado no runner.
+
+### 16.5 LGPD — papéis e documentos (fora do código, pré-requisito de venda)
+
+17. **Papéis**: o cliente (organização) é o **controlador** dos dados dos
+    contatos dele; a Clubetec é **operadora**. Necessário: Termos de Uso +
+    **Contrato de Tratamento de Dados (DPA)** com a lista de suboperadores:
+    Supabase, Vercel, Groq (IA e transcrição), Meta, Uazapi, Backblaze.
+18. **Transferência internacional**: Groq, Vercel e Backblaze processam fora do
+    Brasil. Deve constar no DPA. O projeto Supabase de produção compartilhada
+    deve ficar na região **São Paulo (`sa-east-1`)**; a região do projeto atual
+    será conferida e, se for outra, isso entra na decisão de onde criar a
+    instalação compartilhada.
+19. **Encarregado (DPO)** da Clubetec identificado na política de privacidade
+    publicada.
+20. **Incidente**: o runbook (§15.8) ganha a seção "vazamento de dados":
+    conter, avaliar, comunicar clientes afetados e ANPD no prazo legal.
+21. **Monitoramento de funcionários**: presença e tempo de pausa dos
+    atendentes (subprojeto 2) são dados pessoais dos funcionários do cliente —
+    mencionado nos Termos, para o cliente informar a própria equipe.
