@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { getUazapiConfig } from "../_shared/get-uazapi-config.ts";
+import * as providers from "../_shared/providers/index.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -35,9 +36,26 @@ serve(async (req) => {
       const admin = createClient(supabaseUrl, serviceKey);
       const { data: instRow } = await admin
         .from("whatsapp_instances")
-        .select("server_url, instance_token, user_id")
+        .select("*")
         .eq("instance_token", instance_token)
         .maybeSingle();
+
+      // Número da Cloud API não tem servidor Uazapi: o envio manual passa pelo
+      // mesmo despacho que a IA e os follow-ups usam, antes de o fallback
+      // abaixo exigir uma configuração da Uazapi que esse número não tem.
+      if (action === "send_text" && instRow && providers.providerOf(instRow) === "cloud") {
+        const { number, text } = body;
+        if (!number || !text) {
+          return json({ ok: false, error: "Número e texto são obrigatórios" });
+        }
+        const enviado = await providers.sendText(instRow, number, text);
+        if (!enviado.ok) {
+          console.error("[send_text] cloud falhou", { code: enviado.code });
+          return json({ ok: false, error: enviado.error || "Falha ao enviar mensagem" });
+        }
+        return json({ ok: true, success: true });
+      }
+
       if (instRow?.server_url) {
         baseUrl = instRow.server_url.replace(/\/$/, "");
         instance_token = instRow.instance_token;
