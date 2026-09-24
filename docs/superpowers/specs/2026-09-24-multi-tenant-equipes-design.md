@@ -415,6 +415,8 @@ na Clubetec: mensagem chega, IA responde, atendente convidado vê a fila.
 
 ## 12. Implantação
 
+0. **Backup externo (§15) funcionando e com uma restauração testada** — é a
+   primeira entrega deste subprojeto e precisa existir antes da migration.
 1. **Homologação:** projeto Supabase separado (o plano Free permite 2). Aplica
    todas as migrations, popula dados fictícios, roda §11.
 2. **Backup de produção:** `supabase db dump` antes de aplicar.
@@ -443,3 +445,106 @@ na Clubetec: mensagem chega, IA responde, atendente convidado vê a fila.
    (enviar arquivo, transferir, finalizar), pesquisa de satisfação.
 4. Gestão de vários números (Meta e Uazapi) na interface, cada um ligado a um
    fluxo.
+
+## 15. Backup externo e recuperação de desastre
+
+### 15.1 Objetivo
+
+Sobreviver ao pior caso — conta do Supabase comprometida, projeto apagado,
+ransomware, erro humano em migration — com os dados guardados **fora do
+Supabase**, cifrados e **imutáveis**.
+
+Metas: **RTO 4 h** (sistema de volta) e **RPO 24 h** (perda máxima). Com o PITR
+do Supabase Pro (add-on pago, opcional), o RPO do dia a dia cai para minutos; o
+backup externo continua sendo a defesa contra comprometimento da conta.
+
+### 15.2 Destino: Backblaze B2
+
+| Bucket | Conteúdo | Object lock (modo compliance) | Ciclo de vida |
+|---|---|---|---|
+| `clubecrm-backup-daily` | dump diário + segredos + mídia | 35 dias | apaga após 36 dias |
+| `clubecrm-backup-monthly` | dump do dia 1 + segredos | 365 dias | apaga após 366 dias |
+
+- Modo **compliance**: nem a conta dona do bucket consegue apagar ou encurtar a
+  retenção antes do prazo.
+- A chave de aplicação usada pelo job tem só `listFiles` e `writeFiles` nos dois
+  buckets — sem `deleteFiles`, sem acesso a outros buckets.
+
+### 15.3 O que é copiado
+
+1. **Banco inteiro**, pelo procedimento oficial da Supabase para backup via CLI
+   (arquivos de roles, schema e dados), incluindo `auth.users` — sem isso
+   ninguém consegue logar após a restauração.
+2. **Segredos do Vault**, em arquivo separado. Motivo: o Vault é cifrado com
+   chave do próprio projeto; restaurado em outro projeto, não abre. O job lê
+   `vault.decrypted_secrets` e envia **direto por pipe** para a cifragem — o
+   conteúdo em claro nunca toca o disco do runner.
+3. **Arquivos do Storage** (bucket `media`), copiados de forma incremental
+   (`rclone copy`, sem deleções) para `media/` no bucket diário, com
+   `rclone crypt`.
+
+### 15.4 Cifragem
+
+- Dump e segredos: cifrados com **age** usando uma **chave pública** versionada
+  no repositório. A **chave privada fica offline** (cofre de senhas + mídia
+  física), fora de qualquer servidor ou do GitHub. Quem obtiver só o backup não
+  consegue ler o banco. (Exceção documentada em §15.6: a chave do teste
+  automático de restauração.)
+- Mídia: `rclone crypt` com senha em segredo do GitHub (também guardada
+  offline). Trade-off aceito: quem comprometer os segredos do GitHub consegue
+  ler a mídia copiada, mas não apagá-la (object lock).
+
+### 15.5 Execução
+
+- `.github/workflows/backup.yml`: agendado diariamente às 03:00 (Brasília);
+  no dia 1 grava também no bucket mensal.
+- Scripts em `scripts/backup/`.
+- Segredos do GitHub: string de conexão do banco (pooler de sessão), chave B2,
+  senha do `rclone crypt`, URL de pulso do monitor.
+- **Alertas:** falha do workflow → e-mail do GitHub; e um monitor "dead man's
+  switch" (healthchecks.io, gratuito) que avisa se o backup **não rodar** em 26 h.
+
+### 15.6 Teste de restauração mensal
+
+`.github/workflows/restore-test.yml`, dia 2 de cada mês:
+1. sobe um container `supabase/postgres` da mesma versão do projeto;
+2. baixa e decifra o backup mais recente (a chave privada **não** vai para o
+   GitHub: o teste usa um par de chaves próprio, e o job diário cifra para
+   **dois destinatários** — a chave offline e a chave de teste);
+3. restaura, compara contagem de linhas das tabelas principais com a registrada
+   no dia do backup e roda `supabase/tests/isolation.sql`;
+4. falhou → alerta.
+
+O teste usa uma chave B2 própria, **só de leitura** (`listFiles`, `readFiles`),
+diferente da chave do job diário.
+
+**Trade-off explícito:** a chave privada de teste e a chave B2 de leitura ficam
+nos segredos do GitHub. Quem comprometer a conta do GitHub consegue **ler** o
+backup do banco (não consegue apagá-lo). Isso contradiz a garantia de §15.4 para
+o caso "GitHub comprometido" e foi aceito porque um backup nunca restaurado é um
+risco maior. Mitigações obrigatórias: 2FA em todas as contas com acesso ao
+repositório; repositório privado; a chave de teste pode ser trocada a qualquer
+momento sem invalidar backups antigos (a chave offline continua valendo).
+Alternativa mais restrita, se preferida no futuro: teste manual mensal na
+máquina de um operador, com a chave offline.
+
+### 15.7 Exportação por organização
+
+`scripts/export-org.mjs <organization_id>`: extrai todas as linhas da
+organização (tabela por tabela, filtrando por `organization_id`) e seus
+arquivos, em JSON + pasta de mídia, cifrado com age. Usos:
+- restaurar **um** cliente na instalação compartilhada sem afetar os outros;
+- entregar os dados a um cliente que cancela (portabilidade, LGPD).
+
+Registra a exportação no `audit_log`.
+
+### 15.8 Runbook de desastre
+
+`docs/runbook-desastre.md`, passo a passo para:
+- **Supabase fora do ar** (aguardar vs. subir em outro projeto);
+- **conta comprometida** (trocar credenciais, novo projeto, restaurar, trocar
+  segredos da Meta/Uazapi/Groq, apontar webhooks, redeploy na Vercel);
+- **erro de dados** (restaurar uma organização com `export-org` / import).
+
+O runbook é executado de verdade uma vez, em homologação, antes de ser
+considerado pronto.
