@@ -72,6 +72,11 @@ export function ConfigDrawer({ open, onOpenChange }: Props) {
   const [serverUrl, setServerUrl] = useState("");
   const [instanceToken, setInstanceToken] = useState("");
   const [hasInstanceToken, setHasInstanceToken] = useState(false);
+  const [provider, setProvider] = useState<"uazapi" | "cloud">("uazapi");
+  const [phoneNumberId, setPhoneNumberId] = useState("");
+  const [wabaId, setWabaId] = useState("");
+  const [accessToken, setAccessToken] = useState("");
+  const [savingCloud, setSavingCloud] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [connectStep, setConnectStep] = useState("");
   const [webhookOk, setWebhookOk] = useState<boolean | null>(null);
@@ -102,7 +107,7 @@ export function ConfigDrawer({ open, onOpenChange }: Props) {
     if (!user) return;
     const { data } = await supabase
       .from("whatsapp_instances")
-      .select("id,name,phone,status,server_url,instance_token")
+      .select("id,name,phone,status,server_url,instance_token,provider,phone_number_id,waba_id")
       .eq("user_id", user.id)
       .order("updated_at", { ascending: false })
       .limit(1)
@@ -114,6 +119,10 @@ export function ConfigDrawer({ open, onOpenChange }: Props) {
       setInstanceConnected(data.status === "connected");
       setServerUrl(data.server_url || "");
       setHasInstanceToken(!!data.instance_token);
+      setProvider(data.provider === "cloud" ? "cloud" : "uazapi");
+      setPhoneNumberId(data.phone_number_id || "");
+      setWabaId(data.waba_id || "");
+      setAccessToken("");
     }
   };
 
@@ -297,6 +306,70 @@ export function ConfigDrawer({ open, onOpenChange }: Props) {
     }
   };
 
+  /**
+   * Grava a configuracao da Cloud API.
+   *
+   * O access token so viaja quando o campo tem conteudo. Assim, quem abriu a
+   * tela para corrigir o WABA ID nao precisa colar o token de novo — e, mais
+   * importante, nao o apaga sem perceber ao salvar com o campo vazio.
+   */
+  const saveCloud = async () => {
+    if (!user) return;
+    if (!phoneNumberId.trim() || !wabaId.trim()) {
+      toast({ variant: "destructive", title: "Preencha o Phone Number ID e o WABA ID" });
+      return;
+    }
+    if (!instanceId && !accessToken.trim()) {
+      toast({ variant: "destructive", title: "Cole o Access Token para conectar pela primeira vez" });
+      return;
+    }
+
+    setSavingCloud(true);
+    try {
+      const patch = {
+        provider: "cloud",
+        phone_number_id: phoneNumberId.trim(),
+        waba_id: wabaId.trim(),
+        server_url: null,
+        status: "connected",
+        ...(accessToken.trim() ? { instance_token: accessToken.trim() } : {}),
+      };
+
+      if (instanceId) {
+        const { error } = await supabase
+          .from("whatsapp_instances")
+          .update(patch)
+          .eq("id", instanceId)
+          .eq("user_id", user.id);
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase
+          .from("whatsapp_instances")
+          .insert({ ...patch, user_id: user.id, name: "WhatsApp Cloud API" })
+          .select("id")
+          .single();
+        if (error) throw error;
+        setInstanceId(data.id);
+      }
+
+      setAccessToken("");
+      setHasInstanceToken(true);
+      toast({
+        title: "Cloud API configurada",
+        description: "Este numero passa a enviar e receber pela API oficial da Meta.",
+      });
+      loadUazapi();
+    } catch (e: unknown) {
+      toast({
+        variant: "destructive",
+        title: "Nao foi possivel salvar",
+        description: e instanceof Error ? e.message : undefined,
+      });
+    } finally {
+      setSavingCloud(false);
+    }
+  };
+
   const webhookUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/whatsapp-webhook`;
 
   const copyWebhook = async () => {
@@ -380,8 +453,105 @@ export function ConfigDrawer({ open, onOpenChange }: Props) {
           {/* Conexão Uazapi (por usuário) */}
           <section className="space-y-3">
             <h3 className="font-semibold text-sm flex items-center gap-2">
-              <Smartphone className="w-4 h-4 text-primary" /> Conexão Uazapi
+              <Smartphone className="w-4 h-4 text-primary" /> Conexão WhatsApp
             </h3>
+
+            <div className="flex gap-1 rounded-lg border border-border p-1">
+              <button
+                type="button"
+                onClick={() => setProvider("cloud")}
+                className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition ${
+                  provider === "cloud"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                API oficial (Meta)
+              </button>
+              <button
+                type="button"
+                onClick={() => setProvider("uazapi")}
+                className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition ${
+                  provider === "uazapi"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Uazapi
+              </button>
+            </div>
+
+            {provider === "cloud" && (
+              <div className="space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  Os três valores ficam em{" "}
+                  <span className="font-medium">WhatsApp → Configuração da API</span> no
+                  painel da Meta. O número precisa estar registrado lá antes.
+                </p>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Phone Number ID</Label>
+                  <Input
+                    value={phoneNumberId}
+                    onChange={(e) => setPhoneNumberId(e.target.value)}
+                    placeholder="1303429602856665"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs">WhatsApp Business Account ID</Label>
+                  <Input
+                    value={wabaId}
+                    onChange={(e) => setWabaId(e.target.value)}
+                    placeholder="1772172033902500"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs">
+                    Access Token{" "}
+                    {hasInstanceToken && (
+                      <span className="text-muted-foreground">(configurado)</span>
+                    )}
+                  </Label>
+                  <Input
+                    type="password"
+                    value={accessToken}
+                    onChange={(e) => setAccessToken(e.target.value)}
+                    placeholder={
+                      hasInstanceToken
+                        ? "•••••••• (deixe vazio para manter)"
+                        : "cole o token permanente da Meta"
+                    }
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Token permanente dá controle de envio do seu WhatsApp. Se ele vazar,
+                    gere outro no painel da Meta — o novo invalida o anterior.
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs">URL do webhook</Label>
+                  <div className="flex gap-2">
+                    <Input value={webhookUrl} readOnly className="font-mono text-[11px]" />
+                    <Button variant="outline" size="icon" onClick={copyWebhook} title="Copiar">
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Cole em Etapa 2 → Configurar webhooks, no painel da Meta, e assine o
+                    campo <span className="font-mono">messages</span>.
+                  </p>
+                </div>
+
+                <Button onClick={saveCloud} disabled={savingCloud} className="w-full" size="sm">
+                  {savingCloud ? "Salvando..." : "Salvar conexão"}
+                </Button>
+              </div>
+            )}
+
+            {provider === "uazapi" && (
+              <>
             <p className="text-xs text-muted-foreground">
               Cole o Server URL e o Instance Token da sua instância na Uazapi. O
               resto é automático: identificamos a instância e registramos o
@@ -445,6 +615,8 @@ export function ConfigDrawer({ open, onOpenChange }: Props) {
                   />
                 )}
               </div>
+            )}
+              </>
             )}
           </section>
 

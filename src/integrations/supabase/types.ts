@@ -84,7 +84,8 @@ export type Database = {
           human_takeover_at: string | null
           id: string
           inactivity_followup_at: string | null
-          instance_id: string | null
+          instance_id: string
+          last_inbound_at: string | null
           last_message_at: string
           stage_id: string | null
           updated_at: string
@@ -99,7 +100,8 @@ export type Database = {
           human_takeover_at?: string | null
           id?: string
           inactivity_followup_at?: string | null
-          instance_id?: string | null
+          instance_id: string
+          last_inbound_at?: string | null
           last_message_at?: string
           stage_id?: string | null
           updated_at?: string
@@ -114,7 +116,8 @@ export type Database = {
           human_takeover_at?: string | null
           id?: string
           inactivity_followup_at?: string | null
-          instance_id?: string | null
+          instance_id?: string
+          last_inbound_at?: string | null
           last_message_at?: string
           stage_id?: string | null
           updated_at?: string
@@ -314,11 +317,14 @@ export type Database = {
           last_disconnected_at: string | null
           name: string
           phone: string | null
+          phone_number_id: string | null
           profile_name: string | null
+          provider: string
           server_url: string | null
           status: string
           updated_at: string
           user_id: string
+          waba_id: string | null
         }
         Insert: {
           created_at?: string
@@ -327,11 +333,14 @@ export type Database = {
           last_disconnected_at?: string | null
           name: string
           phone?: string | null
+          phone_number_id?: string | null
           profile_name?: string | null
+          provider?: string
           server_url?: string | null
           status?: string
           updated_at?: string
           user_id: string
+          waba_id?: string | null
         }
         Update: {
           created_at?: string
@@ -340,11 +349,14 @@ export type Database = {
           last_disconnected_at?: string | null
           name?: string
           phone?: string | null
+          phone_number_id?: string | null
           profile_name?: string | null
+          provider?: string
           server_url?: string | null
           status?: string
           updated_at?: string
           user_id?: string
+          waba_id?: string | null
         }
         Relationships: []
       }
