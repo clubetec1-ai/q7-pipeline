@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { getAgentConfig, callGroq } from "../_shared/get-ai-config.ts";
 import { getUazapiConfig } from "../_shared/get-uazapi-config.ts";
+import * as providers from "../_shared/providers/index.ts";
 
 const BATCH = 20;
 
@@ -119,21 +120,35 @@ serve(async (req) => {
         }
       }
 
-      // Envia via Uazapi (prefere config por instância; fallback global)
-      const token = inst.instance_token || uaz?.instanceToken;
-      const serverUrl = (inst.server_url as string | null)?.replace(/\/$/, "") || uaz?.serverUrl;
-      if (!token || !serverUrl) {
-        await supabase.from("followups").update({ status: "failed", error: "no uazapi server/token" }).eq("id", f.id);
+      // Janela de 24h da Meta: fora dela so template aprovado passa. Enviar
+      // assim mesmo gastaria a tentativa e voltaria erro 131047 cru. Em
+      // instancia Uazapi isso nao se aplica e isWindowOpen devolve true.
+      if (!providers.isWindowOpen(inst, conv.last_inbound_at)) {
+        await supabase
+          .from("followups")
+          .update({
+            status: "failed",
+            error: "janela de 24h fechada — exige template aprovado pela Meta",
+          })
+          .eq("id", f.id);
         continue;
       }
-      const sendRes = await fetch(`${serverUrl}/send/text`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", token },
-        body: JSON.stringify({ number: conv.contact_phone, text }),
-      });
-      if (!sendRes.ok) {
-        const errText = await sendRes.text();
-        await supabase.from("followups").update({ status: "failed", error: `uazapi ${sendRes.status}: ${errText.slice(0, 300)}` }).eq("id", f.id);
+
+      // Instancia antiga sem config propria cai no ajuste global da Uazapi.
+      if (providers.providerOf(inst) === "uazapi" && !inst.server_url) {
+        inst.server_url = uaz?.serverUrl ?? null;
+        inst.instance_token = inst.instance_token || uaz?.instanceToken || null;
+      }
+
+      const enviado = await providers.sendText(inst, conv.contact_phone, text);
+      if (!enviado.ok) {
+        await supabase
+          .from("followups")
+          .update({
+            status: "failed",
+            error: (enviado.error || "falha no envio").slice(0, 300),
+          })
+          .eq("id", f.id);
         continue;
       }
 
