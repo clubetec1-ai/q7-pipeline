@@ -105,8 +105,57 @@ function extractText(body: any) {
   return { text, media, fromMe, phone, isGroup, contactName, instanceName, instanceToken, instanceOwner, message: m };
 }
 
+/**
+ * Verificacao do webhook da Meta (WhatsApp Cloud API).
+ *
+ * A Meta valida a URL com um GET contendo hub.mode, hub.verify_token e
+ * hub.challenge. Se o token conferir, precisamos devolver o challenge cru,
+ * como texto puro — JSON aqui faz a Meta recusar a URL.
+ *
+ * O token esperado fica em app_settings.meta_verify_token. A Uazapi nao usa
+ * este caminho: ela so chama por POST.
+ */
+async function handleMetaVerification(req: Request) {
+  const url = new URL(req.url);
+  const mode = url.searchParams.get("hub.mode");
+  const token = url.searchParams.get("hub.verify_token");
+  const challenge = url.searchParams.get("hub.challenge");
+
+  if (mode !== "subscribe" || !token || !challenge) {
+    console.log("[webhook] GET sem parametros de verificacao", { mode, hasToken: !!token });
+    return new Response("not a verification request", { status: 400, headers: corsHeaders });
+  }
+
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+  const { data } = await supabase
+    .from("app_settings")
+    .select("value")
+    .eq("key", "meta_verify_token")
+    .maybeSingle();
+
+  const expected = (data?.value || "").trim();
+  if (!expected) {
+    console.error("[webhook] meta_verify_token nao configurado em app_settings");
+    return new Response("verify token not configured", { status: 500, headers: corsHeaders });
+  }
+  if (token !== expected) {
+    console.error("[webhook] verificacao recusada: token divergente");
+    return new Response("forbidden", { status: 403, headers: corsHeaders });
+  }
+
+  console.log("[webhook] verificacao da Meta aceita");
+  return new Response(challenge, {
+    status: 200,
+    headers: { ...corsHeaders, "Content-Type": "text/plain" },
+  });
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "GET") return await handleMetaVerification(req);
 
   try {
     const body = await req.json();
