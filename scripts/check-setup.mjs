@@ -5,7 +5,7 @@
  *   npm run check                      # usa o .env local
  *   npm run check -- <URL> <ANON_KEY>  # verifica um projeto específico
  *
- * Confere, em ordem: variáveis de ambiente → conexão com a API → as 9 tabelas
+ * Confere, em ordem: variáveis de ambiente → conexão com a API → as 21 tabelas
  * → as 5 edge functions. Sai com código 1 se algo estiver faltando, então
  * serve tanto para humano quanto para automação.
  *
@@ -51,6 +51,10 @@ function get(url, init = {}) {
 const TABLES = [
   "profiles", "user_roles", "whatsapp_instances", "pipeline_stages",
   "conversations", "messages", "agent_configs", "followups", "app_settings",
+  // multi-tenant (migrations 20260925*)
+  "organizations", "organization_members", "departments", "department_members",
+  "teams", "team_members", "platform_operators", "support_access", "audit_log",
+  "org_templates", "org_secrets", "inbound_events",
 ];
 
 const FUNCTIONS = [
@@ -116,7 +120,7 @@ async function main() {
   }
 
   // --- 3. Tabelas ---------------------------------------------------------
-  head("3. Schema do banco (9 tabelas)");
+  head("3. Schema do banco (21 tabelas)");
   let missing = 0;
   for (const t of TABLES) {
     try {

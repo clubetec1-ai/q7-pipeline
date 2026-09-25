@@ -208,3 +208,14 @@
 
 - **1C (Edge Functions):** `_shared/tenant.ts` (`forOrg`), `_shared/secrets.ts`, webhook com `inbound_events` + assinatura Meta/segredo Uazapi, `manage-members`, `platform-orgs`, `process-inbound`, `x-cron-secret`, leitura de segredos pelo Vault e **anulação das colunas antigas de segredo**.
 - **1D (Frontend):** `OrgContext`, telas Equipe (membros, departamentos, grupos), Plataforma, Convite, suspensa, seletor de organização, aviso de suporte, MFA, segredos "configurada ✓".
+
+## Notas da execução (25/09/2026)
+
+- Executado inline, aplicado no projeto `ulmndwlralgjbwlebxmo`. `isolation.sql` verde (19 grupos de casos); sanidade confirmou que falhas aparecem como erro no `execute_sql`.
+- `my_permissions` entrou na Task 2 (org_core), não na 6.
+- `handle_new_user` ficou provisoriamente só com o perfil na Task 3 (o antigo semeava etapas sem organização); a versão final com criação da org na instalação vazia está na Task 6.
+- Migration extra `20260925000600_revoke_legacy_has_role.sql`: `has_role` exposto via RPC permitia consultar o papel de outro usuário.
+- `agent_configs.user_id` mantém UNIQUE porque o ConfigDrawer faz upsert por `user_id` (troca no 1D).
+- **Trade-off aberto até 1C/1D:** `whatsapp_instances.instance_token` e `agent_configs.groq_api_key` continuam em texto (cópia conferida no Vault). `agent_configs` já é visível só a owner/admin; o token da instância é legível por membros da própria organização até o 1C anular a coluna.
+- `get_advisors`: restam só itens esperados (tabelas de backend sem policy; RPCs `SECURITY DEFINER` com checagem interna). **Pendente do usuário:** ligar *Leaked password protection* em Authentication → Sign In / Providers → Email.
+- Regeneração de `src/integrations/supabase/types.ts` fica para o 1D (frontend), onde os tipos novos passam a ser usados.
