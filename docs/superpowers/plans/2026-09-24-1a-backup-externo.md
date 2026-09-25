@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Backup diário do banco, dos segredos do Vault e do Storage do ClubeCRM para o Backblaze B2, cifrado e imutável, com teste de restauração mensal automático e runbook de desastre.
+**Goal:** Backup diário do banco, dos segredos do Vault e do Storage do ClubeCRM, cifrado e imutável, com teste de restauração mensal automático e runbook de desastre. O destino é **plugável**: Backblaze B2 é o padrão, e o mesmo código atende Amazon S3, Wasabi, Cloudflare R2, Magalu Cloud, Google Cloud Storage, Azure Blob, qualquer S3 compatível e, como destino secundário, Google Drive, OneDrive, Dropbox e SFTP. Também há um segundo destino opcional (regra 3-2-1).
 
-**Architecture:** Dois workflows do GitHub Actions (fora do Supabase) chamam scripts bash em `scripts/backup/`. O dump segue o procedimento oficial da Supabase (roles/schema/data), é empacotado e cifrado com `age` para dois destinatários (chave offline + chave de teste) e enviado ao B2 com `rclone`. Mídia vai por `rclone sync` para um remoto `crypt`. A restauração de teste sobe a stack local da Supabase no runner, restaura e compara a contagem de linhas.
+**Architecture:** Dois workflows do GitHub Actions (fora do Supabase) chamam scripts bash em `scripts/backup/`. O dump segue o procedimento oficial da Supabase (roles/schema/data), é empacotado, cifrado com `age` para dois destinatários (chave offline + chave de teste) e enviado com `rclone` para o remoto `dest:`. Opcionalmente, também vai para `dest2:`. `destinations.sh` traduz `BACKUP_PROVIDER` e as credenciais em configuração do rclone por variáveis de ambiente, sem arquivo em disco. A mídia vai por `rclone sync` para um remoto `crypt` sobre cada destino. A cada execução, a prova de não-apagamento confirma que a chave do backup não consegue apagar o que gravou. A restauração de teste sobe a stack local da Supabase no runner, restaura e compara a contagem de linhas.
 
-**Tech Stack:** GitHub Actions (`ubuntu-24.04`), Supabase CLI 2.117.0, `age`, `rclone`, `psql` (postgresql-client), `jq`, Backblaze B2 (object lock), healthchecks.io.
+**Tech Stack:** GitHub Actions (`ubuntu-24.04`), Supabase CLI 2.117.0, `age`, `rclone` (binário oficial fixado com SHA-256), `psql` (postgresql-client), `jq`, armazenamento de objetos com retenção imutável (B2 por padrão), healthchecks.io.
 
 **Spec:** `docs/superpowers/specs/2026-09-24-multi-tenant-equipes-design.md` §15 e §16.4 item 16, §16.5 itens 17–18.
 
@@ -14,10 +14,12 @@
 
 - Projeto Supabase: ref `ulmndwlralgjbwlebxmo`, região `sa-east-1`, Postgres **17**.
 - Repositório: `clubetec1-ai/q7-pipeline` (privado). Workflows agendados só rodam a partir da `main`.
-- Buckets B2 (nomes exatos): `clubecrm-backup-daily` (lock 35 d), `clubecrm-backup-monthly` (lock 365 d), `clubecrm-backup-media` (lock 35 d). Modo **compliance**.
+- Buckets (nomes padrão, renomeáveis por variável): `clubecrm-backup-daily` (lock 35 d), `clubecrm-backup-monthly` (lock 365 d), `clubecrm-backup-media` (lock 35 d). Modo **compliance** (ou o equivalente do provedor).
+- Configuração do destino: **não secreta** em *Actions variables* (`vars.BACKUP_PROVIDER`, região, endpoint, nomes de bucket); **secreta** em *Actions secrets* (`BACKUP_KEY_ID`, `BACKUP_SECRET`, `BACKUP_RCLONE_OPTS`). O mesmo vale para `BACKUP2_*`.
+- Nenhum script menciona um provedor fixo fora de `destinations.sh`. Trocar de provedor = trocar variáveis e segredos, sem alterar código.
 - Horário: diário às 06:00 UTC (03:00 Brasília); teste de restauração dia 2, 09:00 UTC.
 - **Nenhum conteúdo em claro** (dump, segredos) é gravado no disco do runner fora de `mktemp -d` com `umask 077`; segredos do Vault só em pipe. Scripts nunca usam `set -x`.
-- Nomes de arquivo no B2: `db/db-<AAAA-MM-DDTHHMMZ>.tar.gz.age`, `secrets/secrets-<AAAA-MM-DDTHHMMZ>.json.age`.
+- Nomes de arquivo no destino: `db/db-<AAAA-MM-DDTHHMMZ>.tar.gz.age`, `secrets/secrets-<AAAA-MM-DDTHHMMZ>.json.age`.
 - Chave privada offline **nunca** entra no repositório nem no GitHub. A chave de teste fica só no segredo `AGE_TEST_KEY`.
 - Tarefas marcadas **[USUÁRIO]** envolvem criar contas, gerar ou colar credenciais: o agente não executa, só orienta e espera confirmação.
 - Mensagens de commit em português, no estilo do repositório, terminando com `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
@@ -29,7 +31,10 @@
 | Arquivo | Responsabilidade |
 |---|---|
 | `scripts/backup/recipients.txt` | chaves **públicas** age (offline + teste), uma por linha |
-| `scripts/backup/rclone-env.sh` | exporta a configuração do rclone a partir de variáveis de ambiente (sem arquivo de config) |
+| `scripts/backup/destinations.sh` | traduz `BACKUP_PROVIDER` + credenciais em remoto do rclone; helpers `bucket_for`, `prefix_of`, `lock_probe` |
+| `scripts/backup/rclone-env.sh` | monta os remotos `dest:`, `dest2:` (opcional), `supa:`, `media:`/`media2:` a partir de variáveis de ambiente (sem arquivo de config) |
+| `scripts/backup/install-rclone.sh` | instala o binário oficial do rclone numa versão fixa, conferindo o SHA-256 |
+| `docs/backup-destinos.md` | por provedor: como criar os buckets, ligar a trava, criar a chave mínima e quais variáveis preencher |
 | `scripts/backup/row-counts.sh` | imprime `schema.tabela<TAB>linhas` para as tabelas de `public`, `auth.users`, `storage.objects` |
 | `scripts/backup/backup.sh` | dump + manifesto + cifragem + upload + mídia + pulso do monitor |
 | `scripts/backup/restore-test.sh` | baixa o último backup, decifra, restaura na stack local, compara contagens |
@@ -38,7 +43,7 @@
 | `.github/workflows/restore-test.yml` | agenda e executa `restore-test.sh` |
 | `supabase/config.toml` | + `[db] major_version = 17` (a stack local precisa casar com o projeto) |
 | `docs/runbook-desastre.md` | passo a passo de recuperação e de incidente de dados |
-| `public/privacidade.html` | + Backblaze como suboperador |
+| `public/privacidade.html` | + provedor(es) de backup escolhido(s) como suboperador(es) |
 
 ---
 
@@ -59,7 +64,9 @@ Esta branch vira PR para a `main` ao final do plano — o agendamento só vale d
 
 O agente apresenta este checklist ao usuário, **um bloco por vez**, e espera a confirmação de cada um. Nenhum valor de segredo deve ser colado no chat.
 
-**1.1 Backblaze B2** — https://www.backblaze.com/sign-up/cloud-storage
+**1.1 Destino do backup** — o padrão é o Backblaze B2 (passo a passo abaixo). Para outro provedor, seguir a seção dele em `docs/backup-destinos.md` (Task 2, Step 6): as regras são as mesmas — 3 buckets privados, trava de retenção nos prazos abaixo, chave de gravação **sem** permissão de apagar em `daily`/`monthly`, chave separada só de leitura. Se quiser um destino secundário (3-2-1), repetir para o segundo provedor.
+
+Backblaze B2 — https://www.backblaze.com/sign-up/cloud-storage
 
 - [ ] Criar a conta (com 2FA ligado em *My Settings*).
 - [ ] *Buckets → Create a Bucket*, três vezes, cada um **Private** e com **Object Lock: Enable** (só dá para ligar na criação):
@@ -100,6 +107,18 @@ age-keygen -o "$env:TEMP\clubecrm-backup-TESTE.txt"
 
 - [ ] Conferir 2FA em todas as contas com acesso ao repositório.
 - [ ] Gerar duas senhas longas aleatórias para o `rclone crypt` (ex.: gerenciador de senhas, 40+ caracteres) e guardá-las também no cofre offline.
+- [ ] Criar as *Repository variables* (aba **Variables**, não são segredos):
+
+| Nome | Valor (B2) | Observação |
+|---|---|---|
+| `BACKUP_PROVIDER` | `b2` | um de `b2 aws wasabi r2 magalu gcs azure s3 rclone` |
+| `BACKUP_REGION` | — | exigido por `aws` e `wasabi` |
+| `BACKUP_ENDPOINT` | — | exigido por `wasabi`, `r2`, `magalu`, `s3` |
+| `BACKUP_BUCKET_DAILY` / `_MONTHLY` / `_MEDIA` | — | só se os nomes padrão não estiverem livres (AWS e GCS têm nomes únicos no mundo) |
+| `BACKUP_RCLONE_TYPE` | — | só para `rclone` (ex.: `drive`, `onedrive`, `dropbox`, `sftp`) |
+| `BACKUP_ALLOW_MUTABLE` | — | `true` só para aceitar destino principal sem trava (não recomendado) |
+| `BACKUP2_*` | — | mesmos nomes, para o destino secundário opcional |
+
 - [ ] Criar os *Repository secrets*:
 
 | Nome | Valor |
@@ -108,26 +127,38 @@ age-keygen -o "$env:TEMP\clubecrm-backup-TESTE.txt"
 | `SUPA_S3_ENDPOINT` | 1.3 |
 | `SUPA_S3_REGION` | `sa-east-1` |
 | `SUPA_S3_KEY_ID` / `SUPA_S3_SECRET` | 1.3 |
-| `B2_KEY_ID` / `B2_APP_KEY` | chave *writer* (1.1) |
-| `B2_RO_KEY_ID` / `B2_RO_APP_KEY` | chave *reader* (1.1) |
+| `BACKUP_KEY_ID` / `BACKUP_SECRET` | chave de **gravação** do destino (no B2: `keyID` / `applicationKey` da *writer*) |
+| `BACKUP_RO_KEY_ID` / `BACKUP_RO_SECRET` | chave **só de leitura** (no B2: a *reader*) |
+| `BACKUP_RCLONE_OPTS` | só para `rclone`: opções `chave=valor`, uma por linha (ex.: `token=...`) |
+| `BACKUP2_KEY_ID` / `BACKUP2_SECRET` / `BACKUP2_RCLONE_OPTS` | só se houver destino secundário |
 | `RCLONE_CRYPT_PASSWORD` / `RCLONE_CRYPT_SALT` | as duas senhas geradas |
 | `AGE_TEST_KEY` | conteúdo completo de `clubecrm-backup-TESTE.txt` |
 | `HC_PING_URL` | 1.4 |
+
+O significado de `KEY_ID`/`SECRET` muda por provedor (GCS: `SECRET` é o JSON da conta de serviço; Azure: `KEY_ID` é o nome da storage account e `SECRET` a chave ou a URL SAS). A tabela completa está em `docs/backup-destinos.md`.
 
 - [ ] **Step final:** usuário confirma "segredos criados". Agente não prossegue para a Task 3 sem essa confirmação.
 
 ---
 
-### Task 2: Scripts auxiliares (destinatários, rclone, contagem)
+### Task 2: Scripts auxiliares (destinos, rclone, contagem)
 
 **Files:**
 - Create: `scripts/backup/recipients.txt`
+- Create: `scripts/backup/destinations.sh`
+- Create: `scripts/backup/test-destinations.sh`
 - Create: `scripts/backup/rclone-env.sh`
+- Create: `scripts/backup/install-rclone.sh`
 - Create: `scripts/backup/row-counts.sh`
+- Create: `docs/backup-destinos.md`
 - Modify: `supabase/config.toml`
 
 **Interfaces:**
-- Produces: `source scripts/backup/rclone-env.sh` define os remotos `b2:` (usa `B2_KEY_ID`/`B2_APP_KEY`), `supa:` (S3 da Supabase, opcional) e `media:` (crypt sobre `b2:clubecrm-backup-media`, opcional).
+- Produces: `configure_destination <remoto> <PREFIXO> <primary|secondary>` — lê `<PREFIXO>_PROVIDER`, `_KEY_ID`, `_SECRET`, `_REGION`, `_ENDPOINT`, `_RCLONE_TYPE`, `_RCLONE_OPTS`, `_ALLOW_MUTABLE` e exporta `RCLONE_CONFIG_<REMOTO>_*`. Falha, com mensagem que diz qual variável falta, se o provedor for desconhecido ou faltar algo obrigatório.
+- Produces: `bucket_for <PREFIXO> <daily|monthly|media>` → nome do bucket (variável `<PREFIXO>_BUCKET_<TIPO>` ou o padrão `clubecrm-backup-<tipo>`).
+- Produces: `prefix_of <remoto>` → `dest`→`BACKUP`, `dest2`→`BACKUP2`.
+- Produces: `lock_probe <remoto> <bucket> <stamp>` → grava uma sonda e **falha** se a chave conseguir apagá-la (a menos que `<PREFIXO>_ALLOW_MUTABLE=true`).
+- Produces: `source scripts/backup/rclone-env.sh` define `dest:` (obrigatório), `dest2:` (se `BACKUP2_PROVIDER`), `supa:` (se `SUPA_S3_KEY_ID`), `media:`/`media2:` (crypt sobre o bucket de mídia de cada destino, se `RCLONE_CRYPT_PASSWORD`) e exporta `BACKUP_REMOTES` (`"dest"` ou `"dest dest2"`).
 - Produces: `scripts/backup/row-counts.sh <DB_URL>` → stdout `schema.tabela\tN`, ordenado.
 
 - [ ] **Step 1: `recipients.txt`** com as duas chaves públicas recebidas na Task 1.2:
@@ -140,7 +171,193 @@ age1<CHAVE_PUBLICA_TESTE_FORNECIDA_PELO_USUARIO>
 
 (O agente substitui pelos valores reais que o usuário informar. Não commitar enquanto houver `<...>` no arquivo.)
 
-- [ ] **Step 2: `rclone-env.sh`**
+- [ ] **Step 2: Teste primeiro — `test-destinations.sh`**
+
+Teste puro de bash (não chama rede nem rclone), roda no Git Bash do Windows e no runner:
+
+```bash
+#!/usr/bin/env bash
+# Testa a traducao de BACKUP_PROVIDER em variaveis do rclone, sem rede.
+# Uso: bash scripts/backup/test-destinations.sh
+set -uo pipefail
+DIR="$(cd "$(dirname "$0")" && pwd)"
+FAILS=0
+
+check() { # descricao, esperado, obtido
+  if [ "$2" = "$3" ]; then echo "ok   $1"; else echo "FAIL $1: esperado [$2], obtido [$3]"; FAILS=$((FAILS + 1)); fi
+}
+
+run() { # roda configure_destination num subshell limpo e imprime as RCLONE_CONFIG_DEST_*
+  env -i PATH="$PATH" "$@" bash -c "source '$DIR/destinations.sh' && configure_destination dest BACKUP primary && env | grep '^RCLONE_CONFIG_DEST_' | sort" 2>&1
+}
+
+out="$(run BACKUP_PROVIDER=b2 BACKUP_KEY_ID=k BACKUP_SECRET=s)"
+check "b2 tipo"         "RCLONE_CONFIG_DEST_TYPE=b2" "$(grep _TYPE= <<<"$out")"
+check "b2 conta"        "RCLONE_CONFIG_DEST_ACCOUNT=k" "$(grep _ACCOUNT= <<<"$out")"
+check "b2 sem hard del" "RCLONE_CONFIG_DEST_HARD_DELETE=false" "$(grep _HARD_DELETE= <<<"$out")"
+
+out="$(run BACKUP_PROVIDER=aws BACKUP_KEY_ID=k BACKUP_SECRET=s BACKUP_REGION=sa-east-1)"
+check "aws provedor"    "RCLONE_CONFIG_DEST_PROVIDER=AWS" "$(grep _PROVIDER= <<<"$out")"
+check "aws regiao"      "RCLONE_CONFIG_DEST_REGION=sa-east-1" "$(grep _REGION= <<<"$out")"
+check "aws no check"    "RCLONE_CONFIG_DEST_NO_CHECK_BUCKET=true" "$(grep _NO_CHECK_BUCKET= <<<"$out")"
+
+out="$(run BACKUP_PROVIDER=r2 BACKUP_KEY_ID=k BACKUP_SECRET=s BACKUP_ENDPOINT=https://x.r2.cloudflarestorage.com)"
+check "r2 provedor"     "RCLONE_CONFIG_DEST_PROVIDER=Cloudflare" "$(grep _PROVIDER= <<<"$out")"
+
+out="$(run BACKUP_PROVIDER=magalu BACKUP_KEY_ID=k BACKUP_SECRET=s BACKUP_ENDPOINT=https://br-se1.magaluobjects.com)"
+check "magalu provedor" "RCLONE_CONFIG_DEST_PROVIDER=Magalu" "$(grep _PROVIDER= <<<"$out")"
+
+out="$(run BACKUP_PROVIDER=gcs BACKUP_SECRET='{"type":"service_account"}')"
+check "gcs tipo"        "RCLONE_CONFIG_DEST_TYPE=google cloud storage" "$(grep _TYPE= <<<"$out")"
+check "gcs uniforme"    "RCLONE_CONFIG_DEST_BUCKET_POLICY_ONLY=true" "$(grep _BUCKET_POLICY_ONLY= <<<"$out")"
+
+out="$(run BACKUP_PROVIDER=azure BACKUP_KEY_ID=conta BACKUP_SECRET='https://conta.blob.core.windows.net/?sv=x')"
+check "azure sas"       "RCLONE_CONFIG_DEST_SAS_URL=https://conta.blob.core.windows.net/?sv=x" "$(grep _SAS_URL= <<<"$out")"
+
+out="$(run BACKUP_PROVIDER=aws BACKUP_KEY_ID=k BACKUP_SECRET=s)"
+check "aws sem regiao falha" "1" "$(grep -c 'BACKUP_REGION' <<<"$out")"
+
+out="$(run BACKUP_PROVIDER=ftp)"
+check "provedor desconhecido falha" "1" "$(grep -c 'provedor desconhecido' <<<"$out")"
+
+out="$(run BACKUP_PROVIDER=rclone BACKUP_RCLONE_TYPE=drive BACKUP_RCLONE_OPTS='token=abc')"
+check "rclone mutavel recusado como principal" "1" "$(grep -c 'sem trava' <<<"$out")"
+
+out="$(run BACKUP_PROVIDER=rclone BACKUP_RCLONE_TYPE=drive BACKUP_RCLONE_OPTS=$'token=abc\nroot_folder_id=xyz' BACKUP_ALLOW_MUTABLE=true)"
+check "rclone opcao 1"  "RCLONE_CONFIG_DEST_TOKEN=abc" "$(grep _TOKEN= <<<"$out")"
+check "rclone opcao 2"  "RCLONE_CONFIG_DEST_ROOT_FOLDER_ID=xyz" "$(grep _ROOT_FOLDER_ID= <<<"$out")"
+
+check "bucket padrao"   "clubecrm-backup-daily" "$(env -i PATH="$PATH" bash -c "source '$DIR/destinations.sh'; bucket_for BACKUP daily")"
+check "bucket renomeado" "meu-daily" "$(env -i PATH="$PATH" BACKUP_BUCKET_DAILY=meu-daily bash -c "source '$DIR/destinations.sh'; bucket_for BACKUP daily")"
+check "prefixo dest2"   "BACKUP2" "$(env -i PATH="$PATH" bash -c "source '$DIR/destinations.sh'; prefix_of dest2")"
+
+[ "$FAILS" -eq 0 ] && echo "todos os testes passaram" || { echo "$FAILS falha(s)"; exit 1; }
+```
+
+Run: `bash scripts/backup/test-destinations.sh`
+Expected: FAIL (o `destinations.sh` ainda não existe).
+
+- [ ] **Step 3: `destinations.sh`**
+
+```bash
+#!/usr/bin/env bash
+# Traduz a escolha do destino de backup (BACKUP_PROVIDER, BACKUP2_PROVIDER) em
+# configuracao do rclone por variaveis de ambiente, sem arquivo em disco.
+# Unico lugar do codigo que conhece provedores. Passo a passo de cada um:
+# docs/backup-destinos.md. Spec: multi-tenant-equipes-design.md §15.2
+
+_var() { local n="${1}_${2}"; printf '%s' "${!n:-}"; }
+
+# Valor obrigatorio: imprime ou falha dizendo qual variavel falta.
+_req() {
+  local v; v="$(_var "$1" "$2")"
+  if [ -z "$v" ]; then
+    echo "destino de backup: ${1}_${2} nao definido (veja docs/backup-destinos.md)" >&2
+    return 1
+  fi
+  printf '%s' "$v"
+}
+
+prefix_of() { case "$1" in dest) echo BACKUP ;; dest2) echo BACKUP2 ;; *) return 1 ;; esac; }
+
+bucket_for() { # PREFIXO daily|monthly|media
+  local up; up="$(printf '%s' "$2" | tr '[:lower:]' '[:upper:]')"
+  local v; v="$(_var "$1" "BUCKET_$up")"
+  printf '%s' "${v:-clubecrm-backup-$2}"
+}
+
+configure_destination() { # remoto PREFIXO primary|secondary
+  local remote="$1" p="$2" role="$3"
+  local c; c="RCLONE_CONFIG_$(printf '%s' "$remote" | tr '[:lower:]' '[:upper:]')"
+  local provider key_id secret s3p
+  provider="$(_req "$p" PROVIDER)" || return 1
+
+  case "$provider" in
+    b2)
+      key_id="$(_req "$p" KEY_ID)" || return 1
+      secret="$(_req "$p" SECRET)" || return 1
+      export "${c}_TYPE=b2" "${c}_ACCOUNT=$key_id" "${c}_KEY=$secret"
+      # No B2, "apagar" so oculta a versao; o object lock impede a remocao real.
+      export "${c}_HARD_DELETE=false"
+      ;;
+    aws|wasabi|r2|magalu|s3)
+      case "$provider" in
+        aws) s3p=AWS ;; wasabi) s3p=Wasabi ;; r2) s3p=Cloudflare ;; magalu) s3p=Magalu ;; s3) s3p=Other ;;
+      esac
+      key_id="$(_req "$p" KEY_ID)" || return 1
+      secret="$(_req "$p" SECRET)" || return 1
+      case "$provider" in aws|wasabi) _req "$p" REGION > /dev/null || return 1 ;; esac
+      case "$provider" in wasabi|r2|magalu|s3) _req "$p" ENDPOINT > /dev/null || return 1 ;; esac
+      export "${c}_TYPE=s3" "${c}_PROVIDER=$s3p" "${c}_ACCESS_KEY_ID=$key_id" "${c}_SECRET_ACCESS_KEY=$secret"
+      [ -n "$(_var "$p" REGION)" ] && export "${c}_REGION=$(_var "$p" REGION)"
+      [ -n "$(_var "$p" ENDPOINT)" ] && export "${c}_ENDPOINT=$(_var "$p" ENDPOINT)"
+      # A chave do backup nao cria bucket nem mexe em ACL: nao tenta.
+      export "${c}_NO_CHECK_BUCKET=true"
+      ;;
+    gcs)
+      secret="$(_req "$p" SECRET)" || return 1   # JSON da conta de servico
+      export "${c}_TYPE=google cloud storage" "${c}_SERVICE_ACCOUNT_CREDENTIALS=$secret"
+      export "${c}_BUCKET_POLICY_ONLY=true"
+      ;;
+    azure)
+      secret="$(_req "$p" SECRET)" || return 1
+      export "${c}_TYPE=azureblob"
+      case "$secret" in
+        https://*) export "${c}_SAS_URL=$secret" ;;          # URL SAS: permissao minima
+        *) key_id="$(_req "$p" KEY_ID)" || return 1
+           export "${c}_ACCOUNT=$key_id" "${c}_KEY=$secret" ;;
+      esac
+      ;;
+    rclone)
+      local type opts line k
+      type="$(_req "$p" RCLONE_TYPE)" || return 1
+      if [ "$role" = primary ] && [ "$(_var "$p" ALLOW_MUTABLE)" != "true" ]; then
+        echo "destino de backup: '$type' nao tem trava de retencao (sem trava, quem invadir o GitHub apaga os backups)." >&2
+        echo "Use-o como destino secundario (BACKUP2_*) ou defina ${p}_ALLOW_MUTABLE=true assumindo o risco." >&2
+        return 1
+      fi
+      export "${c}_TYPE=$type"
+      opts="$(_var "$p" RCLONE_OPTS)"
+      while IFS= read -r line; do
+        [ -n "$line" ] || continue
+        k="$(printf '%s' "${line%%=*}" | tr '[:lower:]' '[:upper:]')"
+        export "${c}_${k}=${line#*=}"
+      done <<< "$opts"
+      ;;
+    *)
+      echo "destino de backup: provedor desconhecido '$provider' em ${p}_PROVIDER." >&2
+      echo "Opcoes: b2 aws wasabi r2 magalu gcs azure s3 rclone" >&2
+      return 1
+      ;;
+  esac
+}
+
+# Prova de nao-apagamento: a chave do backup nao pode apagar o que gravou.
+# Se conseguir, quem invadir o GitHub apaga os backups — o job tem que falhar.
+lock_probe() { # remoto bucket stamp
+  local r="$1" bucket="$2" stamp="$3" p target
+  p="$(prefix_of "$r")"
+  target="$r:$bucket/probe/probe-$stamp.txt"
+  echo "sonda $stamp" | rclone rcat "$target"
+  # No B2, "apagar" normal so oculta; a sonda precisa tentar a remocao real.
+  [ "$(_var "$p" PROVIDER)" = b2 ] && target="$r,hard_delete=true:$bucket/probe/probe-$stamp.txt"
+  if rclone deletefile "$target" 2> /dev/null; then
+    if [ "$(_var "$p" ALLOW_MUTABLE)" = "true" ]; then
+      echo "aviso: destino $r aceita apagar backups (${p}_ALLOW_MUTABLE=true)"
+      return 0
+    fi
+    echo "destino $r: a chave do backup conseguiu APAGAR um arquivo em $bucket." >&2
+    echo "Tire a permissao de apagar da chave e confira a trava do bucket (docs/backup-destinos.md)." >&2
+    return 1
+  fi
+  echo "destino $r: apagar recusado, como esperado"
+}
+```
+
+Run: `bash scripts/backup/test-destinations.sh`
+Expected: `todos os testes passaram`.
+
+- [ ] **Step 4: `rclone-env.sh`**
 
 ```bash
 #!/usr/bin/env bash
@@ -148,13 +365,16 @@ age1<CHAVE_PUBLICA_TESTE_FORNECIDA_PELO_USUARIO>
 # configuracao em disco. Uso: source scripts/backup/rclone-env.sh
 # Spec: docs/superpowers/specs/2026-09-24-multi-tenant-equipes-design.md §15
 
-: "${B2_KEY_ID:?B2_KEY_ID nao definido}" "${B2_APP_KEY:?B2_APP_KEY nao definido}"
+# shellcheck source=scripts/backup/destinations.sh
+source "$(dirname "${BASH_SOURCE[0]}")/destinations.sh"
 
-export RCLONE_CONFIG_B2_TYPE=b2
-export RCLONE_CONFIG_B2_ACCOUNT="$B2_KEY_ID"
-export RCLONE_CONFIG_B2_KEY="$B2_APP_KEY"
-# No B2, "apagar" oculta a versao; o object lock impede a remocao real.
-export RCLONE_CONFIG_B2_HARD_DELETE=false
+configure_destination dest BACKUP primary
+BACKUP_REMOTES="dest"
+if [ -n "${BACKUP2_PROVIDER:-}" ]; then
+  configure_destination dest2 BACKUP2 secondary
+  BACKUP_REMOTES="dest dest2"
+fi
+export BACKUP_REMOTES
 
 if [ -n "${SUPA_S3_KEY_ID:-}" ]; then
   export RCLONE_CONFIG_SUPA_TYPE=s3
@@ -167,15 +387,62 @@ if [ -n "${SUPA_S3_KEY_ID:-}" ]; then
 fi
 
 if [ -n "${RCLONE_CRYPT_PASSWORD:-}" ]; then
-  export RCLONE_CONFIG_MEDIA_TYPE=crypt
-  export RCLONE_CONFIG_MEDIA_REMOTE="b2:${MEDIA_BUCKET:-clubecrm-backup-media}"
-  RCLONE_CONFIG_MEDIA_PASSWORD="$(rclone obscure "$RCLONE_CRYPT_PASSWORD")"
-  RCLONE_CONFIG_MEDIA_PASSWORD2="$(rclone obscure "${RCLONE_CRYPT_SALT:?}")"
-  export RCLONE_CONFIG_MEDIA_PASSWORD RCLONE_CONFIG_MEDIA_PASSWORD2
+  # Um remoto crypt por destino: media: sobre dest:, media2: sobre dest2:.
+  _pw="$(rclone obscure "$RCLONE_CRYPT_PASSWORD")"
+  _salt="$(rclone obscure "${RCLONE_CRYPT_SALT:?}")"
+  for _r in $BACKUP_REMOTES; do
+    _m="MEDIA"; [ "$_r" = dest2 ] && _m="MEDIA2"
+    export "RCLONE_CONFIG_${_m}_TYPE=crypt"
+    export "RCLONE_CONFIG_${_m}_REMOTE=$_r:$(bucket_for "$(prefix_of "$_r")" media)"
+    export "RCLONE_CONFIG_${_m}_PASSWORD=$_pw" "RCLONE_CONFIG_${_m}_PASSWORD2=$_salt"
+  done
+  unset _pw _salt _r _m
 fi
 ```
 
-- [ ] **Step 3: `row-counts.sh`**
+- [ ] **Step 5: `install-rclone.sh`** — o `rclone` do apt do Ubuntu 24.04 (1.60) é antigo e não conhece o provedor Magalu. Instala o binário oficial numa versão fixa e confere o SHA-256 **gravado no script** (não o baixado junto, que só protege contra corrupção):
+
+```bash
+#!/usr/bin/env bash
+# Instala o rclone oficial numa versao fixa, conferindo o SHA-256.
+# Para atualizar: trocar VERSION e SHA256 pelos valores de
+# https://downloads.rclone.org/<versao>/SHA256SUMS (arquivo assinado com PGP).
+set -euo pipefail
+VERSION="v1.71.0"
+SHA256="<SHA256_DO_rclone-v1.71.0-linux-amd64.zip>"
+ZIP="rclone-$VERSION-linux-amd64.zip"
+
+case "$SHA256" in "<"*) echo "install-rclone.sh: SHA256 nao preenchido" >&2; exit 1 ;; esac
+WORK="$(mktemp -d)"; trap 'rm -rf "$WORK"' EXIT
+curl -fsSL --retry 3 -o "$WORK/$ZIP" "https://downloads.rclone.org/$VERSION/$ZIP"
+echo "$SHA256  $WORK/$ZIP" | sha256sum -c -
+unzip -q "$WORK/$ZIP" -d "$WORK"
+sudo install -m 0755 "$WORK/rclone-$VERSION-linux-amd64/rclone" /usr/local/bin/rclone
+rclone version | head -n 1
+```
+
+O agente preenche `SHA256` com a linha de `rclone-v1.71.0-linux-amd64.zip` do `SHA256SUMS` oficial (se já houver versão estável mais nova, pode usá-la, trocando `VERSION` junto). Não commitar com o placeholder.
+
+- [ ] **Step 6: `docs/backup-destinos.md`** — guia para quem opera (Clubetec) escolher e preparar o destino. Conteúdo obrigatório:
+
+1. **Tabela de escolha**: provedor, `BACKUP_PROVIDER`, onde os dados ficam (destacar **Brasil**: AWS `sa-east-1` e Magalu Cloud, bom para LGPD), se tem trava de retenção, custo aproximado por TB/mês com a data da consulta.
+2. **Regras comuns**: 3 buckets privados (`daily` 35 d, `monthly` 365 d, `media` 35 d, modo compliance ou equivalente); chave de gravação sem apagar em `daily`/`monthly`; chave separada só de leitura para o teste de restauração; nenhum acesso público.
+3. **Uma seção por provedor** com: criar os buckets com a trava ligada na criação; regras de ciclo de vida equivalentes às do B2 (Task 1.1); chave mínima; variáveis e segredos a preencher. O essencial de cada um:
+   - **B2**: Object Lock na criação; capabilities `listBuckets, listFiles, writeFiles` (gravação) e `listBuckets, listFiles, readFiles` (leitura).
+   - **AWS S3**: bucket com *Object Lock* (liga o versionamento), *Default retention* **Compliance**; política IAM de gravação só com `s3:PutObject` + `s3:ListBucket` em `daily`/`monthly` e `s3:PutObject`, `s3:ListBucket`, `s3:DeleteObject` em `media` (apagar só cria marcador; a versão travada fica); lifecycle que expira versões não correntes. `BACKUP_REGION=sa-east-1` para dados no Brasil.
+   - **Wasabi**: igual ao S3 (Object Lock na criação, política IAM equivalente); `BACKUP_ENDPOINT=https://s3.<região>.wasabisys.com`.
+   - **Cloudflare R2**: *Bucket lock rules* com retenção; token de API R2 com *Object Read & Write* restrito aos 3 buckets (o R2 não separa gravar de apagar: a trava do bucket é a proteção — a sonda confirma); `BACKUP_ENDPOINT=https://<account_id>.r2.cloudflarestorage.com`.
+   - **Magalu Cloud**: `BACKUP_ENDPOINT=https://br-se1.magaluobjects.com` (ou `br-ne1`); conferir no painel se há trava de retenção de objetos — se a sonda falhar por conseguir apagar, usar o Magalu **só como destino secundário**.
+   - **Google Cloud Storage**: *Retention policy* **travada** (*Lock*) em cada bucket; conta de serviço com *Storage Object Creator* + *Storage Legacy Bucket Reader*; `BACKUP_SECRET` = JSON da conta de serviço.
+   - **Azure Blob**: *immutability policy* por tempo, **travada**, em cada container; preferir **URL SAS** com permissões `create, write, list` (sem `delete`) em `BACKUP_SECRET`.
+   - **S3 compatível** (MinIO, DigitalOcean Spaces, Oracle, Contabo…): `BACKUP_PROVIDER=s3` + `BACKUP_ENDPOINT`; Object Lock se o serviço tiver.
+   - **Google Drive, OneDrive, Dropbox, SFTP** (`BACKUP_PROVIDER=rclone`): sem trava; aceitos **só como destino secundário** (ou principal com `BACKUP_ALLOW_MUTABLE=true`, risco documentado). Obter o token com `rclone config` num computador confiável e copiar só as linhas `chave=valor` para o segredo `BACKUP2_RCLONE_OPTS`. Os arquivos continuam cifrados com `age`.
+4. **Trocar de provedor**: criar o novo destino, trocar variáveis e segredos, rodar o workflow manualmente; manter o antigo até vencer a retenção dos backups que estão nele.
+5. **Se a sonda falhar**: o que significa e como corrigir a permissão da chave e a trava.
+
+Não inventar preços nem nomes de tela: o agente confere cada provedor na documentação oficial atual (context7 ou web) ao escrever e registra a data da consulta.
+
+- [ ] **Step 7: `row-counts.sh`**
 
 ```bash
 #!/usr/bin/env bash
@@ -195,7 +462,7 @@ ORDER BY 1
 SQL
 ```
 
-- [ ] **Step 4: Testar `row-counts.sh` contra o projeto real**
+- [ ] **Step 8: Testar `row-counts.sh` contra o projeto real**
 
 O usuário roda no Git Bash, com a URI da Task 1.3 (a senha fica só no terminal dele; precisa do `psql` — `winget install PostgreSQL.PostgreSQL.17` instala o cliente):
 
@@ -205,7 +472,7 @@ bash scripts/backup/row-counts.sh "<URI_DO_SESSION_POOLER_DA_TASK_1.3>"
 
 Expected: linhas como `auth.users\t1`, `public.conversations\t<n>`, `public.messages\t<n>` — 9 tabelas de `public` + as 2 extras, sem erro. Conferir `public.messages` contra `SELECT count(*) FROM public.messages` via MCP `execute_sql`.
 
-- [ ] **Step 5: Fixar a versão do Postgres local** — em `supabase/config.toml`, após o bloco de comentário inicial e `project_id`:
+- [ ] **Step 9: Fixar a versão do Postgres local** — em `supabase/config.toml`, após o bloco de comentário inicial e `project_id`:
 
 ```toml
 [db]
@@ -213,15 +480,15 @@ Expected: linhas como `auth.users\t1`, `public.conversations\t<n>`, `public.mess
 major_version = 17
 ```
 
-- [ ] **Step 6: Lint**
+- [ ] **Step 10: Lint e testes**
 
-Run: `shellcheck scripts/backup/rclone-env.sh scripts/backup/row-counts.sh` (no runner; localmente, se o shellcheck não existir, pular — o workflow roda na Task 3).
-Expected: sem avisos.
+Run: `bash scripts/backup/test-destinations.sh` (Git Bash) e `shellcheck -x scripts/backup/*.sh` (no runner; localmente, se o shellcheck não existir, pular — o workflow roda na Task 3).
+Expected: `todos os testes passaram`; shellcheck sem avisos.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 11: Commit**
 
 ```bash
-git add scripts/backup/recipients.txt scripts/backup/rclone-env.sh scripts/backup/row-counts.sh supabase/config.toml
+git add scripts/backup/ docs/backup-destinos.md supabase/config.toml
 git commit -m "Scripts auxiliares do backup externo
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
@@ -236,22 +503,20 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 - Create: `.github/workflows/backup.yml`
 
 **Interfaces:**
-- Consumes: `scripts/backup/rclone-env.sh`, `scripts/backup/row-counts.sh`, `scripts/backup/recipients.txt` (Task 2).
-- Produces: no B2, `clubecrm-backup-daily/db/db-<STAMP>.tar.gz.age` (tar com `db/roles.sql`, `db/schema.sql`, `db/data.sql`, `db/manifest.tsv`) e `clubecrm-backup-daily/secrets/secrets-<STAMP>.json.age` (JSON `[{name, description, secret}]`); no dia 1, cópias em `clubecrm-backup-monthly/` nos mesmos caminhos; espelho cifrado do Storage em `clubecrm-backup-media`.
+- Consumes: `scripts/backup/rclone-env.sh` (+ `destinations.sh`), `scripts/backup/row-counts.sh`, `scripts/backup/recipients.txt` (Task 2).
+- Produces: em cada destino de `BACKUP_REMOTES`, `clubecrm-backup-daily/db/db-<STAMP>.tar.gz.age` (tar com `db/roles.sql`, `db/schema.sql`, `db/data.sql`, `db/manifest.tsv`) e `clubecrm-backup-daily/secrets/secrets-<STAMP>.json.age` (JSON `[{name, description, secret}]`); no dia 1, cópias em `clubecrm-backup-monthly/` nos mesmos caminhos; espelho cifrado do Storage em `clubecrm-backup-media`.
 
 - [ ] **Step 1: `backup.sh`**
 
 ```bash
 #!/usr/bin/env bash
-# Backup diario do ClubeCRM para o Backblaze B2: banco, segredos do Vault e
+# Backup diario do ClubeCRM para o(s) destino(s) configurado(s): banco, segredos do Vault e
 # Storage. Tudo cifrado antes de sair do runner.
 # Spec: docs/superpowers/specs/2026-09-24-multi-tenant-equipes-design.md §15
 set -euo pipefail
 umask 077
 
 : "${SUPABASE_DB_URL:?}" "${RCLONE_CRYPT_PASSWORD:?}" "${SUPA_S3_KEY_ID:?}"
-DAILY_BUCKET="${DAILY_BUCKET:-clubecrm-backup-daily}"
-MONTHLY_BUCKET="${MONTHLY_BUCKET:-clubecrm-backup-monthly}"
 HC_PING_URL="${HC_PING_URL:-}"
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -291,15 +556,25 @@ psql "$SUPABASE_DB_URL" -X -At -v ON_ERROR_STOP=1 -c \
   | age -R "$RECIPIENTS" -o "$WORK/secrets-$STAMP.json.age"
 
 echo "== 3/4 envio"
-rclone copyto "$WORK/db-$STAMP.tar.gz.age" "b2:$DAILY_BUCKET/db/db-$STAMP.tar.gz.age"
-rclone copyto "$WORK/secrets-$STAMP.json.age" "b2:$DAILY_BUCKET/secrets/secrets-$STAMP.json.age"
-if [ "$(date -u +%d)" = "01" ]; then
-  rclone copyto "$WORK/db-$STAMP.tar.gz.age" "b2:$MONTHLY_BUCKET/db/db-$STAMP.tar.gz.age"
-  rclone copyto "$WORK/secrets-$STAMP.json.age" "b2:$MONTHLY_BUCKET/secrets/secrets-$STAMP.json.age"
-fi
+for r in $BACKUP_REMOTES; do
+  p="$(prefix_of "$r")"
+  daily="$(bucket_for "$p" daily)"
+  monthly="$(bucket_for "$p" monthly)"
+  echo "-- destino $r (${p}_PROVIDER=$(_var "$p" PROVIDER))"
+  rclone copyto "$WORK/db-$STAMP.tar.gz.age" "$r:$daily/db/db-$STAMP.tar.gz.age"
+  rclone copyto "$WORK/secrets-$STAMP.json.age" "$r:$daily/secrets/secrets-$STAMP.json.age"
+  if [ "$(date -u +%d)" = "01" ]; then
+    rclone copyto "$WORK/db-$STAMP.tar.gz.age" "$r:$monthly/db/db-$STAMP.tar.gz.age"
+    rclone copyto "$WORK/secrets-$STAMP.json.age" "$r:$monthly/secrets/secrets-$STAMP.json.age"
+  fi
+  lock_probe "$r" "$daily" "$STAMP"
+done
 
 echo "== 4/4 Storage (espelho cifrado)"
 rclone sync supa: media: --fast-list --transfers 8
+if [ -n "${RCLONE_CONFIG_MEDIA2_TYPE:-}" ]; then
+  rclone sync supa: media2: --fast-list --transfers 8
+fi
 
 ping_hc ""
 echo "backup $STAMP concluido"
@@ -336,10 +611,13 @@ jobs:
       - name: Ferramentas
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq age rclone postgresql-client
+          sudo apt-get install -y -qq age postgresql-client jq unzip
+          bash scripts/backup/install-rclone.sh
 
-      - name: Lint dos scripts
-        run: shellcheck -x scripts/backup/*.sh
+      - name: Lint e testes dos scripts
+        run: |
+          shellcheck -x scripts/backup/*.sh
+          bash scripts/backup/test-destinations.sh
 
       - name: Backup
         run: bash scripts/backup/backup.sh
@@ -349,8 +627,30 @@ jobs:
           SUPA_S3_REGION: ${{ secrets.SUPA_S3_REGION }}
           SUPA_S3_KEY_ID: ${{ secrets.SUPA_S3_KEY_ID }}
           SUPA_S3_SECRET: ${{ secrets.SUPA_S3_SECRET }}
-          B2_KEY_ID: ${{ secrets.B2_KEY_ID }}
-          B2_APP_KEY: ${{ secrets.B2_APP_KEY }}
+          # Destino principal (docs/backup-destinos.md)
+          BACKUP_PROVIDER: ${{ vars.BACKUP_PROVIDER }}
+          BACKUP_REGION: ${{ vars.BACKUP_REGION }}
+          BACKUP_ENDPOINT: ${{ vars.BACKUP_ENDPOINT }}
+          BACKUP_BUCKET_DAILY: ${{ vars.BACKUP_BUCKET_DAILY }}
+          BACKUP_BUCKET_MONTHLY: ${{ vars.BACKUP_BUCKET_MONTHLY }}
+          BACKUP_BUCKET_MEDIA: ${{ vars.BACKUP_BUCKET_MEDIA }}
+          BACKUP_RCLONE_TYPE: ${{ vars.BACKUP_RCLONE_TYPE }}
+          BACKUP_ALLOW_MUTABLE: ${{ vars.BACKUP_ALLOW_MUTABLE }}
+          BACKUP_KEY_ID: ${{ secrets.BACKUP_KEY_ID }}
+          BACKUP_SECRET: ${{ secrets.BACKUP_SECRET }}
+          BACKUP_RCLONE_OPTS: ${{ secrets.BACKUP_RCLONE_OPTS }}
+          # Destino secundario, opcional (vazio = desligado)
+          BACKUP2_PROVIDER: ${{ vars.BACKUP2_PROVIDER }}
+          BACKUP2_REGION: ${{ vars.BACKUP2_REGION }}
+          BACKUP2_ENDPOINT: ${{ vars.BACKUP2_ENDPOINT }}
+          BACKUP2_BUCKET_DAILY: ${{ vars.BACKUP2_BUCKET_DAILY }}
+          BACKUP2_BUCKET_MONTHLY: ${{ vars.BACKUP2_BUCKET_MONTHLY }}
+          BACKUP2_BUCKET_MEDIA: ${{ vars.BACKUP2_BUCKET_MEDIA }}
+          BACKUP2_RCLONE_TYPE: ${{ vars.BACKUP2_RCLONE_TYPE }}
+          BACKUP2_ALLOW_MUTABLE: ${{ vars.BACKUP2_ALLOW_MUTABLE }}
+          BACKUP2_KEY_ID: ${{ secrets.BACKUP2_KEY_ID }}
+          BACKUP2_SECRET: ${{ secrets.BACKUP2_SECRET }}
+          BACKUP2_RCLONE_OPTS: ${{ secrets.BACKUP2_RCLONE_OPTS }}
           RCLONE_CRYPT_PASSWORD: ${{ secrets.RCLONE_CRYPT_PASSWORD }}
           RCLONE_CRYPT_SALT: ${{ secrets.RCLONE_CRYPT_SALT }}
           HC_PING_URL: ${{ secrets.HC_PING_URL }}
@@ -360,7 +660,7 @@ jobs:
 
 ```bash
 git add scripts/backup/backup.sh .github/workflows/backup.yml
-git commit -m "Backup diario cifrado para o Backblaze B2
+git commit -m "Backup diario cifrado com destino plugavel (B2 por padrao)
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 git push -u origin feat/backup-externo
@@ -378,18 +678,18 @@ O botão *Run workflow* só existe para workflows que já estão na `main`. Para
 Commit + push; o workflow roda sozinho. Acompanhar em *Actions* (o usuário abre a aba e informa o resultado, ou cola o link do run).
 
 Expected:
-- Job verde; log com `== 1/4` a `== 4/4` e `backup <STAMP> concluido`; nenhum segredo no log (o GitHub mascara, e o script não imprime valores).
-- No B2 (*Browse Files*): `clubecrm-backup-daily/db/db-<STAMP>.tar.gz.age` e `secrets/secrets-<STAMP>.json.age`; `clubecrm-backup-media` com nomes cifrados (se já houver arquivos no Storage).
+- Job verde; log com `== 1/4` a `== 4/4`, `destino dest: apagar recusado, como esperado` e `backup <STAMP> concluido`; nenhum segredo no log (o GitHub mascara, e o script não imprime valores).
+- No painel do destino (no B2, *Browse Files*): `clubecrm-backup-daily/db/db-<STAMP>.tar.gz.age` e `secrets/secrets-<STAMP>.json.age`; `clubecrm-backup-media` com nomes cifrados (se já houver arquivos no Storage).
 - healthchecks.io: check `clubecrm-backup` verde, com ping recente.
 
 - [ ] **Step 5: Conferir a imutabilidade [USUÁRIO]**
 
-No B2 web, tentar *Delete* do arquivo `db-<STAMP>.tar.gz.age`.
-Expected: recusado por object lock (a interface mostra que o arquivo está retido até a data de retenção).
+A sonda do job já prova que a **chave do backup** não apaga. Aqui a prova é contra o **dono da conta**: no painel do destino (no B2, *Browse Files*), tentar *Delete* do arquivo `db-<STAMP>.tar.gz.age`.
+Expected: recusado pela trava (object lock, bucket lock ou immutability policy — a interface mostra a data até a qual o arquivo está retido). Se o provedor deixar apagar, a trava não está ligada: corrigir antes de seguir.
 
 - [ ] **Step 6: Conferir que a chave offline abre o backup [USUÁRIO]**
 
-Baixar `db-<STAMP>.tar.gz.age` pela web do B2 e, no PowerShell:
+Baixar `db-<STAMP>.tar.gz.age` pelo painel do destino e, no PowerShell:
 
 ```powershell
 age -d -i <caminho-da-chave-OFFLINE> db-<STAMP>.tar.gz.age > teste.tar.gz
@@ -408,7 +708,7 @@ Expected: lista `db/roles.sql`, `db/schema.sql`, `db/data.sql`, `db/manifest.tsv
 - Create: `.github/workflows/restore-test.yml`
 
 **Interfaces:**
-- Consumes: `rclone-env.sh`, `row-counts.sh` (Task 2); arquivos no B2 (Task 3). Variáveis: `B2_KEY_ID`/`B2_APP_KEY` recebem a chave **reader**; `AGE_TEST_KEY`.
+- Consumes: `rclone-env.sh`, `row-counts.sh` (Task 2); arquivos no destino principal (Task 3). Variáveis: `BACKUP_KEY_ID`/`BACKUP_SECRET` recebem a chave **só de leitura** (`BACKUP_RO_*`); `AGE_TEST_KEY`. O destino secundário não é configurado aqui (testa-se o principal).
 - Produces: saída 0 se o último backup tem menos de 26 h, decifra, restaura e as contagens batem; saída ≠ 0 caso contrário.
 
 - [ ] **Step 1: `restore-test.sh`**
@@ -423,7 +723,7 @@ set -euo pipefail
 umask 077
 
 : "${AGE_TEST_KEY:?}"
-DAILY_BUCKET="${DAILY_BUCKET:-clubecrm-backup-daily}"
+# Le sempre do destino principal (dest:), com a chave so de leitura.
 LOCAL_DB="${LOCAL_DB:-postgresql://postgres:postgres@127.0.0.1:54322/postgres}"
 MAX_AGE_HOURS="${MAX_AGE_HOURS:-26}"
 
@@ -436,7 +736,8 @@ source "$DIR/rclone-env.sh"
 printf '%s\n' "$AGE_TEST_KEY" > "$WORK/key.txt"
 
 echo "== 1/5 backup mais recente"
-LATEST="$(rclone lsf "b2:$DAILY_BUCKET/db/" | grep '^db-.*\.tar\.gz\.age$' | sort | tail -n 1)"
+DAILY_BUCKET="$(bucket_for BACKUP daily)"
+LATEST="$(rclone lsf "dest:$DAILY_BUCKET/db/" | grep '^db-.*\.tar\.gz\.age$' | sort | tail -n 1)"
 [ -n "$LATEST" ] || { echo "nenhum backup encontrado" >&2; exit 1; }
 STAMP="${LATEST#db-}"; STAMP="${STAMP%.tar.gz.age}"          # 2026-09-25T0600Z
 ISO="${STAMP:0:13}:${STAMP:13:2}:00Z"                        # 2026-09-25T06:00:00Z
@@ -448,9 +749,9 @@ if [ "$AGE_H" -gt "$MAX_AGE_HOURS" ]; then
 fi
 
 echo "== 2/5 download e decifragem"
-rclone copyto "b2:$DAILY_BUCKET/db/$LATEST" "$WORK/$LATEST"
+rclone copyto "dest:$DAILY_BUCKET/db/$LATEST" "$WORK/$LATEST"
 age -d -i "$WORK/key.txt" "$WORK/$LATEST" | tar -C "$WORK" -xzf -
-rclone copyto "b2:$DAILY_BUCKET/secrets/secrets-$STAMP.json.age" "$WORK/secrets.age"
+rclone copyto "dest:$DAILY_BUCKET/secrets/secrets-$STAMP.json.age" "$WORK/secrets.age"
 age -d -i "$WORK/key.txt" "$WORK/secrets.age" | jq -e 'type == "array"' > /dev/null
 echo "segredos: arquivo decifrado e valido (conteudo nao exibido)"
 
@@ -508,7 +809,8 @@ jobs:
       - name: Ferramentas
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq age rclone postgresql-client jq
+          sudo apt-get install -y -qq age postgresql-client jq unzip
+          bash scripts/backup/install-rclone.sh
 
       - name: Stack local vazia (sem as migrations do repositorio)
         run: |
@@ -518,8 +820,16 @@ jobs:
       - name: Restaurar e conferir
         run: MAX_AGE_HOURS=${{ github.event_name == 'schedule' && '26' || '48' }} bash scripts/backup/restore-test.sh
         env:
-          B2_KEY_ID: ${{ secrets.B2_RO_KEY_ID }}
-          B2_APP_KEY: ${{ secrets.B2_RO_APP_KEY }}
+          # Destino principal, com a chave SO DE LEITURA
+          BACKUP_PROVIDER: ${{ vars.BACKUP_PROVIDER }}
+          BACKUP_REGION: ${{ vars.BACKUP_REGION }}
+          BACKUP_ENDPOINT: ${{ vars.BACKUP_ENDPOINT }}
+          BACKUP_BUCKET_DAILY: ${{ vars.BACKUP_BUCKET_DAILY }}
+          BACKUP_RCLONE_TYPE: ${{ vars.BACKUP_RCLONE_TYPE }}
+          BACKUP_ALLOW_MUTABLE: ${{ vars.BACKUP_ALLOW_MUTABLE }}
+          BACKUP_KEY_ID: ${{ secrets.BACKUP_RO_KEY_ID }}
+          BACKUP_SECRET: ${{ secrets.BACKUP_RO_SECRET }}
+          BACKUP_RCLONE_OPTS: ${{ secrets.BACKUP_RO_RCLONE_OPTS }}
           AGE_TEST_KEY: ${{ secrets.AGE_TEST_KEY }}
 ```
 
@@ -581,7 +891,7 @@ A saída é só o número de segredos criados. Segredos com nome já existente s
 Na stack local descartável do runner não há como rodar sem Docker localmente; testar com o projeto de **homologação** quando existir (plano 1B, Task de homologação). Até lá, validar a sintaxe:
 
 Run: `shellcheck scripts/backup/restore-secrets.sh` (pelo workflow de backup, que roda `shellcheck -x scripts/backup/*.sh`).
-Expected: sem avisos.
+Expected: `todos os testes passaram`; shellcheck sem avisos.
 
 - [ ] **Step 3: `docs/runbook-desastre.md`**
 
@@ -595,7 +905,7 @@ Spec: `docs/superpowers/specs/2026-09-24-multi-tenant-equipes-design.md` §15.
 
 - Chave offline do age (`clubecrm-backup-OFFLINE.txt`, no cofre/pendrive).
 - Senhas do `rclone crypt` (cofre).
-- Acesso ao Backblaze B2, Supabase, Vercel, GitHub, Meta (developers.facebook.com) e ao painel da Uazapi.
+- Acesso ao(s) destino(s) de backup (B2 ou o provedor configurado — ver `docs/backup-destinos.md`), Supabase, Vercel, GitHub, Meta (developers.facebook.com) e ao painel da Uazapi.
 - Computador com `age`, `rclone`, `psql`, `jq` e a Supabase CLI (`npm i -g supabase`).
 
 ## Cenário A — Supabase fora do ar (incidente da plataforma)
@@ -605,9 +915,9 @@ Spec: `docs/superpowers/specs/2026-09-24-multi-tenant-equipes-design.md` §15.
 
 ## Cenário B — conta comprometida ou projeto perdido
 
-1. **Conter:** trocar a senha e revogar sessões/tokens de Supabase, GitHub, Vercel, Meta, B2; revogar as chaves de acesso S3 do Storage; revogar o token de acesso pessoal do Supabase.
+1. **Conter:** trocar a senha e revogar sessões/tokens de Supabase, GitHub, Vercel, Meta e do(s) destino(s) de backup; revogar as chaves de acesso S3 do Storage; revogar o token de acesso pessoal do Supabase.
 2. **Novo projeto:** https://supabase.com → New project, região **São Paulo (sa-east-1)**, Postgres 17. Habilitar `pg_cron`, `pg_net` e `vault` em *Database → Extensions*.
-3. **Baixar o backup:** no B2, o arquivo mais recente de `clubecrm-backup-daily/db/` e o `secrets/` do mesmo horário (ou do `monthly/`, se o incidente for antigo).
+3. **Baixar o backup:** no painel do destino principal (ou do secundário, se o principal estiver fora), o arquivo mais recente de `clubecrm-backup-daily/db/` e o `secrets/` do mesmo horário (ou do `monthly/`, se o incidente for antigo).
 4. **Decifrar e restaurar o banco:**
    ```bash
    age -d -i clubecrm-backup-OFFLINE.txt db-<STAMP>.tar.gz.age | tar -xzf -
@@ -663,7 +973,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 **Files:**
 - Modify: `public/privacidade.html:108-120` (seção "4. Com quem compartilhamos")
 
-- [ ] **Step 1: Incluir o Backblaze** — após a linha do Vercel (`public/privacidade.html:114`), trocar o ponto final do item do Vercel por ponto e vírgula e acrescentar:
+- [ ] **Step 1: Incluir o(s) provedor(es) de backup em uso** (o que estiver em `vars.BACKUP_PROVIDER` e, se houver, `vars.BACKUP2_PROVIDER`) — após a linha do Vercel (`public/privacidade.html:114`), trocar o ponto final do item do Vercel por ponto e vírgula e acrescentar um item por provedor, com o país real dos dados. Exemplo para o padrão (B2):
 
 ```html
         <li><strong>Backblaze</strong> — cópias de segurança cifradas, guardadas nos Estados Unidos, que expiram em até 12 meses.</li>
@@ -678,7 +988,7 @@ E, se a seção não mencionar transferência internacional, acrescentar depois 
 - [ ] **Step 2: Verificar no navegador**
 
 Run: `npm run dev` e abrir `http://localhost:8080/privacidade.html`.
-Expected: a lista mostra Supabase, Groq, Vercel e Backblaze; o parágrafo de transferência aparece.
+Expected: a lista mostra Supabase, Groq, Vercel e o(s) provedor(es) de backup; o parágrafo de transferência aparece. Ao trocar de provedor no futuro, atualizar este item no mesmo PR da troca.
 
 - [ ] **Step 3: Remover os gatilhos temporários, commit, push e PR**
 
@@ -689,7 +999,7 @@ Expected: nenhuma saída.
 
 ```bash
 git add public/privacidade.html .github/workflows/
-git commit -m "Inclui o Backblaze na politica de privacidade
+git commit -m "Inclui o provedor de backup na politica de privacidade
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 git push
@@ -697,14 +1007,14 @@ git push
 
 Abrir o PR `feat/backup-externo → main` pela web (o `gh` não está instalado): título "Backup externo cifrado e imutável (subprojeto 1A)"; descrição com o resumo das Tasks, o resultado das execuções manuais (Tasks 3 e 4) e o rodapé `🤖 Generated with [Claude Code](https://claude.com/claude-code)`. **Não** fazer merge sem o usuário pedir.
 
-- [ ] **Step 4: Após o merge [USUÁRIO]** — no dia seguinte, conferir no healthchecks.io que o ping das 03:00 chegou e, no B2, o arquivo novo.
+- [ ] **Step 4: Após o merge [USUÁRIO]** — no dia seguinte, conferir no healthchecks.io que o ping das 03:00 chegou e, no painel do destino, o arquivo novo.
 
 ---
 
 ## Critério de pronto
 
 - Backup diário rodando pela `main`, verde, com ping no monitor.
-- Arquivo no B2 **não** pode ser apagado (object lock conferido).
+- Arquivo no destino **não** pode ser apagado: sonda automática verde e tentativa manual do dono da conta recusada.
 - Chave offline abre o backup (Task 3 Step 6).
 - Teste de restauração verde, com contagens idênticas.
 - Runbook e política de privacidade atualizados.

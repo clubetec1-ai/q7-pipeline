@@ -464,7 +464,38 @@ Metas: **RTO 4 h** (sistema de volta) e **RPO 24 h** (perda máxima). Com o PITR
 do Supabase Pro (add-on pago, opcional), o RPO do dia a dia cai para minutos; o
 backup externo continua sendo a defesa contra comprometimento da conta.
 
-### 15.2 Destino: Backblaze B2
+### 15.2 Destino: plugável, com Backblaze B2 como padrão
+
+O destino não é fixo no código. Uma camada fina (`scripts/backup/destinations.sh`)
+traduz a escolha feita em variáveis do GitHub (`BACKUP_PROVIDER`) para a
+configuração do `rclone`. Estes são os provedores suportados:
+
+| `BACKUP_PROVIDER` | Serviço | Imutabilidade no bucket |
+|---|---|---|
+| `b2` | Backblaze B2 (padrão da Clubetec) | Object Lock |
+| `aws` | Amazon S3 (inclusive `sa-east-1`, São Paulo) | Object Lock |
+| `wasabi` | Wasabi | Object Lock |
+| `r2` | Cloudflare R2 | Bucket Locks |
+| `magalu` | Magalu Cloud (dados no Brasil) | conferir no painel; se não houver, usar só como destino secundário |
+| `gcs` | Google Cloud Storage | Bucket Lock (retention policy) |
+| `azure` | Azure Blob Storage | Immutability policy |
+| `s3` | outro serviço compatível com S3 (MinIO, DigitalOcean Spaces, Oracle, Contabo…) | Object Lock, se o serviço oferecer |
+| `rclone` | qualquer serviço do rclone (Google Drive, OneDrive, Dropbox, SFTP…) | **nenhuma** |
+
+- Existe um **destino secundário** opcional (`BACKUP2_*`) para a regra 3-2-1,
+  por exemplo B2 nos EUA mais AWS `sa-east-1` ou Magalu no Brasil.
+- Serviços sem imutabilidade (`rclone`) só são aceitos como destino principal com
+  `BACKUP_ALLOW_MUTABLE=true`. Isso é um **trade-off explícito**: quem invadir o
+  GitHub consegue apagar esses backups. O recomendado é usá-los apenas como
+  destino secundário.
+- A cada execução, o job faz uma **prova de não-apagamento**: grava um arquivo
+  de sonda e tenta apagá-lo com a própria chave do backup. Se conseguir, o job
+  falha, porque a chave ou a trava do bucket estão mal configuradas.
+- O passo a passo de cada provedor está em `docs/backup-destinos.md`:
+  buckets, trava, chave mínima e região.
+
+Buckets padrão, com os mesmos nomes em qualquer provedor (há variáveis para
+renomear onde o nome precisa ser único no mundo):
 
 | Bucket | Conteúdo | Object lock (modo compliance) | Ciclo de vida |
 |---|---|---|---|
@@ -482,7 +513,10 @@ até 12 meses".
 - Modo **compliance**: nem a conta dona do bucket consegue apagar ou encurtar a
   retenção antes do prazo.
 - A chave de aplicação usada pelo job tem só `listFiles` e `writeFiles` nos dois
-  buckets — sem `deleteFiles`, sem acesso a outros buckets.
+  buckets — sem `deleteFiles`, sem acesso a outros buckets. Nos demais
+  provedores vale o equivalente: gravar e listar em `daily`/`monthly`, sem
+  permissão de apagar. Em `media` a permissão de apagar é aceita, porque ali
+  apagar só cria um marcador e a versão travada continua guardada.
 
 ### 15.3 O que é copiado
 
