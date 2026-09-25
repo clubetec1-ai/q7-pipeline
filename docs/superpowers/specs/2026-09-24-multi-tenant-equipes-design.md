@@ -142,6 +142,15 @@ department_members
   department_id fk, user_id fk, organization_id fk
   pk (department_id, user_id)
 
+teams                      -- "grupos": equipes dentro de um departamento
+  id, organization_id fk, department_id fk, name, timestamps
+  unique (department_id, name)
+
+team_members
+  team_id fk, user_id fk, organization_id fk
+  pk (team_id, user_id)
+  -- só aceita quem já é membro do departamento do grupo (trigger)
+
 platform_operators
   user_id pk fk auth.users, created_at
 
@@ -150,8 +159,9 @@ support_access
   expires_at timestamptz, created_at
 
 audit_log
-  id bigint identity, organization_id null, actor_id uuid, action text,
-  target text, meta jsonb, created_at
+  id bigint identity, organization_id null, actor_id uuid,
+  actor_type text ('user'|'ai_agent'|'system') default 'user', agent_key text null,
+  action text, target text, meta jsonb, created_at
   -- somente INSERT (sem policy de UPDATE/DELETE para ninguém)
 
 org_templates
@@ -168,6 +178,17 @@ inbound_events
   attempts int, error text, created_at, processed_at
   unique (instance_id, provider_message_id)
 ```
+
+**Grupos (`teams`)** subdividem um departamento (ex.: Vendas → "Varejo",
+"Atacado"). Nesta etapa servem para organizar pessoas e filtrar relatórios; a
+distribuição de conversas por grupo entra no subprojeto 2. Visibilidade de
+conversas continua pelo departamento (§5.3) — grupo não abre acesso extra.
+Gerenciados com a permissão `departments.manage`.
+
+**Preparação para agentes de IA** (subprojeto futuro "cérebro"): toda ação feita
+por um agente grava `actor_type = 'ai_agent'` e `agent_key` no `audit_log`, e
+agentes usam a mesma matriz `private.role_permissions` — nenhum caminho de
+permissão paralelo.
 
 `settings` da organização (jsonb, com defaults na leitura):
 `agent_visibility`, `require_mfa_admins`, `ai_rate_limit_per_minute`.
@@ -451,6 +472,14 @@ na Clubetec: mensagem chega, IA responde, atendente convidado vê a fila.
    (enviar arquivo, transferir, finalizar), pesquisa de satisfação.
 4. Gestão de vários números (Meta e Uazapi) na interface, cada um ligado a um
    fluxo.
+5. Voz: ramal SIP (WebRTC) de PBX em nuvem na tela de atendimento, bina com
+   identificação do contato, transcrição ao vivo e ponte para o WhatsApp
+   durante a ligação. Spec próprio, a escrever.
+6. "Cérebro": agente orquestrador que delega a agentes por área (vendas,
+   pós-venda, suporte, financeiro, administrativo, RH…), com aprovação humana
+   para ações de risco. Spec próprio, a escrever depois dos subprojetos 1–3.
+
+Ordem de implementação: 1 → 4 → 2 → 3 → 5 → 6.
 
 ## 15. Backup externo e recuperação de desastre
 
