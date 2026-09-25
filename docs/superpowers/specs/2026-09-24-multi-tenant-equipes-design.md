@@ -75,6 +75,7 @@ Enum `org_role`: `owner`, `admin`, `supervisor`, `agent`.
 | `conversations.reassign` — reatribuir, puxar de outro | ✅ | ✅ | ✅ | |
 | `reports.view` | ✅ | ✅ | ✅ | |
 | `library.manage` — respostas rápidas, etiquetas | ✅ | ✅ | ✅ | |
+| `contacts.groups_manage` — grupos de clientes (entra no subprojeto 2) | ✅ | ✅ | ✅ | |
 | `conversations.attend` — atender, transferir, finalizar, enviar | ✅ | ✅ | ✅ | ✅ |
 
 ⚙️ Depende de `organizations.settings.agent_visibility`:

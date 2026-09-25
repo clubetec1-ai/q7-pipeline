@@ -84,7 +84,7 @@ um schema **Zod por tipo de bloco**, compartilhado entre editor e motor.
 | `message` (texto/mídia, variáveis) | `next` | não |
 | `menu` (opções; botões/lista na Cloud API, numerado na Uazapi) | uma por opção, `invalid`, `timeout` | sim |
 | `question` (valida: texto, número, e-mail, CPF/CNPJ, data; grava em campo) | `ok`, `invalid` (após N tentativas), `timeout` | sim |
-| `condition` (campo, etiqueta, 1º contato, número de entrada, dia da semana) | `true`, `false` | não |
+| `condition` (campo, etiqueta, grupo de clientes, 1º contato, número de entrada, dia da semana) | `true`, `false` | não |
 | `business_hours` (org ou departamento, com feriados e fuso) | `open`, `closed` | não |
 | `ai_agent` | `transferred`, `resolved`, `fallback` | sim |
 | `transfer` (departamento ou pessoa, mensagem opcional) | — (fim) | — |

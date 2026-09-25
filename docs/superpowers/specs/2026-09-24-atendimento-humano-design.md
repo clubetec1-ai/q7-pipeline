@@ -265,6 +265,35 @@ contact_fields  id, organization_id, key, label, type (text|number|date|select),
 `library.manage`. Aplicar/remover: quem pode atender a conversa. Filtros em
 Conversas e Kanban.
 
+### 7.2.1 Grupos de clientes
+
+Segmentos gerenciados de contatos (ex.: "Alto valor", "Inadimplentes", "VIP").
+Diferença para etiqueta: etiqueta é marcação livre de quem atende; grupo é uma
+lista **curada**, com dono e regra de acesso, usada para decisões (rota no
+fluxo, relatórios, campanhas futuras e o agente financeiro do "cérebro").
+
+```
+contact_groups         id, organization_id, name, color, description,
+                       sensitive bool default false, timestamps
+                       unique (organization_id, name)
+contact_group_members  group_id fk, contact_id fk, organization_id fk,
+                       added_by uuid, actor_type ('user'|'ai_agent'|'system'),
+                       created_at
+                       pk (group_id, contact_id)
+```
+
+- Criar, editar e mover contatos entre grupos: permissão nova
+  `contacts.groups_manage` (owner, admin, supervisor).
+- **Grupo sensível** (`sensitive = true`, ex.: "Inadimplentes"): dado financeiro
+  do titular. Só quem tem `reports.view` vê que o contato pertence a ele; para o
+  atendente, o grupo não aparece na ficha nem nos filtros. A RLS de
+  `contact_group_members` aplica essa regra, não só a interface.
+- Toda inclusão/remoção vai para o `audit_log` (inclusive quando feita por
+  agente de IA, com `actor_type = 'ai_agent'`).
+- Anonimização do contato (§7.1) remove as participações em grupos.
+- Filtros em Conversas e Kanban; no subprojeto 3, bloco de condição "contato
+  está no grupo X".
+
 ### 7.3 Respostas rápidas
 
 `quick_replies (id, organization_id, department_id null, shortcut, content,
