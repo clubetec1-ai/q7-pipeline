@@ -480,7 +480,17 @@ na Clubetec: mensagem chega, IA responde, atendente convidado vê a fila.
    pós-venda, suporte, financeiro, administrativo, RH…), com aprovação humana
    para ações de risco. Spec próprio, a escrever depois dos subprojetos 1–3.
 
-Ordem de implementação: 1 → 4 → 2 → 3 → 5 → 6.
+7. Canais Meta além do WhatsApp: **Facebook Messenger** e **Instagram Direct**
+   entrando na mesma caixa de atendimento (mesmo app Meta; nova Análise do App
+   para as permissões de Messenger e Instagram). Entra junto do subprojeto 4,
+   que passa a ser "números e canais".
+8. **Escolha da IA por agente**: provedor e modelo configuráveis (Groq, OpenAI,
+   Anthropic Claude, Google Gemini, OpenRouter), com chave por organização no
+   Vault e cadeia de reserva entre provedores. Entra no subprojeto 3 (bloco de
+   IA do fluxo) e é a base dos agentes do "cérebro". Cada provedor novo é um
+   suboperador: atualizar a política de privacidade antes de liberar.
+
+Ordem de implementação: 1 → 4 (+7) → 2 → 3 (+8) → 5 → 6.
 
 ## 15. Backup externo e recuperação de desastre
 
