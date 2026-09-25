@@ -198,7 +198,7 @@ permissão paralelo.
 
 | Tabela | Mudança |
 |---|---|
-| `whatsapp_instances` | + `organization_id not null`; + `webhook_secret` (Uazapi); `instance_token` migra para Vault |
+| `whatsapp_instances` | + `organization_id not null`; segredo do webhook Uazapi no Vault (`instance:<id>:webhook`, nunca em coluna); `instance_token` migra para Vault |
 | `pipeline_stages` | + `organization_id not null` (funil compartilhado pela org) |
 | `conversations` | + `organization_id not null`, + `assigned_to uuid null`, + `department_id uuid null`; unique vira `(organization_id, instance_id, contact_phone)` |
 | `messages` | + `organization_id not null` |

@@ -383,7 +383,7 @@ GRANT EXECUTE ON FUNCTION
   private.can_see_conversation(uuid, uuid, uuid)
 TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION private.audit(uuid, text, text, jsonb, text, text) TO service_role;
--- Legado: as policies antigas usam has_role até a migration org_rls substituí-las.
-GRANT EXECUTE ON FUNCTION private.has_role(uuid, public.app_role) TO authenticated;
+-- has_role (legado) não é concedido aqui: a migration revoke_legacy_has_role o
+-- fecha, e reexecutar este arquivo não pode reabrir o acesso.
 REVOKE ALL ON FUNCTION public.my_permissions(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.my_permissions(uuid) TO authenticated;

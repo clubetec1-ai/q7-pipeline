@@ -273,7 +273,9 @@ export function ConfigDrawer({ open, onOpenChange }: Props) {
     if (apiKey.trim()) payload.groq_api_key = apiKey.trim();
     const { error } = await supabase
       .from("agent_configs")
-      .upsert(payload, { onConflict: "user_id" });
+      // A configuração é da organização; o banco preenche organization_id pela
+      // associação do usuário antes de checar o conflito.
+      .upsert(payload, { onConflict: "organization_id" });
     setSaving(false);
     if (error) {
       toast({ variant: "destructive", title: "Erro", description: error.message });

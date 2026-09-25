@@ -302,6 +302,36 @@ BEGIN
   PERFORM pg_temp.expect((SELECT count(*) = 1 FROM public.profiles WHERE user_id = '00000000-0000-0000-0000-0000000000d1'), 'cadastro cria perfil');
   PERFORM pg_temp.expect((SELECT count(*) = 0 FROM public.organization_members WHERE user_id = '00000000-0000-0000-0000-0000000000d1'), 'cadastro nao cria org');
 
+  -- 20. Operador sem suporte nao le organizacoes (spec §5.1).
+  PERFORM pg_temp.expect(pg_temp.q(operator, 'SELECT count(*) FROM public.organizations') = 0, 'operador nao lista orgs');
+
+  -- 21. Configuracao da IA (chave da Groq) so para quem administra.
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, 'SELECT count(*) FROM public.agent_configs') = 0, 'agent nao le agent_configs');
+  PERFORM pg_temp.expect(pg_temp.q(sup_a, 'SELECT count(*) FROM public.agent_configs') = 0, 'supervisor nao le agent_configs');
+
+  -- 22. Segredo de numero: so org.settings grava; referencia por nome.
+  PERFORM pg_temp.expect_error(agent_a, format(
+    'SELECT public.set_instance_secret(%L, %L)', 'aaaaaaaa-0000-0000-0003-000000000001', 'tok'), 'set_instance_secret sem permissao');
+  PERFORM pg_temp.expect_error(owner_b, format(
+    'SELECT public.set_instance_secret(%L, %L)', 'aaaaaaaa-0000-0000-0003-000000000001', 'tok'), 'set_instance_secret de outra org');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format(
+    'SELECT public.set_instance_secret(%L, %L)', 'aaaaaaaa-0000-0000-0003-000000000001', 'tok')) LIKE 'ok:%', 'set_instance_secret owner');
+  PERFORM pg_temp.expect((SELECT secret_name = 'instance:aaaaaaaa-0000-0000-0003-000000000001:token'
+    FROM public.whatsapp_instances WHERE id = 'aaaaaaaa-0000-0000-0003-000000000001'), 'secret_name por nome');
+
+  -- 23. Mesmo contato em dois numeros da mesma organizacao.
+  INSERT INTO public.whatsapp_instances (id, organization_id, name, provider)
+  VALUES ('aaaaaaaa-0000-0000-0003-000000000002', A, 'iso-a2', 'cloud');
+  PERFORM pg_temp.expect(pg_temp.run(NULL, format(
+    'INSERT INTO public.conversations (instance_id, contact_phone) VALUES (%L, %L)',
+    'aaaaaaaa-0000-0000-0003-000000000002', '5511900000001')) = 'ok:1', 'mesmo contato em dois numeros');
+
+  -- 24. Tela de configuracoes: upsert por organizacao, sem enviar organization_id.
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format(
+    'INSERT INTO public.agent_configs (user_id, system_prompt) VALUES (%L, %L)
+     ON CONFLICT (organization_id) DO UPDATE SET system_prompt = EXCLUDED.system_prompt', owner_a, 'novo')) = 'ok:1',
+    'upsert de agent_configs por organizacao');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 
