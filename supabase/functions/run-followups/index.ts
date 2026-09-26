@@ -63,10 +63,11 @@ serve(async (req) => {
         continue;
       }
 
-      // Instância
+      // Instância. Precisa da linha inteira: sem `provider` e `phone_number_id`,
+      // um número da Cloud API parece Uazapi e o envio cai no ramo errado.
       const { data: inst } = await supabase
         .from("whatsapp_instances")
-        .select("instance_token, server_url")
+        .select("*")
         .eq("id", conv.instance_id)
         .maybeSingle();
       if (!inst?.instance_token) {
