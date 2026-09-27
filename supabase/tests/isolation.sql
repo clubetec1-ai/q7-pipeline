@@ -391,6 +391,67 @@ BEGIN
   PERFORM pg_temp.expect((SELECT count(*) = 1 FROM public.notifications
     WHERE user_id = agent2_a AND kind = 'taken_over'), 'quem perdeu e notificado');
 
+  -- 27. Pos-atendimento, opt-out e estatisticas do fluxo.
+  INSERT INTO public.flows (id, organization_id, name)
+  VALUES ('bbbbbbbb-0000-0000-0009-000000000001', 'bbbbbbbb-0000-0000-0000-000000000001', 'fluxo-b');
+  INSERT INTO public.flow_versions (organization_id, flow_id, status, graph)
+  VALUES ('bbbbbbbb-0000-0000-0000-000000000001', 'bbbbbbbb-0000-0000-0009-000000000001', 'published',
+          '{"nodes":[{"id":"s","type":"start","data":{}}],"edges":[]}');
+  INSERT INTO public.conversations (id, instance_id, contact_phone) VALUES
+    ('aaaaaaaa-0000-0000-0010-000000000002', 'aaaaaaaa-0000-0000-0003-000000000001', '5511900000027'),
+    ('aaaaaaaa-0000-0000-0010-000000000003', 'aaaaaaaa-0000-0000-0003-000000000001', '5511900000028');
+  INSERT INTO public.tickets (id, organization_id, conversation_id, protocol, status, assigned_to, opened_at) VALUES
+    ('aaaaaaaa-0000-0000-0011-000000000002', A, 'aaaaaaaa-0000-0000-0010-000000000002', 'T-27a', 'open', agent_a, now()),
+    ('aaaaaaaa-0000-0000-0011-000000000003', A, 'aaaaaaaa-0000-0000-0010-000000000003', 'T-27b', 'open', agent_a, now());
+
+  UPDATE public.organizations SET settings = settings || '{"post_close_flow_id":"bbbbbbbb-0000-0000-0009-000000000001"}'
+  WHERE id = A;
+  UPDATE public.tickets SET status = 'closed', closed_at = now() WHERE id = 'aaaaaaaa-0000-0000-0011-000000000001';
+  PERFORM pg_temp.expect((SELECT count(*) = 0 FROM public.flow_runs
+    WHERE ticket_id = 'aaaaaaaa-0000-0000-0011-000000000001'), 'fluxo de outra org nao roda no pos-atendimento');
+
+  UPDATE public.organizations SET settings = settings || '{"post_close_flow_id":"nao-e-uuid"}' WHERE id = A;
+  UPDATE public.tickets SET status = 'closed', closed_at = now() WHERE id = 'aaaaaaaa-0000-0000-0011-000000000002';
+  PERFORM pg_temp.expect((SELECT status = 'closed' FROM public.tickets
+    WHERE id = 'aaaaaaaa-0000-0000-0011-000000000002'), 'config invalida nao impede finalizar');
+
+  UPDATE public.organizations SET settings = settings || '{"post_close_flow_id":"aaaaaaaa-0000-0000-0009-000000000001"}'
+  WHERE id = A;
+  UPDATE public.tickets SET status = 'closed', closed_at = now() WHERE id = 'aaaaaaaa-0000-0000-0011-000000000003';
+  PERFORM pg_temp.expect((SELECT count(*) = 1 FROM public.flow_runs
+    WHERE ticket_id = 'aaaaaaaa-0000-0000-0011-000000000003' AND state = 'waiting_timer'), 'pos-atendimento inicia');
+
+  INSERT INTO public.flow_run_steps (organization_id, run_id, flow_version_id, node_id, outcome)
+  SELECT A, r.id, r.flow_version_id, 's', 'first_contact' FROM public.flow_runs r
+  WHERE r.ticket_id = 'aaaaaaaa-0000-0000-0011-000000000003';
+  PERFORM pg_temp.expect_error(owner_b, format(
+    'SELECT * FROM public.flow_stats(%L)', 'aaaaaaaa-0000-0000-0009-000000000001'), 'outra org nao le estatisticas');
+  PERFORM pg_temp.expect(pg_temp.t(owner_a, format(
+    'SELECT n::text FROM public.flow_stats(%L, 7) WHERE node_id = %L', 'aaaaaaaa-0000-0000-0009-000000000001', 's')) = '1',
+    'owner le estatisticas');
+
+  INSERT INTO public.tickets (organization_id, conversation_id, protocol, status)
+  VALUES (A, 'aaaaaaaa-0000-0000-0010-000000000003', 'T-27c', 'bot');
+  PERFORM pg_temp.expect((SELECT count(*) = 0 FROM public.flow_runs
+    WHERE ticket_id = 'aaaaaaaa-0000-0000-0011-000000000003' AND state = 'waiting_timer'), 'atendimento novo cancela pos-atendimento');
+
+  UPDATE public.contacts SET opted_out_at = now()
+  WHERE id = (SELECT contact_id FROM public.conversations WHERE id = 'aaaaaaaa-0000-0000-0010-000000000001');
+  PERFORM pg_temp.expect_error(agent_a, format('UPDATE public.contacts SET opted_out_at = NULL WHERE id = %L',
+    (SELECT contact_id FROM public.conversations WHERE id = 'aaaaaaaa-0000-0000-0010-000000000001')),
+    'navegador nao grava opt-out');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.clear_opt_out(%L)',
+    (SELECT contact_id FROM public.conversations WHERE id = 'aaaaaaaa-0000-0000-0010-000000000001')),
+    'outra org nao desfaz opt-out');
+  PERFORM pg_temp.expect(pg_temp.run(agent_a, format('SELECT public.clear_opt_out(%L)',
+    (SELECT contact_id FROM public.conversations WHERE id = 'aaaaaaaa-0000-0000-0010-000000000001'))) LIKE 'ok:%',
+    'agent desfaz opt-out');
+  PERFORM pg_temp.expect((SELECT ct.opted_out_at IS NULL FROM public.contacts ct
+    JOIN public.conversations c ON c.contact_id = ct.id WHERE c.id = 'aaaaaaaa-0000-0000-0010-000000000001'),
+    'opt-out desfeito');
+  PERFORM pg_temp.expect((SELECT count(*) = 1 FROM public.audit_log
+    WHERE action = 'contact.opt_out_cleared' AND actor_id = agent_a), 'desfazer opt-out fica auditado');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 

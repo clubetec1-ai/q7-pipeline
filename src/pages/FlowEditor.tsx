@@ -16,6 +16,9 @@ import { Badge } from "@/components/ui/badge";
 import { BLOCK, BLOCKS, NEW_GRAPH, type BlockData } from "./fluxos/blocks";
 import { FlowNodeView } from "./fluxos/FlowNodeView";
 import { NodeProperties, type Lookups } from "./fluxos/NodeProperties";
+import { OverlayContext } from "./fluxos/overlay";
+import { Simulator } from "./fluxos/Simulator";
+import type { FlowGraph } from "../../supabase/functions/_shared/flow/engine";
 
 const nodeTypes = Object.fromEntries(BLOCKS.map((b) => [b.type, FlowNodeView]));
 
@@ -43,7 +46,24 @@ export default function FlowEditor() {
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState(false);
   const [lookups, setLookups] = useState<Lookups>({ departments: [], tags: [], groups: [] });
+  const [simOpen, setSimOpen] = useState(false);
+  const [active, setActive] = useState<string | null>(null);
+  const [period, setPeriod] = useState(0);
+  const [stats, setStats] = useState<Record<string, Record<string, number>> | null>(null);
   const canEdit = can("org.settings");
+
+  // Estatísticas por bloco/saída (só contagens; RPC checa a permissão).
+  useEffect(() => {
+    if (!id || !period) return setStats(null);
+    supabase.rpc("flow_stats", { flow: id, period }).then(({ data, error }) => {
+      if (error) return toast({ variant: "destructive", title: "Estatísticas indisponíveis" });
+      const map: Record<string, Record<string, number>> = {};
+      for (const r of data ?? []) (map[r.node_id] ??= {})[r.outcome ?? ""] = Number(r.n);
+      setStats(map);
+    });
+  }, [id, period, toast]);
+  const overlay = useMemo(() => ({ stats, active }), [stats, active]);
+  const simGraph = useMemo(() => (simOpen ? toGraph(nodes, edges) as unknown as FlowGraph : null), [simOpen, nodes, edges]);
 
   const load = useCallback(async () => {
     if (!id || !org) return;
@@ -138,6 +158,13 @@ export default function FlowEditor() {
           {dirty && <span className="text-xs text-muted-foreground">alterações não salvas</span>}
         </div>
         <div className="flex gap-2">
+          <select className="h-9 rounded-md border bg-background px-2 text-sm" value={period} title="Estatísticas"
+            onChange={(e) => setPeriod(Number(e.target.value))}>
+            <option value={0}>Sem estatísticas</option>
+            <option value={7}>Últimos 7 dias</option>
+            <option value={30}>Últimos 30 dias</option>
+          </select>
+          <Button variant={simOpen ? "secondary" : "outline"} onClick={() => setSimOpen((v) => !v)}>Simular</Button>
           <Button variant="outline" disabled={busy || !dirty} onClick={async () => {
             setBusy(true);
             if (await saveDraft()) toast({ title: "Rascunho salvo" });
@@ -159,6 +186,7 @@ export default function FlowEditor() {
         </aside>
 
         <div className="flex-1 min-w-0">
+          <OverlayContext.Provider value={overlay}>
           <ReactFlow
             nodes={nodes} edges={edges} nodeTypes={nodeTypes}
             onNodesChange={(c) => {
@@ -177,10 +205,13 @@ export default function FlowEditor() {
             <Background />
             <Controls />
           </ReactFlow>
+          </OverlayContext.Provider>
         </div>
 
         <aside className="w-80 border-l p-4 overflow-y-auto shrink-0">
-          {current ? (
+          {simGraph ? (
+            <Simulator graph={simGraph} lookups={lookups} onActive={setActive} />
+          ) : current ? (
             <NodeProperties type={current.type ?? ""} data={current.data as BlockData}
               onChange={updateData} onDelete={removeSelected} lookups={lookups} />
           ) : (

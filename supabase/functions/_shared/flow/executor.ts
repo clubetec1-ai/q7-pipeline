@@ -5,6 +5,8 @@
  */
 import { forOrg } from "../tenant.ts";
 import { callGroq, getAgentConfig } from "../get-ai-config.ts";
+import { getUazapiConfig } from "../get-uazapi-config.ts";
+import { withInstanceToken } from "../secrets.ts";
 import * as providers from "../providers/index.ts";
 import { advance, FlowAction, FlowCtx, FlowGraph } from "./engine.ts";
 
@@ -16,6 +18,9 @@ Protocolo deste atendimento: ${protocol}. Informe ao cliente se ele pedir.` : pr
 }
 
 const ACTIVE = ["running", "waiting_input", "waiting_timer", "ai"];
+const DEFAULT_OPT_OUT = ["sair", "parar"];
+const DEFAULT_OPT_OUT_REPLY =
+  "Pronto, você não vai mais receber mensagens automáticas. Se precisar, é só mandar mensagem.";
 
 function nowIn(tz: string) {
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -26,30 +31,92 @@ function nowIn(tz: string) {
   return { weekday, minutes: (Number(get("hour")) % 24) * 60 + Number(get("minute")) };
 }
 
+const bare = (s: string) =>
+  s.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\p{L}\p{N} ]/gu, "").trim().toLowerCase();
+
+/** Número pronto para enviar: token do Vault e, na Uazapi antiga, o ajuste global. */
+// deno-lint-ignore no-explicit-any
+export async function instForSend(admin: any, inst: any) {
+  const row = await withInstanceToken(admin, inst);
+  if (providers.providerOf(row) === "uazapi" && !row.server_url) {
+    const uaz = await getUazapiConfig();
+    row.server_url = uaz?.serverUrl ?? null;
+    row.instance_token = row.instance_token || uaz?.instanceToken || null;
+  }
+  return row;
+}
+
+// deno-lint-ignore no-explicit-any
+async function sendAndStore(org: any, inst: any, conv: any, ticketId: string, body: string) {
+  if (!body.trim()) return;
+  const sent = await providers.sendText(inst, conv.contact_phone, body);
+  await org.insert("messages", {
+    conversation_id: conv.id, ticket_id: ticketId, direction: "outbound", sender: "ai", content: body,
+    status: sent.ok ? "sent" : "failed", provider_message_id: sent.messageId ?? null,
+    error: sent.ok ? null : (sent.error ?? "falha").slice(0, 300),
+  });
+}
+
 /**
- * Processa a mensagem do cliente num atendimento em "bot". Devolve false se
- * não há fluxo publicado para o número/organização (o chamador segue com a IA
- * da organização, como antes).
+ * Opt-out (spec fluxo §9): mensagem igual a uma palavra da lista grava
+ * `opted_out_at` e confirma. Devolve true se a mensagem era um pedido de saída.
  */
-export async function runFlow(p: {
+export async function handleOptOut(p: {
   // deno-lint-ignore no-explicit-any
   admin: any; orgId: string; inst: any; conv: any; ticket: any; text: string;
 }): Promise<boolean> {
   const { admin, orgId, inst, conv, ticket, text } = p;
+  if (!conv.contact_id || !text || text.length > 40) return false;
+  const { data: orgRow } = await admin.from("organizations").select("settings").eq("id", orgId).maybeSingle();
+  const settings = (orgRow?.settings ?? {}) as Record<string, any>;
+  const words = (Array.isArray(settings.opt_out_words) && settings.opt_out_words.length
+    ? settings.opt_out_words : DEFAULT_OPT_OUT).map((w: unknown) => bare(String(w))).filter(Boolean);
+  if (!words.includes(bare(text))) return false;
   const org = forOrg(admin, orgId);
+  const { data: changed } = await org.update("contacts", { opted_out_at: new Date().toISOString() })
+    .eq("id", conv.contact_id).is("opted_out_at", null).select("id");
+  if (!changed?.length) return true; // já tinha saído: não repete a confirmação
+  await admin.from("audit_log").insert({
+    organization_id: orgId, actor_type: "system", action: "contact.opt_out", target: String(conv.contact_id),
+  });
+  const reply = typeof settings.opt_out_reply === "string" ? settings.opt_out_reply : DEFAULT_OPT_OUT_REPLY;
+  await sendAndStore(org, inst, conv, ticket.id, reply);
+  return true;
+}
+
+export type FlowOutcome = false | "handled" | "passthrough";
+
+/**
+ * Processa um estímulo do fluxo: mensagem do cliente (`text`) ou relógio
+ * (`timer`). Devolve false se não há fluxo para o atendimento (o chamador
+ * segue com a IA da organização, como antes); "passthrough" quando o
+ * pós-atendimento recusou a mensagem e ela deve seguir o caminho normal.
+ */
+export async function runFlow(p: {
+  // deno-lint-ignore no-explicit-any
+  admin: any; orgId: string; inst: any; conv: any; ticket: any; text: string | null;
+  // deno-lint-ignore no-explicit-any
+  timer?: boolean; run?: any; beforeApply?: () => Promise<unknown>;
+}): Promise<FlowOutcome> {
+  const { admin, orgId, inst, conv, ticket } = p;
+  const org = forOrg(admin, orgId);
+  const closed = ticket.status === "closed";
 
   const { data: orgRow } = await admin.from("organizations").select("settings").eq("id", orgId).maybeSingle();
   const settings = (orgRow?.settings ?? {}) as Record<string, any>;
 
-  let { data: run } = await org.select("flow_runs")
-    .eq("ticket_id", ticket.id).in("state", ACTIVE).maybeSingle();
+  let run = p.run;
+  if (!run) {
+    ({ data: run } = await org.select("flow_runs").eq("ticket_id", ticket.id).in("state", ACTIVE).maybeSingle());
+  }
   let graph: FlowGraph;
-  let input: string | null = text;
+  let input: string | null = p.timer ? null : (p.text ?? "");
 
   if (run) {
     const { data: v } = await org.select("flow_versions", "graph").eq("id", run.flow_version_id).maybeSingle();
     graph = v?.graph as FlowGraph;
   } else {
+    if (closed || p.timer) return false; // só atendimento em "bot" começa fluxo novo
     const flowId = inst.flow_id ?? settings.default_flow_id ?? null;
     if (!flowId) return false;
     const { data: v } = await org.select("flow_versions", "id, graph")
@@ -68,11 +135,12 @@ export async function runFlow(p: {
   if (!graph) return false;
 
   // Contexto: 1º contato, etiquetas, grupos, horário no fuso da organização.
-  const [{ count: prevTickets }, { data: tags }, { data: groups }] = await Promise.all([
+  const [{ count: prevTickets }, { data: tags }, { data: groups }, { data: contact }] = await Promise.all([
     org.select("tickets", "id").eq("conversation_id", conv.id).neq("id", ticket.id).limit(1),
     conv.contact_id ? org.select("contact_tags", "tag_id").eq("contact_id", conv.contact_id) : { data: [] },
     conv.contact_id ? org.select("contact_group_members", "group_id").eq("contact_id", conv.contact_id) : { data: [] },
-  ]).then(([a, b, c]: any[]) => [{ count: (a.data ?? []).length }, b, c]);
+    conv.contact_id ? org.select("contacts", "opted_out_at").eq("id", conv.contact_id).maybeSingle() : { data: null },
+  ]).then(([a, b, c, d]: any[]) => [{ count: (a.data ?? []).length }, b, c, d]);
   const clock = nowIn(settings.timezone || "America/Sao_Paulo");
   const ctx: FlowCtx = {
     firstContact: !prevTickets,
@@ -85,55 +153,64 @@ export async function runFlow(p: {
     vars: run.vars ?? {},
     attempts: run.attempts ?? 0,
     aiTurns: run.ai_turns ?? 0,
+    timerFired: !!p.timer,
     businessHours: settings.business_hours,
   };
 
   const result = advance(graph, run.current_node_id, input, ctx);
+  const actions = result.actions as FlowAction[];
+  let outcome: FlowOutcome = "handled";
+  if (result.passthrough) {
+    if (closed) outcome = "passthrough";
+    else actions.push({ type: "queue" }); // dentro do atendimento: segue para a fila
+  }
 
-  // Aplica as ações na ordem.
-  const send = async (body: string) => {
-    if (!body.trim()) return;
-    const sent = await providers.sendText(inst, conv.contact_phone, body);
-    await org.insert("messages", {
-      conversation_id: conv.id, ticket_id: ticket.id, direction: "outbound", sender: "ai", content: body,
-      status: sent.ok ? "sent" : "failed", provider_message_id: sent.messageId ?? null,
-      error: sent.ok ? null : (sent.error ?? "falha").slice(0, 300),
-    });
-  };
-  for (const a of result.actions as FlowAction[]) {
-    try {
-      if (a.type === "send") await send(a.text);
-      else if (a.type === "set_field" && conv.contact_id) {
-        await org.update("contacts", { [a.field]: a.value }).eq("id", conv.contact_id);
-      } else if (a.type === "tag" && conv.contact_id) {
-        if (a.remove) await org.delete("contact_tags").eq("contact_id", conv.contact_id).eq("tag_id", a.tagId);
-        else await org.insert("contact_tags", { contact_id: conv.contact_id, tag_id: a.tagId });
-      } else if (a.type === "ai") {
-        const node = graph.nodes.find((n) => n.id === a.nodeId);
-        const agent = await getAgentConfig(orgId);
-        if (!agent?.apiKey) { await admin.rpc("service_ticket_route", { ticket: ticket.id, action: "queue" }); continue; }
-        const { data: history } = await org.select("messages", "direction, content")
-          .eq("ticket_id", ticket.id).order("created_at", { ascending: false }).limit(30);
-        const chat = [
-          { role: "system" as const, content: withProtocol(String(node?.data?.prompt || agent.systemPrompt), ticket.protocol) },
-          ...(history ?? []).reverse().map((m: any) => ({
-            role: (m.direction === "inbound" ? "user" : "assistant") as "user" | "assistant", content: m.content,
-          })),
-        ];
-        const groq = await callGroq(agent.apiKey, agent.model, chat);
-        if (groq.ok && groq.reply) await send(groq.reply);
-        else await admin.rpc("service_ticket_route", { ticket: ticket.id, action: "queue" }); // IA fora → humano
-      } else if (a.type === "transfer") {
-        await admin.rpc("service_ticket_route", {
-          ticket: ticket.id, action: "transfer", dept: a.departmentId, to_user: a.userId,
-        });
-      } else if (a.type === "close") {
-        await admin.rpc("service_ticket_route", { ticket: ticket.id, action: "close", reason: a.reasonId });
-      } else if (a.type === "queue") {
-        await admin.rpc("service_ticket_route", { ticket: ticket.id, action: "queue" });
+  if (outcome === "handled") {
+    await p.beforeApply?.();
+    // Mensagem que o cliente não pediu (relógio) respeita o opt-out.
+    const muted = !!p.timer && !!contact?.opted_out_at;
+    const send = (body: string) => (muted ? Promise.resolve() : sendAndStore(org, inst, conv, ticket.id, body));
+    const route = (args: Record<string, unknown>) =>
+      closed ? Promise.resolve() : admin.rpc("service_ticket_route", { ticket: ticket.id, ...args });
+
+    for (const a of actions) {
+      try {
+        if (a.type === "send") await send(a.text);
+        else if (a.type === "set_field" && conv.contact_id) {
+          await org.update("contacts", { [a.field]: a.value }).eq("id", conv.contact_id);
+        } else if (a.type === "tag" && conv.contact_id) {
+          if (a.remove) await org.delete("contact_tags").eq("contact_id", conv.contact_id).eq("tag_id", a.tagId);
+          else await org.insert("contact_tags", { contact_id: conv.contact_id, tag_id: a.tagId });
+        } else if (a.type === "rating") {
+          await org.update("tickets", { rating: a.value }).eq("id", ticket.id);
+        } else if (a.type === "rating_comment") {
+          await org.update("tickets", { rating_comment: a.text }).eq("id", ticket.id);
+        } else if (a.type === "ai") {
+          if (closed) continue;
+          const node = graph.nodes.find((n) => n.id === a.nodeId);
+          const agent = await getAgentConfig(orgId);
+          if (!agent?.apiKey) { await route({ action: "queue" }); continue; }
+          const { data: history } = await org.select("messages", "direction, content")
+            .eq("ticket_id", ticket.id).order("created_at", { ascending: false }).limit(30);
+          const chat = [
+            { role: "system" as const, content: withProtocol(String(node?.data?.prompt || agent.systemPrompt), ticket.protocol) },
+            ...(history ?? []).reverse().map((m: any) => ({
+              role: (m.direction === "inbound" ? "user" : "assistant") as "user" | "assistant", content: m.content,
+            })),
+          ];
+          const groq = await callGroq(agent.apiKey, agent.model, chat);
+          if (groq.ok && groq.reply) await send(groq.reply);
+          else await route({ action: "queue" }); // IA fora → humano
+        } else if (a.type === "transfer") {
+          await route({ action: "transfer", dept: a.departmentId, to_user: a.userId });
+        } else if (a.type === "close") {
+          await route({ action: "close", reason: a.reasonId });
+        } else if (a.type === "queue") {
+          await route({ action: "queue" });
+        }
+      } catch (e) {
+        console.error("[flow] acao falhou", { type: a.type, message: e instanceof Error ? e.message : String(e) });
       }
-    } catch (e) {
-      console.error("[flow] acao falhou", { type: a.type, message: e instanceof Error ? e.message : String(e) });
     }
   }
 
@@ -149,10 +226,36 @@ export async function runFlow(p: {
     vars: ended ? {} : result.vars, // minimização: variáveis somem ao fim
     attempts: result.attempts,
     ai_turns: result.aiTurns,
+    wait_until: !ended && result.waitMinutes ? new Date(Date.now() + result.waitMinutes * 60_000).toISOString() : null,
     error: result.error ?? null,
     updated_at: new Date().toISOString(),
     finished_at: ended ? new Date().toISOString() : null,
   }).eq("id", run.id);
   if (result.error) console.error("[flow] erro", { run: run.id, error: result.error });
-  return true;
+  return outcome;
+}
+
+/**
+ * Pós-atendimento (spec fluxo §6.3): se a conversa tem um run esperando
+ * resposta num atendimento já finalizado, a mensagem vai para ele. Devolve
+ * true se foi consumida; false = seguir o caminho normal (abre atendimento).
+ */
+export async function runPostClose(p: {
+  // deno-lint-ignore no-explicit-any
+  admin: any; orgId: string; conv: any; text: string;
+  // deno-lint-ignore no-explicit-any
+  loadInst: () => Promise<any>; storeInbound: (ticketId: string) => Promise<unknown>;
+}): Promise<boolean> {
+  const org = forOrg(p.admin, p.orgId);
+  const { data: run } = await org.select("flow_runs")
+    .eq("conversation_id", p.conv.id).eq("state", "waiting_input").maybeSingle();
+  if (!run) return false;
+  const { data: ticket } = await org.select("tickets").eq("id", run.ticket_id).maybeSingle();
+  if (!ticket || ticket.status !== "closed") return false;
+  const inst = await p.loadInst();
+  const r = await runFlow({
+    admin: p.admin, orgId: p.orgId, inst, conv: p.conv, ticket, text: p.text, run,
+    beforeApply: () => p.storeInbound(ticket.id),
+  });
+  return r === "handled";
 }

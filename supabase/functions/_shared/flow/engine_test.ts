@@ -80,3 +80,56 @@ Deno.test("protocolo nos textos", () => {
   const r = advance(g, "m", null, { ...ctx, protocol: "2026-000009" });
   assertEquals(r.actions[0], { type: "send", text: "Protocolo 2026-000009" });
 });
+
+Deno.test("espera: para no relogio e segue por elapsed ou replied", () => {
+  const g: FlowGraph = {
+    nodes: [
+      { id: "s", type: "start", data: {} },
+      { id: "w", type: "wait", data: { minutes: 5000 } },
+      { id: "a", type: "message", data: { text: "passou" } },
+      { id: "b", type: "message", data: { text: "respondeu" } },
+    ],
+    edges: [
+      { source: "s", sourceHandle: "first_contact", target: "w" },
+      { source: "w", sourceHandle: "elapsed", target: "a" },
+      { source: "w", sourceHandle: "replied", target: "b" },
+    ],
+  };
+  const r1 = advance(g, "s", null, ctx);
+  assertEquals([r1.state, r1.currentNodeId, r1.waitMinutes], ["waiting_timer", "w", 1380]);
+  const r2 = advance(g, "w", null, { ...ctx, timerFired: true });
+  assertEquals(r2.actions[0], { type: "send", text: "passou" });
+  const r3 = advance(g, "w", "oi", ctx);
+  assertEquals(r3.actions[0], { type: "send", text: "respondeu" });
+});
+
+Deno.test("menu com tempo limite: timeout pelo relogio", () => {
+  const g: FlowGraph = {
+    nodes: [
+      { id: "m", type: "menu", data: { text: "Escolha", options: [{ id: "x", label: "X" }], timeout_minutes: 30 } },
+      { id: "t", type: "message", data: { text: "sumiu?" } },
+    ],
+    edges: [{ source: "m", sourceHandle: "timeout", target: "t" }],
+  };
+  assertEquals(advance(g, "m", null, ctx).waitMinutes, 30);
+  const r = advance(g, "m", null, { ...ctx, timerFired: true });
+  assertEquals(r.actions[0], { type: "send", text: "sumiu?" });
+});
+
+Deno.test("pesquisa: nota, comentario e resposta invalida", () => {
+  const g: FlowGraph = {
+    nodes: [{ id: "p", type: "survey", data: { kind: "csat", comment: "Quer comentar?" } }],
+    edges: [],
+  };
+  const ask = advance(g, "p", null, ctx);
+  assertEquals([ask.state, ask.waitMinutes, ask.vars.__sv], ["waiting_input", 1440, "r"]);
+  const rated = advance(g, "p", "5 estrelas", { ...ctx, vars: ask.vars });
+  assertEquals(rated.actions[0], { type: "rating", value: 5 });
+  assertEquals(rated.vars.__sv, "c");
+  const done = advance(g, "p", "otimo", { ...ctx, vars: rated.vars });
+  assertEquals(done.actions[0], { type: "rating_comment", text: "otimo" });
+  assertEquals(done.vars.__sv, undefined);
+  const bad = advance(g, "p", "quero outra coisa", { ...ctx, vars: ask.vars });
+  assertEquals([bad.state, bad.passthrough, bad.actions.length], ["done", true, 0]);
+  assertEquals(advance(g, "p", "6", { ...ctx, vars: ask.vars }).passthrough, true);
+});

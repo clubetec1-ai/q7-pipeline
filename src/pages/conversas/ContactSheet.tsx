@@ -12,7 +12,10 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProtocolHistory } from "./ProtocolHistory";
 
-interface Contact { id: string; phone: string; name: string | null; email: string | null; document: string | null; notes: string | null }
+interface Contact {
+  id: string; phone: string; name: string | null; email: string | null; document: string | null; notes: string | null;
+  opted_out_at: string | null;
+}
 interface Tag { id: string; name: string; color: string | null }
 interface Group { id: string; name: string; sensitive: boolean }
 interface Note { id: string; content: string; author_id: string; created_at: string; mentions: string[] }
@@ -44,7 +47,7 @@ export function ContactSheet({
   const load = useCallback(async () => {
     if (!org || !contactId) return;
     const [ct, t, tg, g, gm, n, m] = await Promise.all([
-      supabase.from("contacts").select("id, phone, name, email, document, notes").eq("id", contactId).maybeSingle(),
+      supabase.from("contacts").select("id, phone, name, email, document, notes, opted_out_at").eq("id", contactId).maybeSingle(),
       supabase.from("tags").select("id, name, color").eq("organization_id", org.id).order("name"),
       supabase.from("contact_tags").select("tag_id").eq("contact_id", contactId),
       supabase.from("contact_groups").select("id, name, sensitive").eq("organization_id", org.id).order("name"),
@@ -133,6 +136,19 @@ export function ContactSheet({
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
       <SheetContent className="w-full sm:max-w-md overflow-y-auto">
         <SheetHeader><SheetTitle>{c?.name || c?.phone || "Contato"}</SheetTitle></SheetHeader>
+        {c?.opted_out_at && (
+          <div className="mt-3 rounded-md border border-amber-400 bg-amber-50 dark:bg-amber-950/30 p-2 text-xs flex items-center justify-between gap-2">
+            <span>Não quer receber mensagens automáticas (desde {new Date(c.opted_out_at).toLocaleDateString("pt-BR")}).</span>
+            {can("conversations.attend") && (
+              <Button size="sm" variant="outline" onClick={async () => {
+                const { error } = await supabase.rpc("clear_opt_out", { contact: c.id });
+                if (error) return toast({ variant: "destructive", title: "Sem permissão" });
+                toast({ title: "Mensagens automáticas liberadas", description: "Fica registrado quem desfez." });
+                load();
+              }}>Desfazer a pedido do cliente</Button>
+            )}
+          </div>
+        )}
         {!contactId ? <p className="text-sm text-muted-foreground mt-4">Contato ainda não identificado.</p> : (
           <Tabs defaultValue="dados" className="mt-4">
             <TabsList className="w-full">
