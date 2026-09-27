@@ -6,6 +6,7 @@ import * as providers from "../_shared/providers/index.ts";
 import { transcribeAudio } from "../_shared/transcribe.ts";
 import { LIMITS, storeMedia } from "../_shared/media.ts";
 import { handleOptOut, instForSend, runFlow, runPostClose, withProtocol } from "../_shared/flow/executor.ts";
+import { companyKnowledge } from "../_shared/company.ts";
 import { forOrg, type OrgScope } from "../_shared/tenant.ts";
 import { getSecret, hasSecret, hmacSha256Hex, safeEqual, sha256Hex } from "../_shared/secrets.ts";
 
@@ -601,7 +602,7 @@ async function handle(req: Request, ctx: QueueCtx): Promise<Response> {
       .limit(20);
 
     const chat = [
-      { role: "system" as const, content: withProtocol(agent.systemPrompt, ticket.protocol) },
+      { role: "system" as const, content: [withProtocol(agent.systemPrompt, ticket.protocol), await companyKnowledge(org)].filter(Boolean).join("\n\n") },
       ...(history || []).reverse().map((m: any) => ({
         role: (m.direction === "inbound" ? "user" : "assistant") as "user" | "assistant",
         content: m.content,

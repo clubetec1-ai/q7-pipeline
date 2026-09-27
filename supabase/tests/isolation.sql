@@ -608,6 +608,20 @@ BEGIN
   PERFORM pg_temp.expect((SELECT ct.custom = '{"plano": "pro"}'::jsonb FROM public.contacts ct JOIN public.conversations c ON c.contact_id = ct.id
     WHERE c.id = 'aaaaaaaa-0000-0000-0010-000000000001'), 'campo desconhecido do contato descartado');
 
+  -- 35. Diagnostico (entrevistador): retrato e conversa so de dono/admin da propria org.
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('INSERT INTO public.company_profiles (organization_id, sections) VALUES (%L, %L)',
+    A, '{"empresa":"Loja de teste","metas":"crescer 20%"}')) = 'ok:1', 'owner cria retrato');
+  INSERT INTO public.interview_messages (organization_id, role, content) VALUES (A, 'assistant', 'Olá!');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, 'SELECT count(*) FROM public.company_profiles') = 0, 'atendente nao ve retrato');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, 'SELECT count(*) FROM public.interview_messages') = 0, 'atendente nao ve entrevista');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.company_profiles') = 0, 'outra org nao ve retrato');
+  PERFORM pg_temp.expect(pg_temp.q(admin_a, 'SELECT count(*) FROM public.interview_messages') = 1, 'admin ve entrevista');
+  PERFORM pg_temp.expect_error(owner_a, format('UPDATE public.company_profiles SET sections = %L WHERE organization_id = %L',
+    '{"senhas":"x"}', A), 'secao desconhecida recusada');
+  PERFORM pg_temp.expect_error(owner_a, format('UPDATE public.company_profiles SET suggestions = %L WHERE organization_id = %L',
+    '[]', A), 'sugestoes so pelo backend');
+  PERFORM pg_temp.expect_denied(owner_b, format('UPDATE public.company_profiles SET use_in_ai = false WHERE organization_id = %L', A), 'outra org nao altera');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 

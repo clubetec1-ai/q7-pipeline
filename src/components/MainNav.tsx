@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useOrg } from "@/contexts/OrgContext";
 
-type Section = "conversas" | "kanban" | "registros" | "equipe" | "numeros" | "fluxos" | "biblioteca" | "supervisor" | "plataforma";
+type Section = "conversas" | "kanban" | "registros" | "equipe" | "numeros" | "fluxos" | "biblioteca" | "diagnostico" | "supervisor" | "plataforma";
 
 const base = "px-3 py-1.5 text-sm rounded-md transition";
 const activeCls = `${base} bg-muted font-medium`;
@@ -28,6 +28,7 @@ export function MainNav({ active }: { active: Section }) {
       {showNumbers && <Link to="/numeros" className={active === "numeros" ? activeCls : idleCls}>Números</Link>}
       {showNumbers && <Link to="/fluxos" className={active === "fluxos" ? activeCls : idleCls}>Fluxos</Link>}
       {can("library.manage") && <Link to="/biblioteca" className={active === "biblioteca" ? activeCls : idleCls}>Biblioteca</Link>}
+      {showNumbers && <Link to="/diagnostico" className={active === "diagnostico" ? activeCls : idleCls}>Diagnóstico</Link>}
       {showSupervisor && <Link to="/supervisor" className={active === "supervisor" ? activeCls : idleCls}>Supervisor</Link>}
       {isOperator && <Link to="/plataforma" className={active === "plataforma" ? activeCls : idleCls}>Plataforma</Link>}
     </nav>
