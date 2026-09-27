@@ -1641,6 +1641,114 @@ export type Database = {
           },
         ]
       }
+      record_types: {
+        Row: {
+          access: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          fields: Json
+          id: string
+          key: string
+          link_contact: boolean
+          name: string
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          access?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          fields?: Json
+          id?: string
+          key: string
+          link_contact?: boolean
+          name: string
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          access?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          fields?: Json
+          id?: string
+          key?: string
+          link_contact?: boolean
+          name?: string
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "record_types_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      records: {
+        Row: {
+          contact_id: string | null
+          created_at: string
+          created_by: string | null
+          data: Json
+          id: string
+          organization_id: string
+          title: string | null
+          type_id: string
+          updated_at: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          data?: Json
+          id?: string
+          organization_id: string
+          title?: string | null
+          type_id: string
+          updated_at?: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          data?: Json
+          id?: string
+          organization_id?: string
+          title?: string | null
+          type_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "records_contact_id_organization_id_fkey"
+            columns: ["contact_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "records_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "records_type_id_organization_id_fkey"
+            columns: ["type_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "record_types"
+            referencedColumns: ["id", "organization_id"]
+          },
+        ]
+      }
       support_access: {
         Row: {
           created_at: string

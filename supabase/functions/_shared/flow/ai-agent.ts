@@ -8,6 +8,7 @@ import { forOrg } from "../tenant.ts";
 import { getAgentConfig } from "../get-ai-config.ts";
 import { chat, type ChatMsg, providerKey, type ToolDef } from "../ai-chat.ts";
 import { validate } from "./engine.ts";
+import { aiContactContext, contactFieldDefs, setContactField } from "../contact-fields.ts";
 
 const DEFAULT_PROMPT = "Você é um assistente de atendimento simpático e objetivo.";
 const FIELDS: Record<string, { label: string; kind: string }> = {
@@ -48,7 +49,14 @@ export async function runAiAgent(p: {
     allowed(org, "pipeline_stages", ids(d.allow_stages)),
     allowed(org, "library_files", ids(d.allow_files)),
   ]);
-  const fields = ids(d.allow_fields).filter((f) => FIELDS[f]);
+  // Campos que a IA pode preencher: padrão ou personalizados (nunca os sensíveis).
+  const [defs, { data: contactRow }] = await Promise.all([
+    contactFieldDefs(org),
+    conv.contact_id ? org.select("contacts", "custom").eq("id", conv.contact_id).maybeSingle() : Promise.resolve({ data: null }),
+  ]);
+  const customDef = (f: string) => defs.find((x) => `custom:${x.key}` === f && !x.sensitive);
+  const fields = ids(d.allow_fields).filter((f) => FIELDS[f] || customDef(f));
+  const labelOf = (f: string) => FIELDS[f]?.label ?? customDef(f)!.label;
 
   const tools: ToolDef[] = [];
   if (depts.size) tools.push({
@@ -71,7 +79,7 @@ export async function runAiAgent(p: {
     name: "salvar_dado_cliente", description: "Guarda um dado que o cliente informou na ficha dele.",
     parameters: {
       type: "object",
-      properties: { campo: { type: "string", enum: fields.map((f) => FIELDS[f].label) }, valor: { type: "string" } },
+      properties: { campo: { type: "string", enum: fields.map(labelOf) }, valor: { type: "string" } },
       required: ["campo", "valor"],
     },
   });
@@ -83,6 +91,7 @@ export async function runAiAgent(p: {
     String(d.prompt || agent?.systemPrompt || DEFAULT_PROMPT),
     ticket.protocol ? `Protocolo deste atendimento: ${ticket.protocol}. Informe ao cliente se ele pedir.` : "",
     first ? `Primeiro nome do cliente: ${first}.` : "",
+    aiContactContext(defs, contactRow?.custom as Record<string, unknown> | null),
     tools.length ? "Use as ferramentas só quando o cliente pedir ou quando for claramente necessário. Nunca invente dados." : "",
   ].filter(Boolean).join("\n\n");
   const messages: ChatMsg[] = [
@@ -121,12 +130,11 @@ export async function runAiAgent(p: {
       const { error } = await org.update("conversations", { stage_id: stages.get(arg("etapa")) }).eq("id", conv.id);
       outcome = error ? "erro" : "ok";
     } else if (c.name === "salvar_dado_cliente" && conv.contact_id) {
-      const field = fields.find((f) => FIELDS[f].label === arg("campo"));
-      const value = field ? validate(FIELDS[field].kind, arg("valor").slice(0, 120)) : null;
-      if (field && value !== null) {
-        const { error } = await org.update("contacts", { [field]: value }).eq("id", conv.contact_id);
-        outcome = error ? "erro" : "ok";
-      } else outcome = "valor inválido";
+      const field = fields.find((f) => labelOf(f) === arg("campo"));
+      // Padrão: validado aqui; personalizado: validado pelo banco (tipo do campo).
+      const value = field ? (FIELDS[field] ? validate(FIELDS[field].kind, arg("valor").slice(0, 120)) : arg("valor").slice(0, 500)) : null;
+      if (field && value !== null) outcome = (await setContactField(org, conv.contact_id, field, value)) ? "ok" : "valor inválido";
+      else outcome = "valor inválido";
     }
     // Registro sem o conteúdo informado pelo cliente (minimização).
     await audit(`ai.${c.name.slice(0, 40)}`, { outcome, ...(c.name === "salvar_dado_cliente" ? { campo: arg("campo") } : {}) });

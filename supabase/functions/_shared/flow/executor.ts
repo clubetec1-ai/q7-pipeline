@@ -11,6 +11,7 @@ import { advance, FlowAction, FlowCtx, FlowGraph, mapResponse } from "./engine.t
 import { callHttp, type HttpOutcome, type HttpVars, secretNames } from "./http.ts";
 import { runAiAgent } from "./ai-agent.ts";
 import { sendLibraryFile } from "../library.ts";
+import { setContactField } from "../contact-fields.ts";
 
 /** A IA sabe o protocolo e informa se o cliente pedir. */
 export function withProtocol(prompt: string, protocol?: string | null) {
@@ -202,7 +203,7 @@ export async function runFlow(p: {
         try {
           if (a.type === "send") await (a.fileId ? sendFile(a.fileId, a.text) : send(a.text));
           else if (a.type === "set_field" && conv.contact_id) {
-            await org.update("contacts", { [a.field]: a.value }).eq("id", conv.contact_id);
+            await setContactField(org, conv.contact_id, a.field, a.value);
           } else if (a.type === "tag" && conv.contact_id) {
             if (a.remove) await org.delete("contact_tags").eq("contact_id", conv.contact_id).eq("tag_id", a.tagId);
             else await org.insert("contact_tags", { contact_id: conv.contact_id, tag_id: a.tagId });

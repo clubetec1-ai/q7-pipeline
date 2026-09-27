@@ -12,10 +12,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProtocolHistory } from "./ProtocolHistory";
+import { ContactRecords } from "./ContactRecords";
+import { RecordForm } from "../registros/RecordForm";
+import type { FieldDef, Values } from "../registros/fields";
 
 interface Contact {
   id: string; phone: string; name: string | null; email: string | null; document: string | null; notes: string | null;
   opted_out_at: string | null;
+  custom: Values | null;
 }
 interface Tag { id: string; name: string; color: string | null }
 interface Group { id: string; name: string; sensitive: boolean }
@@ -48,7 +52,7 @@ export function ContactSheet({
   const load = useCallback(async () => {
     if (!org || !contactId) return;
     const [ct, t, tg, g, gm, n, m] = await Promise.all([
-      supabase.from("contacts").select("id, phone, name, email, document, notes, opted_out_at").eq("id", contactId).maybeSingle(),
+      supabase.from("contacts").select("id, phone, name, email, document, notes, opted_out_at, custom").eq("id", contactId).maybeSingle(),
       supabase.from("tags").select("id, name, color").eq("organization_id", org.id).order("name"),
       supabase.from("contact_tags").select("tag_id").eq("contact_id", contactId),
       supabase.from("contact_groups").select("id, name, sensitive").eq("organization_id", org.id).order("name"),
@@ -68,6 +72,13 @@ export function ContactSheet({
   }, [org, contactId, conversationId]);
 
   useEffect(() => { if (open) load(); }, [open, load]);
+  // Campos personalizados do contato (tipo 'contato' em Registros).
+  const [customFields, setCustomFields] = useState<FieldDef[]>([]);
+  useEffect(() => {
+    if (!org || !open) return;
+    supabase.from("record_types").select("fields").eq("organization_id", org.id).eq("key", "contato").maybeSingle()
+      .then(({ data }) => setCustomFields((data?.fields as unknown as FieldDef[]) ?? []));
+  }, [org, open]);
 
   if (!org) return null;
   const fail = (title: string) => { toast({ variant: "destructive", title }); };
@@ -76,8 +87,8 @@ export function ContactSheet({
   const saveContact = async () => {
     if (!c) return;
     const { error } = await supabase.from("contacts")
-      .update({ name: c.name, email: c.email, document: c.document, notes: c.notes }).eq("id", c.id);
-    if (error) fail("Não foi possível salvar");
+      .update({ name: c.name, email: c.email, document: c.document, notes: c.notes, custom: (c.custom ?? {}) as never }).eq("id", c.id);
+    if (error) return toast({ variant: "destructive", title: "Não foi possível salvar", description: error.message });
     else toast({ title: "Contato salvo" });
   };
 
@@ -154,6 +165,7 @@ export function ContactSheet({
               <TabsTrigger value="marcas" className="flex-1">Etiquetas e grupos</TabsTrigger>
               <TabsTrigger value="notas" className="flex-1">Notas ({notes.length})</TabsTrigger>
               <TabsTrigger value="protocolos" className="flex-1">Protocolos</TabsTrigger>
+              <TabsTrigger value="registros" className="flex-1">Registros</TabsTrigger>
             </TabsList>
 
             <TabsContent value="dados" className="space-y-3 pt-3">
@@ -166,6 +178,9 @@ export function ContactSheet({
                       <Input value={c[k] ?? ""} onChange={(e) => setC({ ...c, [k]: e.target.value })} />
                     </div>
                   ))}
+                  {customFields.length > 0 && (
+                    <RecordForm fields={customFields} values={c.custom ?? {}} onChange={(custom) => setC({ ...c, custom })} />
+                  )}
                   <div className="space-y-1.5"><Label>Observações</Label>
                     <Textarea rows={3} value={c.notes ?? ""} onChange={(e) => setC({ ...c, notes: e.target.value })} /></div>
                   <Button size="sm" onClick={saveContact}>Salvar</Button>
@@ -252,6 +267,9 @@ export function ContactSheet({
               <Button size="sm" onClick={addNote} disabled={!note.trim()}>Salvar nota</Button>
             </TabsContent>
 
+            <TabsContent value="registros" className="pt-3">
+              {org && contactId && <ContactRecords orgId={org.id} contactId={contactId} />}
+            </TabsContent>
             <TabsContent value="protocolos" className="pt-3">
               {org && contactId && <ProtocolHistory orgId={org.id} contactId={contactId} nameOf={nameOf} />}
             </TabsContent>

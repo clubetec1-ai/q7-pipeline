@@ -9,8 +9,8 @@ botão “testar” e mensagens claras. Só integrações complexas ficam com o 
 Mais receita, menos suporte.
 
 ## Próximos (a combinar)
-Sugestão: registros personalizados + campos do contato → agente entrevistador → agentes prontos/guia de integração
-→ cobrança pelo WhatsApp. Pendências técnicas: revisão de grants por coluna nas tabelas antigas (tarefa separada);
+Sugestão: agente entrevistador → agentes prontos/guia de integração → cobrança pelo WhatsApp.
+Registros: falta criar/atualizar registro a partir do fluxo e da IA (bloco próprio) — entra com o implementador. Pendências técnicas: revisão de grants por coluna nas tabelas antigas (tarefa separada);
 login com segundo fator (MFA) para dono/admin/operador.
 
 ## Canal de e-mail (pedido em 28/09) — IMAP/SMTP e alertas entregues; falta o que segue
@@ -92,7 +92,6 @@ Objetivo: a ligação cai na mesma tela do WhatsApp.
 - Nova conversa iniciada pelo atendente com modelo aprovado (spec números §10).
 
 ## Contatos e atendimento
-- Campos personalizados do contato (com `ai_readable` / `sensitive`) — mesma base dos registros personalizados.
 - Botão de anonimizar contato (LGPD) — limpa também `flow_runs.vars` e `tickets.rating_comment`.
 - Gravação de áudio pelo navegador.
 - Modo depuração do bloco HTTP (corpo no log por 1 h, cortado e com retenção curta).
@@ -110,7 +109,9 @@ de dados, legenda em anexos, transcrição de áudio, biblioteca de arquivos (en
 com arquivo, arquivo no bloco Mensagem e IA enviando arquivo permitido), canal de e-mail IMAP/SMTP (caixas conectadas
 pelo dono com presets e teste, e-mail vira atendimento, resposta pela mesma caixa), alertas por e-mail (Resend ou SMTP), fila de mensagens recebidas com reprocessamento (nenhuma mensagem se perde),
 limite de IA por empresa, painel da plataforma (empresas, criar com modelo e convite do dono, suspender, acesso de
-suporte com motivo e prazo).
+suporte com motivo e prazo), registros personalizados (tipos com campos configuráveis, modelos Conta a receber /
+Pedido / Contrato, acesso por tipo, validação no banco, histórico) e campos personalizados do contato (ficha, fluxo
+e IA com “IA pode ler” / “sensível”).
 
 ## Visual
 - Trocar logo e ícone da aba (nome “Clube” junto do logo, em cima).

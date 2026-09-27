@@ -565,6 +565,49 @@ BEGIN
   PERFORM pg_temp.expect(pg_temp.run(operator, format('SELECT public.platform_set_org_status(%L, %L)', 'bbbbbbbb-0000-0000-0000-000000000001', 'suspended')) LIKE 'ok:%', 'operador suspende empresa');
   PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.conversations') = 0, 'empresa suspensa perde acesso');
 
+  -- 34. Registros personalizados: tipos por org, acesso por tipo, validacao no banco.
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format(
+    'INSERT INTO public.record_types (id, organization_id, key, name, access, fields) VALUES (%L, %L, %L, %L, %L, %L)',
+    'aaaaaaaa-0000-0000-0014-000000000001', A, 'conta_receber', 'Conta a receber', 'managers',
+    '[{"key":"valor","label":"Valor","type":"money","required":true},{"key":"vencimento","label":"Vencimento","type":"date"},
+      {"key":"situacao","label":"Situação","type":"select","options":["aberta","paga"]}]')) = 'ok:1', 'owner cria tipo');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format(
+    'INSERT INTO public.record_types (id, organization_id, key, name, fields) VALUES (%L, %L, %L, %L, %L)',
+    'aaaaaaaa-0000-0000-0014-000000000002', A, 'pedido', 'Pedido', '[{"key":"numero","label":"Número","type":"text"}]')) = 'ok:1', 'owner cria tipo da equipe');
+  PERFORM pg_temp.expect_denied(agent_a, format('INSERT INTO public.record_types (organization_id, key, name) VALUES (%L, %L, %L)', A, 'x', 'X'), 'atendente nao cria tipo');
+  PERFORM pg_temp.expect_error(owner_a, format('INSERT INTO public.record_types (organization_id, key, name, fields) VALUES (%L, %L, %L, %L)',
+    A, 'ruim', 'Ruim', '[{"key":"a","label":"A","type":"select","options":[]}]'), 'lista sem opcoes recusada');
+
+  PERFORM pg_temp.expect_error(owner_a, format('INSERT INTO public.records (organization_id, type_id, data) VALUES (%L, %L, %L)',
+    A, 'aaaaaaaa-0000-0000-0014-000000000001', '{"valor":"abc"}'), 'valor invalido recusado');
+  PERFORM pg_temp.expect_error(owner_a, format('INSERT INTO public.records (organization_id, type_id, data) VALUES (%L, %L, %L)',
+    A, 'aaaaaaaa-0000-0000-0014-000000000001', '{"vencimento":"2026-10-10"}'), 'obrigatorio exigido');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('INSERT INTO public.records (id, organization_id, type_id, data) VALUES (%L, %L, %L, %L)',
+    'aaaaaaaa-0000-0000-0015-000000000001', A, 'aaaaaaaa-0000-0000-0014-000000000001',
+    '{"valor":"150,50","situacao":"aberta","intruso":"x"}')) = 'ok:1', 'registro valido');
+  PERFORM pg_temp.expect((SELECT data = '{"valor": 150.50, "situacao": "aberta"}'::jsonb FROM public.records
+    WHERE id = 'aaaaaaaa-0000-0000-0015-000000000001'), 'valor normalizado e chave desconhecida descartada');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, 'SELECT count(*) FROM public.records') = 0, 'atendente nao ve registro de gestores');
+  PERFORM pg_temp.expect(pg_temp.q(sup_a, 'SELECT count(*) FROM public.records') = 1, 'supervisor ve registro de gestores');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.record_types') = 0, 'outra org nao ve tipos');
+  PERFORM pg_temp.expect(pg_temp.run(agent_a, format('INSERT INTO public.records (organization_id, type_id, data) VALUES (%L, %L, %L)',
+    A, 'aaaaaaaa-0000-0000-0014-000000000002', '{"numero":"123"}')) = 'ok:1', 'atendente cria registro da equipe');
+  PERFORM pg_temp.expect_error(owner_b, format('INSERT INTO public.records (organization_id, type_id, data) VALUES (%L, %L, %L)',
+    'bbbbbbbb-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0014-000000000002', '{}'), 'outra org nao usa tipo alheio');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('UPDATE public.records SET data = %L WHERE id = %L',
+    '{"valor":"200","situacao":"paga"}', 'aaaaaaaa-0000-0000-0015-000000000001')) = 'ok:1', 'owner edita registro');
+  PERFORM pg_temp.expect((SELECT count(*) = 1 FROM public.audit_log WHERE action = 'record.updated'
+    AND target = 'aaaaaaaa-0000-0000-0015-000000000001' AND meta -> 'fields' ? 'valor'), 'historico registra quais campos');
+
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('INSERT INTO public.record_types (organization_id, key, name, fields) VALUES (%L, %L, %L, %L)',
+    A, 'contato', 'Campos do contato', '[{"key":"plano","label":"Plano","type":"select","options":["basico","pro"]}]')) = 'ok:1', 'owner define campos do contato');
+  PERFORM pg_temp.expect_error(owner_a, format('UPDATE public.contacts SET custom = %L WHERE id = (SELECT contact_id FROM public.conversations WHERE id = %L)',
+    '{"plano":"ouro"}', 'aaaaaaaa-0000-0000-0010-000000000001'), 'campo do contato validado');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('UPDATE public.contacts SET custom = %L WHERE id = (SELECT contact_id FROM public.conversations WHERE id = %L)',
+    '{"plano":"pro","x":"y"}', 'aaaaaaaa-0000-0000-0010-000000000001')) = 'ok:1', 'preenche campo do contato');
+  PERFORM pg_temp.expect((SELECT ct.custom = '{"plano": "pro"}'::jsonb FROM public.contacts ct JOIN public.conversations c ON c.contact_id = ct.id
+    WHERE c.id = 'aaaaaaaa-0000-0000-0010-000000000001'), 'campo desconhecido do contato descartado');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 
