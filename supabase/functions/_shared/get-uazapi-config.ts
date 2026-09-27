@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
+import { getSecret } from "./secrets.ts";
 
 interface UazapiConfig {
   serverUrl: string;
@@ -25,24 +26,15 @@ export async function getUazapiConfig(): Promise<UazapiConfig | null> {
       const { data } = await admin
         .from("app_settings")
         .select("key,value")
-        .in("key", ["uazapi_server_url", "uazapi_admin_token", "uazapi_instance_token"]);
-
-      if (data) {
-        for (const row of data) {
-          if (row.key === "uazapi_server_url") serverUrl = row.value;
-          if (row.key === "uazapi_admin_token") adminToken = row.value;
-          if (row.key === "uazapi_instance_token") instanceToken = row.value;
-        }
-      }
+        .eq("key", "uazapi_server_url");
+      serverUrl = data?.[0]?.value ?? null;
+      // Token de administrador da plataforma: só no Vault.
+      adminToken = await getSecret(admin, "platform:uazapi_admin_token");
     } catch (e) {
       console.error("[get-uazapi-config] db read failed:", e);
     }
   }
 
-  // Fallback para os secrets antigos (compatibilidade)
-  if (!serverUrl) serverUrl = Deno.env.get("OUTREE_UAZAPI_SERVER_URL") ?? null;
-  if (!adminToken) adminToken = Deno.env.get("OUTREE_UAZAPI_ADMIN_TOKEN") ?? null;
-  if (!instanceToken) instanceToken = Deno.env.get("OUTREE_UAZAPI_INSTANCE_TOKEN") ?? null;
 
   if (!serverUrl) {
     cache = { data: null, expires: Date.now() + CACHE_TTL_MS };
@@ -52,8 +44,9 @@ export async function getUazapiConfig(): Promise<UazapiConfig | null> {
   const config: UazapiConfig = {
     serverUrl: serverUrl.replace(/\/$/, ""),
     adminToken,
-    // Instance Token é o padrão; se não existir, fallback para Admin Token
-    instanceToken: instanceToken || adminToken,
+    // Sem token de instância global: cada número usa só o próprio token (Vault).
+    // Um token compartilhado faria o número de um cliente enviar pelo de outro.
+    instanceToken,
   };
 
   cache = { data: config, expires: Date.now() + CACHE_TTL_MS };

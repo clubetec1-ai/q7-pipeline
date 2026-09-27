@@ -26,55 +26,26 @@ export default function UazapiConfig() {
     supabase
       .from("app_settings")
       .select("key,value")
-      .in("key", ["uazapi_server_url", "uazapi_instance_token", "uazapi_admin_token"])
-      .then(({ data }) => {
-        for (const row of data || []) {
-          if (row.key === "uazapi_server_url") setServerUrl(row.value || "");
-          if (row.key === "uazapi_instance_token" && row.value) setHasInstanceToken(true);
-          if (row.key === "uazapi_admin_token" && row.value) setHasAdminToken(true);
-        }
-      });
+      .eq("key", "uazapi_server_url")
+      .then(({ data }) => setServerUrl(data?.[0]?.value || ""));
   }, []);
 
   const save = async () => {
     setSaving(true);
-    const rows: any[] = [{ key: "uazapi_server_url", value: serverUrl.trim() }];
-    if (instanceToken.trim()) rows.push({ key: "uazapi_instance_token", value: instanceToken.trim() });
-    if (adminToken.trim()) rows.push({ key: "uazapi_admin_token", value: adminToken.trim() });
-    const { error } = await supabase.from("app_settings").upsert(rows, { onConflict: "key" });
-
-    // Sincroniza a instância principal para que o webhook a encontre automaticamente
-    if (!error && instanceToken.trim()) {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user) {
-        // Não sobrescreve o nome se já existe uma instância do admin — o webhook
-        // sincroniza automaticamente o nome real vindo da Uazapi.
-        const { data: existing } = await supabase
-          .from("whatsapp_instances")
-          .select("id,name")
-          .eq("user_id", user.id)
-          .order("updated_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        // O token vai para o Vault pela RPC; a tabela guarda só a referência.
-        let instId = existing?.id as string | undefined;
-        if (instId) {
-          await supabase.from("whatsapp_instances").update({ status: "pending" }).eq("id", instId);
-        } else if (org) {
-          const { data: created } = await supabase
-            .from("whatsapp_instances")
-            .insert({ user_id: user.id, organization_id: org.id, name: DEFAULT_INSTANCE_NAME, status: "pending" })
-            .select("id")
-            .single();
-          instId = created?.id;
-        }
-        const { error: instError } = instId
-          ? await supabase.rpc("set_instance_secret", { instance: instId, secret_value: instanceToken.trim() })
-          : { error: { message: "sem organização" } };
-        if (instError) console.error("[UazapiConfig] failed to sync instance", instError.message);
-      }
+    const { error: urlError } = await supabase
+      .from("app_settings")
+      .upsert([{ key: "uazapi_server_url", value: serverUrl.trim() }], { onConflict: "key" });
+    // Token de administrador: só no Vault, pela RPC (operador da plataforma).
+    const { error: tokenError } = adminToken.trim()
+      ? await supabase.rpc("set_platform_secret", { secret_key: "uazapi_admin_token", secret_value: adminToken.trim() })
+      : { error: null };
+    const error = urlError || tokenError;
+    if (!error && adminToken.trim()) {
+      setHasAdminToken(true);
+      setAdminToken("");
+    }
+    if (instanceToken.trim()) {
+      toast({ title: "Números agora são adicionados na tela Números", description: "O token de instância não é mais salvo aqui." });
     }
 
     setSaving(false);
