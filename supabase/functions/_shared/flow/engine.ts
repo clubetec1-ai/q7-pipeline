@@ -28,7 +28,7 @@ export interface FlowCtx {
 
 export type FlowAction =
   | { type: "send"; text: string; fileId?: string }
-  | { type: "set_field"; field: "name" | "email" | "document"; value: string }
+  | { type: "set_field"; field: string; value: string } // name | email | document | custom:<chave>
   | { type: "tag"; tagId: string; remove: boolean }
   | { type: "ai"; nodeId: string }
   | { type: "transfer"; departmentId: string | null; userId: string | null }
@@ -207,7 +207,9 @@ export function advance(graph: FlowGraph, nodeId: string, input: string | null, 
         pending = null;
         if (value !== null) {
           ctx.attempts = 0;
-          if (["name", "email", "document"].includes(d.save_to)) actions.push({ type: "set_field", field: d.save_to, value });
+          if (["name", "email", "document"].includes(d.save_to) || /^custom:[a-z0-9_]{1,40}$/.test(String(d.save_to ?? ""))) {
+            actions.push({ type: "set_field", field: String(d.save_to), value });
+          }
           if (d.var_name) ctx.vars[String(d.var_name).slice(0, 40)] = value;
           handle = "ok";
           break;
