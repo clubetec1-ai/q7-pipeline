@@ -421,6 +421,16 @@ serve(async (req) => {
     }
     if (!conv) return ok();
 
+    // Atendimento aberto da conversa (cria se preciso; resposta pelo celular
+    // vira "open"). É ele que decide se a IA responde.
+    const { data: ticket, error: ticketErr } = await supabase.rpc("service_ticket_for_inbound", {
+      conv: conv.id, from_me: fromMe,
+    });
+    if (ticketErr || !ticket) {
+      console.error("[webhook] atendimento nao criado", ticketErr?.message);
+      return ok({ ok: false });
+    }
+
     // Mensagem enviada do próprio celular → takeover humano; não chama IA.
     if (fromMe) {
       console.log("[webhook] takeover humano", { conversa: conv.id, ia: "desligada" });
@@ -430,6 +440,7 @@ serve(async (req) => {
         .eq("id", conv.id);
       await org.insert("messages", {
         conversation_id: conv.id,
+        ticket_id: ticket.id,
         direction: "outbound",
         sender: "human",
         content: text,
@@ -467,12 +478,14 @@ serve(async (req) => {
 
     await org.insert("messages", {
       conversation_id: conv.id,
+      ticket_id: ticket.id,
       direction: "inbound",
       sender: "contact",
       content: text,
     });
 
-    if (!conv.ai_enabled) return ok();
+    // IA só responde atendimento que está com ela.
+    if (ticket.status !== "bot") return ok();
     if (!agent || !agent.enabled) return ok();
 
     const { data: history } = await org
@@ -504,6 +517,7 @@ serve(async (req) => {
 
     await org.insert("messages", {
       conversation_id: conv.id,
+      ticket_id: ticket.id,
       direction: "outbound",
       sender: "ai",
       content: groq.reply,
