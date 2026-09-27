@@ -131,7 +131,7 @@ serve(async (req) => {
       if (lastStatus === 404) msg = "Endpoint não encontrado (404). Confirme a URL do servidor Uazapi.";
 
       return new Response(
-        JSON.stringify({ ok: false, message: msg, details: lastBody?.slice(0, 300) }),
+        JSON.stringify({ ok: false, message: msg }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

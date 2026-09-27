@@ -319,6 +319,14 @@ BEGIN
   PERFORM pg_temp.expect((SELECT secret_name = 'instance:aaaaaaaa-0000-0000-0003-000000000001:token'
     FROM public.whatsapp_instances WHERE id = 'aaaaaaaa-0000-0000-0003-000000000001'), 'secret_name por nome');
 
+  PERFORM pg_temp.expect((SELECT token_hash = encode(extensions.digest('tok', 'sha256'), 'hex')
+    FROM public.whatsapp_instances WHERE id = 'aaaaaaaa-0000-0000-0003-000000000001'), 'set_instance_secret grava o hash');
+  PERFORM pg_temp.expect_error(owner_a, format(
+    'SELECT public.service_put_secret(%L, %L)', 'instance:aaaaaaaa-0000-0000-0003-000000000001:webhook', 'x'),
+    'service_put_secret negado ao navegador');
+  PERFORM pg_temp.expect_error(owner_a, format(
+    'SELECT public.service_get_secret(%L)', 'platform:cron_secret'), 'service_get_secret negado ao navegador');
+
   -- 23. Mesmo contato em dois numeros da mesma organizacao.
   INSERT INTO public.whatsapp_instances (id, organization_id, name, provider)
   VALUES ('aaaaaaaa-0000-0000-0003-000000000002', A, 'iso-a2', 'cloud');

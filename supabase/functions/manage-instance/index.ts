@@ -213,11 +213,10 @@ serve(async (req) => {
     }
 
     if (action === "set_webhook") {
-      // Segredo novo a cada configuração: a URL antiga deixa de valer.
+      // Segredo novo a cada configuração: a URL antiga deixa de valer. Só vai
+      // para o Vault depois que a Uazapi aceitar a URL nova — senão uma falha
+      // de rede deixaria o número recebendo com o segredo antigo e tomando 401.
       const secret = randomHex(32);
-      if (!(await putSecret(admin, `instance:${inst.id}:webhook`, secret))) {
-        return json({ ok: false, error: "Falha ao gravar o segredo do webhook" });
-      }
       const webhookUrl =
         `${Deno.env.get("SUPABASE_URL")}/functions/v1/whatsapp-webhook?i=${inst.id}&k=${secret}`;
       // addUrlEvents PRECISA ser false: com true a Uazapi posta em {url}/messages.
@@ -233,6 +232,12 @@ serve(async (req) => {
       });
       console.log(`[set_webhook] status=${res.status}`);
       if (!res.ok) return json({ ok: false, error: "Falha ao configurar webhook" });
+      const saved =
+        (await putSecret(admin, `instance:${inst.id}:webhook`, secret)) ||
+        (await putSecret(admin, `instance:${inst.id}:webhook`, secret));
+      if (!saved) {
+        return json({ ok: false, error: "Webhook atualizado, mas o segredo não foi salvo: clique em Reconfigurar webhook." });
+      }
       return json({ ok: true, success: true });
     }
 

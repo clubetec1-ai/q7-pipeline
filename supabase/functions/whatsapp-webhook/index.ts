@@ -214,34 +214,15 @@ async function resolveUazapi(
     return { inst };
   }
 
-  let inst: any = null;
-  if (ref.token) {
-    const { data } = await admin
-      .from("whatsapp_instances")
-      .select("*")
-      .eq("token_hash", await sha256Hex(ref.token))
-      .maybeSingle();
-    inst = data;
-  }
-  if (!inst && ref.name) {
-    const { data } = await admin
-      .from("whatsapp_instances")
-      .select("*")
-      .not("token_hash", "is", null)
-      .order("updated_at", { ascending: false })
-      .limit(20);
-    inst = (data || []).find((row: any) => normalizeName(row.name) === normalizeName(ref.name)) || null;
-  }
-  if (!inst && ref.owner) {
-    const { data } = await admin
-      .from("whatsapp_instances")
-      .select("*")
-      .eq("phone", ref.owner)
-      .order("updated_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    inst = data;
-  }
+  // Legado só pelo token da instância, que é segredo (comparado por hash).
+  // Nome e telefone do número NÃO identificam: são conhecíveis por qualquer um
+  // e permitiriam forjar mensagem para a organização de outro cliente.
+  if (!ref.token) return { deny: "sem token e sem URL autenticada" };
+  const { data: inst } = await admin
+    .from("whatsapp_instances")
+    .select("*")
+    .eq("token_hash", await sha256Hex(ref.token))
+    .maybeSingle();
   if (!inst) return null;
   if (await hasSecret(admin, `instance:${inst.id}:webhook`)) {
     return { deny: "numero exige URL autenticada (?i=&k=)" };

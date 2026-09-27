@@ -66,20 +66,6 @@ BEGIN
   END IF;
 END $$;
 
--- O job lê o segredo do Vault a cada execução: nada de chave no texto do job.
-DO $$
-BEGIN
-  IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'run-followups-every-minute') THEN
-    PERFORM cron.unschedule('run-followups-every-minute');
-  END IF;
-  PERFORM cron.schedule('run-followups-every-minute', '* * * * *', $cron$
-    SELECT net.http_post(
-      url := 'https://ulmndwlralgjbwlebxmo.supabase.co/functions/v1/run-followups',
-      headers := jsonb_build_object(
-        'Content-Type', 'application/json',
-        'x-cron-secret', (SELECT decrypted_secret FROM vault.decrypted_secrets
-                          WHERE name = 'platform:cron_secret')),
-      body := jsonb_build_object('time', now())
-    ) AS request_id;
-  $cron$);
-END $$;
+-- O agendamento do cron (com o cabeçalho x-cron-secret lido do Vault) fica em
+-- supabase/setup/cron.sql, que tem o <PROJECT_REF> como placeholder: a URL do
+-- projeto não pode ficar fixa numa migration reaplicável em outro projeto.
