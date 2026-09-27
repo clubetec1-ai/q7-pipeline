@@ -16,6 +16,7 @@ import NotFound from "./pages/NotFound";
 import Equipe from "./pages/Equipe";
 import Convite from "./pages/Convite";
 import Numeros from "./pages/Numeros";
+import Supervisor from "./pages/Supervisor";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/kanban" element={<ProtectedRoute><Kanban /></ProtectedRoute>} />
             <Route path="/equipe" element={<ProtectedRoute><Equipe /></ProtectedRoute>} />
             <Route path="/numeros" element={<ProtectedRoute><Numeros /></ProtectedRoute>} />
+            <Route path="/supervisor" element={<ProtectedRoute><Supervisor /></ProtectedRoute>} />
             <Route path="/convite" element={<ProtectedRoute allowWithoutOrg><Convite /></ProtectedRoute>} />
             <Route path="/admin/uazapi" element={<ProtectedRoute><AdminRoute><UazapiConfig /></AdminRoute></ProtectedRoute>} />
             <Route path="/conversas" element={<Navigate to="/" replace />} />
