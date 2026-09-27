@@ -3,12 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { useAdminRole } from "@/hooks/useAdminRole";
 
 export const AdminRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAdmin, loading } = useAdminRole();
+  const { isOperator: isAdmin, loading } = useAdminRole();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!loading && !isAdmin) {
-      navigate("/dashboard");
+      navigate("/");
     }
   }, [isAdmin, loading, navigate]);
 

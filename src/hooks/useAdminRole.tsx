@@ -1,41 +1,11 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useOrg } from "@/contexts/OrgContext";
 
+/**
+ * Compatibilidade com as telas antigas: "admin" passou a ser quem tem
+ * org.settings na organização ativa; a configuração global da Uazapi é só do
+ * operador da plataforma. Controle de verdade é a RLS.
+ */
 export const useAdminRole = () => {
-  const { user } = useAuth();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const checkAdminRole = async () => {
-      if (!user) {
-        setIsAdmin(false);
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const { data, error } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", user.id)
-          .eq("role", "admin")
-          .maybeSingle();
-
-        if (error) throw error;
-
-        setIsAdmin(!!data);
-      } catch (error) {
-        console.error("Error checking admin role:", error);
-        setIsAdmin(false);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkAdminRole();
-  }, [user]);
-
-  return { isAdmin, loading };
+  const { can, isOperator, loading } = useOrg();
+  return { isAdmin: can("org.settings"), isOperator, loading };
 };

@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
+import { MainNav } from "@/components/MainNav";
+import { useOrg } from "@/contexts/OrgContext";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -155,6 +157,7 @@ function Column({
 
 export default function Kanban() {
   const { user, signOut } = useAuth();
+  const { org } = useOrg();
   const navigate = useNavigate();
   const [stages, setStages] = useState<Stage[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -236,7 +239,7 @@ export default function Kanban() {
     const pos = (stages[stages.length - 1]?.position ?? -1) + 1;
     const { data, error } = await supabase
       .from("pipeline_stages")
-      .insert({ user_id: user.id, name, position: pos })
+      .insert({ user_id: user.id, organization_id: org!.id, name, position: pos })
       .select()
       .single();
     if (error) {
@@ -299,14 +302,7 @@ export default function Kanban() {
       <header className="border-b px-4 h-14 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           <Logo horizontal width={26} height={26} />
-          <nav className="hidden sm:flex items-center gap-1 ml-2">
-            <Link to="/" className="px-3 py-1.5 text-sm rounded-md text-muted-foreground hover:bg-muted transition">
-              Conversas
-            </Link>
-            <Link to="/kanban" className="px-3 py-1.5 text-sm rounded-md bg-muted font-medium">
-              Kanban
-            </Link>
-          </nav>
+          <MainNav active="kanban" />
         </div>
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="sm" onClick={() => setConfigOpen(true)}>

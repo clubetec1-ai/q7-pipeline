@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Bot, User, Send, MessageSquare, Settings, LogOut, Sparkles, Clock, Trello, X } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
+import { MainNav } from "@/components/MainNav";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ConfigDrawer } from "@/components/ConfigDrawer";
@@ -43,6 +44,7 @@ import {
 } from "@/components/ui/collapsible";
 import { ChevronDown, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import { getActiveOrgId } from "@/lib/org";
+import { useOrg } from "@/contexts/OrgContext";
 
 type Conversation = {
   id: string;
@@ -51,6 +53,7 @@ type Conversation = {
   ai_enabled: boolean;
   last_message_at: string;
   instance_id: string | null;
+  organization_id?: string;
   human_takeover_at: string | null;
   stage_id: string | null;
 };
@@ -93,9 +96,10 @@ function formatCountdown(ms: number): string {
 
 export default function Conversas() {
   const { user, signOut } = useAuth();
+  const { org } = useOrg();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { isAdmin } = useAdminRole();
+  const { isOperator: isAdmin } = useAdminRole();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -318,6 +322,7 @@ export default function Conversas() {
 
     const { error } = await supabase.from("followups").insert({
       user_id: user.id,
+      organization_id: active.organization_id ?? org!.id,
       conversation_id: active.id,
       send_at: sendAt.toISOString(),
       status: "pending",
@@ -398,6 +403,7 @@ export default function Conversas() {
 
       await supabase.from("messages").insert({
         conversation_id: active.id,
+        organization_id: active.organization_id ?? org!.id,
         user_id: user!.id,
         direction: "outbound",
         sender: "human",
@@ -427,17 +433,7 @@ export default function Conversas() {
       <header className="border-b px-4 h-14 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
           <Logo horizontal width={26} height={26} />
-          <nav className="hidden sm:flex items-center gap-1 ml-2">
-            <Link to="/" className="px-3 py-1.5 text-sm rounded-md bg-muted font-medium">
-              Conversas
-            </Link>
-            <Link
-              to="/kanban"
-              className="px-3 py-1.5 text-sm rounded-md text-muted-foreground hover:bg-muted transition"
-            >
-              Kanban
-            </Link>
-          </nav>
+          <MainNav active="conversas" />
         </div>
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" className="sm:hidden" onClick={() => navigate("/kanban")} title="Kanban">
