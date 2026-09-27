@@ -21,6 +21,30 @@ Objetivo: enviar e receber e-mail pelo ClubeCRM, no mesmo lugar do WhatsApp.
 - **Depois: IA no e-mail** — triagem (assunto, urgência, departamento) e rascunho/resposta automática, reaproveitando
   o bloco de IA com permissões fechadas e o fluxo.
 
+## Voz: ramal SIP na tela do atendimento (pedido original)
+Objetivo: a ligação cai na mesma tela do WhatsApp.
+- **Ramal SIP de PBX em nuvem dentro do navegador** (WebRTC/SIP.js), por atendente; integração com a central
+  (ou via API de voz, como alternativa) — credenciais SIP no Vault, por organização.
+- **Identifica o número** que ligou e abre/associa o contato e a conversa (mesmo atendimento, protocolo).
+- **Transcrição da ligação** em tempo real ou ao final, gravada no histórico do atendimento.
+- **Confirmação do número**: o atendente pede para o cliente repetir/confirmar o número de WhatsApp e, ainda durante
+  a ligação, o CRM envia um “olá” pelo WhatsApp para continuar o atendimento por lá.
+- Cuidados: aviso de gravação/transcrição (LGPD), retenção do áudio, permissão por papel, custo por minuto.
+
+## IA
+- **“Cérebro” da operação**: agente que coordena agentes por área — administrativo, financeiro, RH, vendas,
+  pós-venda, suporte e outras — com as automações de cada área (software completo para a empresa).
+- **IA entender imagens, vídeos e PDFs** que o cliente envia (hoje só áudio é transcrito).
+
+## Disparos (campanhas)
+- Envio em massa para grupos de clientes, escolhendo o número (ex.: um número QR para disparos e o da Meta para
+  receber clientes, como pedido). Respeita opt-out, horário e limite por minuto; modelos aprovados no número da Meta.
+- Aviso: disparo por número não oficial tem risco de bloqueio — o monitor de saúde já avisa se cair.
+
+## SaaS (venda para clientes)
+- Painel da plataforma (está em Infraestrutura) + **planos e cobrança** por organização (`org.billing`).
+- Opção de hospedagem própria (VPS, ex.: Hostinger), além de Supabase + Vercel.
+
 ## Números e Meta
 - Cadastro de número da Meta em poucos cliques (Embedded Signup) — depois da aprovação da Meta.
 - Nova conversa iniciada pelo atendente com modelo aprovado (spec números §10).
@@ -31,11 +55,16 @@ Objetivo: enviar e receber e-mail pelo ClubeCRM, no mesmo lugar do WhatsApp.
 - Gravação de áudio pelo navegador.
 - Modo depuração do bloco HTTP (corpo no log por 1 h, cortado e com retenção curta).
 
-## Grandes módulos
-- Voz: ramal SIP com transcrição e continuação no WhatsApp.
+## Outros canais e continuidade
 - Messenger e Instagram.
-- “Cérebro” de IA coordenando agentes por área (administrativo, financeiro, RH, vendas, pós-venda, suporte).
-- Backup para destinos plugáveis (precisa das contas do cliente).
+- **Backup automático** dos dados de cada cliente para um servidor de backup, com restauração em caso de queda ou
+  ataque (destinos plugáveis; precisa das contas/servidor).
+
+## Já entregue (referência)
+Vários números (Meta e QR), fluxos com IA/humano/transferir/finalizar, departamentos, grupos de clientes e de
+pessoas, papéis e modelos prontos, multiempresa com isolamento, protocolo e assumir com permissão, pesquisa,
+opt-out, bloco HTTP, IA com permissões e vários provedores, monitor de saúde, nome na equipe, termos e exclusão
+de dados, legenda em anexos, transcrição de áudio.
 
 ## Visual
-- Trocar logo e ícone da aba.
+- Trocar logo e ícone da aba (nome “Clube” junto do logo, em cima).
