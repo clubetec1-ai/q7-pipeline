@@ -254,11 +254,25 @@ async function handleCloudStatuses(req: Request, raw: string, body: any) {
   return ok();
 }
 
-serve(async (req) => {
+/** Estado do evento na fila (inbound_events) durante o processamento. */
+interface QueueCtx { eventId?: string; stage?: string; replayInstanceId?: string; failed?: boolean; retry?: boolean; error?: string }
+
+async function handle(req: Request, ctx: QueueCtx): Promise<Response> {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method === "GET") return await handleMetaVerification(req);
 
   try {
+    // Reprocessamento da fila (process-inbound): só com o segredo do cron; a
+    // instância vem do evento gravado, não do payload.
+    const replayId = req.headers.get("x-replay-event");
+    if (replayId) {
+      const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      const expected = await getSecret(admin, "platform:cron_secret");
+      if (!expected || !safeEqual(req.headers.get("x-cron-secret") ?? "", expected)) return unauthorized("replay sem segredo");
+      const { data: ev } = await admin.from("inbound_events").select("id, instance_id, stage, status").eq("id", replayId).maybeSingle();
+      if (!ev || ev.status !== "processing") return ok({ ok: true, skipped: "evento" });
+      ctx.eventId = ev.id; ctx.stage = ev.stage; ctx.replayInstanceId = ev.instance_id;
+    }
     const raw = await req.text();
     let body: any;
     try {
@@ -350,7 +364,10 @@ serve(async (req) => {
 
     // Origem autenticada + instância. A organização vem da instância (banco),
     // nunca do payload.
-    const resolved = providerId === "cloud"
+    const resolved = ctx.replayInstanceId
+      ? await supabase.from("whatsapp_instances").select("*").eq("id", ctx.replayInstanceId).maybeSingle()
+          .then(({ data }: any) => (data ? { inst: data } : null))
+      : providerId === "cloud"
       ? await resolveCloud(supabase, req, raw, phoneNumberId)
       : await resolveUazapi(supabase, url, { token: instanceToken, name: instanceName, owner: instanceOwner });
     if (resolved && "deny" in resolved) return unauthorized(resolved.deny);
@@ -379,6 +396,24 @@ serve(async (req) => {
     }
 
     if (isConnection) return await handleConnection(org, instRow, body);
+
+    // Fila: grava o evento antes de processar. Repetido (reenvio do provedor) →
+    // já foi tratado. Falhou no meio → process-inbound refaz.
+    const providerMsgId = providerId === "cloud"
+      ? body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0]?.id
+      : (body?.message?.messageid ?? body?.message?.id ?? body?.data?.key?.id);
+    if (!ctx.eventId && providerMsgId) {
+      const { data: ev, error: evErr } = await supabase.from("inbound_events").insert({
+        organization_id: orgId, instance_id: instRow.id, provider: providerId, provider_message_id: String(providerMsgId),
+        payload: body, status: "processing", attempts: 1, claimed_at: new Date().toISOString(),
+      }).select("id").single();
+      if (evErr?.code === "23505") {
+        console.log("[webhook] mensagem repetida; ignorada");
+        return ok();
+      }
+      if (ev) ctx.eventId = ev.id;
+      else console.error("[webhook] fila indisponivel", evErr?.message);
+    }
 
     // Auto-sincroniza o nome salvo com o nome real vindo da Uazapi.
     if (instanceName && instRow.name !== instanceName) {
@@ -521,14 +556,18 @@ serve(async (req) => {
       }
     }
 
-    await org.insert("messages", {
-      conversation_id: conv.id,
-      ticket_id: ticket.id,
-      direction: "inbound",
-      sender: "contact",
-      content: text,
-      ...mediaFields,
-    });
+    // Reprocessamento não grava a mesma mensagem de novo.
+    if (ctx.stage !== "stored") {
+      await org.insert("messages", {
+        conversation_id: conv.id,
+        ticket_id: ticket.id,
+        direction: "inbound",
+        sender: "contact",
+        content: text,
+        ...mediaFields,
+      });
+      if (ctx.eventId) await supabase.from("inbound_events").update({ stage: "stored" }).eq("id", ctx.eventId);
+    }
 
     // SAIR/PARAR: deixa de receber mensagens automáticas (confirma e para aqui).
     if (await handleOptOut({ admin: supabase, orgId, inst: instRow, conv, ticket, text: String(text ?? "") })) {
@@ -537,6 +576,16 @@ serve(async (req) => {
 
     // IA só responde atendimento que está com ela.
     if (ticket.status !== "bot") return ok();
+
+    // Limite de IA por organização: acima dele, a resposta espera na fila.
+    if (ctx.eventId) {
+      const { data: allowed } = await supabase.rpc("service_ai_take", { org: orgId });
+      if (allowed === false) {
+        console.log("[webhook] limite de IA da organizacao; resposta adiada");
+        ctx.retry = true;
+        return ok();
+      }
+    }
 
     // Fluxo publicado para este número (ou o padrão da empresa) conduz o
     // atendimento; sem fluxo, segue a IA da organização como antes.
@@ -595,8 +644,26 @@ serve(async (req) => {
     return ok();
   } catch (e: any) {
     console.error("[webhook] error", e?.message);
+    ctx.failed = true;
+    ctx.error = String(e?.message ?? "erro");
     return ok({ ok: false });
   }
+}
+
+serve(async (req) => {
+  const ctx: QueueCtx = {};
+  const res = await handle(req, ctx);
+  if (ctx.eventId) {
+    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const status = ctx.failed ? "failed" : ctx.retry ? "pending" : "processed";
+    await admin.from("inbound_events").update({
+      status,
+      error: ctx.failed ? (ctx.error ?? "erro").slice(0, 300) : ctx.retry ? "limite de IA" : null,
+      processed_at: status === "processed" ? new Date().toISOString() : null,
+      ...(status === "processed" ? { stage: "done" } : {}),
+    }).eq("id", ctx.eventId);
+  }
+  return res;
 });
 
 /**

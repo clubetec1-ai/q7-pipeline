@@ -80,6 +80,16 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
         role: m.role,
         name: (m.organizations as { name: string } | null)?.name ?? "Organização",
       }));
+    // Operador com acesso de suporte ativo (motivo + prazo, auditado) vê a empresa no seletor.
+    if (op) {
+      const { data: sup } = await supabase.rpc("my_support_access");
+      for (const s of sup ?? []) {
+        if (!list.some((o) => o.id === s.organization_id)) {
+          const until = new Date(s.expires_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+          list.push({ id: s.organization_id, role: "support", name: `${s.name} (suporte até ${until})` });
+        }
+      }
+    }
     setOrgs(list);
     setIsOperator(!!op);
     setInvitations((inv as Invitation[] | null) ?? []);

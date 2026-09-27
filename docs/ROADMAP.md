@@ -8,9 +8,10 @@ e-mails, montar fluxos e agentes, instalar automações prontas, seguir guias de
 botão “testar” e mensagens claras. Só integrações complexas ficam com o time Clubetec, como serviço pago.
 Mais receita, menos suporte.
 
-## Próximos (ordem combinada)
-1. **Infraestrutura (1C-2)** — fila de mensagens recebidas com reprocessamento (`inbound_events` /
-   `process-inbound`), limite de requisições por organização, painel da plataforma para gerenciar as empresas clientes.
+## Próximos (a combinar)
+Sugestão: registros personalizados + campos do contato → agente entrevistador → agentes prontos/guia de integração
+→ cobrança pelo WhatsApp. Pendências técnicas: revisão de grants por coluna nas tabelas antigas (tarefa separada);
+login com segundo fator (MFA) para dono/admin/operador.
 
 ## Canal de e-mail (pedido em 28/09) — IMAP/SMTP e alertas entregues; falta o que segue
 - Pendente: Microsoft 365 por OAuth; Google direto (com demanda); cópia das respostas na pasta “Enviados” da caixa;
@@ -83,7 +84,7 @@ Objetivo: a ligação cai na mesma tela do WhatsApp.
 - Aviso: disparo por número não oficial tem risco de bloqueio — o monitor de saúde já avisa se cair.
 
 ## SaaS (venda para clientes)
-- Painel da plataforma (está em Infraestrutura) + **planos e cobrança** por organização (`org.billing`).
+- **Planos e cobrança** por organização (`org.billing`), com limites por plano (números, pessoas, IA/min).
 - Opção de hospedagem própria (VPS, ex.: Hostinger), além de Supabase + Vercel.
 
 ## Números e Meta
@@ -107,7 +108,9 @@ pessoas, papéis e modelos prontos, multiempresa com isolamento, protocolo e ass
 opt-out, bloco HTTP, IA com permissões e vários provedores, monitor de saúde, nome na equipe, termos e exclusão
 de dados, legenda em anexos, transcrição de áudio, biblioteca de arquivos (envio pelo atendente, respostas rápidas
 com arquivo, arquivo no bloco Mensagem e IA enviando arquivo permitido), canal de e-mail IMAP/SMTP (caixas conectadas
-pelo dono com presets e teste, e-mail vira atendimento, resposta pela mesma caixa), alertas por e-mail (Resend ou SMTP).
+pelo dono com presets e teste, e-mail vira atendimento, resposta pela mesma caixa), alertas por e-mail (Resend ou SMTP), fila de mensagens recebidas com reprocessamento (nenhuma mensagem se perde),
+limite de IA por empresa, painel da plataforma (empresas, criar com modelo e convite do dono, suspender, acesso de
+suporte com motivo e prazo).
 
 ## Visual
 - Trocar logo e ícone da aba (nome “Clube” junto do logo, em cima).

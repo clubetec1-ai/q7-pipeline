@@ -548,6 +548,23 @@ BEGIN
   PERFORM pg_temp.expect(pg_temp.run(owner_a, format('DELETE FROM public.email_accounts WHERE id = %L', 'aaaaaaaa-0000-0000-0013-000000000001')) = 'ok:1', 'owner apaga caixa');
   PERFORM pg_temp.expect((SELECT private.get_secret('email:aaaaaaaa-0000-0000-0013-000000000001:password') IS NULL), 'senha sai do vault');
 
+  -- 33. Painel da plataforma: so operador; suporte com motivo e prazo; auditado.
+  PERFORM pg_temp.expect_error(owner_a, 'SELECT count(*) FROM public.platform_org_overview()', 'dono de empresa nao ve o painel');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.platform_set_org_status(%L, %L)', 'bbbbbbbb-0000-0000-0000-000000000001', 'suspended'), 'dono nao suspende outra empresa');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_create_org(%L, %L, %L)', 'X', 'generico', owner_a), 'navegador nao cria empresa direto');
+  PERFORM pg_temp.expect(pg_temp.q(operator, 'SELECT count(*) FROM public.platform_org_overview()') >= 2, 'operador ve as empresas');
+  PERFORM pg_temp.expect(pg_temp.q(operator, 'SELECT count(*) FROM public.conversations') = 0, 'operador sem suporte nao ve conversas');
+  PERFORM pg_temp.expect_error(operator, format('SELECT public.platform_open_support(%L, %L, 30)', A, 'curto'), 'suporte exige motivo');
+  PERFORM pg_temp.expect(pg_temp.run(operator, format('SELECT public.platform_open_support(%L, %L, 30)', A, 'cliente pediu ajuda no fluxo')) LIKE 'ok:%', 'operador abre suporte');
+  PERFORM pg_temp.expect(pg_temp.q(operator, format('SELECT count(*) FROM public.conversations WHERE organization_id = %L', A)) > 0, 'suporte ve a empresa');
+  PERFORM pg_temp.expect(pg_temp.q(operator, format('SELECT count(*) FROM public.conversations WHERE organization_id = %L', 'bbbbbbbb-0000-0000-0000-000000000001')) = 0, 'suporte so da empresa aberta');
+  PERFORM pg_temp.expect(pg_temp.q(operator, 'SELECT count(*) FROM public.my_support_access()') = 1, 'seletor mostra a empresa em suporte');
+  PERFORM pg_temp.expect((SELECT count(*) = 1 FROM public.audit_log WHERE organization_id = A AND action = 'platform.support_open'), 'abertura auditada');
+  PERFORM pg_temp.expect(pg_temp.run(operator, format('SELECT public.platform_close_support(%L)', A)) LIKE 'ok:%', 'operador encerra suporte');
+  PERFORM pg_temp.expect(pg_temp.q(operator, format('SELECT count(*) FROM public.conversations WHERE organization_id = %L', A)) = 0, 'sem suporte volta a nao ver');
+  PERFORM pg_temp.expect(pg_temp.run(operator, format('SELECT public.platform_set_org_status(%L, %L)', 'bbbbbbbb-0000-0000-0000-000000000001', 'suspended')) LIKE 'ok:%', 'operador suspende empresa');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.conversations') = 0, 'empresa suspensa perde acesso');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 

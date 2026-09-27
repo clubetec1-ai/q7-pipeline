@@ -17,6 +17,7 @@ import Equipe from "./pages/Equipe";
 import Convite from "./pages/Convite";
 import Numeros from "./pages/Numeros";
 import Biblioteca from "./pages/Biblioteca";
+import Plataforma from "./pages/Plataforma";
 import Supervisor from "./pages/Supervisor";
 import Fluxos from "./pages/Fluxos";
 import FlowEditor from "./pages/FlowEditor";
@@ -39,6 +40,7 @@ const App = () => (
             <Route path="/equipe" element={<ProtectedRoute><Equipe /></ProtectedRoute>} />
             <Route path="/numeros" element={<ProtectedRoute><Numeros /></ProtectedRoute>} />
             <Route path="/biblioteca" element={<ProtectedRoute><Biblioteca /></ProtectedRoute>} />
+            <Route path="/plataforma" element={<ProtectedRoute><Plataforma /></ProtectedRoute>} />
             <Route path="/supervisor" element={<ProtectedRoute><Supervisor /></ProtectedRoute>} />
             <Route path="/fluxos" element={<ProtectedRoute><Fluxos /></ProtectedRoute>} />
             <Route path="/fluxos/:id" element={<ProtectedRoute><FlowEditor /></ProtectedRoute>} />
