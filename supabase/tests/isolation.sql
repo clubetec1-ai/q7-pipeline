@@ -483,6 +483,20 @@ BEGIN
   PERFORM pg_temp.expect_error(owner_b, format('SELECT * FROM public.number_activity(%L)', A), 'outra org nao ve atividade');
   PERFORM pg_temp.expect_error(agent_a, format('SELECT * FROM public.number_activity(%L)', A), 'agent nao ve atividade');
 
+  -- 30. Nome na equipe: a pessoa define uma vez; depois so dono/admin; nome do dono so o dono.
+  UPDATE public.organization_members SET display_name = NULL WHERE organization_id = A AND user_id IN (agent_a, agent2_a);
+  PERFORM pg_temp.expect(pg_temp.run(agent_a, format('SELECT public.set_member_name(%L, %L, %L)', A, agent_a, 'Ana Agente')) LIKE 'ok:%', 'pessoa define o proprio nome');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.set_member_name(%L, %L, %L)', A, agent_a, 'Outro'), 'pessoa nao troca o proprio nome');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.set_member_name(%L, %L, %L)', A, agent2_a, 'Invasor'), 'agent nao nomeia outro');
+  PERFORM pg_temp.expect_error(agent_a, format('UPDATE public.organization_members SET display_name = %L WHERE user_id = %L', 'X', agent_a), 'coluna nao gravavel direto');
+  PERFORM pg_temp.expect(pg_temp.run(admin_a, format('SELECT public.set_member_name(%L, %L, %L)', A, agent_a, 'Ana Souza')) LIKE 'ok:%', 'admin altera nome');
+  PERFORM pg_temp.expect_error(admin_a, format('SELECT public.set_member_name(%L, %L, %L)', A, owner_a, 'Dono'), 'admin nao altera nome do dono');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('SELECT public.set_member_name(%L, %L, %L)', A, owner_a, 'Dono A')) LIKE 'ok:%', 'dono altera o proprio nome');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.set_member_name(%L, %L, %L)', A, agent_a, 'Fora'), 'outra org nao altera nome');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.set_member_name(%L, %L, %L)', 'bbbbbbbb-0000-0000-0000-000000000001', agent_a, 'Fora'), 'nao nomeia quem nao e da org');
+  PERFORM pg_temp.expect((SELECT display_name = 'Ana Souza' FROM public.organization_members WHERE organization_id = A AND user_id = agent_a), 'nome final');
+  PERFORM pg_temp.expect((SELECT count(*) = 3 FROM public.audit_log WHERE organization_id = A AND action = 'member.renamed'), 'alteracoes auditadas');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 

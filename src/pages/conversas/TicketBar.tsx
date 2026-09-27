@@ -1,3 +1,4 @@
+import { firstName, memberNames } from "@/lib/memberNames";
 import { useEffect, useState } from "react";
 import { ArrowRightLeft, Bot, CheckCircle2, Hand, Hash } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -43,9 +44,9 @@ export function TicketBar({ ticket, onChanged }: { ticket: Ticket | undefined; o
   useEffect(() => {
     setOwner("");
     if (!assignedTo || assignedTo === user?.id) return;
-    supabase.from("profiles").select("full_name, email").eq("user_id", assignedTo).maybeSingle()
-      .then(({ data }) => setOwner(data?.full_name || data?.email || "outra pessoa"));
-  }, [assignedTo, user?.id]);
+    if (!org) return;
+    memberNames(org.id, [assignedTo]).then((m) => setOwner(m.get(assignedTo)?.name || "outra pessoa"));
+  }, [assignedTo, user?.id, org]);
 
   useEffect(() => {
     if (!dialog || !org || dialog === "take") return;
@@ -58,10 +59,8 @@ export function TicketBar({ ticket, onChanged }: { ticket: Ticket | undefined; o
       ]).then(async ([d, m]) => {
         setDepartments((d.data as Option[]) ?? []);
         const ids = (m.data ?? []).map((r) => r.user_id).filter((id) => id !== user?.id);
-        const { data: profs } = ids.length
-          ? await supabase.from("profiles").select("user_id, full_name, email").in("user_id", ids)
-          : { data: [] as { user_id: string; full_name: string | null; email: string | null }[] };
-        setPeople((profs ?? []).map((p) => ({ id: p.user_id, name: p.full_name || p.email || "Sem nome" })));
+        const names = await memberNames(org.id, ids);
+        setPeople([...names].map(([id, n]) => ({ id, name: n.name })));
       });
     } else {
       setReason("");
@@ -75,14 +74,14 @@ export function TicketBar({ ticket, onChanged }: { ticket: Ticket | undefined; o
   /** Assume e avisa o cliente de quem está atendendo agora. */
   const claim = async () => {
     if (!(await rpc("claim_ticket", { ticket: ticket.id }, "Atendimento assumido"))) return;
-    const [{ data: me }, { data: o }] = await Promise.all([
-      supabase.from("profiles").select("full_name, email").eq("user_id", user!.id).maybeSingle(),
+    const [me, { data: o }] = await Promise.all([
+      memberNames(org!.id, [user!.id]).then((m) => m.get(user!.id)),
       supabase.from("organizations").select("settings").eq("id", org!.id).maybeSingle(),
     ]);
     const saved = (o?.settings as Record<string, unknown> | null)?.claim_greeting;
     const template = typeof saved === "string" ? saved : DEFAULT_GREETING;
     if (!template.trim()) return; // aviso desligado pela empresa
-    const first = (me?.full_name || me?.email?.split("@")[0] || "").trim().split(/\s+/)[0] || "um atendente";
+    const first = firstName(me?.name ?? "");
     const text = template.split("{nome}").join(first);
     const r = await callFunction("send-message", { conversation_id: ticket.conversation_id, text });
     if (!r.ok) toast({ variant: "destructive", title: "Assumido, mas o aviso ao cliente não foi enviado", description: r.message });

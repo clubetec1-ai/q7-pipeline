@@ -1,3 +1,4 @@
+import { firstName, memberNames } from "@/lib/memberNames";
 import { NumberHealthBanner } from "@/components/NumberHealthBanner";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -143,6 +144,10 @@ export default function Conversas() {
   // Números da organização: etiqueta (nome + cor) e filtro quando há mais de um.
   const [numbers, setNumbers] = useState<Map<string, { name: string; color: string | null }>>(new Map());
   const [numberFilter, setNumberFilter] = useState("");
+  const [myName, setMyName] = useState("");
+  useEffect(() => {
+    if (org && user) memberNames(org.id, [user.id]).then((m) => setMyName(m.get(user.id)?.name ?? ""));
+  }, [org, user]);
   useEffect(() => {
     if (!org) return;
     supabase.from("whatsapp_instances").select("id, name, color").eq("organization_id", org.id).order("created_at")
@@ -824,7 +829,7 @@ export default function Conversas() {
               <QuickReplies input={input} setInput={setInput} vars={{
                 nome: (active.contact_name || "").split(" ")[0],
                 protocolo: byConversation.get(active.id)?.protocol ?? "",
-                atendente: String(user?.user_metadata?.full_name || user?.email?.split("@")[0] || "").split(" ")[0],
+                atendente: firstName(myName),
                 empresa: org?.name ?? "",
               }} />
               <ContactSheet open={fichaOpen} onClose={() => setFichaOpen(false)} contactId={active.contact_id ?? null}

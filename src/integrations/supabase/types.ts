@@ -1200,6 +1200,7 @@ export type Database = {
       organization_members: {
         Row: {
           created_at: string
+          display_name: string | null
           invited_by: string | null
           organization_id: string
           role: Database["public"]["Enums"]["org_role"]
@@ -1209,6 +1210,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          display_name?: string | null
           invited_by?: string | null
           organization_id: string
           role?: Database["public"]["Enums"]["org_role"]
@@ -1218,6 +1220,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          display_name?: string | null
           invited_by?: string | null
           organization_id?: string
           role?: Database["public"]["Enums"]["org_role"]
@@ -2108,6 +2111,10 @@ export type Database = {
       }
       set_instance_secret: {
         Args: { instance: string; secret_value: string }
+        Returns: undefined
+      }
+      set_member_name: {
+        Args: { member: string; name: string; org: string }
         Returns: undefined
       }
       set_org_secret: {
