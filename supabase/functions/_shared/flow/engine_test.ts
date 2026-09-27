@@ -133,3 +133,19 @@ Deno.test("pesquisa: nota, comentario e resposta invalida", () => {
   assertEquals([bad.state, bad.passthrough, bad.actions.length], ["done", true, 0]);
   assertEquals(advance(g, "p", "6", { ...ctx, vars: ask.vars }).passthrough, true);
 });
+
+Deno.test("http: para para o executor chamar e segue por success/error", () => {
+  const g: FlowGraph = {
+    nodes: [
+      { id: "h", type: "http", data: { url: "https://api.x.com" } },
+      { id: "ok", type: "message", data: { text: "Pedido {var.status}" } },
+      { id: "err", type: "message", data: { text: "Sistema fora" } },
+    ],
+    edges: [{ source: "h", sourceHandle: "success", target: "ok" }, { source: "h", sourceHandle: "error", target: "err" }],
+  };
+  const r1 = advance(g, "h", null, ctx);
+  assertEquals([r1.state, r1.currentNodeId], ["http", "h"]);
+  const r2 = advance(g, "h", null, { ...ctx, vars: { status: "enviado" }, httpResult: "success" });
+  assertEquals(r2.actions[0], { type: "send", text: "Pedido enviado" });
+  assertEquals(advance(g, "h", null, { ...ctx, httpResult: "error" }).actions[0], { type: "send", text: "Sistema fora" });
+});

@@ -45,7 +45,7 @@ export default function FlowEditor() {
   const [selected, setSelected] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [lookups, setLookups] = useState<Lookups>({ departments: [], tags: [], groups: [] });
+  const [lookups, setLookups] = useState<Lookups>({ departments: [], tags: [], groups: [], closeReasons: [], stages: [], secrets: [] });
   const [simOpen, setSimOpen] = useState(false);
   const [active, setActive] = useState<string | null>(null);
   const [period, setPeriod] = useState(0);
@@ -67,16 +67,22 @@ export default function FlowEditor() {
 
   const load = useCallback(async () => {
     if (!id || !org) return;
-    const [{ data: flow }, { data: versions }, d, t, g] = await Promise.all([
+    const [{ data: flow }, { data: versions }, d, t, g, cr, st, sc] = await Promise.all([
       supabase.from("flows").select("name").eq("id", id).eq("organization_id", org.id).maybeSingle(),
       supabase.from("flow_versions").select("id, status, version, graph").eq("flow_id", id).in("status", ["draft", "published"]),
       supabase.from("departments").select("id, name").eq("organization_id", org.id).order("name"),
       supabase.from("tags").select("id, name").eq("organization_id", org.id).order("name"),
       supabase.from("contact_groups").select("id, name").eq("organization_id", org.id).order("name"),
+      supabase.from("close_reasons").select("id, name").eq("organization_id", org.id).eq("active", true).order("name"),
+      supabase.from("pipeline_stages").select("id, name").eq("organization_id", org.id).order("position"),
+      supabase.rpc("list_http_secrets", { org: org.id }),
     ]);
     if (!flow) return;
     setName(flow.name);
-    setLookups({ departments: d.data ?? [], tags: t.data ?? [], groups: g.data ?? [] });
+    setLookups({
+      departments: d.data ?? [], tags: t.data ?? [], groups: g.data ?? [],
+      closeReasons: cr.data ?? [], stages: st.data ?? [], secrets: (sc.data ?? []).map((x) => x.name),
+    });
     const draft = versions?.find((v) => v.status === "draft");
     const pub = versions?.find((v) => v.status === "published");
     setVersion(pub?.version ?? null);

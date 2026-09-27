@@ -452,6 +452,22 @@ BEGIN
   PERFORM pg_temp.expect((SELECT count(*) = 1 FROM public.audit_log
     WHERE action = 'contact.opt_out_cleared' AND actor_id = agent_a), 'desfazer opt-out fica auditado');
 
+  -- 28. Segredos do bloco HTTP e chaves de IA: so org.settings; valor nunca volta.
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.set_http_secret(%L, %L, %L)', A, 'erp', 'x'), 'agent nao grava segredo http');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.set_http_secret(%L, %L, %L)', A, 'erp', 'x'), 'outra org nao grava segredo http');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.set_http_secret(%L, %L, %L)', A, 'Nome Ruim', 'x'), 'nome de segredo validado');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('SELECT public.set_http_secret(%L, %L, %L)', A, 'erp', 's3cr3t')) LIKE 'ok:%', 'owner grava segredo http');
+  PERFORM pg_temp.expect(pg_temp.t(owner_a, format('SELECT string_agg(name, %L) FROM public.list_http_secrets(%L)', ',', A)) = 'erp', 'lista so nomes');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT * FROM public.list_http_secrets(%L)', A), 'outra org nao lista segredos');
+  PERFORM pg_temp.expect((SELECT private.get_secret(format('org:%s:http:erp', A)) = 's3cr3t'), 'segredo no vault');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('SELECT public.delete_http_secret(%L, %L)', A, 'erp')) LIKE 'ok:%', 'owner apaga segredo http');
+  PERFORM pg_temp.expect((SELECT private.get_secret(format('org:%s:http:erp', A)) IS NULL), 'segredo saiu do vault');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_http_take(%L)', A), 'limite http so no backend');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('SELECT public.set_org_secret(%L, %L, %L)', A, 'openai_api_key', 'sk-x')) LIKE 'ok:%', 'owner grava chave openai');
+  PERFORM pg_temp.expect(pg_temp.t(owner_a, format('SELECT (public.ai_keys_status(%L) ->> %L)', A, 'openai')) = 'true', 'status da chave sem valor');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.ai_keys_status(%L)', A), 'agent nao ve status das chaves');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.set_org_secret(%L, %L, %L)', A, 'qualquer_key', 'x'), 'chave fora da lista recusada');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 
