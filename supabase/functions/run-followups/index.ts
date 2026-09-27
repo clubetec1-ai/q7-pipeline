@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
-import { getAgentConfig, callGroq } from "../_shared/get-ai-config.ts";
+import { getAgentProfile } from "../_shared/get-ai-config.ts";
+import { chat as aiChat, resolveAI } from "../_shared/ai-chat.ts";
 import { getUazapiConfig } from "../_shared/get-uazapi-config.ts";
 import * as providers from "../_shared/providers/index.ts";
 import { forOrg } from "../_shared/tenant.ts";
@@ -105,8 +106,10 @@ serve(async (req) => {
       let text = (f.text_override || "").trim();
 
       if (!text) {
-        const agent = await getAgentConfig(conv.organization_id);
-        if (!agent) {
+        const [agent, ai] = await Promise.all([
+          getAgentProfile(supabase, conv.organization_id), resolveAI(supabase, conv.organization_id),
+        ]);
+        if (!ai) {
           await supabase.from("followups").update({ status: "failed", error: "agent config missing" }).eq("id", f.id);
           continue;
         }
@@ -136,7 +139,7 @@ serve(async (req) => {
               "[sistema] O cliente não respondeu. Escreva agora a mensagem de reengajamento, só ela.",
           },
         ];
-        const groq = await callGroq(agent.apiKey, agent.model, chat);
+        const groq = await aiChat(ai.apiKey, ai.provider, ai.model, chat);
         if (groq.ok && groq.reply && groq.reply.trim()) {
           text = groq.reply.trim();
         } else {

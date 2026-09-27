@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
-import { getAgentConfig, callGroq } from "../_shared/get-ai-config.ts";
+import { getAgentConfig, getAgentProfile } from "../_shared/get-ai-config.ts";
+import { chat as aiChat, resolveAI } from "../_shared/ai-chat.ts";
 import { cancelPendingFollowups, scheduleInactivityFollowup } from "../_shared/followups.ts";
 import * as providers from "../_shared/providers/index.ts";
 import { transcribeAudio } from "../_shared/transcribe.ts";
@@ -593,7 +594,14 @@ async function handle(req: Request, ctx: QueueCtx): Promise<Response> {
     if (await runFlow({ admin: supabase, orgId, inst: instRow, conv, ticket, text: String(text ?? "") })) {
       return ok();
     }
-    if (!agent || !agent.enabled) return ok();
+    // IA padrão da empresa: provedor escolhido em Fluxos → Chaves de IA (padrão Groq).
+    const profileAI = await getAgentProfile(supabase, orgId);
+    if (!profileAI.enabled) return ok();
+    const ai = await resolveAI(supabase, orgId);
+    if (!ai) {
+      console.error("[webhook] sem chave do provedor de IA da empresa");
+      return ok();
+    }
 
     const { data: history } = await org
       .select("messages", "direction, sender, content")
@@ -602,14 +610,14 @@ async function handle(req: Request, ctx: QueueCtx): Promise<Response> {
       .limit(20);
 
     const chat = [
-      { role: "system" as const, content: [withProtocol(agent.systemPrompt, ticket.protocol), await companyKnowledge(org)].filter(Boolean).join("\n\n") },
+      { role: "system" as const, content: [withProtocol(profileAI.systemPrompt, ticket.protocol), await companyKnowledge(org)].filter(Boolean).join("\n\n") },
       ...(history || []).reverse().map((m: any) => ({
         role: (m.direction === "inbound" ? "user" : "assistant") as "user" | "assistant",
         content: m.content,
       })),
     ];
 
-    const groq = await callGroq(agent.apiKey, agent.model, chat);
+    const groq = await aiChat(ai.apiKey, ai.provider, ai.model, chat);
     if (!groq.ok || !groq.reply) {
       console.error("[webhook] groq failed", groq.error);
       return ok();

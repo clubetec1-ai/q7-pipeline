@@ -211,7 +211,7 @@ export function NodeProperties({ type, data, onChange, onDelete, lookups }: {
             <Pick value={s("handoff_department_id")} onChange={(v) => set({ handoff_department_id: v || null })} empty="Fila geral" options={lookups.departments} />
           </Field>
           <Field label="Provedor de IA">
-            <Pick value={s("provider") || "groq"} onChange={(v) => set({ provider: v })}
+            <Pick value={s("provider")} onChange={(v) => set({ provider: v || null })} empty="Padrão da empresa"
               options={Object.entries(PROVIDER_LABEL).map(([id, name]) => ({ id, name }))} />
           </Field>
           <Field label="Modelo (vazio = padrão do provedor)">
