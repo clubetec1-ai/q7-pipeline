@@ -2053,6 +2053,35 @@ export type Database = {
         Returns: undefined
       }
       supervisor_dashboard: { Args: { org: string }; Returns: Json }
+      take_over_ticket: {
+        Args: { ticket: string }
+        Returns: {
+          assigned_at: string | null
+          assigned_to: string | null
+          close_note: string | null
+          close_reason_id: string | null
+          closed_at: string | null
+          conversation_id: string
+          created_at: string
+          department_id: string | null
+          external_reply: boolean
+          first_response_at: string | null
+          id: string
+          opened_at: string | null
+          organization_id: string
+          protocol: string
+          queued_at: string | null
+          rating: number | null
+          status: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tickets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       transfer_ticket: {
         Args: {
           note?: string

@@ -11,7 +11,8 @@ interface Notification { id: string; kind: string; ref: Record<string, string>; 
 const TEXT: Record<string, (r: Record<string, string>) => string> = {
   mention: () => "Você foi mencionado numa nota interna",
   assigned: (r) => `Atendimento #${r.protocol ?? ""} atribuído a você`,
-  transferred: (r) => `Atendimento #${r.protocol ?? ""} transferido para você`,
+  transferred: (r) => `Atendimento #${r.protocol ?? ""} transferido para você${r.note ? ` — ${r.note}` : ""}`,
+  taken_over: (r) => `Atendimento #${r.protocol ?? ""} foi assumido por outra pessoa`,
 };
 
 /** Sino de notificações (menção, atribuição, transferência), ao vivo. */

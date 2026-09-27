@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ProtocolHistory } from "./ProtocolHistory";
 
 interface Contact { id: string; phone: string; name: string | null; email: string | null; document: string | null; notes: string | null }
 interface Tag { id: string; name: string; color: string | null }
@@ -138,6 +139,7 @@ export function ContactSheet({
               <TabsTrigger value="dados" className="flex-1">Dados</TabsTrigger>
               <TabsTrigger value="marcas" className="flex-1">Etiquetas e grupos</TabsTrigger>
               <TabsTrigger value="notas" className="flex-1">Notas ({notes.length})</TabsTrigger>
+              <TabsTrigger value="protocolos" className="flex-1">Protocolos</TabsTrigger>
             </TabsList>
 
             <TabsContent value="dados" className="space-y-3 pt-3">
@@ -234,6 +236,10 @@ export function ContactSheet({
                 })}
               </div>
               <Button size="sm" onClick={addNote} disabled={!note.trim()}>Salvar nota</Button>
+            </TabsContent>
+
+            <TabsContent value="protocolos" className="pt-3">
+              {org && contactId && <ProtocolHistory orgId={org.id} contactId={contactId} nameOf={nameOf} />}
             </TabsContent>
           </Tabs>
         )}

@@ -74,3 +74,9 @@ Deno.test("validacoes", () => {
   assertEquals(validate("date", "31/02/2026"), null);
   assertEquals(validate("date", "05/03/2026"), "2026-03-05");
 });
+
+Deno.test("protocolo nos textos", () => {
+  const g: FlowGraph = { nodes: [{ id: "m", type: "message", data: { text: "Protocolo {protocolo}" } }], edges: [] };
+  const r = advance(g, "m", null, { ...ctx, protocol: "2026-000009" });
+  assertEquals(r.actions[0], { type: "send", text: "Protocolo 2026-000009" });
+});

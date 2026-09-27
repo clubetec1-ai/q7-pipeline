@@ -52,7 +52,8 @@ Deno.serve(async (req) => {
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const org = forOrg(admin, orgId);
 
-    // Atendimento: assume se livre; de outra pessoa só com reassign.
+    // Atendimento: assume se livre. Com outra pessoa, ninguém responde (nem o
+    // admin) sem antes usar "Assumir", que registra e avisa quem perdeu.
     const { data: ticket } = await org
       .select("tickets", "id, assigned_to")
       .eq("conversation_id", conv.id)
@@ -63,8 +64,8 @@ Deno.serve(async (req) => {
       if (!ticket.assigned_to) {
         const { error } = await ctx.userClient.rpc("claim_ticket", { ticket: ticket.id });
         if (error) throw new HttpError(409, error.message);
-      } else if (!perms.includes("conversations.reassign")) {
-        throw new HttpError(403, "Este atendimento está com outra pessoa.");
+      } else {
+        throw new HttpError(409, "Este atendimento está com outra pessoa. Clique em Assumir para responder.");
       }
     }
 

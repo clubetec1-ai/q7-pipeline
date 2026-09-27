@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowRightLeft, Bot, CheckCircle2, Hand } from "lucide-react";
+import { ArrowRightLeft, Bot, CheckCircle2, Hand, Hash } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/contexts/OrgContext";
@@ -28,7 +28,8 @@ export function TicketBar({ ticket, onChanged }: { ticket: Ticket | undefined; o
   const { org, can } = useOrg();
   const { toast } = useToast();
   const [busy, setBusy] = useState(false);
-  const [dialog, setDialog] = useState<"transfer" | "close" | null>(null);
+  const [dialog, setDialog] = useState<"transfer" | "close" | "take" | null>(null);
+  const [owner, setOwner] = useState("");
   const [departments, setDepartments] = useState<Option[]>([]);
   const [people, setPeople] = useState<Option[]>([]);
   const [reasons, setReasons] = useState<Option[]>([]);
@@ -37,8 +38,17 @@ export function TicketBar({ ticket, onChanged }: { ticket: Ticket | undefined; o
   const [reason, setReason] = useState("");
   const [note, setNote] = useState("");
 
+  // Nome de quem está com o atendimento (quando não sou eu).
+  const assignedTo = ticket?.assigned_to ?? null;
   useEffect(() => {
-    if (!dialog || !org) return;
+    setOwner("");
+    if (!assignedTo || assignedTo === user?.id) return;
+    supabase.from("profiles").select("full_name, email").eq("user_id", assignedTo).maybeSingle()
+      .then(({ data }) => setOwner(data?.full_name || data?.email || "outra pessoa"));
+  }, [assignedTo, user?.id]);
+
+  useEffect(() => {
+    if (!dialog || !org || dialog === "take") return;
     setNote("");
     if (dialog === "transfer") {
       setToDept(""); setToUser("");
@@ -80,6 +90,18 @@ export function TicketBar({ ticket, onChanged }: { ticket: Ticket | undefined; o
 
   const mine = ticket.assigned_to === user?.id;
   const canAct = mine || can("conversations.reassign") || !ticket.assigned_to;
+  // Atendimento de outra pessoa só se assume com permissão (fica registrado e ela é avisada).
+  const canTake = !mine && (!ticket.assigned_to || can("conversations.reassign"));
+
+  const sendProtocol = async () => {
+    setBusy(true);
+    const r = await callFunction("send-message", {
+      conversation_id: ticket.conversation_id, text: `Seu protocolo de atendimento é ${ticket.protocol}.`,
+    });
+    setBusy(false);
+    toast(r.ok ? { title: "Protocolo enviado ao cliente" } : { variant: "destructive", title: r.message });
+    if (r.ok) onChanged();
+  };
 
   const rpc = async (fn: string, args: Record<string, unknown>, success: string) => {
     setBusy(true);
@@ -100,10 +122,17 @@ export function TicketBar({ ticket, onChanged }: { ticket: Ticket | undefined; o
         {STATUS_LABEL[ticket.status]}{ticket.external_reply && !ticket.assigned_to ? " · pelo celular" : ""}
       </Badge>
       <span className="text-[11px] text-muted-foreground">#{ticket.protocol}</span>
-      {!mine && (
+      {owner && <span className="text-[11px] text-muted-foreground">· com {owner}</span>}
+      {canTake && (
         <Button size="sm" variant="outline" className="h-8" disabled={busy}
-          onClick={claim}>
+          onClick={() => (ticket.assigned_to ? setDialog("take") : claim())}>
           <Hand className="w-3.5 h-3.5 mr-1" /> Assumir
+        </Button>
+      )}
+      {mine && (
+        <Button size="sm" variant="ghost" className="h-8" disabled={busy} onClick={sendProtocol}
+          title="Envia o número do protocolo para o cliente">
+          <Hash className="w-3.5 h-3.5 mr-1" /> Enviar protocolo
         </Button>
       )}
       {canAct && (
@@ -122,6 +151,23 @@ export function TicketBar({ ticket, onChanged }: { ticket: Ticket | undefined; o
           </Button>
         </>
       )}
+
+      <Dialog open={dialog === "take"} onOpenChange={(o) => !o && setDialog(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assumir o atendimento de {owner || "outra pessoa"}?</DialogTitle>
+            <DialogDescription>
+              Fica registrado que você assumiu; {owner || "a pessoa"} é avisada e o cliente recebe a mensagem de quem vai atender.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialog(null)}>Cancelar</Button>
+            <Button disabled={busy} onClick={async () => {
+              if (await rpc("take_over_ticket", { ticket: ticket.id }, "Atendimento assumido")) setDialog(null);
+            }}>Assumir</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={dialog === "transfer"} onOpenChange={(o) => !o && setDialog(null)}>
         <DialogContent>

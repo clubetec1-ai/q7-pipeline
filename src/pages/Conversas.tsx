@@ -138,6 +138,25 @@ export default function Conversas() {
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [fichaOpen, setFichaOpen] = useState(false);
   const [tab, setTab] = useState<TicketTab>("todos");
+  const [search, setSearch] = useState("");
+  const [protocolHits, setProtocolHits] = useState<Set<string> | null>(null);
+  // Busca por nome/telefone na lista e por protocolo (inclui atendimentos já finalizados).
+  useEffect(() => {
+    const q = search.trim();
+    if (!org || !/^[\d-]{4,}$/.test(q)) { setProtocolHits(null); return; }
+    const h = window.setTimeout(async () => {
+      const { data } = await supabase.from("tickets").select("conversation_id")
+        .eq("organization_id", org.id).ilike("protocol", `%${q}%`).limit(50);
+      setProtocolHits(new Set((data ?? []).map((r) => r.conversation_id)));
+    }, 300);
+    return () => window.clearTimeout(h);
+  }, [search, org]);
+  const matchesSearch = (c: { id: string; contact_name?: string | null; contact_phone?: string | null }) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return (c.contact_name ?? "").toLowerCase().includes(q) || (c.contact_phone ?? "").includes(q.replace(/\D/g, "") || q)
+      || !!protocolHits?.has(c.id);
+  };
   const { byConversation, inTab, reload: reloadTickets } = useTickets(org?.id, user?.id);
 
   const active = useMemo(
@@ -513,6 +532,10 @@ export default function Conversas() {
                 Nenhuma conversa ainda. Quando o WhatsApp receber mensagens, elas aparecem aqui.
               </div>
             )}
+            <div className="p-2 border-b">
+              <Input value={search} onChange={(e) => setSearch(e.target.value)} className="h-8 text-sm"
+                placeholder="Buscar nome, telefone ou protocolo" />
+            </div>
             <div className="flex gap-1 p-2 border-b">
               {(["meus", "fila", "ia", "todos"] as TicketTab[]).map((k) => {
                 const n = k === "todos" ? conversations.length : conversations.filter((c) => inTab(c.id, k)).length;
@@ -524,7 +547,7 @@ export default function Conversas() {
                 );
               })}
             </div>
-            {conversations.filter((c) => inTab(c.id, tab)).map((c) => (
+            {conversations.filter((c) => inTab(c.id, tab) && matchesSearch(c)).map((c) => (
               <button
                 key={c.id}
                 onClick={() => setActiveId(c.id)}
@@ -788,6 +811,14 @@ export default function Conversas() {
                   </Button>
                 </div>
               )}
+              {(() => {
+                const tk = byConversation.get(active.id);
+                return tk?.assigned_to && tk.assigned_to !== user?.id;
+              })() ? (
+                <div className="p-3 border-t text-sm text-muted-foreground text-center">
+                  Este atendimento está com outra pessoa. Para responder, use <b>Assumir</b> no topo (se tiver permissão).
+                </div>
+              ) : (
               <div className="p-3 border-t flex gap-2">
                 <input ref={fileRef} type="file" className="hidden"
                   accept="image/jpeg,image/png,audio/*,video/mp4,video/3gpp,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip"
@@ -807,6 +838,7 @@ export default function Conversas() {
                   <Send className="w-4 h-4" />
                 </Button>
               </div>
+              )}
             </>
           )}
         </div>

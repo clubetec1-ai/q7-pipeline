@@ -370,6 +370,27 @@ BEGIN
     'SELECT public.publish_flow(%L)::text', 'aaaaaaaa-0000-0000-0009-000000000001')) = '1', 'owner publica v1');
   PERFORM pg_temp.expect_error(owner_a, 'SELECT count(*) FROM public.flow_runs', 'navegador nao le flow_runs');
 
+  -- 26. Assumir atendimento de outra pessoa: so com conversations.reassign; fica registrado.
+  INSERT INTO public.conversations (id, instance_id, contact_phone)
+  VALUES ('aaaaaaaa-0000-0000-0010-000000000001', 'aaaaaaaa-0000-0000-0003-000000000001', '5511900000026');
+  INSERT INTO public.tickets (id, organization_id, conversation_id, protocol, status, assigned_to, opened_at)
+  VALUES ('aaaaaaaa-0000-0000-0011-000000000001', A, 'aaaaaaaa-0000-0000-0010-000000000001', 'T-26', 'open', agent2_a, now());
+  PERFORM pg_temp.expect_error(agent_a, format(
+    'SELECT public.take_over_ticket(%L)', 'aaaaaaaa-0000-0000-0011-000000000001'), 'agent nao assume de outro');
+  PERFORM pg_temp.expect_error(owner_b, format(
+    'SELECT public.take_over_ticket(%L)', 'aaaaaaaa-0000-0000-0011-000000000001'), 'outra org nao assume');
+  PERFORM pg_temp.expect_error(agent_a, format(
+    'SELECT public.claim_ticket(%L)', 'aaaaaaaa-0000-0000-0011-000000000001'), 'claim nao rouba atendimento');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format(
+    'SELECT public.take_over_ticket(%L)', 'aaaaaaaa-0000-0000-0011-000000000001')) LIKE 'ok:%', 'owner assume');
+  PERFORM pg_temp.expect((SELECT assigned_to = owner_a FROM public.tickets
+    WHERE id = 'aaaaaaaa-0000-0000-0011-000000000001'), 'atendimento passou para o owner');
+  PERFORM pg_temp.expect((SELECT count(*) = 1 FROM public.ticket_events
+    WHERE ticket_id = 'aaaaaaaa-0000-0000-0011-000000000001' AND type = 'taken_over'
+      AND meta ->> 'from_user' = agent2_a::text), 'evento registra de quem foi tirado');
+  PERFORM pg_temp.expect((SELECT count(*) = 1 FROM public.notifications
+    WHERE user_id = agent2_a AND kind = 'taken_over'), 'quem perdeu e notificado');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 
