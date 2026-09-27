@@ -290,10 +290,12 @@ BEGIN
       SELECT jsonb_build_object(
         'opened', count(*) FILTER (WHERE created_at >= day_start),
         'closed', count(*) FILTER (WHERE closed_at >= day_start),
+        -- Intervalos só contam quando fazem sentido (fim depois do início):
+        -- reatribuições posteriores não podem gerar tempo negativo.
         'avg_queue_seconds', round(extract(epoch FROM avg(assigned_at - queued_at)
-                             FILTER (WHERE assigned_at >= day_start AND queued_at IS NOT NULL))),
-        'avg_first_response_seconds', round(extract(epoch FROM avg(first_response_at - coalesce(assigned_at, opened_at))
-                             FILTER (WHERE first_response_at >= day_start))),
+                             FILTER (WHERE assigned_at >= day_start AND assigned_at >= queued_at))),
+        'avg_first_response_seconds', round(extract(epoch FROM avg(first_response_at - opened_at)
+                             FILTER (WHERE first_response_at >= day_start AND first_response_at >= opened_at))),
         'avg_duration_seconds', round(extract(epoch FROM avg(closed_at - coalesce(opened_at, created_at))
                              FILTER (WHERE closed_at >= day_start))))
       FROM public.tickets

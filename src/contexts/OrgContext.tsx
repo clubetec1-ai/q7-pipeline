@@ -113,6 +113,17 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const org = useMemo(() => orgs.find((o) => o.id === orgId) ?? null, [orgs, orgId]);
+
+  // Sinal de vida por minuto em qualquer tela do sistema: sem ele há 3 min, a
+  // distribuição automática considera a pessoa ausente. (O builder do
+  // supabase-js só dispara a chamada quando alguém aguarda o resultado.)
+  useEffect(() => {
+    if (!org || !user) return;
+    const beat = () => { void supabase.rpc("heartbeat", { org: org.id }).then(() => undefined); };
+    beat();
+    const id = window.setInterval(beat, 60_000);
+    return () => window.clearInterval(id);
+  }, [org, user]);
   const can = useCallback((perm: string) => permissions.includes(perm), [permissions]);
 
   return (
