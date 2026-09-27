@@ -589,6 +589,219 @@ export type Database = {
           },
         ]
       }
+      flow_run_steps: {
+        Row: {
+          created_at: string
+          flow_version_id: string
+          id: number
+          node_id: string
+          organization_id: string
+          outcome: string | null
+          run_id: string
+        }
+        Insert: {
+          created_at?: string
+          flow_version_id: string
+          id?: never
+          node_id: string
+          organization_id: string
+          outcome?: string | null
+          run_id: string
+        }
+        Update: {
+          created_at?: string
+          flow_version_id?: string
+          id?: never
+          node_id?: string
+          organization_id?: string
+          outcome?: string | null
+          run_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flow_run_steps_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flow_run_steps_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "flow_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flow_runs: {
+        Row: {
+          ai_turns: number
+          attempts: number
+          conversation_id: string
+          current_node_id: string | null
+          error: string | null
+          finished_at: string | null
+          flow_version_id: string
+          id: string
+          organization_id: string
+          started_at: string
+          state: string
+          ticket_id: string
+          updated_at: string
+          vars: Json
+          wait_until: string | null
+        }
+        Insert: {
+          ai_turns?: number
+          attempts?: number
+          conversation_id: string
+          current_node_id?: string | null
+          error?: string | null
+          finished_at?: string | null
+          flow_version_id: string
+          id?: string
+          organization_id: string
+          started_at?: string
+          state?: string
+          ticket_id: string
+          updated_at?: string
+          vars?: Json
+          wait_until?: string | null
+        }
+        Update: {
+          ai_turns?: number
+          attempts?: number
+          conversation_id?: string
+          current_node_id?: string | null
+          error?: string | null
+          finished_at?: string | null
+          flow_version_id?: string
+          id?: string
+          organization_id?: string
+          started_at?: string
+          state?: string
+          ticket_id?: string
+          updated_at?: string
+          vars?: Json
+          wait_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flow_runs_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flow_runs_flow_version_id_fkey"
+            columns: ["flow_version_id"]
+            isOneToOne: false
+            referencedRelation: "flow_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flow_runs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flow_runs_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flow_versions: {
+        Row: {
+          created_at: string
+          flow_id: string
+          graph: Json
+          id: string
+          organization_id: string
+          published_at: string | null
+          published_by: string | null
+          status: string
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          flow_id: string
+          graph?: Json
+          id?: string
+          organization_id: string
+          published_at?: string | null
+          published_by?: string | null
+          status: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          flow_id?: string
+          graph?: Json
+          id?: string
+          organization_id?: string
+          published_at?: string | null
+          published_by?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flow_versions_flow_id_organization_id_fkey"
+            columns: ["flow_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "flows"
+            referencedColumns: ["id", "organization_id"]
+          },
+        ]
+      }
+      flows: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flows_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       followups: {
         Row: {
           conversation_id: string
@@ -1513,6 +1726,7 @@ export type Database = {
           color: string | null
           connected_via: string | null
           created_at: string
+          flow_id: string | null
           health_error: string | null
           health_status: string | null
           id: string
@@ -1539,6 +1753,7 @@ export type Database = {
           color?: string | null
           connected_via?: string | null
           created_at?: string
+          flow_id?: string | null
           health_error?: string | null
           health_status?: string | null
           id?: string
@@ -1565,6 +1780,7 @@ export type Database = {
           color?: string | null
           connected_via?: string | null
           created_at?: string
+          flow_id?: string | null
           health_error?: string | null
           health_status?: string | null
           id?: string
@@ -1588,6 +1804,13 @@ export type Database = {
           waba_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "whatsapp_instances_flow_fk"
+            columns: ["flow_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "flows"
+            referencedColumns: ["id", "organization_id"]
+          },
           {
             foreignKeyName: "whatsapp_instances_organization_id_fkey"
             columns: ["organization_id"]
@@ -1703,6 +1926,7 @@ export type Database = {
       }
       my_permissions: { Args: { org: string }; Returns: string[] }
       org_setup_status: { Args: { org: string }; Returns: Json }
+      publish_flow: { Args: { flow: string }; Returns: number }
       return_ticket_to_ai: {
         Args: { ticket: string }
         Returns: {
@@ -1746,6 +1970,41 @@ export type Database = {
       }
       service_ticket_for_inbound: {
         Args: { conv: string; from_me: boolean }
+        Returns: {
+          assigned_at: string | null
+          assigned_to: string | null
+          close_note: string | null
+          close_reason_id: string | null
+          closed_at: string | null
+          conversation_id: string
+          created_at: string
+          department_id: string | null
+          external_reply: boolean
+          first_response_at: string | null
+          id: string
+          opened_at: string | null
+          organization_id: string
+          protocol: string
+          queued_at: string | null
+          rating: number | null
+          status: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tickets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      service_ticket_route: {
+        Args: {
+          action: string
+          dept?: string
+          reason?: string
+          ticket: string
+          to_user?: string
+        }
         Returns: {
           assigned_at: string | null
           assigned_to: string | null
