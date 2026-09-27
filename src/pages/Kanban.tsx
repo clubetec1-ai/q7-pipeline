@@ -1,3 +1,4 @@
+import { NumberHealthBanner } from "@/components/NumberHealthBanner";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -314,6 +315,7 @@ export default function Kanban() {
           </Button>
         </div>
       </header>
+      <NumberHealthBanner />
 
       <ConfigDrawer open={configOpen} onOpenChange={setConfigOpen} />
 

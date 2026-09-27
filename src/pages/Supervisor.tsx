@@ -1,3 +1,4 @@
+import { NumberHealthBanner } from "@/components/NumberHealthBanner";
 import { useCallback, useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { LogOut } from "lucide-react";
@@ -74,6 +75,7 @@ export default function Supervisor() {
           </Button>
         </div>
       </header>
+      <NumberHealthBanner />
 
       <main className="flex-1 w-full max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
         <div>

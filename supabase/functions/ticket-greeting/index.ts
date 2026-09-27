@@ -69,8 +69,12 @@ Deno.serve(async (req) => {
       }
       const greeting = text("claim_greeting", DEFAULT_GREETING);
       if (toPerson && t.status === "open" && t.assigned_to && greeting.trim()) {
-        const { data: p } = await admin.from("profiles").select("full_name, email").eq("user_id", t.assigned_to).maybeSingle();
-        const first = String(p?.full_name || p?.email?.split("@")[0] || "").trim().split(/\s+/)[0] || "um atendente";
+        // Nome da pessoa NESTA organização; reserva: início do e-mail.
+        const [{ data: m }, { data: p }] = await Promise.all([
+          org.select("organization_members", "display_name").eq("user_id", t.assigned_to).maybeSingle(),
+          admin.from("profiles").select("email").eq("user_id", t.assigned_to).maybeSingle(),
+        ]);
+        const first = String(m?.display_name || p?.email?.split("@")[0] || "").trim().split(/\s+/)[0] || "um atendente";
         texts.push({ body: fill(greeting, { nome: first }), human: true });
       }
     }

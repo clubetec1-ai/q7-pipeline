@@ -13,6 +13,7 @@ const TEXT: Record<string, (r: Record<string, string>) => string> = {
   assigned: (r) => `Atendimento #${r.protocol ?? ""} atribuído a você`,
   transferred: (r) => `Atendimento #${r.protocol ?? ""} transferido para você${r.note ? ` — ${r.note}` : ""}`,
   taken_over: (r) => `Atendimento #${r.protocol ?? ""} foi assumido por outra pessoa`,
+  number_health: (r) => `Número ${r.name ?? ""}: ${r.error ?? (r.status === "disconnected" ? "desconectado" : "precisa de atenção")}`,
 };
 
 /** Sino de notificações (menção, atribuição, transferência), ao vivo. */
@@ -43,6 +44,7 @@ export function NotificationsBell() {
     if (!n.read_at) await supabase.from("notifications").update({ read_at: new Date().toISOString() }).eq("id", n.id);
     load();
     if (n.ref.conversation_id) navigate(`/?open=${n.ref.conversation_id}`);
+    else if (n.kind === "number_health") navigate("/numeros");
   };
 
   return (

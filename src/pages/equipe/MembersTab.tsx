@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MoreHorizontal, UserPlus } from "lucide-react";
+import { MoreHorizontal, Pencil, UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -52,6 +52,17 @@ export function MembersTab({
   const [depts, setDepts] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [removing, setRemoving] = useState<Member | null>(null);
+  const [renaming, setRenaming] = useState<Member | null>(null);
+  const [newName, setNewName] = useState("");
+
+  const rename = async () => {
+    if (!renaming) return;
+    const { error } = await supabase.rpc("set_member_name", { org: orgId, member: renaming.user_id, name: newName });
+    if (error) return toast({ variant: "destructive", title: "Nome não alterado", description: error.message });
+    toast({ title: "Nome alterado" });
+    setRenaming(null);
+    reload();
+  };
 
   const run = async (action: string, payload: Record<string, unknown>, success: string) => {
     setBusy(true);
@@ -118,7 +129,16 @@ export function MembersTab({
               return (
                 <TableRow key={m.user_id}>
                   <TableCell>
-                    <div className="font-medium">{m.name}{isSelf && <span className="text-muted-foreground"> (você)</span>}</div>
+                    <div className="font-medium flex items-center gap-1">
+                      <span className={m.named ? "" : "italic text-muted-foreground"}>{m.name}</span>
+                      {isSelf && <span className="text-muted-foreground font-normal">(você)</span>}
+                      {canManage && !lockedOwner && (
+                        <Button variant="ghost" size="icon" className="h-6 w-6" title="Alterar nome"
+                          onClick={() => { setNewName(m.named ? m.name : ""); setRenaming(m); }}>
+                          <Pencil className="w-3 h-3" />
+                        </Button>
+                      )}
+                    </div>
                     <div className="text-xs text-muted-foreground">{m.email}</div>
                   </TableCell>
                   <TableCell>
@@ -225,6 +245,21 @@ export function MembersTab({
           <DialogFooter>
             <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancelar</Button>
             <Button onClick={invite} disabled={busy || !email.trim()}>{busy ? "Enviando..." : "Enviar convite"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!renaming} onOpenChange={(o) => !o && setRenaming(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Alterar nome</DialogTitle>
+            <DialogDescription>É o nome que a equipe vê e que o cliente recebe na mensagem de quem vai atender. Fica registrado quem alterou.</DialogDescription>
+          </DialogHeader>
+          <Input value={newName} maxLength={80} placeholder="Nome e sobrenome" autoFocus
+            onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && rename()} />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenaming(null)}>Cancelar</Button>
+            <Button onClick={rename} disabled={newName.trim().length < 2}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -19,3 +19,6 @@ verify_jwt = false
 
 [functions.run-flows]
 verify_jwt = false
+
+[functions.check-numbers]
+verify_jwt = false

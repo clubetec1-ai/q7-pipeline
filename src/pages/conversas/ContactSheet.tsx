@@ -1,3 +1,4 @@
+import { firstName, memberNames } from "@/lib/memberNames";
 import { useCallback, useEffect, useState } from "react";
 import { Lock, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -62,11 +63,8 @@ export function ContactSheet({
     setGroups((g.data as Group[]) ?? []);
     setMyGroups((gm.data ?? []).map((r) => r.group_id));
     setNotes((n.data as Note[]) ?? []);
-    const ids = (m.data ?? []).map((r) => r.user_id);
-    const { data: profs } = ids.length
-      ? await supabase.from("profiles").select("user_id, full_name, email").in("user_id", ids)
-      : { data: [] as { user_id: string; full_name: string | null; email: string | null }[] };
-    setPeople((profs ?? []).map((p) => ({ id: p.user_id, name: p.full_name || p.email || "Sem nome" })));
+    const names = await memberNames(org.id, (m.data ?? []).map((r) => r.user_id));
+    setPeople([...names].map(([id, n]) => ({ id, name: n.name })));
   }, [org, contactId, conversationId]);
 
   useEffect(() => { if (open) load(); }, [open, load]);

@@ -7,6 +7,8 @@ export interface Member {
   status: string;
   name: string;
   email: string;
+  /** Tem nome definido nesta organização (senão, mostra o início do e-mail). */
+  named: boolean;
 }
 export interface Department { id: string; name: string; color: string | null; distribution_mode: string; max_concurrent: number }
 export interface Team { id: string; name: string; department_id: string }
@@ -37,7 +39,7 @@ export function useEquipeData(orgId: string | undefined) {
     if (!orgId) return;
     setLoading(true);
     const [m, d, dm, t, tm] = await Promise.all([
-      supabase.from("organization_members").select("user_id, role, status").eq("organization_id", orgId),
+      supabase.from("organization_members").select("user_id, role, status, display_name").eq("organization_id", orgId),
       supabase.from("departments").select("id, name, color, distribution_mode, max_concurrent").eq("organization_id", orgId).order("name"),
       supabase.from("department_members").select("department_id, user_id").eq("organization_id", orgId),
       supabase.from("teams").select("id, name, department_id").eq("organization_id", orgId).order("name"),
@@ -56,7 +58,8 @@ export function useEquipeData(orgId: string | undefined) {
             user_id: r.user_id,
             role: r.role,
             status: r.status,
-            name: p?.full_name || p?.email?.split("@")[0] || "Sem nome",
+            name: r.display_name || p?.email?.split("@")[0] || "Sem nome",
+            named: !!r.display_name,
             email: p?.email ?? "",
           };
         })

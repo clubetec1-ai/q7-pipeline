@@ -2,6 +2,7 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/contexts/OrgContext";
 import { Button } from "@/components/ui/button";
+import { NamePrompt } from "@/components/NamePrompt";
 
 function Spinner() {
   return (
@@ -27,7 +28,7 @@ export const ProtectedRoute = ({
 
   if (loading || (user && orgLoading)) return <Spinner />;
   if (!user) return <Navigate to="/login" replace />;
-  if (allowWithoutOrg || orgs.length > 0) return <>{children}</>;
+  if (allowWithoutOrg || orgs.length > 0) return <>{children}{orgs.length > 0 && <NamePrompt />}</>;
   if (invitations.length > 0) return <Navigate to="/convite" replace />;
 
   return (
