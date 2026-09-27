@@ -488,10 +488,19 @@ export type Database = {
           conversation_id: string
           created_at: string
           direction: string
+          error: string | null
           id: string
+          media_mime: string | null
+          media_name: string | null
+          media_path: string | null
+          media_size: number | null
           organization_id: string
+          provider_message_id: string | null
           sender: string
+          sent_by: string | null
+          status: string | null
           ticket_id: string | null
+          type: string
           user_id: string | null
         }
         Insert: {
@@ -499,10 +508,19 @@ export type Database = {
           conversation_id: string
           created_at?: string
           direction: string
+          error?: string | null
           id?: string
+          media_mime?: string | null
+          media_name?: string | null
+          media_path?: string | null
+          media_size?: number | null
           organization_id: string
+          provider_message_id?: string | null
           sender: string
+          sent_by?: string | null
+          status?: string | null
           ticket_id?: string | null
+          type?: string
           user_id?: string | null
         }
         Update: {
@@ -510,10 +528,19 @@ export type Database = {
           conversation_id?: string
           created_at?: string
           direction?: string
+          error?: string | null
           id?: string
+          media_mime?: string | null
+          media_name?: string | null
+          media_path?: string | null
+          media_size?: number | null
           organization_id?: string
+          provider_message_id?: string | null
           sender?: string
+          sent_by?: string | null
+          status?: string | null
           ticket_id?: string | null
+          type?: string
           user_id?: string | null
         }
         Relationships: [
@@ -1298,6 +1325,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      service_update_message_status: {
+        Args: { new_status: string; org: string; pmid: string }
+        Returns: undefined
       }
       set_instance_secret: {
         Args: { instance: string; secret_value: string }

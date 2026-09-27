@@ -5,6 +5,7 @@ import { getUazapiConfig } from "../_shared/get-uazapi-config.ts";
 import { cancelPendingFollowups, scheduleInactivityFollowup } from "../_shared/followups.ts";
 import * as providers from "../_shared/providers/index.ts";
 import { transcribeAudio } from "../_shared/transcribe.ts";
+import { LIMITS, storeMedia } from "../_shared/media.ts";
 import { forOrg, type OrgScope } from "../_shared/tenant.ts";
 import { getSecret, hasSecret, hmacSha256Hex, safeEqual, sha256Hex, withInstanceToken } from "../_shared/secrets.ts";
 
@@ -230,6 +231,29 @@ async function resolveUazapi(
   return { inst };
 }
 
+/**
+ * Status de entrega da Cloud API (sent/delivered/read/failed). Mesma
+ * autenticação das mensagens; atualiza só a organização do número.
+ */
+async function handleCloudStatuses(req: Request, raw: string, body: any) {
+  const pnid = body?.entry?.[0]?.changes?.[0]?.value?.metadata?.phone_number_id ?? null;
+  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  const resolved = await resolveCloud(admin, req, raw, pnid);
+  if (resolved && "deny" in resolved) return unauthorized(resolved.deny);
+  if (!resolved) return ok();
+  const orgId = resolved.inst.organization_id;
+  for (const entry of body?.entry ?? []) {
+    for (const ch of entry?.changes ?? []) {
+      for (const s of ch?.value?.statuses ?? []) {
+        if (s?.id && s?.status) {
+          await admin.rpc("service_update_message_status", { org: orgId, pmid: String(s.id), new_status: String(s.status) });
+        }
+      }
+    }
+  }
+  return ok();
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method === "GET") return await handleMetaVerification(req);
@@ -267,6 +291,7 @@ serve(async (req) => {
 
     if (providerId === "cloud") {
       const inbound = providers.parseCloudInbound(body);
+      if (inbound.kind === "status") return await handleCloudStatuses(req, raw, body);
       if (inbound.kind !== "message") {
         console.log("[webhook] cloud ignorado", { kind: inbound.kind });
         return ok();
@@ -295,7 +320,9 @@ serve(async (req) => {
       instanceToken = parsed.instanceToken;
       instanceOwner = parsed.instanceOwner;
       mediaId = (parsed.message as any)?.messageid ?? null;
-      mediaKind = parsed.media === "[áudio]" ? "audio" : null;
+      mediaKind = ({
+        "[áudio]": "audio", "[imagem]": "image", "[vídeo]": "video", "[documento]": "document", "[figurinha]": "sticker",
+      } as Record<string, string>)[parsed.media ?? ""] ?? null;
     }
 
     // Observabilidade sem dado pessoal além do necessário para diagnóstico.
@@ -463,16 +490,26 @@ serve(async (req) => {
       instRow.instance_token = instRow.instance_token || uaz?.instanceToken || null;
     }
 
+    // Mídia recebida vai para o bucket privado; falha no download deixa a
+    // mensagem com o rótulo ("[imagem]"...) e a tela mostra "arquivo indisponível".
+    let mediaFields: Record<string, unknown> = {};
+    let mediaBytes: Uint8Array | null = null;
+    if (mediaId && mediaKind) {
+      mediaBytes = await providers.getAudioBytes(instRow, mediaId);
+      if (mediaBytes && mediaBytes.length <= LIMITS.document) {
+        mediaFields = (await storeMedia(supabase, orgId, conv.id, mediaBytes, { hint: mediaKind })) ?? {};
+      } else {
+        mediaFields = { type: mediaKind === "sticker" ? "sticker" : mediaKind };
+      }
+    }
+
     // Áudio vira texto antes de ser gravado; falha aqui cai no rótulo "[áudio]".
     const agent = await getAgentConfig(orgId);
-    if (mediaKind === "audio" && mediaId && agent?.apiKey) {
-      const bytes = await providers.getAudioBytes(instRow, mediaId);
-      if (bytes) {
-        const falado = await transcribeAudio(agent.apiKey, bytes);
-        if (falado) {
-          text = "🎤 " + falado;
-          console.log("[webhook] audio transcrito", { chars: falado.length });
-        }
+    if (mediaKind === "audio" && mediaBytes && agent?.apiKey) {
+      const falado = await transcribeAudio(agent.apiKey, mediaBytes);
+      if (falado) {
+        text = "🎤 " + falado;
+        console.log("[webhook] audio transcrito", { chars: falado.length });
       }
     }
 
@@ -482,6 +519,7 @@ serve(async (req) => {
       direction: "inbound",
       sender: "contact",
       content: text,
+      ...mediaFields,
     });
 
     // IA só responde atendimento que está com ela.
@@ -521,6 +559,8 @@ serve(async (req) => {
       direction: "outbound",
       sender: "ai",
       content: groq.reply,
+      status: "sent",
+      provider_message_id: enviado.messageId ?? null,
     });
     await org
       .update("conversations", { last_message_at: new Date().toISOString() })
