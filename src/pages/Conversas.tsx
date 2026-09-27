@@ -10,6 +10,9 @@ import { toast } from "@/hooks/use-toast";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { MainNav } from "@/components/MainNav";
 import { PresenceControl } from "@/components/PresenceControl";
+import { NotificationsBell } from "@/components/NotificationsBell";
+import { ContactSheet } from "./conversas/ContactSheet";
+import { QuickReplies } from "./conversas/QuickReplies";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ConfigDrawer } from "@/components/ConfigDrawer";
@@ -59,6 +62,7 @@ type Conversation = {
   last_message_at: string;
   instance_id: string | null;
   organization_id?: string;
+  contact_id?: string | null;
   human_takeover_at: string | null;
   stage_id: string | null;
 };
@@ -132,6 +136,7 @@ export default function Conversas() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [fichaOpen, setFichaOpen] = useState(false);
   const [tab, setTab] = useState<TicketTab>("todos");
   const { byConversation, inTab, reload: reloadTickets } = useTickets(org?.id, user?.id);
 
@@ -458,6 +463,7 @@ export default function Conversas() {
             <Trello className="w-4 h-4" />
           </Button>
           <PresenceControl />
+          <NotificationsBell />
           <ThemeToggle />
           {isAdmin && (
             <Button variant="ghost" size="sm" onClick={() => navigate("/admin/uazapi")}>
@@ -572,6 +578,7 @@ export default function Conversas() {
                       </SelectContent>
                     </Select>
                   )}
+                  <Button size="sm" variant="outline" className="h-8" onClick={() => setFichaOpen(true)}>Ficha</Button>
                   <TicketBar ticket={byConversation.get(active.id)} onChanged={reloadTickets} />
                 </div>
               </div>
@@ -759,6 +766,14 @@ export default function Conversas() {
                 ))}
               </div>
 
+              <QuickReplies input={input} setInput={setInput} vars={{
+                nome: (active.contact_name || "").split(" ")[0],
+                protocolo: byConversation.get(active.id)?.protocol ?? "",
+                atendente: String(user?.user_metadata?.full_name || user?.email?.split("@")[0] || "").split(" ")[0],
+                empresa: org?.name ?? "",
+              }} />
+              <ContactSheet open={fichaOpen} onClose={() => setFichaOpen(false)} contactId={active.contact_id ?? null}
+                conversationId={active.id} ticketId={byConversation.get(active.id)?.id} />
               {pendingFile && (
                 <div className="px-3 pt-2 flex items-center gap-2 text-xs">
                   <Paperclip className="w-3.5 h-3.5 shrink-0" />

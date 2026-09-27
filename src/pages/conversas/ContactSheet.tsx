@@ -1,0 +1,243 @@
+import { useCallback, useEffect, useState } from "react";
+import { Lock, Plus } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useOrg } from "@/contexts/OrgContext";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+interface Contact { id: string; phone: string; name: string | null; email: string | null; document: string | null; notes: string | null }
+interface Tag { id: string; name: string; color: string | null }
+interface Group { id: string; name: string; sensitive: boolean }
+interface Note { id: string; content: string; author_id: string; created_at: string; mentions: string[] }
+interface Person { id: string; name: string }
+
+/**
+ * Ficha do contato: dados, etiquetas, grupos de clientes e notas internas.
+ * Tudo passa pela RLS: grupo sensível nem chega para quem não pode ver, e as
+ * notas ficam fora da tabela de mensagens (nunca vão para o cliente).
+ */
+export function ContactSheet({
+  open, onClose, contactId, conversationId, ticketId,
+}: { open: boolean; onClose: () => void; contactId: string | null; conversationId: string; ticketId?: string }) {
+  const { org, can } = useOrg();
+  const { toast } = useToast();
+  const [c, setC] = useState<Contact | null>(null);
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [myTags, setMyTags] = useState<string[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [myGroups, setMyGroups] = useState<string[]>([]);
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [people, setPeople] = useState<Person[]>([]);
+  const [newTag, setNewTag] = useState("");
+  const [newGroup, setNewGroup] = useState("");
+  const [newGroupSensitive, setNewGroupSensitive] = useState(false);
+  const [note, setNote] = useState("");
+  const [mentions, setMentions] = useState<string[]>([]);
+
+  const load = useCallback(async () => {
+    if (!org || !contactId) return;
+    const [ct, t, tg, g, gm, n, m] = await Promise.all([
+      supabase.from("contacts").select("id, phone, name, email, document, notes").eq("id", contactId).maybeSingle(),
+      supabase.from("tags").select("id, name, color").eq("organization_id", org.id).order("name"),
+      supabase.from("contact_tags").select("tag_id").eq("contact_id", contactId),
+      supabase.from("contact_groups").select("id, name, sensitive").eq("organization_id", org.id).order("name"),
+      supabase.from("contact_group_members").select("group_id").eq("contact_id", contactId),
+      supabase.from("internal_notes").select("id, content, author_id, created_at, mentions")
+        .eq("conversation_id", conversationId).order("created_at"),
+      supabase.from("organization_members").select("user_id").eq("organization_id", org.id).eq("status", "active"),
+    ]);
+    setC(ct.data as Contact | null);
+    setTags((t.data as Tag[]) ?? []);
+    setMyTags((tg.data ?? []).map((r) => r.tag_id));
+    setGroups((g.data as Group[]) ?? []);
+    setMyGroups((gm.data ?? []).map((r) => r.group_id));
+    setNotes((n.data as Note[]) ?? []);
+    const ids = (m.data ?? []).map((r) => r.user_id);
+    const { data: profs } = ids.length
+      ? await supabase.from("profiles").select("user_id, full_name, email").in("user_id", ids)
+      : { data: [] as { user_id: string; full_name: string | null; email: string | null }[] };
+    setPeople((profs ?? []).map((p) => ({ id: p.user_id, name: p.full_name || p.email || "Sem nome" })));
+  }, [org, contactId, conversationId]);
+
+  useEffect(() => { if (open) load(); }, [open, load]);
+
+  if (!org) return null;
+  const fail = (title: string) => { toast({ variant: "destructive", title }); };
+  const nameOf = (id: string) => people.find((p) => p.id === id)?.name ?? "Alguém";
+
+  const saveContact = async () => {
+    if (!c) return;
+    const { error } = await supabase.from("contacts")
+      .update({ name: c.name, email: c.email, document: c.document, notes: c.notes }).eq("id", c.id);
+    if (error) fail("Não foi possível salvar");
+    else toast({ title: "Contato salvo" });
+  };
+
+  const toggleTag = async (tagId: string, on: boolean) => {
+    if (!contactId) return;
+    const { error } = on
+      ? await supabase.from("contact_tags").insert({ contact_id: contactId, tag_id: tagId, organization_id: org.id })
+      : await supabase.from("contact_tags").delete().eq("contact_id", contactId).eq("tag_id", tagId);
+    if (error) return fail("Não foi possível alterar a etiqueta");
+    load();
+  };
+  const createTag = async () => {
+    if (!newTag.trim()) return;
+    const { error } = await supabase.from("tags").insert({ organization_id: org.id, name: newTag.trim() });
+    if (error) return fail(error.code === "23505" ? "Etiqueta já existe" : "Sem permissão para criar etiqueta");
+    setNewTag("");
+    load();
+  };
+
+  const toggleGroup = async (groupId: string, on: boolean) => {
+    if (!contactId) return;
+    const { error } = on
+      ? await supabase.from("contact_group_members").insert({ group_id: groupId, contact_id: contactId, organization_id: org.id })
+      : await supabase.from("contact_group_members").delete().eq("group_id", groupId).eq("contact_id", contactId);
+    if (error) return fail("Sem permissão para alterar grupos");
+    load();
+  };
+  const createGroup = async () => {
+    if (!newGroup.trim()) return;
+    const { error } = await supabase.from("contact_groups")
+      .insert({ organization_id: org.id, name: newGroup.trim(), sensitive: newGroupSensitive });
+    if (error) return fail(error.code === "23505" ? "Grupo já existe" : "Sem permissão para criar grupo");
+    setNewGroup("");
+    setNewGroupSensitive(false);
+    load();
+  };
+
+  const addNote = async () => {
+    if (!note.trim()) return;
+    const { error } = await supabase.from("internal_notes").insert({
+      conversation_id: conversationId, ticket_id: ticketId ?? null, content: note.trim(), mentions,
+      organization_id: org.id,
+    });
+    if (error) return fail("Não foi possível salvar a nota");
+    setNote("");
+    setMentions([]);
+    load();
+  };
+
+  const canGroups = can("contacts.groups_manage");
+  const canLibrary = can("library.manage");
+
+  return (
+    <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
+      <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+        <SheetHeader><SheetTitle>{c?.name || c?.phone || "Contato"}</SheetTitle></SheetHeader>
+        {!contactId ? <p className="text-sm text-muted-foreground mt-4">Contato ainda não identificado.</p> : (
+          <Tabs defaultValue="dados" className="mt-4">
+            <TabsList className="w-full">
+              <TabsTrigger value="dados" className="flex-1">Dados</TabsTrigger>
+              <TabsTrigger value="marcas" className="flex-1">Etiquetas e grupos</TabsTrigger>
+              <TabsTrigger value="notas" className="flex-1">Notas ({notes.length})</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="dados" className="space-y-3 pt-3">
+              {c && (
+                <>
+                  <p className="text-xs text-muted-foreground">Telefone: {c.phone}</p>
+                  {(["name", "email", "document"] as const).map((k) => (
+                    <div key={k} className="space-y-1.5">
+                      <Label>{{ name: "Nome", email: "E-mail", document: "CPF/CNPJ" }[k]}</Label>
+                      <Input value={c[k] ?? ""} onChange={(e) => setC({ ...c, [k]: e.target.value })} />
+                    </div>
+                  ))}
+                  <div className="space-y-1.5"><Label>Observações</Label>
+                    <Textarea rows={3} value={c.notes ?? ""} onChange={(e) => setC({ ...c, notes: e.target.value })} /></div>
+                  <Button size="sm" onClick={saveContact}>Salvar</Button>
+                </>
+              )}
+            </TabsContent>
+
+            <TabsContent value="marcas" className="space-y-5 pt-3">
+              <div className="space-y-2">
+                <Label>Etiquetas</Label>
+                <div className="flex flex-wrap gap-2">
+                  {tags.length === 0 && <span className="text-xs text-muted-foreground">Nenhuma etiqueta criada.</span>}
+                  {tags.map((t) => {
+                    const on = myTags.includes(t.id);
+                    return (
+                      <button key={t.id} type="button" onClick={() => toggleTag(t.id, !on)}
+                        className={`rounded-full border px-2.5 py-0.5 text-xs transition ${on ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted"}`}>
+                        {t.name}
+                      </button>
+                    );
+                  })}
+                </div>
+                {canLibrary && (
+                  <div className="flex gap-2">
+                    <Input className="h-8" placeholder="Nova etiqueta" value={newTag} onChange={(e) => setNewTag(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && createTag()} />
+                    <Button size="sm" variant="outline" onClick={createTag}><Plus className="w-4 h-4" /></Button>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label>Grupos de clientes</Label>
+                {groups.length === 0 && <p className="text-xs text-muted-foreground">Nenhum grupo criado.</p>}
+                {groups.map((g) => (
+                  <label key={g.id} className="flex items-center gap-2 text-sm">
+                    <Checkbox checked={myGroups.includes(g.id)} disabled={!canGroups}
+                      onCheckedChange={(v) => toggleGroup(g.id, !!v)} />
+                    {g.name}
+                    {g.sensitive && <Lock className="w-3.5 h-3.5 text-muted-foreground" aria-label="Grupo sensível" />}
+                  </label>
+                ))}
+                {canGroups && (
+                  <div className="space-y-2 rounded-md border p-2">
+                    <div className="flex gap-2">
+                      <Input className="h-8" placeholder="Novo grupo (ex.: Alto valor)" value={newGroup}
+                        onChange={(e) => setNewGroup(e.target.value)} onKeyDown={(e) => e.key === "Enter" && createGroup()} />
+                      <Button size="sm" variant="outline" onClick={createGroup}><Plus className="w-4 h-4" /></Button>
+                    </div>
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Checkbox checked={newGroupSensitive} onCheckedChange={(v) => setNewGroupSensitive(!!v)} />
+                      Sensível (ex.: inadimplentes): atendentes não veem
+                    </label>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="notas" className="space-y-3 pt-3">
+              <p className="text-xs text-muted-foreground">Só a equipe vê. Notas nunca são enviadas ao cliente.</p>
+              {notes.map((n) => (
+                <div key={n.id} className="rounded-md border bg-amber-500/5 p-2 text-sm">
+                  <div className="text-[11px] text-muted-foreground mb-1">
+                    {nameOf(n.author_id)} · {new Date(n.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
+                    {n.mentions.length > 0 && ` · para ${n.mentions.map(nameOf).join(", ")}`}
+                  </div>
+                  <div className="whitespace-pre-wrap">{n.content}</div>
+                </div>
+              ))}
+              <Textarea rows={3} placeholder="Escreva uma nota para a equipe..." value={note} onChange={(e) => setNote(e.target.value)} />
+              <div className="flex flex-wrap gap-1.5">
+                <span className="text-xs text-muted-foreground self-center">Avisar:</span>
+                {people.map((p) => {
+                  const on = mentions.includes(p.id);
+                  return (
+                    <button key={p.id} type="button"
+                      onClick={() => setMentions((cur) => (on ? cur.filter((x) => x !== p.id) : [...cur, p.id]))}
+                      className={`rounded-full border px-2 py-0.5 text-[11px] ${on ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted"}`}>
+                      @{p.name.split(" ")[0]}
+                    </button>
+                  );
+                })}
+              </div>
+              <Button size="sm" onClick={addNote} disabled={!note.trim()}>Salvar nota</Button>
+            </TabsContent>
+          </Tabs>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+}
