@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { EquipeData } from "./useEquipeData";
 import { MembersPicker } from "./MembersPicker";
+import { DistributionSettings } from "./DistributionSettings";
 
 type Kind = "departments" | "teams";
 
@@ -158,6 +159,9 @@ export function GroupsTab({
                   </Button>
                 )}
               </div>
+              {!isTeams && (
+                <DistributionSettings dept={departments.find((d) => d.id === it.id)} canManage={canManage} onSaved={reload} />
+              )}
             </div>
           );
         })}

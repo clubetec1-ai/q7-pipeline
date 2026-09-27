@@ -110,6 +110,11 @@ Deno.serve(async (req) => {
       ...fields,
     });
     await org.update("conversations", { last_message_at: new Date().toISOString() }).eq("id", conv.id);
+    // Primeira resposta humana do atendimento (métrica do painel do supervisor).
+    if (sent.ok && ticketId) {
+      await org.update("tickets", { first_response_at: new Date().toISOString() })
+        .eq("id", ticketId).is("first_response_at", null);
+    }
 
     if (!sent.ok) {
       console.error("[send-message] falhou", { code: sent.code });

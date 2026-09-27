@@ -9,6 +9,7 @@ import { Bot, User, Send, MessageSquare, Settings, LogOut, Sparkles, Clock, Trel
 import { toast } from "@/hooks/use-toast";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { MainNav } from "@/components/MainNav";
+import { PresenceControl } from "@/components/PresenceControl";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ConfigDrawer } from "@/components/ConfigDrawer";
@@ -456,6 +457,7 @@ export default function Conversas() {
           <Button variant="ghost" size="icon" className="sm:hidden" onClick={() => navigate("/kanban")} title="Kanban">
             <Trello className="w-4 h-4" />
           </Button>
+          <PresenceControl />
           <ThemeToggle />
           {isAdmin && (
             <Button variant="ghost" size="sm" onClick={() => navigate("/admin/uazapi")}>

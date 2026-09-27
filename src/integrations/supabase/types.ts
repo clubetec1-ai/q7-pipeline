@@ -86,6 +86,54 @@ export type Database = {
           },
         ]
       }
+      agent_presence: {
+        Row: {
+          last_assigned_at: string | null
+          last_seen_at: string | null
+          max_concurrent: number | null
+          organization_id: string
+          pause_reason_id: string | null
+          status: string
+          status_since: string
+          user_id: string
+        }
+        Insert: {
+          last_assigned_at?: string | null
+          last_seen_at?: string | null
+          max_concurrent?: number | null
+          organization_id: string
+          pause_reason_id?: string | null
+          status?: string
+          status_since?: string
+          user_id: string
+        }
+        Update: {
+          last_assigned_at?: string | null
+          last_seen_at?: string | null
+          max_concurrent?: number | null
+          organization_id?: string
+          pause_reason_id?: string | null
+          status?: string
+          status_since?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_presence_organization_id_user_id_fkey"
+            columns: ["organization_id", "user_id"]
+            isOneToOne: true
+            referencedRelation: "organization_members"
+            referencedColumns: ["organization_id", "user_id"]
+          },
+          {
+            foreignKeyName: "agent_presence_pause_reason_id_organization_id_fkey"
+            columns: ["pause_reason_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "pause_reasons"
+            referencedColumns: ["id", "organization_id"]
+          },
+        ]
+      }
       app_settings: {
         Row: {
           id: string
@@ -323,27 +371,39 @@ export type Database = {
           business_hours: Json | null
           color: string | null
           created_at: string
+          distribution_mode: string
           id: string
+          max_concurrent: number
           name: string
           organization_id: string
+          queue_alert_minutes: number
+          reply_alert_minutes: number
           updated_at: string
         }
         Insert: {
           business_hours?: Json | null
           color?: string | null
           created_at?: string
+          distribution_mode?: string
           id?: string
+          max_concurrent?: number
           name: string
           organization_id: string
+          queue_alert_minutes?: number
+          reply_alert_minutes?: number
           updated_at?: string
         }
         Update: {
           business_hours?: Json | null
           color?: string | null
           created_at?: string
+          distribution_mode?: string
           id?: string
+          max_concurrent?: number
           name?: string
           organization_id?: string
+          queue_alert_minutes?: number
+          reply_alert_minutes?: number
           updated_at?: string
         }
         Relationships: [
@@ -712,6 +772,38 @@ export type Database = {
         }
         Relationships: []
       }
+      pause_reasons: {
+        Row: {
+          active: boolean
+          id: string
+          name: string
+          organization_id: string
+          position: number
+        }
+        Insert: {
+          active?: boolean
+          id?: string
+          name: string
+          organization_id: string
+          position?: number
+        }
+        Update: {
+          active?: boolean
+          id?: string
+          name?: string
+          organization_id?: string
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pause_reasons_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pipeline_stages: {
         Row: {
           color: string | null
@@ -961,6 +1053,7 @@ export type Database = {
       }
       tickets: {
         Row: {
+          assigned_at: string | null
           assigned_to: string | null
           close_note: string | null
           close_reason_id: string | null
@@ -969,6 +1062,7 @@ export type Database = {
           created_at: string
           department_id: string | null
           external_reply: boolean
+          first_response_at: string | null
           id: string
           opened_at: string | null
           organization_id: string
@@ -979,6 +1073,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assigned_at?: string | null
           assigned_to?: string | null
           close_note?: string | null
           close_reason_id?: string | null
@@ -987,6 +1082,7 @@ export type Database = {
           created_at?: string
           department_id?: string | null
           external_reply?: boolean
+          first_response_at?: string | null
           id?: string
           opened_at?: string | null
           organization_id: string
@@ -997,6 +1093,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assigned_at?: string | null
           assigned_to?: string | null
           close_note?: string | null
           close_reason_id?: string | null
@@ -1005,6 +1102,7 @@ export type Database = {
           created_at?: string
           department_id?: string | null
           external_reply?: boolean
+          first_response_at?: string | null
           id?: string
           opened_at?: string | null
           organization_id?: string
@@ -1192,6 +1290,7 @@ export type Database = {
       claim_ticket: {
         Args: { ticket: string }
         Returns: {
+          assigned_at: string | null
           assigned_to: string | null
           close_note: string | null
           close_reason_id: string | null
@@ -1200,6 +1299,7 @@ export type Database = {
           created_at: string
           department_id: string | null
           external_reply: boolean
+          first_response_at: string | null
           id: string
           opened_at: string | null
           organization_id: string
@@ -1219,6 +1319,7 @@ export type Database = {
       close_ticket: {
         Args: { note?: string; reason: string; ticket: string }
         Returns: {
+          assigned_at: string | null
           assigned_to: string | null
           close_note: string | null
           close_reason_id: string | null
@@ -1227,6 +1328,7 @@ export type Database = {
           created_at: string
           department_id: string | null
           external_reply: boolean
+          first_response_at: string | null
           id: string
           opened_at: string | null
           organization_id: string
@@ -1250,6 +1352,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      heartbeat: { Args: { org: string }; Returns: undefined }
       my_invitations: {
         Args: never
         Returns: {
@@ -1263,6 +1366,7 @@ export type Database = {
       return_ticket_to_ai: {
         Args: { ticket: string }
         Returns: {
+          assigned_at: string | null
           assigned_to: string | null
           close_note: string | null
           close_reason_id: string | null
@@ -1271,6 +1375,7 @@ export type Database = {
           created_at: string
           department_id: string | null
           external_reply: boolean
+          first_response_at: string | null
           id: string
           opened_at: string | null
           organization_id: string
@@ -1302,6 +1407,7 @@ export type Database = {
       service_ticket_for_inbound: {
         Args: { conv: string; from_me: boolean }
         Returns: {
+          assigned_at: string | null
           assigned_to: string | null
           close_note: string | null
           close_reason_id: string | null
@@ -1310,6 +1416,7 @@ export type Database = {
           created_at: string
           department_id: string | null
           external_reply: boolean
+          first_response_at: string | null
           id: string
           opened_at: string | null
           organization_id: string
@@ -1342,6 +1449,11 @@ export type Database = {
         Args: { secret_key: string; secret_value: string }
         Returns: undefined
       }
+      set_presence: {
+        Args: { new_status: string; org: string; reason?: string }
+        Returns: undefined
+      }
+      supervisor_dashboard: { Args: { org: string }; Returns: Json }
       transfer_ticket: {
         Args: {
           note?: string
@@ -1350,6 +1462,7 @@ export type Database = {
           to_user?: string
         }
         Returns: {
+          assigned_at: string | null
           assigned_to: string | null
           close_note: string | null
           close_reason_id: string | null
@@ -1358,6 +1471,7 @@ export type Database = {
           created_at: string
           department_id: string | null
           external_reply: boolean
+          first_response_at: string | null
           id: string
           opened_at: string | null
           organization_id: string
