@@ -13,6 +13,9 @@ export interface BlockDef {
 
 const str = (v: unknown) => (typeof v === "string" ? v : "");
 const cut = (s: string, n = 60) => (s.length > n ? `${s.slice(0, n)}…` : s);
+/** Saída "Sem resposta" quando o bloco tem tempo limite. */
+const timeout = (d: BlockData) => (Number(d.timeout_minutes) > 0 ? [{ id: "timeout", label: `Sem resposta em ${d.timeout_minutes} min` }] : []);
+export const fmtMinutes = (m: number) => (m >= 60 ? `${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60} min` : ""}` : `${m} min`);
 
 export const BLOCKS: BlockDef[] = [
   {
@@ -32,13 +35,14 @@ export const BLOCKS: BlockDef[] = [
     outputs: (d) => [
       ...((d.options as { id: string; label: string }[] | undefined) ?? []).map((o, i) => ({ id: `opt:${o.id}`, label: `${i + 1} - ${o.label}` })),
       { id: "invalid", label: "Não entendeu" },
+      ...timeout(d),
     ],
     defaults: () => ({ text: "Como posso ajudar?", options: [{ id: "a", label: "Vendas" }, { id: "b", label: "Suporte" }], max_attempts: 2 }),
     summary: (d) => cut(str(d.text)),
   },
   {
     type: "question", label: "Pergunta", color: "#8B5CF6",
-    outputs: () => [{ id: "ok", label: "Respondeu" }, { id: "invalid", label: "Inválida" }],
+    outputs: (d) => [{ id: "ok", label: "Respondeu" }, { id: "invalid", label: "Inválida" }, ...timeout(d)],
     defaults: () => ({ text: "Qual é o seu nome?", kind: "text", save_to: "name", max_attempts: 2 }),
     summary: (d) => cut(str(d.text)),
   },
@@ -59,6 +63,18 @@ export const BLOCKS: BlockDef[] = [
     outputs: () => [{ id: "transferred", label: "Pediu humano" }, { id: "fallback", label: "Limite de respostas" }],
     defaults: () => ({ prompt: "", max_turns: 10, handoff_words: ["atendente", "humano", "pessoa"] }),
     summary: (d) => cut(str(d.prompt) || "Usa o prompt do agente da empresa"),
+  },
+  {
+    type: "wait", label: "Aguardar", color: "#94A3B8",
+    outputs: () => [{ id: "elapsed", label: "Passou o tempo" }, { id: "replied", label: "Cliente respondeu" }],
+    defaults: () => ({ minutes: 60 }),
+    summary: (d) => `Espera ${fmtMinutes(Number(d.minutes) || 60)}`,
+  },
+  {
+    type: "survey", label: "Pesquisa", color: "#10B981",
+    outputs: () => [{ id: "answered", label: "Respondeu" }, { id: "timeout", label: "Sem resposta em 24 h" }],
+    defaults: () => ({ kind: "csat", text: "Como você avalia o nosso atendimento?", comment: "" }),
+    summary: (d) => (d.kind === "nps" ? "Nota de 0 a 10" : "Nota de 1 a 5"),
   },
   {
     type: "tag", label: "Etiqueta", color: "#64748B",

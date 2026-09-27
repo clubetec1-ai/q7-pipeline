@@ -357,6 +357,7 @@ export type Database = {
           id: string
           name: string | null
           notes: string | null
+          opted_out_at: string | null
           organization_id: string
           phone: string
           updated_at: string
@@ -370,6 +371,7 @@ export type Database = {
           id?: string
           name?: string | null
           notes?: string | null
+          opted_out_at?: string | null
           organization_id: string
           phone: string
           updated_at?: string
@@ -383,6 +385,7 @@ export type Database = {
           id?: string
           name?: string | null
           notes?: string | null
+          opted_out_at?: string | null
           organization_id?: string
           phone?: string
           updated_at?: string
@@ -1622,6 +1625,7 @@ export type Database = {
           protocol: string
           queued_at: string | null
           rating: number | null
+          rating_comment: string | null
           status: string
           updated_at: string
         }
@@ -1642,6 +1646,7 @@ export type Database = {
           protocol: string
           queued_at?: string | null
           rating?: number | null
+          rating_comment?: string | null
           status: string
           updated_at?: string
         }
@@ -1662,6 +1667,7 @@ export type Database = {
           protocol?: string
           queued_at?: string | null
           rating?: number | null
+          rating_comment?: string | null
           status?: string
           updated_at?: string
         }
@@ -1869,6 +1875,7 @@ export type Database = {
           protocol: string
           queued_at: string | null
           rating: number | null
+          rating_comment: string | null
           status: string
           updated_at: string
         }
@@ -1879,6 +1886,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      clear_opt_out: { Args: { contact: string }; Returns: undefined }
       close_ticket: {
         Args: { note?: string; reason: string; ticket: string }
         Returns: {
@@ -1898,6 +1906,7 @@ export type Database = {
           protocol: string
           queued_at: string | null
           rating: number | null
+          rating_comment: string | null
           status: string
           updated_at: string
         }
@@ -1907,6 +1916,14 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      flow_stats: {
+        Args: { flow: string; period?: number }
+        Returns: {
+          n: number
+          node_id: string
+          outcome: string
+        }[]
       }
       has_role: {
         Args: {
@@ -1946,6 +1963,7 @@ export type Database = {
           protocol: string
           queued_at: string | null
           rating: number | null
+          rating_comment: string | null
           status: string
           updated_at: string
         }
@@ -1987,6 +2005,7 @@ export type Database = {
           protocol: string
           queued_at: string | null
           rating: number | null
+          rating_comment: string | null
           status: string
           updated_at: string
         }
@@ -2022,6 +2041,7 @@ export type Database = {
           protocol: string
           queued_at: string | null
           rating: number | null
+          rating_comment: string | null
           status: string
           updated_at: string
         }
@@ -2072,6 +2092,7 @@ export type Database = {
           protocol: string
           queued_at: string | null
           rating: number | null
+          rating_comment: string | null
           status: string
           updated_at: string
         }
@@ -2106,6 +2127,7 @@ export type Database = {
           protocol: string
           queued_at: string | null
           rating: number | null
+          rating_comment: string | null
           status: string
           updated_at: string
         }

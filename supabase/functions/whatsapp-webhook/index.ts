@@ -1,14 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { getAgentConfig, callGroq } from "../_shared/get-ai-config.ts";
-import { getUazapiConfig } from "../_shared/get-uazapi-config.ts";
 import { cancelPendingFollowups, scheduleInactivityFollowup } from "../_shared/followups.ts";
 import * as providers from "../_shared/providers/index.ts";
 import { transcribeAudio } from "../_shared/transcribe.ts";
 import { LIMITS, storeMedia } from "../_shared/media.ts";
-import { runFlow, withProtocol } from "../_shared/flow/executor.ts";
+import { handleOptOut, instForSend, runFlow, runPostClose, withProtocol } from "../_shared/flow/executor.ts";
 import { forOrg, type OrgScope } from "../_shared/tenant.ts";
-import { getSecret, hasSecret, hmacSha256Hex, safeEqual, sha256Hex, withInstanceToken } from "../_shared/secrets.ts";
+import { getSecret, hasSecret, hmacSha256Hex, safeEqual, sha256Hex } from "../_shared/secrets.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -449,6 +448,19 @@ serve(async (req) => {
     }
     if (!conv) return ok();
 
+    // Resposta à pesquisa/fluxo pós-atendimento vai para o atendimento
+    // finalizado, sem abrir outro. Recusada → segue o caminho normal.
+    if (!fromMe && text) {
+      const consumed = await runPostClose({
+        admin: supabase, orgId, conv, text: String(text),
+        loadInst: () => instForSend(supabase, instRow),
+        storeInbound: (ticketId) => org.insert("messages", {
+          conversation_id: conv.id, ticket_id: ticketId, direction: "inbound", sender: "contact", content: text,
+        }),
+      });
+      if (consumed) return ok();
+    }
+
     // Atendimento aberto da conversa (cria se preciso; resposta pelo celular
     // vira "open"). É ele que decide se a IA responde.
     const { data: ticket, error: ticketErr } = await supabase.rpc("service_ticket_for_inbound", {
@@ -483,13 +495,8 @@ serve(async (req) => {
       .eq("id", conv.id);
 
     // Token do número só do Vault, carregado quando for usado.
-    instRow = await withInstanceToken(supabase, instRow);
-    if (providers.providerOf(instRow) === "uazapi" && !instRow.server_url) {
-      // Instância antiga, sem config própria: cai no ajuste global da Uazapi.
-      const uaz = await getUazapiConfig();
-      instRow.server_url = uaz?.serverUrl ?? null;
-      instRow.instance_token = instRow.instance_token || uaz?.instanceToken || null;
-    }
+    // (Uazapi antiga, sem config própria, cai no ajuste global.)
+    instRow = await instForSend(supabase, instRow);
 
     // Mídia recebida vai para o bucket privado; falha no download deixa a
     // mensagem com o rótulo ("[imagem]"...) e a tela mostra "arquivo indisponível".
@@ -522,6 +529,11 @@ serve(async (req) => {
       content: text,
       ...mediaFields,
     });
+
+    // SAIR/PARAR: deixa de receber mensagens automáticas (confirma e para aqui).
+    if (await handleOptOut({ admin: supabase, orgId, inst: instRow, conv, ticket, text: String(text ?? "") })) {
+      return ok();
+    }
 
     // IA só responde atendimento que está com ela.
     if (ticket.status !== "bot") return ok();

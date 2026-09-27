@@ -19,6 +19,8 @@ export interface FlowCtx {
   vars: Record<string, string>;
   attempts: number;
   aiTurns: number;
+  /** Retomado pelo relógio (wait_until venceu), não por mensagem do cliente. */
+  timerFired?: boolean;
   businessHours?: Record<string, { start: string; end: string }[]>; // "0".."6"
 }
 
@@ -29,20 +31,33 @@ export type FlowAction =
   | { type: "ai"; nodeId: string }
   | { type: "transfer"; departmentId: string | null; userId: string | null }
   | { type: "close"; reasonId: string | null }
+  | { type: "rating"; value: number }
+  | { type: "rating_comment"; text: string }
   | { type: "queue" };
 
 export interface FlowResult {
   actions: FlowAction[];
   steps: { nodeId: string; outcome: string }[];
   currentNodeId: string | null;
-  state: "waiting_input" | "ai" | "done" | "error";
+  state: "waiting_input" | "waiting_timer" | "ai" | "done" | "error";
   vars: Record<string, string>;
   attempts: number;
   aiTurns: number;
   error?: string;
+  /** Minutos até o relógio retomar o fluxo (wait_until). */
+  waitMinutes?: number;
+  /** Pesquisa com resposta inválida: a mensagem segue o caminho normal. */
+  passthrough?: boolean;
 }
 
 export const MAX_STEPS = 50;
+/** Espera máxima: fica dentro da janela de 24 h do WhatsApp. */
+export const MAX_WAIT_MIN = 1380;
+const SURVEY_WAIT_MIN = 1440;
+
+const clampWait = (v: unknown) => Math.min(MAX_WAIT_MIN, Math.max(1, Math.round(Number(v) || 60)));
+const timeoutOf = (d: Record<string, any>) =>
+  Number(d.timeout_minutes) > 0 ? { waitMinutes: clampWait(d.timeout_minutes) } : {};
 const HANDOFF = ["atendente", "humano", "pessoa"];
 
 export function fill(text: string, ctx: FlowCtx): string {
@@ -105,14 +120,17 @@ export function advance(graph: FlowGraph, nodeId: string, input: string | null, 
   const nextOf = (id: string, handle: string) =>
     graph.edges.find((e) => e.source === id && (e.sourceHandle ?? "next") === handle)?.target ?? null;
 
-  const finish = (state: FlowResult["state"], current: string | null, error?: string): FlowResult => ({
-    actions, steps, currentNodeId: current, state, vars: ctx.vars, attempts: ctx.attempts, aiTurns: ctx.aiTurns, error,
+  const finish = (state: FlowResult["state"], current: string | null, error?: string, extra: Partial<FlowResult> = {}): FlowResult => ({
+    actions, steps, currentNodeId: current, state, vars: ctx.vars, attempts: ctx.attempts, aiTurns: ctx.aiTurns, error, ...extra,
   });
 
   let current: string | null = nodeId;
   let pending = input;
+  let fired = !!ctx0.timerFired; // vale só para o bloco em que o run parou
   for (let i = 0; i < MAX_STEPS; i++) {
     const node = current ? byId.get(current) : undefined;
+    const timer = fired;
+    fired = false;
     if (!node) {
       // Saída sem ligação: fim do fluxo → fila geral (nunca fica preso em "bot").
       actions.push({ type: "queue" });
@@ -130,10 +148,11 @@ export function advance(graph: FlowGraph, nodeId: string, input: string | null, 
         handle = "next";
         break;
       case "menu": {
+        if (timer && pending === null) { ctx.attempts = 0; handle = "timeout"; break; }
         if (pending === null) {
           actions.push({ type: "send", text: menuText(node, ctx) });
           steps.push({ nodeId: node.id, outcome: "asked" });
-          return finish("waiting_input", node.id);
+          return finish("waiting_input", node.id, undefined, timeoutOf(d));
         }
         const opts = (d.options ?? []) as { id: string; label: string }[];
         const n = Number(pending.trim());
@@ -146,13 +165,14 @@ export function advance(graph: FlowGraph, nodeId: string, input: string | null, 
         if (ctx.attempts >= Number(d.max_attempts ?? 2)) { ctx.attempts = 0; handle = "invalid"; break; }
         actions.push({ type: "send", text: `Não entendi. ${menuText(node, ctx)}` });
         steps.push({ nodeId: node.id, outcome: "retry" });
-        return finish("waiting_input", node.id);
+        return finish("waiting_input", node.id, undefined, timeoutOf(d));
       }
       case "question": {
+        if (timer && pending === null) { ctx.attempts = 0; handle = "timeout"; break; }
         if (pending === null) {
           actions.push({ type: "send", text: fill(d.text ?? "", ctx) });
           steps.push({ nodeId: node.id, outcome: "asked" });
-          return finish("waiting_input", node.id);
+          return finish("waiting_input", node.id, undefined, timeoutOf(d));
         }
         const value = validate(String(d.kind ?? "text"), pending);
         pending = null;
@@ -167,7 +187,48 @@ export function advance(graph: FlowGraph, nodeId: string, input: string | null, 
         if (ctx.attempts >= Number(d.max_attempts ?? 2)) { ctx.attempts = 0; handle = "invalid"; break; }
         actions.push({ type: "send", text: fill(d.invalid_text || "Resposta inválida. Pode tentar de novo?", ctx) });
         steps.push({ nodeId: node.id, outcome: "retry" });
-        return finish("waiting_input", node.id);
+        return finish("waiting_input", node.id, undefined, timeoutOf(d));
+      }
+      case "wait":
+        if (pending !== null) { pending = null; handle = "replied"; break; }
+        if (timer) { handle = "elapsed"; break; }
+        steps.push({ nodeId: node.id, outcome: "waiting" });
+        return finish("waiting_timer", node.id, undefined, { waitMinutes: clampWait(d.minutes) });
+      case "survey": {
+        const [min, max] = d.kind === "nps" ? [0, 10] : [1, 5];
+        const stage = ctx.vars.__sv;
+        if (timer) { delete ctx.vars.__sv; handle = stage === "c" ? "answered" : "timeout"; break; }
+        if (pending === null) {
+          ctx.vars.__sv = "r";
+          actions.push({ type: "send", text: `${fill(d.text || "Como você avalia o nosso atendimento?", ctx)}\n\nResponda com um número de ${min} a ${max}.` });
+          steps.push({ nodeId: node.id, outcome: "asked" });
+          return finish("waiting_input", node.id, undefined, { waitMinutes: SURVEY_WAIT_MIN });
+        }
+        const answer = pending.trim();
+        pending = null;
+        if (stage === "c") {
+          delete ctx.vars.__sv;
+          actions.push({ type: "rating_comment", text: answer.slice(0, 1000) });
+          handle = "answered";
+          break;
+        }
+        const m = answer.match(/^(\d{1,2})(?!\d)/);
+        const n = m ? Number(m[1]) : NaN;
+        if (!(n >= min && n <= max)) {
+          delete ctx.vars.__sv;
+          steps.push({ nodeId: node.id, outcome: "invalid" });
+          return finish("done", null, undefined, { passthrough: true });
+        }
+        actions.push({ type: "rating", value: n });
+        if (d.comment) {
+          ctx.vars.__sv = "c";
+          actions.push({ type: "send", text: fill(d.comment, ctx) });
+          steps.push({ nodeId: node.id, outcome: "rated" });
+          return finish("waiting_input", node.id, undefined, { waitMinutes: SURVEY_WAIT_MIN });
+        }
+        delete ctx.vars.__sv;
+        handle = "answered";
+        break;
       }
       case "condition": {
         let ok = false;

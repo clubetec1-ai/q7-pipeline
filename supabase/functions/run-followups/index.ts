@@ -76,6 +76,17 @@ serve(async (req) => {
         continue;
       }
 
+      // Opt-out (LGPD): contato que pediu para sair não recebe follow-up automático.
+      if (f.kind === "auto_inactivity" && conv.contact_id) {
+        const { data: ct } = await supabase
+          .from("contacts").select("opted_out_at")
+          .eq("id", conv.contact_id).eq("organization_id", conv.organization_id).maybeSingle();
+        if (ct?.opted_out_at) {
+          await supabase.from("followups").update({ status: "cancelled", error: "opted out" }).eq("id", f.id);
+          continue;
+        }
+      }
+
       // Instância. Precisa da linha inteira: sem `provider` e `phone_number_id`,
       // um número da Cloud API parece Uazapi e o envio cai no ramo errado.
       // Tudo daqui em diante e da organizacao da conversa; token vem do Vault.

@@ -6,6 +6,9 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { BLOCK, type BlockData } from "./blocks";
 
+/** Espera máxima (min): mantém a mensagem dentro da janela de 24 h do WhatsApp. */
+const MAX_WAIT_MIN = 1380;
+
 export interface Option { id: string; name: string }
 export interface Lookups { departments: Option[]; tags: Option[]; groups: Option[] }
 
@@ -39,6 +42,12 @@ export function NodeProperties({ type, data, onChange, onDelete, lookups }: {
     </Field>
   );
   const options = (data.options as { id: string; label: string }[] | undefined) ?? [];
+  const minutes = (k: string, label: string, min: number) => (
+    <Field label={label}>
+      <Input type="number" min={min} max={MAX_WAIT_MIN} value={Number(data[k] ?? min)}
+        onChange={(e) => set({ [k]: Math.min(MAX_WAIT_MIN, Math.max(min, Math.round(Number(e.target.value) || 0))) })} />
+    </Field>
+  );
 
   return (
     <div className="space-y-4">
@@ -76,6 +85,7 @@ export function NodeProperties({ type, data, onChange, onDelete, lookups }: {
               )}
             </div>
           </Field>
+          {minutes("timeout_minutes", "Sem resposta depois de (min, 0 = esperar sempre)", 0)}
         </>
       )}
       {type === "question" && (
@@ -97,6 +107,7 @@ export function NodeProperties({ type, data, onChange, onDelete, lookups }: {
               onChange={(e) => set({ var_name: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "") })} />
           </Field>
           {text("invalid_text", "Mensagem quando a resposta é inválida", 2)}
+          {minutes("timeout_minutes", "Sem resposta depois de (min, 0 = esperar sempre)", 0)}
         </>
       )}
       {type === "condition" && (
@@ -143,6 +154,29 @@ export function NodeProperties({ type, data, onChange, onDelete, lookups }: {
           </Field>
         </>
       )}
+      {type === "wait" && (
+        <>
+          {minutes("minutes", "Aguardar (minutos, até 23 h)", 1)}
+          <p className="text-xs text-muted-foreground">
+            “Passou o tempo” segue sem o cliente ter escrito: quem pediu para não receber mensagens automáticas (SAIR) não recebe o que vier depois.
+            Se o cliente escrever antes, segue por “Cliente respondeu”.
+          </p>
+        </>
+      )}
+      {type === "survey" && (
+        <>
+          <Field label="Escala">
+            <Pick value={s("kind") || "csat"} onChange={(v) => set({ kind: v })} options={[
+              { id: "csat", name: "Satisfação (1 a 5)" }, { id: "nps", name: "Recomendação – NPS (0 a 10)" },
+            ]} />
+          </Field>
+          {text("text", "Pergunta", 2)}
+          {text("comment", "Pedir comentário depois da nota (vazio = não pedir)", 2)}
+          <p className="text-xs text-muted-foreground">
+            A nota fica no atendimento. Resposta que não é nota encerra a pesquisa e abre um atendimento normal.
+          </p>
+        </>
+      )}
       {type === "tag" && (
         <>
           <Field label="Etiqueta"><Pick value={s("tag_id")} onChange={(v) => set({ tag_id: v })} empty="Escolha" options={lookups.tags} /></Field>
@@ -162,7 +196,7 @@ export function NodeProperties({ type, data, onChange, onDelete, lookups }: {
       )}
       {type === "close" && text("text", "Mensagem de despedida (opcional)", 2)}
 
-      {["message", "menu", "question", "transfer", "close"].includes(type) && (
+      {["message", "menu", "question", "transfer", "close", "survey"].includes(type) && (
         <p className="text-xs text-muted-foreground">Use {"{nome}"} para o primeiro nome do cliente.</p>
       )}
     </div>

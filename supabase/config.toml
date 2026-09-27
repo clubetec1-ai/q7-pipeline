@@ -12,3 +12,10 @@ verify_jwt = false
 
 [functions.run-followups]
 verify_jwt = false
+
+# Chamadas internas (pg_net com x-cron-secret), sem JWT.
+[functions.ticket-greeting]
+verify_jwt = false
+
+[functions.run-flows]
+verify_jwt = false
