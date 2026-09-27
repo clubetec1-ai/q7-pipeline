@@ -38,7 +38,35 @@ const PERMISSION: Record<string, string> = {
   set_webhook: "org.settings",
   get_webhooks: "org.settings",
   diagnose: "org.settings",
+  // Excluir apaga as conversas do número: só o dono (org.billing é exclusiva do owner).
+  remove: "org.billing",
 };
+
+/**
+ * Configura o webhook da Uazapi com segredo novo. O segredo só vai para o
+ * Vault depois que a Uazapi aceita a URL (senão o número ficaria recebendo
+ * com o segredo antigo e tomando 401).
+ */
+async function configureWebhook(admin: any, instId: string, baseUrl: string, token: string): Promise<boolean> {
+  const secret = randomHex(32);
+  const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/whatsapp-webhook?i=${instId}&k=${secret}`;
+  // addUrlEvents PRECISA ser false: com true a Uazapi posta em {url}/messages.
+  const res = await fetch(`${baseUrl}/webhook`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", token },
+    body: JSON.stringify({
+      enabled: true,
+      url,
+      events: ["messages", "connection"],
+      excludeMessages: ["wasSentByApi"],
+      addUrlEvents: false,
+    }),
+  });
+  console.log(`[webhook] status=${res.status}`);
+  if (!res.ok) return false;
+  return (await putSecret(admin, `instance:${instId}:webhook`, secret)) ||
+    (await putSecret(admin, `instance:${instId}:webhook`, secret));
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -58,6 +86,8 @@ serve(async (req) => {
       const orgId = await resolveOrg(ctx, body?.organization_id);
       await requirePermission(ctx, orgId, perm);
       if (!body?.name) return json({ ok: false, error: "Nome da instância não informado" });
+      const { data: canAdd } = await admin.rpc("service_can_add_number", { org: orgId });
+      if (canAdd !== true) return json({ ok: false, error: "Limite de números do seu plano atingido." }, 409);
       if (!globalConfig?.serverUrl || !globalConfig?.adminToken) {
         return json({ ok: false, error: "Uazapi não configurada na plataforma." });
       }
@@ -78,6 +108,8 @@ serve(async (req) => {
           server_url: globalConfig.serverUrl,
           provider: "uazapi",
           status: "disconnected",
+          connected_via: "qr",
+          color: body?.color ?? null,
         })
         .select("id")
         .single();
@@ -90,6 +122,9 @@ serve(async (req) => {
             token_hash: await sha256Hex(token),
           })
           .eq("id", row.id);
+        // Webhook autenticado já na criação: o usuário não configura nada.
+        const hooked = await configureWebhook(admin, row.id, globalConfig.serverUrl, token);
+        if (!hooked) console.error("[create] webhook nao configurado", { id: row.id });
       }
       return json({ ok: true, instance_id: row.id });
     }
@@ -134,6 +169,28 @@ serve(async (req) => {
       return json({ ok: true, success: true });
     }
 
+    // === REMOVE (owner): apaga o número, as conversas dele e os segredos ===
+    if (action === "remove") {
+      // Confirmação digitada: o telefone (ou o nome, se ainda não conectou).
+      const norm = (v: unknown) => String(v ?? "").trim().toLowerCase();
+      const digits = (v: unknown) => String(v ?? "").replace(/\D/g, "");
+      const ok = inst.phone
+        ? digits(body?.confirm) === digits(inst.phone)
+        : norm(body?.confirm) === norm(inst.name);
+      if (!ok) return json({ ok: false, error: "Digite o telefone do número para confirmar a exclusão." }, 400);
+      if (providers.providerOf(inst) === "uazapi" && baseUrl && token) {
+        try {
+          await fetch(`${baseUrl}/instance`, { method: "DELETE", headers: { token } });
+        } catch {
+          // melhor esforço: a instância pode já não existir na Uazapi
+        }
+      }
+      await admin.rpc("service_delete_instance_secrets", { instance: inst.id });
+      const { error } = await org.delete("whatsapp_instances").eq("id", inst.id);
+      if (error) return json({ ok: false, error: "Não foi possível excluir o número" }, 500);
+      return json({ ok: true, success: true });
+    }
+
     // Daqui em diante, só Uazapi (a Cloud API não tem estas operações).
     if (providers.providerOf(inst) !== "uazapi") {
       if (action === "diagnose") return json({ ok: true, checks: await diagnose(inst, orgId, null, null) });
@@ -166,8 +223,10 @@ serve(async (req) => {
       }
       const data = JSON.parse(text);
       const paircode = data.instance?.paircode || data.paircode || null;
+      // QR Code (data URL da Uazapi) quando não foi informado telefone.
+      const qrcode = data.instance?.qrcode || data.qrcode || null;
       const alreadyConnected = data.connected === true || data.status?.connected === true || data.loggedIn === true;
-      return json({ ok: true, success: true, paircode, already_connected: alreadyConnected });
+      return json({ ok: true, success: true, paircode, qrcode, already_connected: alreadyConnected });
     }
 
     if (action === "disconnect") {
@@ -213,30 +272,8 @@ serve(async (req) => {
     }
 
     if (action === "set_webhook") {
-      // Segredo novo a cada configuração: a URL antiga deixa de valer. Só vai
-      // para o Vault depois que a Uazapi aceitar a URL nova — senão uma falha
-      // de rede deixaria o número recebendo com o segredo antigo e tomando 401.
-      const secret = randomHex(32);
-      const webhookUrl =
-        `${Deno.env.get("SUPABASE_URL")}/functions/v1/whatsapp-webhook?i=${inst.id}&k=${secret}`;
-      // addUrlEvents PRECISA ser false: com true a Uazapi posta em {url}/messages.
-      const res = await uaz("/webhook", {
-        method: "POST",
-        body: JSON.stringify({
-          enabled: true,
-          url: webhookUrl,
-          events: ["messages", "connection"],
-          excludeMessages: ["wasSentByApi"],
-          addUrlEvents: false,
-        }),
-      });
-      console.log(`[set_webhook] status=${res.status}`);
-      if (!res.ok) return json({ ok: false, error: "Falha ao configurar webhook" });
-      const saved =
-        (await putSecret(admin, `instance:${inst.id}:webhook`, secret)) ||
-        (await putSecret(admin, `instance:${inst.id}:webhook`, secret));
-      if (!saved) {
-        return json({ ok: false, error: "Webhook atualizado, mas o segredo não foi salvo: clique em Reconfigurar webhook." });
+      if (!(await configureWebhook(admin, inst.id, baseUrl, token))) {
+        return json({ ok: false, error: "Falha ao configurar webhook" });
       }
       return json({ ok: true, success: true });
     }

@@ -859,16 +859,23 @@ export type Database = {
       }
       whatsapp_instances: {
         Row: {
+          color: string | null
+          connected_via: string | null
           created_at: string
+          health_error: string | null
+          health_status: string | null
           id: string
           instance_token: string | null
           last_disconnected_at: string | null
+          last_health_check_at: string | null
+          messaging_limit_tier: string | null
           name: string
           organization_id: string
           phone: string | null
           phone_number_id: string | null
           profile_name: string | null
           provider: string
+          quality_rating: string | null
           secret_name: string | null
           server_url: string | null
           status: string
@@ -878,16 +885,23 @@ export type Database = {
           waba_id: string | null
         }
         Insert: {
+          color?: string | null
+          connected_via?: string | null
           created_at?: string
+          health_error?: string | null
+          health_status?: string | null
           id?: string
           instance_token?: string | null
           last_disconnected_at?: string | null
+          last_health_check_at?: string | null
+          messaging_limit_tier?: string | null
           name: string
           organization_id: string
           phone?: string | null
           phone_number_id?: string | null
           profile_name?: string | null
           provider?: string
+          quality_rating?: string | null
           secret_name?: string | null
           server_url?: string | null
           status?: string
@@ -897,16 +911,23 @@ export type Database = {
           waba_id?: string | null
         }
         Update: {
+          color?: string | null
+          connected_via?: string | null
           created_at?: string
+          health_error?: string | null
+          health_status?: string | null
           id?: string
           instance_token?: string | null
           last_disconnected_at?: string | null
+          last_health_check_at?: string | null
+          messaging_limit_tier?: string | null
           name?: string
           organization_id?: string
           phone?: string | null
           phone_number_id?: string | null
           profile_name?: string | null
           provider?: string
+          quality_rating?: string | null
           secret_name?: string | null
           server_url?: string | null
           status?: string
@@ -973,6 +994,11 @@ export type Database = {
       my_permissions: { Args: { org: string }; Returns: string[] }
       org_setup_status: { Args: { org: string }; Returns: Json }
       seed_pipeline_stages: { Args: { _user_id: string }; Returns: undefined }
+      service_can_add_number: { Args: { org: string }; Returns: boolean }
+      service_delete_instance_secrets: {
+        Args: { instance: string }
+        Returns: undefined
+      }
       service_get_secret: { Args: { secret_name: string }; Returns: string }
       service_has_secret: { Args: { secret_name: string }; Returns: boolean }
       service_put_secret: {
@@ -985,6 +1011,10 @@ export type Database = {
       }
       set_org_secret: {
         Args: { org: string; secret_key: string; secret_value: string }
+        Returns: undefined
+      }
+      set_platform_secret: {
+        Args: { secret_key: string; secret_value: string }
         Returns: undefined
       }
     }

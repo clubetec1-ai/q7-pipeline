@@ -345,6 +345,12 @@ serve(async (req) => {
     }
     const org = forOrg(supabase, orgId);
 
+    // Número desconectado pelo cliente: nada é processado (histórico preservado).
+    if (instRow.status === "disabled") {
+      console.log("[webhook] numero desconectado; ignorado");
+      return ok();
+    }
+
     if (isConnection) return await handleConnection(org, instRow, body);
 
     // Auto-sincroniza o nome salvo com o nome real vindo da Uazapi.
