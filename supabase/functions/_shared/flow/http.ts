@@ -91,6 +91,19 @@ async function resolveAll(host: string): Promise<string[]> {
   return ips;
 }
 
+/**
+ * Servidor informado pelo cliente (HTTP, IMAP, SMTP) só pode ser público:
+ * nome válido e TODOS os IPs resolvidos fora de redes internas. Devolve o
+ * motivo da recusa ou null. (Residual: DNS rebinding entre checagem e conexão.)
+ */
+export async function checkPublicHost(hostname: string): Promise<string | null> {
+  const host = hostname.toLowerCase().replace(/\.$/, "");
+  if (!host || host === "localhost" || /\.(localhost|local|internal|lan|home|corp)$/.test(host)) return "endereço interno";
+  const ips = await resolveAll(host);
+  if (!ips.length) return "servidor não encontrado";
+  return ips.some(isBlockedIp) ? "endereço interno" : null;
+}
+
 // deno-lint-ignore no-explicit-any
 type Json = any;
 export interface HttpVars { vars: Record<string, string>; name: string; phone: string; protocol: string }

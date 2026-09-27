@@ -83,6 +83,7 @@ Deno.serve(async (req) => {
     const { data: conv } = await org.select("conversations", "id, instance_id, contact_phone, last_inbound_at")
       .eq("id", t.conversation_id).maybeSingle();
     if (!conv) return ok({ ok: true, skipped: "conversa" });
+    if (!conv.instance_id) return ok({ ok: true, skipped: "canal sem aviso automático (e-mail)" });
     const { data: bare } = await org.select("whatsapp_instances").eq("id", conv.instance_id).maybeSingle();
     if (!bare || bare.status === "disabled") return ok({ ok: true, skipped: "numero" });
     const inst = await withInstanceToken(admin, bare);

@@ -24,7 +24,7 @@ interface Option { id: string; name: string }
  * transferir, finalizar e devolver para a IA. As regras de quem pode o quê
  * ficam no banco (RPCs); aqui só se escondem botões.
  */
-export function TicketBar({ ticket, onChanged }: { ticket: Ticket | undefined; onChanged: () => void }) {
+export function TicketBar({ ticket, onChanged, greet = true }: { ticket: Ticket | undefined; onChanged: () => void; greet?: boolean }) {
   const { user } = useAuth();
   const { org, can } = useOrg();
   const { toast } = useToast();
@@ -74,6 +74,7 @@ export function TicketBar({ ticket, onChanged }: { ticket: Ticket | undefined; o
   /** Assume e avisa o cliente de quem está atendendo agora. */
   const claim = async () => {
     if (!(await rpc("claim_ticket", { ticket: ticket.id }, "Atendimento assumido"))) return;
+    if (!greet) return; // e-mail: sem mensagem automática de apresentação
     const [me, { data: o }] = await Promise.all([
       memberNames(org!.id, [user!.id]).then((m) => m.get(user!.id)),
       supabase.from("organizations").select("settings").eq("id", org!.id).maybeSingle(),

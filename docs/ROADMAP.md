@@ -3,12 +3,19 @@
 Lista viva. Cada item vira spec/plano em `docs/superpowers/` quando começar.
 Regra de sempre: isolamento entre organizações, segredos no Vault, testes em `supabase/tests/isolation.sql`.
 
+**Princípio do produto:** o dono da empresa cliente faz praticamente tudo sozinho pela tela (conectar números e
+e-mails, montar fluxos e agentes, instalar automações prontas, seguir guias de integração) — com modelos, presets,
+botão “testar” e mensagens claras. Só integrações complexas ficam com o time Clubetec, como serviço pago.
+Mais receita, menos suporte.
+
 ## Próximos (ordem combinada)
-1. **Canal de e-mail** (abaixo) — anexos usam a biblioteca/bucket privado.
-2. **Infraestrutura (1C-2)** — fila de mensagens recebidas com reprocessamento (`inbound_events` /
+1. **Infraestrutura (1C-2)** — fila de mensagens recebidas com reprocessamento (`inbound_events` /
    `process-inbound`), limite de requisições por organização, painel da plataforma para gerenciar as empresas clientes.
 
-## Canal de e-mail (pedido em 28/09)
+## Canal de e-mail (pedido em 28/09) — IMAP/SMTP e alertas entregues; falta o que segue
+- Pendente: Microsoft 365 por OAuth; Google direto (com demanda); cópia das respostas na pasta “Enviados” da caixa;
+  IA/fluxos no e-mail.
+
 Objetivo: enviar e receber e-mail pelo ClubeCRM, no mesmo lugar do WhatsApp.
 - **Serviço de envio com provedores plugáveis** (por organização, credenciais no Vault):
   SMTP genérico; Google Workspace/Gmail e Microsoft 365/Outlook (OAuth); APIs como Resend, SendGrid, Amazon SES.
@@ -47,9 +54,19 @@ Objetivo: a ligação cai na mesma tela do WhatsApp.
   fluxos, agentes de IA com prompt e permissões fechadas, respostas rápidas, blocos “Consultar sistema”, horários e
   departamentos. Tudo fica **em rascunho para o dono revisar e publicar** (nada entra no ar sozinho), com registro na
   auditoria e simulador para testar antes.
-- **Base de dados para as automações (pedido em 28/09; decisão pendente)** — dar ao entrevistador e ao
+- **Agentes e fluxos prontos + guia de integração (pedido em 28/09)** — separar as automações em dois grupos:
+  - **Prontas com o que o CRM já tem** → modelos instaláveis com um clique (em rascunho, para revisar e publicar):
+    recepção e triagem por departamento; horário de atendimento com mensagem fora do expediente; FAQ com IA e
+    transbordo para humano; qualificação de lead (nome, e-mail, interesse → etapa do funil); envio de catálogo/tabela
+    da biblioteca; pesquisa de satisfação pós-atendimento; lembrete/follow-up de quem não respondeu; confirmação de
+    dados na ficha; opt-out. O entrevistador sugere e o implementador instala e personaliza.
+  - **Precisam de integração** → **guia passo a passo** gerado para a empresa: qual sistema, que dado/ação é
+    necessário, onde conseguir a chave/token (sem colar no chat — vai para Fluxos → Segredos), como montar o bloco
+    “Consultar sistema”, como testar no simulador e o que publicar. Ex.: status de pedido no ERP, segunda via de
+    boleto, agenda de horários, estoque, cobrança.
+- **Base de dados para as automações (pedido em 28/09; decidido: sem ERP completo — conectores/APIs)** — dar ao entrevistador e ao
   implementador onde guardar os dados das áreas (ex.: financeiro — contas a pagar e a receber, pagamentos).
-  Recomendação registrada: em vez de um ERP completo fixo, (1) **registros personalizados por empresa** (tipos de
+  Decisão do dono: em vez de um ERP completo fixo, (1) **registros personalizados por empresa** (tipos de
   registro com campos configuráveis — ex.: “Conta a receber”: valor, vencimento, status, cliente — com permissões,
   histórico e uso em fluxos/IA), que o agente implementador cria conforme o levantamento; (2) **conectores** com os
   sistemas que a empresa já usa (ERP/financeiro/banco) pelo bloco “Consultar sistema” e integrações prontas;
@@ -89,7 +106,8 @@ Vários números (Meta e QR), fluxos com IA/humano/transferir/finalizar, departa
 pessoas, papéis e modelos prontos, multiempresa com isolamento, protocolo e assumir com permissão, pesquisa,
 opt-out, bloco HTTP, IA com permissões e vários provedores, monitor de saúde, nome na equipe, termos e exclusão
 de dados, legenda em anexos, transcrição de áudio, biblioteca de arquivos (envio pelo atendente, respostas rápidas
-com arquivo, arquivo no bloco Mensagem e IA enviando arquivo permitido).
+com arquivo, arquivo no bloco Mensagem e IA enviando arquivo permitido), canal de e-mail IMAP/SMTP (caixas conectadas
+pelo dono com presets e teste, e-mail vira atendimento, resposta pela mesma caixa), alertas por e-mail (Resend ou SMTP).
 
 ## Visual
 - Trocar logo e ícone da aba (nome “Clube” junto do logo, em cima).
