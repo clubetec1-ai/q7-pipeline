@@ -234,6 +234,47 @@ export type Database = {
           },
         ]
       }
+      company_profiles: {
+        Row: {
+          organization_id: string
+          processes: Json
+          sections: Json
+          suggestions: Json
+          suggestions_at: string | null
+          updated_at: string
+          updated_by: string | null
+          use_in_ai: boolean
+        }
+        Insert: {
+          organization_id: string
+          processes?: Json
+          sections?: Json
+          suggestions?: Json
+          suggestions_at?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          use_in_ai?: boolean
+        }
+        Update: {
+          organization_id?: string
+          processes?: Json
+          sections?: Json
+          suggestions?: Json
+          suggestions_at?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          use_in_ai?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_profiles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_group_members: {
         Row: {
           actor_type: string
@@ -1105,6 +1146,41 @@ export type Database = {
             columns: ["ticket_id"]
             isOneToOne: false
             referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interview_messages: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string | null
+          id: number
+          organization_id: string
+          role: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by?: string | null
+          id?: never
+          organization_id: string
+          role: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          id?: never
+          organization_id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_messages_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]

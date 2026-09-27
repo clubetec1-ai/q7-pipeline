@@ -9,7 +9,8 @@ botão “testar” e mensagens claras. Só integrações complexas ficam com o 
 Mais receita, menos suporte.
 
 ## Próximos (a combinar)
-Sugestão: agente entrevistador → agentes prontos/guia de integração → cobrança pelo WhatsApp.
+Sugestão: agente implementador (instala as sugestões “prontas” em rascunho) + modelos prontos → cobrança pelo
+WhatsApp. Entrevistador entregue (tela Diagnóstico).
 Registros: falta criar/atualizar registro a partir do fluxo e da IA (bloco próprio) — entra com o implementador. Pendências técnicas: revisão de grants por coluna nas tabelas antigas (tarefa separada);
 login com segundo fator (MFA) para dono/admin/operador.
 
@@ -111,7 +112,9 @@ pelo dono com presets e teste, e-mail vira atendimento, resposta pela mesma caix
 limite de IA por empresa, painel da plataforma (empresas, criar com modelo e convite do dono, suspender, acesso de
 suporte com motivo e prazo), registros personalizados (tipos com campos configuráveis, modelos Conta a receber /
 Pedido / Contrato, acesso por tipo, validação no banco, histórico) e campos personalizados do contato (ficha, fluxo
-e IA com “IA pode ler” / “sensível”).
+e IA com “IA pode ler” / “sensível”), agente entrevistador (tela Diagnóstico: entrevista, retrato da empresa por
+seção, processos repetidos, sugestões prontas × integração com passo a passo; seções públicas alimentam a IA de
+atendimento, internas nunca).
 
 ## Visual
 - Trocar logo e ícone da aba (nome “Clube” junto do logo, em cima).
