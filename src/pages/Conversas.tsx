@@ -42,6 +42,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { ChevronDown, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { getActiveOrgId } from "@/lib/org";
 
 type Conversation = {
   id: string;
@@ -141,7 +142,7 @@ export default function Conversas() {
       .channel("conversations-list")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "conversations", filter: `user_id=eq.${user.id}` },
+        { event: "*", schema: "public", table: "conversations" },
         () => load(),
       )
       .subscribe();
@@ -156,7 +157,6 @@ export default function Conversas() {
     supabase
       .from("pipeline_stages")
       .select("*")
-      .eq("user_id", user.id)
       .order("position", { ascending: true })
       .then(({ data }) => setStages((data as Stage[]) || []));
   }, [user]);
@@ -245,12 +245,11 @@ export default function Conversas() {
   useEffect(() => {
     if (!user) return;
     const check = async () => {
-      const { data: agent } = await supabase
-        .from("agent_configs")
-        .select("groq_api_key")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      setNeedsSetup(!agent?.groq_api_key);
+      // Só saber SE a chave existe: o valor fica no Vault.
+      const orgId = await getActiveOrgId(user.id);
+      if (!orgId) return;
+      const { data: status } = await supabase.rpc("org_setup_status" as any, { org: orgId });
+      setNeedsSetup(!(status as { groq_api_key?: boolean } | null)?.groq_api_key);
     };
     check();
   }, [user, configOpen]);
@@ -386,20 +385,11 @@ export default function Conversas() {
     if (!input.trim() || !active) return;
     setSending(true);
     try {
-      // Fetch instance token
-      const { data: inst } = await supabase
-        .from("whatsapp_instances")
-        .select("instance_token")
-        .eq("user_id", user!.id)
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (!inst?.instance_token) throw new Error("Nenhuma instância WhatsApp conectada");
-
+      // Envia pelo número da própria conversa; o token fica no servidor.
       const { data, error } = await supabase.functions.invoke("manage-instance", {
         body: {
           action: "send_text",
-          instance_token: inst.instance_token,
+          instance_id: active.instance_id,
           number: active.contact_phone,
           text: input.trim(),
         },

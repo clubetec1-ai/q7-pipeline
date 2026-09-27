@@ -1,4 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
+import { forOrg } from "./tenant.ts";
+import { getSecret } from "./secrets.ts";
 
 export interface AIConfig {
   apiKey: string;
@@ -34,17 +36,16 @@ const FAILOVER_STATUS = new Set([400, 404, 413, 422, 429, 500, 502, 503, 504]);
 const modelCache = new Map<string, { ids: string[]; at: number }>();
 const CACHE_TTL_MS = 10 * 60 * 1000;
 
-export async function getAgentConfig(userId: string): Promise<AIConfig | null> {
+/** Configuração da IA da organização; a chave vem do Vault (org:<org>:groq_api_key). */
+export async function getAgentConfig(orgId: string): Promise<AIConfig | null> {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!supabaseUrl || !serviceKey) return null;
+  if (!supabaseUrl || !serviceKey || !orgId) return null;
   const admin = createClient(supabaseUrl, serviceKey);
-  const { data } = await admin
-    .from("agent_configs")
-    .select("groq_api_key, groq_model, system_prompt, enabled")
-    .eq("user_id", userId)
+  const { data } = await forOrg(admin, orgId)
+    .select("agent_configs", "groq_model, system_prompt, enabled")
     .maybeSingle();
-  const apiKey = data?.groq_api_key || Deno.env.get("GROQ_API_KEY") || null;
+  const apiKey = (await getSecret(admin, `org:${orgId}:groq_api_key`)) || null;
   if (!apiKey) return null;
   return {
     apiKey,
