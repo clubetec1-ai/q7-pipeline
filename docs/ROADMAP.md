@@ -47,9 +47,19 @@ Objetivo: a ligação cai na mesma tela do WhatsApp.
   fluxos, agentes de IA com prompt e permissões fechadas, respostas rápidas, blocos “Consultar sistema”, horários e
   departamentos. Tudo fica **em rascunho para o dono revisar e publicar** (nada entra no ar sozinho), com registro na
   auditoria e simulador para testar antes.
-- **Base de dados para as automações (pedido em 28/09; decisão pendente)** — dar ao entrevistador e ao
+- **Agentes e fluxos prontos + guia de integração (pedido em 28/09)** — separar as automações em dois grupos:
+  - **Prontas com o que o CRM já tem** → modelos instaláveis com um clique (em rascunho, para revisar e publicar):
+    recepção e triagem por departamento; horário de atendimento com mensagem fora do expediente; FAQ com IA e
+    transbordo para humano; qualificação de lead (nome, e-mail, interesse → etapa do funil); envio de catálogo/tabela
+    da biblioteca; pesquisa de satisfação pós-atendimento; lembrete/follow-up de quem não respondeu; confirmação de
+    dados na ficha; opt-out. O entrevistador sugere e o implementador instala e personaliza.
+  - **Precisam de integração** → **guia passo a passo** gerado para a empresa: qual sistema, que dado/ação é
+    necessário, onde conseguir a chave/token (sem colar no chat — vai para Fluxos → Segredos), como montar o bloco
+    “Consultar sistema”, como testar no simulador e o que publicar. Ex.: status de pedido no ERP, segunda via de
+    boleto, agenda de horários, estoque, cobrança.
+- **Base de dados para as automações (pedido em 28/09; decidido: sem ERP completo — conectores/APIs)** — dar ao entrevistador e ao
   implementador onde guardar os dados das áreas (ex.: financeiro — contas a pagar e a receber, pagamentos).
-  Recomendação registrada: em vez de um ERP completo fixo, (1) **registros personalizados por empresa** (tipos de
+  Decisão do dono: em vez de um ERP completo fixo, (1) **registros personalizados por empresa** (tipos de
   registro com campos configuráveis — ex.: “Conta a receber”: valor, vencimento, status, cliente — com permissões,
   histórico e uso em fluxos/IA), que o agente implementador cria conforme o levantamento; (2) **conectores** com os
   sistemas que a empresa já usa (ERP/financeiro/banco) pelo bloco “Consultar sistema” e integrações prontas;
