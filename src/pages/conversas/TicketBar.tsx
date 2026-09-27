@@ -13,6 +13,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { STATUS_LABEL, Ticket } from "./useTickets";
+import { callFunction } from "@/lib/callFunction";
 
 interface Option { id: string; name: string }
 
@@ -59,6 +60,19 @@ export function TicketBar({ ticket, onChanged }: { ticket: Ticket | undefined; o
   }, [dialog, org, user?.id]);
 
   if (!ticket) return null;
+
+  /** Assume e avisa o cliente de quem está atendendo agora. */
+  const claim = async () => {
+    if (!(await rpc("claim_ticket", { ticket: ticket.id }, "Atendimento assumido"))) return;
+    const { data: me } = await supabase.from("profiles").select("full_name, email").eq("user_id", user!.id).maybeSingle();
+    const first = (me?.full_name || me?.email?.split("@")[0] || "").trim().split(/\s+/)[0];
+    const text = first
+      ? `Olá! Aqui é ${first}, vou continuar o seu atendimento. 😊`
+      : "Olá! Um atendente vai continuar o seu atendimento. 😊";
+    const r = await callFunction("send-message", { conversation_id: ticket.conversation_id, text });
+    if (!r.ok) toast({ variant: "destructive", title: "Assumido, mas o aviso ao cliente não foi enviado", description: r.message });
+  };
+
   const mine = ticket.assigned_to === user?.id;
   const canAct = mine || can("conversations.reassign") || !ticket.assigned_to;
 
@@ -83,7 +97,7 @@ export function TicketBar({ ticket, onChanged }: { ticket: Ticket | undefined; o
       <span className="text-[11px] text-muted-foreground">#{ticket.protocol}</span>
       {!mine && (
         <Button size="sm" variant="outline" className="h-8" disabled={busy}
-          onClick={() => rpc("claim_ticket", { ticket: ticket.id }, "Atendimento assumido")}>
+          onClick={claim}>
           <Hand className="w-3.5 h-3.5 mr-1" /> Assumir
         </Button>
       )}
