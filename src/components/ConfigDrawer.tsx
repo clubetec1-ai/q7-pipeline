@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveOrgId } from "@/lib/org";
+import { useOrg } from "@/contexts/OrgContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import {
@@ -51,7 +52,8 @@ function CheckRow({ ok, warn, label }: { ok?: boolean; warn?: boolean; label: st
 
 export function ConfigDrawer({ open, onOpenChange }: Props) {
   const { user } = useAuth();
-  const { isAdmin } = useAdminRole();
+  const { org } = useOrg();
+  const { isOperator: isAdmin } = useAdminRole();
   const navigate = useNavigate();
 
   // Agente state
@@ -178,6 +180,7 @@ export function ConfigDrawer({ open, onOpenChange }: Props) {
           .from("whatsapp_instances")
           .insert({
             user_id: user.id,
+            organization_id: org!.id,
             server_url: url,
             name: "Instância WhatsApp", // provisório: substituído pelo nome real logo abaixo
             status: "disconnected",
@@ -350,7 +353,7 @@ export function ConfigDrawer({ open, onOpenChange }: Props) {
       } else {
         const { data, error } = await supabase
           .from("whatsapp_instances")
-          .insert({ ...patch, user_id: user.id, name: "WhatsApp Cloud API" })
+          .insert({ ...patch, user_id: user.id, organization_id: org!.id, name: "WhatsApp Cloud API" })
           .select("id")
           .single();
         if (error) throw error;

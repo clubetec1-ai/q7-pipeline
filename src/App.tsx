@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { OrgProvider } from "@/contexts/OrgContext";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/admin/AdminRoute";
@@ -12,6 +13,8 @@ import Conversas from "./pages/Conversas";
 import Kanban from "./pages/Kanban";
 import UazapiConfig from "./pages/admin/UazapiConfig";
 import NotFound from "./pages/NotFound";
+import Equipe from "./pages/Equipe";
+import Convite from "./pages/Convite";
 
 const queryClient = new QueryClient();
 
@@ -19,6 +22,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
       <AuthProvider>
+        <OrgProvider>
         <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -27,6 +31,8 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/" element={<ProtectedRoute><Conversas /></ProtectedRoute>} />
             <Route path="/kanban" element={<ProtectedRoute><Kanban /></ProtectedRoute>} />
+            <Route path="/equipe" element={<ProtectedRoute><Equipe /></ProtectedRoute>} />
+            <Route path="/convite" element={<ProtectedRoute allowWithoutOrg><Convite /></ProtectedRoute>} />
             <Route path="/admin/uazapi" element={<ProtectedRoute><AdminRoute><UazapiConfig /></AdminRoute></ProtectedRoute>} />
             <Route path="/conversas" element={<Navigate to="/" replace />} />
             <Route path="/dashboard" element={<Navigate to="/" replace />} />
@@ -36,6 +42,7 @@ const App = () => (
           </Routes>
         </BrowserRouter>
         </TooltipProvider>
+        </OrgProvider>
       </AuthProvider>
     </ThemeProvider>
   </QueryClientProvider>

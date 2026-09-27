@@ -7,10 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { Plug, TestTube2, ArrowLeft, Info } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useOrg } from "@/contexts/OrgContext";
 
 const DEFAULT_INSTANCE_NAME = "principal";
 
 export default function UazapiConfig() {
+  const { org } = useOrg();
   const navigate = useNavigate();
   const [serverUrl, setServerUrl] = useState("");
   const [instanceToken, setInstanceToken] = useState("");
@@ -56,18 +58,22 @@ export default function UazapiConfig() {
           .order("updated_at", { ascending: false })
           .limit(1)
           .maybeSingle();
-        const { error: instError } = existing
-          ? await supabase
-              .from("whatsapp_instances")
-              .update({ instance_token: instanceToken.trim(), status: "pending" })
-              .eq("id", existing.id)
-          : await supabase.from("whatsapp_instances").insert({
-              user_id: user.id,
-              name: DEFAULT_INSTANCE_NAME,
-              instance_token: instanceToken.trim(),
-              status: "pending",
-            });
-        if (instError) console.error("[UazapiConfig] failed to sync instance", instError);
+        // O token vai para o Vault pela RPC; a tabela guarda só a referência.
+        let instId = existing?.id as string | undefined;
+        if (instId) {
+          await supabase.from("whatsapp_instances").update({ status: "pending" }).eq("id", instId);
+        } else if (org) {
+          const { data: created } = await supabase
+            .from("whatsapp_instances")
+            .insert({ user_id: user.id, organization_id: org.id, name: DEFAULT_INSTANCE_NAME, status: "pending" })
+            .select("id")
+            .single();
+          instId = created?.id;
+        }
+        const { error: instError } = instId
+          ? await supabase.rpc("set_instance_secret", { instance: instId, secret_value: instanceToken.trim() })
+          : { error: { message: "sem organização" } };
+        if (instError) console.error("[UazapiConfig] failed to sync instance", instError.message);
       }
     }
 
