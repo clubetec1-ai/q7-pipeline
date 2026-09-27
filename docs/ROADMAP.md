@@ -47,6 +47,15 @@ Objetivo: a ligação cai na mesma tela do WhatsApp.
   fluxos, agentes de IA com prompt e permissões fechadas, respostas rápidas, blocos “Consultar sistema”, horários e
   departamentos. Tudo fica **em rascunho para o dono revisar e publicar** (nada entra no ar sozinho), com registro na
   auditoria e simulador para testar antes.
+- **Base de dados para as automações (pedido em 28/09; decisão pendente)** — dar ao entrevistador e ao
+  implementador onde guardar os dados das áreas (ex.: financeiro — contas a pagar e a receber, pagamentos).
+  Recomendação registrada: em vez de um ERP completo fixo, (1) **registros personalizados por empresa** (tipos de
+  registro com campos configuráveis — ex.: “Conta a receber”: valor, vencimento, status, cliente — com permissões,
+  histórico e uso em fluxos/IA), que o agente implementador cria conforme o levantamento; (2) **conectores** com os
+  sistemas que a empresa já usa (ERP/financeiro/banco) pelo bloco “Consultar sistema” e integrações prontas;
+  (3) nativo só o que liga direto ao atendimento: **cobrança pelo WhatsApp** (link PIX/boleto por um gateway de
+  pagamento, status do pagamento na ficha, lembrete de vencimento). Módulos completos (ERP) só depois, se o
+  levantamento das empresas mostrar demanda.
 - **“Cérebro” da operação**: agente que coordena agentes por área — administrativo, financeiro, RH, vendas,
   pós-venda, suporte e outras — com as automações de cada área (software completo para a empresa).
 - **IA entender imagens, vídeos e PDFs** que o cliente envia (hoje só áudio é transcrito).
@@ -65,7 +74,7 @@ Objetivo: a ligação cai na mesma tela do WhatsApp.
 - Nova conversa iniciada pelo atendente com modelo aprovado (spec números §10).
 
 ## Contatos e atendimento
-- Campos personalizados do contato (com `ai_readable` / `sensitive`).
+- Campos personalizados do contato (com `ai_readable` / `sensitive`) — mesma base dos registros personalizados.
 - Botão de anonimizar contato (LGPD) — limpa também `flow_runs.vars` e `tickets.rating_comment`.
 - Gravação de áudio pelo navegador.
 - Modo depuração do bloco HTTP (corpo no log por 1 h, cortado e com retenção curta).
