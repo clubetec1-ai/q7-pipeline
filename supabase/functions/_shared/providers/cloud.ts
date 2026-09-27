@@ -142,7 +142,15 @@ async function post(inst: InstanceRow, payload: unknown): Promise<SendResult> {
     return { ok: false, error: e?.message || "Falha de rede ao chamar a Meta." };
   }
 
-  if (res.ok) return { ok: true };
+  if (res.ok) {
+    let messageId: string | undefined;
+    try {
+      messageId = JSON.parse(raw)?.messages?.[0]?.id;
+    } catch {
+      // corpo sem JSON: segue sem id
+    }
+    return { ok: true, messageId };
+  }
 
   let parsed: any = null;
   try {
@@ -251,4 +259,47 @@ export async function getMediaBytes(
     console.error("[cloud] media erro", e);
     return null;
   }
+}
+
+/**
+ * Envia mídia: sobe o arquivo para a Meta (POST /{phone}/media) e manda a
+ * mensagem com o id devolvido. Legenda só em imagem, vídeo e documento.
+ */
+export async function sendMedia(
+  inst: InstanceRow,
+  to: string,
+  m: { type: "image" | "audio" | "video" | "document" | "sticker"; bytes: Uint8Array; mime: string; name: string; caption?: string },
+): Promise<SendResult> {
+  const token = inst.instance_token;
+  if (!inst.phone_number_id || !token) return { ok: false, error: "Instância Cloud sem phone_number_id ou access token." };
+  const form = new FormData();
+  form.append("messaging_product", "whatsapp");
+  form.append("type", m.mime);
+  form.append("file", new Blob([m.bytes as unknown as ArrayBuffer], { type: m.mime }), m.name);
+  let mediaId: string | undefined;
+  try {
+    const up = await fetch(`${GRAPH}/${inst.phone_number_id}/media`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    });
+    const body = await up.json().catch(() => ({}));
+    if (!up.ok || !body?.id) {
+      const code = metaErrorCode(body);
+      return { ok: false, code, error: translateMetaError(code, metaErrorMessage(body, up.status, "upload")) };
+    }
+    mediaId = body.id;
+  } catch (e: any) {
+    return { ok: false, error: e?.message || "Falha de rede ao enviar o arquivo para a Meta." };
+  }
+  const obj: Record<string, unknown> = { id: mediaId };
+  if (m.caption && ["image", "video", "document"].includes(m.type)) obj.caption = m.caption;
+  if (m.type === "document") obj.filename = m.name;
+  return await post(inst, {
+    messaging_product: "whatsapp",
+    recipient_type: "individual",
+    to: digits(to),
+    type: m.type,
+    [m.type]: obj,
+  });
 }

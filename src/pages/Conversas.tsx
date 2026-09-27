@@ -42,10 +42,12 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { ChevronDown, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { ChevronDown, CheckCircle2, XCircle, AlertCircle, Paperclip } from "lucide-react";
 import { getActiveOrgId } from "@/lib/org";
 import { useTickets, STATUS_LABEL, TicketTab } from "./conversas/useTickets";
 import { TicketBar } from "./conversas/TicketBar";
+import { DeliveryStatus, MessageMedia } from "./conversas/MessageMedia";
+import { callFunction } from "@/lib/callFunction";
 import { useOrg } from "@/contexts/OrgContext";
 
 type Conversation = {
@@ -67,6 +69,13 @@ type Message = {
   sender: "contact" | "ai" | "human";
   content: string;
   created_at: string;
+  type?: string;
+  media_path?: string | null;
+  media_mime?: string | null;
+  media_name?: string | null;
+  media_size?: number | null;
+  status?: string | null;
+  error?: string | null;
 };
 
 type Stage = { id: string; name: string; position: number; color: string | null };
@@ -120,6 +129,7 @@ export default function Conversas() {
   const [fuCustom, setFuCustom] = useState("");
   const [fuOpen, setFuOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const [tab, setTab] = useState<TicketTab>("todos");
   const { byConversation, inTab, reload: reloadTickets } = useTickets(org?.id, user?.id);
 
@@ -238,6 +248,11 @@ export default function Conversas() {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${activeId}` },
         (payload) => setMessages((prev) => [...prev, payload.new as Message]),
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "messages", filter: `conversation_id=eq.${activeId}` },
+        (payload) => setMessages((prev) => prev.map((m) => (m.id === (payload.new as Message).id ? (payload.new as Message) : m))),
       )
       .subscribe();
     return () => {
@@ -390,45 +405,40 @@ export default function Conversas() {
     }
   };
 
+  /** Envio pelo servidor (send-message): texto e/ou arquivo já no bucket. */
+  const sendPayload = async (payload: Record<string, unknown>) => {
+    if (!active) return false;
+    const r = await callFunction("send-message", { conversation_id: active.id, ...payload });
+    if (!r.ok) toast({ variant: "destructive", title: "Não enviado", description: r.message });
+    return r.ok;
+  };
+
   const send = async () => {
     if (!input.trim() || !active) return;
     setSending(true);
-    try {
-      // Envia pelo número da própria conversa; o token fica no servidor.
-      const { data, error } = await supabase.functions.invoke("manage-instance", {
-        body: {
-          action: "send_text",
-          instance_id: active.instance_id,
-          number: active.contact_phone,
-          text: input.trim(),
-        },
-      });
-      if (error || !data?.ok) throw new Error(data?.error || error?.message || "Falha ao enviar");
+    if (await sendPayload({ text: input.trim() })) setInput("");
+    setSending(false);
+  };
 
-      await supabase.from("messages").insert({
-        conversation_id: active.id,
-        organization_id: active.organization_id ?? org!.id,
-        user_id: user!.id,
-        direction: "outbound",
-        sender: "human",
-        content: input.trim(),
-      });
-      // Humano assumiu → pausa a IA e registra o timestamp. NÃO há retomada
-      // automática: a IA só volta quando o usuário clica "Reativar IA".
-      await supabase
-        .from("conversations")
-        .update({
-          last_message_at: new Date().toISOString(),
-          ai_enabled: false,
-          human_takeover_at: new Date().toISOString(),
-        })
-        .eq("id", active.id);
-      setInput("");
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Erro", description: e.message });
-    } finally {
-      setSending(false);
+  /** Anexo: sobe para media/{org}/{conversa}/ (a RLS confere) e envia com a legenda digitada. */
+  const sendFile = async (file: File) => {
+    if (!active || !org) return;
+    if (file.size > 100 * 1024 * 1024) {
+      toast({ variant: "destructive", title: "Arquivo maior que 100 MB" });
+      return;
     }
+    setSending(true);
+    const ext = (file.name.match(/\.([a-z0-9]{1,5})$/i)?.[1] ?? "bin").toLowerCase();
+    const path = `${active.organization_id ?? org.id}/${active.id}/${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabase.storage.from("media")
+      .upload(path, file, { contentType: file.type || "application/octet-stream", upsert: false });
+    if (error) {
+      toast({ variant: "destructive", title: "Não foi possível anexar", description: "Tipo ou tamanho de arquivo não aceito." });
+    } else if (await sendPayload({ media_path: path, media_name: file.name, text: input.trim() })) {
+      setInput("");
+    }
+    setSending(false);
+    if (fileRef.current) fileRef.current.value = "";
   };
 
   return (
@@ -733,12 +743,25 @@ export default function Conversas() {
                         {m.sender === "ai" ? "IA" : "Você"}
                       </div>
                     )}
-                    <div className="whitespace-pre-wrap">{m.content}</div>
+                    <MessageMedia m={m} />
+                    {m.content && !(m.type && m.type !== "text" && /^\[.+\]$/.test(m.content)) && (
+                      <div className="whitespace-pre-wrap">{m.content}</div>
+                    )}
+                    {m.direction === "outbound" && m.status && (
+                      <div className="flex justify-end mt-0.5"><DeliveryStatus status={m.status} error={m.error} /></div>
+                    )}
                   </div>
                 ))}
               </div>
 
               <div className="p-3 border-t flex gap-2">
+                <input ref={fileRef} type="file" className="hidden"
+                  accept="image/jpeg,image/png,audio/*,video/mp4,video/3gpp,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip"
+                  onChange={(e) => e.target.files?.[0] && sendFile(e.target.files[0])} />
+                <Button variant="ghost" size="icon" title="Anexar arquivo" disabled={sending}
+                  onClick={() => fileRef.current?.click()}>
+                  <Paperclip className="w-4 h-4" />
+                </Button>
                 <Input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}

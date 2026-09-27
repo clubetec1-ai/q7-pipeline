@@ -68,7 +68,8 @@ async function uazapiSendText(
       const body = (await res.text()).slice(0, 300);
       return { ok: false, code: String(res.status), error: `Uazapi respondeu ${res.status}: ${body}` };
     }
-    return { ok: true };
+    const data = await res.json().catch(() => ({}));
+    return { ok: true, messageId: data?.messageid ?? data?.id ?? undefined };
   } catch (e: any) {
     return { ok: false, error: e?.message || "Falha de rede ao chamar a Uazapi." };
   }
@@ -133,5 +134,40 @@ export async function getAudioBytes(
   } catch (e) {
     console.error("[uazapi] media erro", e);
     return null;
+  }
+}
+
+/** Envia mídia pelo provedor da instância (Uazapi: base64 no /send/media). */
+export async function sendMedia(
+  inst: InstanceRow,
+  to: string,
+  m: { type: "image" | "audio" | "video" | "document" | "sticker"; bytes: Uint8Array; mime: string; name: string; caption?: string },
+): Promise<SendResult> {
+  if (providerOf(inst) === "cloud") return await cloud.sendMedia(inst, to, m);
+  const serverUrl = (inst.server_url ?? "").replace(/\/$/, "");
+  const token = inst.instance_token;
+  if (!serverUrl || !token) return { ok: false, error: "Instância Uazapi sem server_url ou instance_token." };
+  let bin = "";
+  for (let i = 0; i < m.bytes.length; i += 0x8000) bin += String.fromCharCode(...m.bytes.subarray(i, i + 0x8000));
+  try {
+    const res = await fetch(`${serverUrl}/send/media`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", token },
+      body: JSON.stringify({
+        number: to,
+        type: m.type === "sticker" ? "sticker" : m.type,
+        file: `data:${m.mime};base64,${btoa(bin)}`,
+        ...(m.caption ? { text: m.caption } : {}),
+        ...(m.type === "document" ? { docName: m.name } : {}),
+      }),
+    });
+    if (!res.ok) {
+      const body = (await res.text()).slice(0, 300);
+      return { ok: false, code: String(res.status), error: `Uazapi respondeu ${res.status}: ${body}` };
+    }
+    const data = await res.json().catch(() => ({}));
+    return { ok: true, messageId: data?.messageid ?? data?.id ?? undefined };
+  } catch (e: any) {
+    return { ok: false, error: e?.message || "Falha de rede ao chamar a Uazapi." };
   }
 }

@@ -66,6 +66,8 @@ export interface SendResult {
    * Nesse caso só template aprovado passa.
    */
   outsideWindow?: boolean;
+  /** Id da mensagem no provedor (wamid na Meta), para casar o status de entrega. */
+  messageId?: string;
 }
 
 export interface TemplateRef {
