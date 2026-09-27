@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useEquipeData } from "./equipe/useEquipeData";
 import { MembersTab } from "./equipe/MembersTab";
 import { GroupsTab } from "./equipe/GroupsTab";
+import { GreetingSetting } from "./equipe/GreetingSetting";
 
 /** Equipe: membros, departamentos e grupos da organização ativa (spec §9). */
 export default function Equipe() {
@@ -44,6 +45,8 @@ export default function Equipe() {
           <h1 className="text-2xl font-semibold">Equipe</h1>
           <p className="text-sm text-muted-foreground">{org.name}</p>
         </div>
+
+        <GreetingSetting orgId={org.id} canEdit={can("org.settings")} />
 
         {data.loading ? (
           <div className="flex justify-center py-12">

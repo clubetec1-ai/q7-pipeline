@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { STATUS_LABEL, Ticket } from "./useTickets";
 import { callFunction } from "@/lib/callFunction";
+import { DEFAULT_GREETING } from "../equipe/GreetingSetting";
 
 interface Option { id: string; name: string }
 
@@ -64,11 +65,15 @@ export function TicketBar({ ticket, onChanged }: { ticket: Ticket | undefined; o
   /** Assume e avisa o cliente de quem está atendendo agora. */
   const claim = async () => {
     if (!(await rpc("claim_ticket", { ticket: ticket.id }, "Atendimento assumido"))) return;
-    const { data: me } = await supabase.from("profiles").select("full_name, email").eq("user_id", user!.id).maybeSingle();
-    const first = (me?.full_name || me?.email?.split("@")[0] || "").trim().split(/\s+/)[0];
-    const text = first
-      ? `Olá! Aqui é ${first}, vou continuar o seu atendimento. 😊`
-      : "Olá! Um atendente vai continuar o seu atendimento. 😊";
+    const [{ data: me }, { data: o }] = await Promise.all([
+      supabase.from("profiles").select("full_name, email").eq("user_id", user!.id).maybeSingle(),
+      supabase.from("organizations").select("settings").eq("id", org!.id).maybeSingle(),
+    ]);
+    const saved = (o?.settings as Record<string, unknown> | null)?.claim_greeting;
+    const template = typeof saved === "string" ? saved : DEFAULT_GREETING;
+    if (!template.trim()) return; // aviso desligado pela empresa
+    const first = (me?.full_name || me?.email?.split("@")[0] || "").trim().split(/\s+/)[0] || "um atendente";
+    const text = template.split("{nome}").join(first);
     const r = await callFunction("send-message", { conversation_id: ticket.conversation_id, text });
     if (!r.ok) toast({ variant: "destructive", title: "Assumido, mas o aviso ao cliente não foi enviado", description: r.message });
   };
