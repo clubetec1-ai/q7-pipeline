@@ -1,3 +1,4 @@
+import { NumberHealthBanner } from "@/components/NumberHealthBanner";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -139,6 +140,22 @@ export default function Conversas() {
   const [fichaOpen, setFichaOpen] = useState(false);
   const [tab, setTab] = useState<TicketTab>("todos");
   const [search, setSearch] = useState("");
+  // Números da organização: etiqueta (nome + cor) e filtro quando há mais de um.
+  const [numbers, setNumbers] = useState<Map<string, { name: string; color: string | null }>>(new Map());
+  const [numberFilter, setNumberFilter] = useState("");
+  useEffect(() => {
+    if (!org) return;
+    supabase.from("whatsapp_instances").select("id, name, color").eq("organization_id", org.id).order("created_at")
+      .then(({ data }) => setNumbers(new Map((data ?? []).map((n) => [n.id, { name: n.name, color: n.color }]))));
+  }, [org]);
+  const numberTag = (id: string | null) => {
+    const n = id && numbers.size > 1 ? numbers.get(id) : null;
+    return n ? (
+      <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground shrink-0" title="Número de atendimento">
+        <span className="w-2 h-2 rounded-full" style={{ background: n.color ?? "#94A3B8" }} />{n.name}
+      </span>
+    ) : null;
+  };
   const [protocolHits, setProtocolHits] = useState<Set<string> | null>(null);
   // Busca por nome/telefone na lista e por protocolo (inclui atendimentos já finalizados).
   useEffect(() => {
@@ -502,6 +519,7 @@ export default function Conversas() {
           </Button>
         </div>
       </header>
+      <NumberHealthBanner />
 
       <ConfigDrawer open={configOpen} onOpenChange={setConfigOpen} />
 
@@ -536,9 +554,19 @@ export default function Conversas() {
               <Input value={search} onChange={(e) => setSearch(e.target.value)} className="h-8 text-sm"
                 placeholder="Buscar nome, telefone ou protocolo" />
             </div>
+            {numbers.size > 1 && (
+              <div className="px-2 pt-2">
+                <select className="w-full h-8 rounded-md border bg-background px-2 text-xs" value={numberFilter}
+                  onChange={(e) => setNumberFilter(e.target.value)} title="Filtrar por número">
+                  <option value="">Todos os números</option>
+                  {[...numbers].map(([id, n]) => <option key={id} value={id}>{n.name}</option>)}
+                </select>
+              </div>
+            )}
             <div className="flex gap-1 p-2 border-b">
               {(["meus", "fila", "ia", "todos"] as TicketTab[]).map((k) => {
-                const n = k === "todos" ? conversations.length : conversations.filter((c) => inTab(c.id, k)).length;
+                const pool = conversations.filter((c) => !numberFilter || c.instance_id === numberFilter);
+                const n = k === "todos" ? pool.length : pool.filter((c) => inTab(c.id, k)).length;
                 return (
                   <button key={k} onClick={() => setTab(k)}
                     className={`flex-1 rounded-md px-2 py-1 text-xs transition ${tab === k ? "bg-muted font-medium" : "text-muted-foreground hover:bg-muted"}`}>
@@ -547,7 +575,7 @@ export default function Conversas() {
                 );
               })}
             </div>
-            {conversations.filter((c) => inTab(c.id, tab) && matchesSearch(c)).map((c) => (
+            {conversations.filter((c) => inTab(c.id, tab) && matchesSearch(c) && (!numberFilter || c.instance_id === numberFilter)).map((c) => (
               <button
                 key={c.id}
                 onClick={() => setActiveId(c.id)}
@@ -565,7 +593,10 @@ export default function Conversas() {
                     </Badge>
                   )}
                 </div>
-                <div className="text-xs text-muted-foreground truncate">{c.contact_phone}</div>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs text-muted-foreground truncate">{c.contact_phone}</span>
+                  {numberTag(c.instance_id)}
+                </div>
               </button>
             ))}
           </div>
@@ -584,8 +615,9 @@ export default function Conversas() {
                   <div className="font-semibold text-sm">
                     {active.contact_name || active.contact_phone}
                   </div>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="text-xs text-muted-foreground flex items-center gap-2">
                     {active.contact_phone}
+                    {numberTag(active.instance_id)}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">

@@ -1980,6 +1980,13 @@ export type Database = {
         }[]
       }
       my_permissions: { Args: { org: string }; Returns: string[] }
+      number_activity: {
+        Args: { org: string }
+        Returns: {
+          instance_id: string
+          last_inbound_at: string
+        }[]
+      }
       org_setup_status: { Args: { org: string }; Returns: Json }
       publish_flow: { Args: { flow: string }; Returns: number }
       return_ticket_to_ai: {

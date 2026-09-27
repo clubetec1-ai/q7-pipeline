@@ -1,3 +1,4 @@
+import { NumberHealthBanner } from "@/components/NumberHealthBanner";
 import { useCallback, useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { LogOut, MoreHorizontal, Plus } from "lucide-react";
@@ -29,6 +30,10 @@ interface NumberRow {
   status: string;
   color: string | null;
   quality_rating: string | null;
+  health_status: string | null;
+  health_error: string | null;
+  messaging_limit_tier: string | null;
+  last_health_check_at: string | null;
 }
 
 const COLORS = ["#3FB8BE", "#6C8EF5", "#F5A623", "#E8618C", "#2EB67D", "#8B5CF6"];
@@ -37,6 +42,11 @@ const STATUS: Record<string, { label: string; variant: "secondary" | "outline" |
   disabled: { label: "Desativado", variant: "outline" },
 };
 const QUALITY: Record<string, string> = { GREEN: "Qualidade alta", YELLOW: "Qualidade média", RED: "Qualidade baixa" };
+const TIER: Record<string, string> = {
+  TIER_50: "50", TIER_250: "250", TIER_1K: "1.000", TIER_2K: "2.000", TIER_10K: "10.000", TIER_100K: "100.000", TIER_UNLIMITED: "ilimitadas",
+};
+const when = (d: string | null | undefined) =>
+  d ? new Date(d).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—";
 
 function formatPhone(p: string | null) {
   if (!p) return "Ainda não conectado";
@@ -51,6 +61,7 @@ export default function Numeros() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [rows, setRows] = useState<NumberRow[]>([]);
+  const [lastIn, setLastIn] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [reconnectId, setReconnectId] = useState<string | null>(null);
@@ -62,12 +73,14 @@ export default function Numeros() {
 
   const load = useCallback(async () => {
     if (!org) return;
-    const { data } = await supabase
-      .from("whatsapp_instances")
-      .select("id, name, phone, provider, status, color, quality_rating")
-      .eq("organization_id", org.id)
-      .order("created_at");
+    const [{ data }, act] = await Promise.all([
+      supabase.from("whatsapp_instances")
+        .select("id, name, phone, provider, status, color, quality_rating, health_status, health_error, messaging_limit_tier, last_health_check_at")
+        .eq("organization_id", org.id).order("created_at"),
+      supabase.rpc("number_activity", { org: org.id }),
+    ]);
     setRows((data as NumberRow[]) ?? []);
+    setLastIn(new Map((act.data ?? []).filter((a) => a.last_inbound_at).map((a) => [a.instance_id, a.last_inbound_at])));
     setLoading(false);
   }, [org]);
 
@@ -117,6 +130,7 @@ export default function Numeros() {
           </Button>
         </div>
       </header>
+      <NumberHealthBanner />
 
       <main className="flex-1 w-full max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
         <div className="flex items-end justify-between gap-3">
@@ -171,7 +185,18 @@ export default function Numeros() {
                     <Badge variant="outline">{n.provider === "cloud" ? "Oficial Meta" : "QR Code"}</Badge>
                     <Badge variant={st.variant}>{st.label}</Badge>
                     {n.quality_rating && <Badge variant="outline">{QUALITY[n.quality_rating] ?? n.quality_rating}</Badge>}
+                    {n.messaging_limit_tier && (
+                      <Badge variant="outline">Até {TIER[n.messaging_limit_tier] ?? n.messaging_limit_tier} conversas/dia</Badge>
+                    )}
                   </div>
+                  {n.status !== "disabled" && (n.health_status === "warning" || n.health_status === "critical") && (
+                    <p className={`text-sm ${n.health_status === "critical" ? "text-destructive" : "text-amber-600 dark:text-amber-400"}`}>
+                      {n.health_error ?? "Precisa de atenção"}
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Última mensagem recebida: {when(lastIn.get(n.id))} · Verificado: {when(n.last_health_check_at)}
+                  </p>
                 </div>
               );
             })}

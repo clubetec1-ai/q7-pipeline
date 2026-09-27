@@ -468,6 +468,21 @@ BEGIN
   PERFORM pg_temp.expect_error(agent_a, format('SELECT public.ai_keys_status(%L)', A), 'agent nao ve status das chaves');
   PERFORM pg_temp.expect_error(owner_a, format('SELECT public.set_org_secret(%L, %L, %L)', A, 'qualquer_key', 'x'), 'chave fora da lista recusada');
 
+  -- 29. Saude dos numeros: piorou -> aviso so para owner/admin da propria org, uma vez.
+  UPDATE public.whatsapp_instances SET health_status = 'ok' WHERE id = 'aaaaaaaa-0000-0000-0003-000000000001';
+  DELETE FROM public.notifications WHERE kind = 'number_health';
+  UPDATE public.whatsapp_instances SET health_status = 'critical', health_error = 'teste'
+  WHERE id = 'aaaaaaaa-0000-0000-0003-000000000001';
+  PERFORM pg_temp.expect((SELECT count(*) = 2 FROM public.notifications WHERE kind = 'number_health'
+    AND user_id IN (owner_a, admin_a)), 'owner e admin avisados');
+  PERFORM pg_temp.expect((SELECT count(*) = 0 FROM public.notifications WHERE kind = 'number_health'
+    AND user_id NOT IN (owner_a, admin_a)), 'ninguem mais avisado');
+  UPDATE public.whatsapp_instances SET health_status = 'critical', health_error = 'de novo'
+  WHERE id = 'aaaaaaaa-0000-0000-0003-000000000001';
+  PERFORM pg_temp.expect((SELECT count(*) = 2 FROM public.notifications WHERE kind = 'number_health'), 'nao repete o aviso');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT * FROM public.number_activity(%L)', A), 'outra org nao ve atividade');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT * FROM public.number_activity(%L)', A), 'agent nao ve atividade');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 
