@@ -8,6 +8,13 @@ import { callGroq, getAgentConfig } from "../get-ai-config.ts";
 import * as providers from "../providers/index.ts";
 import { advance, FlowAction, FlowCtx, FlowGraph } from "./engine.ts";
 
+/** A IA sabe o protocolo e informa se o cliente pedir. */
+export function withProtocol(prompt: string, protocol?: string | null) {
+  return protocol ? `${prompt}
+
+Protocolo deste atendimento: ${protocol}. Informe ao cliente se ele pedir.` : prompt;
+}
+
 const ACTIVE = ["running", "waiting_input", "waiting_timer", "ai"];
 
 function nowIn(tz: string) {
@@ -74,6 +81,7 @@ export async function runFlow(p: {
     tagIds: (tags ?? []).map((r: any) => r.tag_id),
     groupIds: (groups ?? []).map((r: any) => r.group_id),
     contactName: conv.contact_name ?? "",
+    protocol: ticket.protocol ?? "",
     vars: run.vars ?? {},
     attempts: run.attempts ?? 0,
     aiTurns: run.ai_turns ?? 0,
@@ -107,7 +115,7 @@ export async function runFlow(p: {
         const { data: history } = await org.select("messages", "direction, content")
           .eq("ticket_id", ticket.id).order("created_at", { ascending: false }).limit(30);
         const chat = [
-          { role: "system" as const, content: String(node?.data?.prompt || agent.systemPrompt) },
+          { role: "system" as const, content: withProtocol(String(node?.data?.prompt || agent.systemPrompt), ticket.protocol) },
           ...(history ?? []).reverse().map((m: any) => ({
             role: (m.direction === "inbound" ? "user" : "assistant") as "user" | "assistant", content: m.content,
           })),

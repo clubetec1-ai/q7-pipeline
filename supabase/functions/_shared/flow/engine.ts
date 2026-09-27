@@ -15,6 +15,7 @@ export interface FlowCtx {
   tagIds: string[];
   groupIds: string[];
   contactName: string;
+  protocol?: string;
   vars: Record<string, string>;
   attempts: number;
   aiTurns: number;
@@ -48,6 +49,7 @@ export function fill(text: string, ctx: FlowCtx): string {
   const first = (ctx.contactName || "").trim().split(/\s+/)[0] ?? "";
   return String(text ?? "")
     .split("{nome}").join(first)
+    .split("{protocolo}").join(ctx.protocol ?? "")
     .replace(/\{var\.([a-z0-9_]{1,40})\}/gi, (_, k) => ctx.vars[k] ?? "");
 }
 

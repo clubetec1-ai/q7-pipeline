@@ -6,7 +6,7 @@ import { cancelPendingFollowups, scheduleInactivityFollowup } from "../_shared/f
 import * as providers from "../_shared/providers/index.ts";
 import { transcribeAudio } from "../_shared/transcribe.ts";
 import { LIMITS, storeMedia } from "../_shared/media.ts";
-import { runFlow } from "../_shared/flow/executor.ts";
+import { runFlow, withProtocol } from "../_shared/flow/executor.ts";
 import { forOrg, type OrgScope } from "../_shared/tenant.ts";
 import { getSecret, hasSecret, hmacSha256Hex, safeEqual, sha256Hex, withInstanceToken } from "../_shared/secrets.ts";
 
@@ -540,7 +540,7 @@ serve(async (req) => {
       .limit(20);
 
     const chat = [
-      { role: "system" as const, content: agent.systemPrompt },
+      { role: "system" as const, content: withProtocol(agent.systemPrompt, ticket.protocol) },
       ...(history || []).reverse().map((m: any) => ({
         role: (m.direction === "inbound" ? "user" : "assistant") as "user" | "assistant",
         content: m.content,
