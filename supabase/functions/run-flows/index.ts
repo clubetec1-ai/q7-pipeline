@@ -26,8 +26,8 @@ Deno.serve(async (req) => {
 
   const now = new Date().toISOString();
   const { data: due, error } = await admin.from("flow_runs")
-    .select("id, organization_id, wait_until")
-    .in("state", ["waiting_input", "waiting_timer"]).lte("wait_until", now)
+    .select("id, organization_id, wait_until, organizations!inner(status)")
+    .in("state", ["waiting_input", "waiting_timer"]).lte("wait_until", now).eq("organizations.status", "active")
     .order("wait_until", { ascending: true }).limit(BATCH);
   if (error) return ok({ ok: false, error: error.message }, 500);
 

@@ -1288,6 +1288,35 @@ export type Database = {
           },
         ]
       }
+      org_rate_usage: {
+        Row: {
+          bucket: string
+          minute: string
+          n: number
+          organization_id: string
+        }
+        Insert: {
+          bucket: string
+          minute: string
+          n?: number
+          organization_id: string
+        }
+        Update: {
+          bucket?: string
+          minute?: string
+          n?: number
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_rate_usage_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_secrets: {
         Row: {
           name: string
@@ -2146,6 +2175,14 @@ export type Database = {
         }[]
       }
       my_permissions: { Args: { org: string }; Returns: string[] }
+      my_support_access: {
+        Args: never
+        Returns: {
+          expires_at: string
+          name: string
+          organization_id: string
+        }[]
+      }
       number_activity: {
         Args: { org: string }
         Returns: {
@@ -2154,6 +2191,32 @@ export type Database = {
         }[]
       }
       org_setup_status: { Args: { org: string }; Returns: Json }
+      platform_close_support: { Args: { org: string }; Returns: undefined }
+      platform_open_support: {
+        Args: { minutes?: number; org: string; reason: string }
+        Returns: string
+      }
+      platform_org_overview: {
+        Args: never
+        Returns: {
+          conversations_30d: number
+          created_at: string
+          id: string
+          last_activity: string
+          mailboxes: number
+          members: number
+          name: string
+          numbers: number
+          plan: string
+          status: string
+          support_until: string
+          template_key: string
+        }[]
+      }
+      platform_set_org_status: {
+        Args: { new_status: string; org: string }
+        Returns: undefined
+      }
       publish_flow: { Args: { flow: string }; Returns: number }
       return_ticket_to_ai: {
         Args: { ticket: string }
@@ -2186,7 +2249,12 @@ export type Database = {
         }
       }
       seed_pipeline_stages: { Args: { _user_id: string }; Returns: undefined }
+      service_ai_take: { Args: { org: string }; Returns: boolean }
       service_can_add_number: { Args: { org: string }; Returns: boolean }
+      service_create_org: {
+        Args: { creator: string; org_name: string; template: string }
+        Returns: string
+      }
       service_delete_instance_secrets: {
         Args: { instance: string }
         Returns: undefined

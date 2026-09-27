@@ -123,8 +123,8 @@ Deno.serve(async (req) => {
   if (!expected || !safeEqual(req.headers.get("x-cron-secret") ?? "", expected)) return ok({ ok: false, error: "unauthorized" }, 401);
 
   const { data: accounts, error } = await admin.from("email_accounts")
-    .select("id, organization_id, name, address, username, imap_host, imap_port, smtp_host, smtp_port, last_uid, uidvalidity")
-    .eq("status", "active").eq("has_password", true).order("last_sync_at", { ascending: true, nullsFirst: true }).limit(MAX_ACCOUNTS);
+    .select("id, organization_id, name, address, username, imap_host, imap_port, smtp_host, smtp_port, last_uid, uidvalidity, organizations!inner(status)")
+    .eq("status", "active").eq("has_password", true).eq("organizations.status", "active").order("last_sync_at", { ascending: true, nullsFirst: true }).limit(MAX_ACCOUNTS);
   if (error) return ok({ ok: false, error: error.message }, 500);
 
   const result: Record<string, unknown> = {};
