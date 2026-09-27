@@ -4,11 +4,12 @@
  * atendimento (forOrg). O motor nunca toca banco, rede nem relógio.
  */
 import { forOrg } from "../tenant.ts";
-import { callGroq, getAgentConfig } from "../get-ai-config.ts";
 import { getUazapiConfig } from "../get-uazapi-config.ts";
-import { withInstanceToken } from "../secrets.ts";
+import { getSecret, withInstanceToken } from "../secrets.ts";
 import * as providers from "../providers/index.ts";
-import { advance, FlowAction, FlowCtx, FlowGraph } from "./engine.ts";
+import { advance, FlowAction, FlowCtx, FlowGraph, mapResponse } from "./engine.ts";
+import { callHttp, type HttpOutcome, type HttpVars, secretNames } from "./http.ts";
+import { runAiAgent } from "./ai-agent.ts";
 
 /** A IA sabe o protocolo e informa se o cliente pedir. */
 export function withProtocol(prompt: string, protocol?: string | null) {
@@ -84,6 +85,20 @@ export async function handleOptOut(p: {
   return true;
 }
 
+/** Chamada do bloco HTTP: limite por organização e segredos só do bloco. */
+// deno-lint-ignore no-explicit-any
+async function runHttp(admin: any, orgId: string, d: Record<string, any>, v: HttpVars): Promise<HttpOutcome> {
+  const { data: allowed } = await admin.rpc("service_http_take", { org: orgId });
+  if (allowed !== true) return { ok: false, ms: 0, error: "limite de 60 chamadas por minuto" };
+  const secrets: Record<string, string> = {};
+  for (const name of secretNames(d)) {
+    const value = await getSecret(admin, `org:${orgId}:http:${name}`);
+    if (!value) return { ok: false, ms: 0, error: `segredo não encontrado: ${name}` };
+    secrets[name] = value;
+  }
+  return await callHttp(d, v, secrets);
+}
+
 export type FlowOutcome = false | "handled" | "passthrough";
 
 /**
@@ -157,9 +172,11 @@ export async function runFlow(p: {
     businessHours: settings.business_hours,
   };
 
-  const result = advance(graph, run.current_node_id, input, ctx);
+  let result = advance(graph, run.current_node_id, input, ctx);
   const actions = result.actions as FlowAction[];
+  const steps = [...result.steps];
   let outcome: FlowOutcome = "handled";
+  let routed = false; // atendimento saiu do robô (fila, transferência, fim) → run termina
   if (result.passthrough) {
     if (closed) outcome = "passthrough";
     else actions.push({ type: "queue" }); // dentro do atendimento: segue para a fila
@@ -170,52 +187,68 @@ export async function runFlow(p: {
     // Mensagem que o cliente não pediu (relógio) respeita o opt-out.
     const muted = !!p.timer && !!contact?.opted_out_at;
     const send = (body: string) => (muted ? Promise.resolve() : sendAndStore(org, inst, conv, ticket.id, body));
-    const route = (args: Record<string, unknown>) =>
-      closed ? Promise.resolve() : admin.rpc("service_ticket_route", { ticket: ticket.id, ...args });
+    const route = async (args: Record<string, unknown>) => {
+      routed = true;
+      if (!closed) await admin.rpc("service_ticket_route", { ticket: ticket.id, ...args });
+    };
 
-    for (const a of actions) {
-      try {
-        if (a.type === "send") await send(a.text);
-        else if (a.type === "set_field" && conv.contact_id) {
-          await org.update("contacts", { [a.field]: a.value }).eq("id", conv.contact_id);
-        } else if (a.type === "tag" && conv.contact_id) {
-          if (a.remove) await org.delete("contact_tags").eq("contact_id", conv.contact_id).eq("tag_id", a.tagId);
-          else await org.insert("contact_tags", { contact_id: conv.contact_id, tag_id: a.tagId });
-        } else if (a.type === "rating") {
-          await org.update("tickets", { rating: a.value }).eq("id", ticket.id);
-        } else if (a.type === "rating_comment") {
-          await org.update("tickets", { rating_comment: a.text }).eq("id", ticket.id);
-        } else if (a.type === "ai") {
-          if (closed) continue;
-          const node = graph.nodes.find((n) => n.id === a.nodeId);
-          const agent = await getAgentConfig(orgId);
-          if (!agent?.apiKey) { await route({ action: "queue" }); continue; }
-          const { data: history } = await org.select("messages", "direction, content")
-            .eq("ticket_id", ticket.id).order("created_at", { ascending: false }).limit(30);
-          const chat = [
-            { role: "system" as const, content: withProtocol(String(node?.data?.prompt || agent.systemPrompt), ticket.protocol) },
-            ...(history ?? []).reverse().map((m: any) => ({
-              role: (m.direction === "inbound" ? "user" : "assistant") as "user" | "assistant", content: m.content,
-            })),
-          ];
-          const groq = await callGroq(agent.apiKey, agent.model, chat);
-          if (groq.ok && groq.reply) await send(groq.reply);
-          else await route({ action: "queue" }); // IA fora → humano
-        } else if (a.type === "transfer") {
-          await route({ action: "transfer", dept: a.departmentId, to_user: a.userId });
-        } else if (a.type === "close") {
-          await route({ action: "close", reason: a.reasonId });
-        } else if (a.type === "queue") {
-          await route({ action: "queue" });
+    const apply = async (list: FlowAction[]) => {
+      for (const a of list) {
+        if (routed) break; // depois de sair do robô, nada mais do fluxo roda
+        try {
+          if (a.type === "send") await send(a.text);
+          else if (a.type === "set_field" && conv.contact_id) {
+            await org.update("contacts", { [a.field]: a.value }).eq("id", conv.contact_id);
+          } else if (a.type === "tag" && conv.contact_id) {
+            if (a.remove) await org.delete("contact_tags").eq("contact_id", conv.contact_id).eq("tag_id", a.tagId);
+            else await org.insert("contact_tags", { contact_id: conv.contact_id, tag_id: a.tagId });
+          } else if (a.type === "rating") {
+            await org.update("tickets", { rating: a.value }).eq("id", ticket.id);
+          } else if (a.type === "rating_comment") {
+            await org.update("tickets", { rating_comment: a.text }).eq("id", ticket.id);
+          } else if (a.type === "ai") {
+            if (closed) continue;
+            const node = graph.nodes.find((n) => n.id === a.nodeId);
+            if (node) await runAiAgent({ admin, orgId, node, ticket, conv, send, route });
+          } else if (a.type === "transfer") {
+            await route({ action: "transfer", dept: a.departmentId, to_user: a.userId });
+          } else if (a.type === "close") {
+            await route({ action: "close", reason: a.reasonId });
+          } else if (a.type === "queue") {
+            await route({ action: "queue" });
+          }
+        } catch (e) {
+          console.error("[flow] acao falhou", { type: a.type, message: e instanceof Error ? e.message : String(e) });
         }
-      } catch (e) {
-        console.error("[flow] acao falhou", { type: a.type, message: e instanceof Error ? e.message : String(e) });
       }
+    };
+
+    await apply(actions);
+    // Bloco HTTP: o executor chama e o motor segue por success/error.
+    for (let hops = 0; result.state === "http" && !routed; hops++) {
+      const node = graph.nodes.find((n) => n.id === result.currentNodeId);
+      if (!node || hops >= 10) {
+        result = { ...result, state: "error", currentNodeId: null, error: "muitas chamadas HTTP seguidas" };
+        await route({ action: "queue" });
+        break;
+      }
+      const out = await runHttp(admin, orgId, node.data ?? {}, {
+        vars: result.vars, name: conv.contact_name ?? "", phone: conv.contact_phone ?? "", protocol: ticket.protocol ?? "",
+      });
+      console.log("[flow/http]", { node: node.id, ok: out.ok, status: out.status, ms: out.ms, error: out.error });
+      result = advance(graph, node.id, null, {
+        ...ctx, timerFired: false, attempts: result.attempts, aiTurns: result.aiTurns,
+        vars: out.ok ? mapResponse(out.body, node.data?.map, result.vars) : result.vars,
+        httpResult: out.ok ? "success" : "error",
+      });
+      steps.push(...result.steps);
+      await apply(result.actions as FlowAction[]);
     }
   }
+  if (routed && result.state !== "error") result = { ...result, state: "done", currentNodeId: null };
 
-  if (result.steps.length) {
-    await org.insert("flow_run_steps", result.steps.map((s) => ({
+  if (steps.length) {
+    await org.insert("flow_run_steps", steps.map((s) => ({
       run_id: run.id, flow_version_id: run.flow_version_id, node_id: s.nodeId, outcome: s.outcome,
     })));
   }

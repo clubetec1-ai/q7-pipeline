@@ -592,6 +592,32 @@ export type Database = {
           },
         ]
       }
+      flow_http_usage: {
+        Row: {
+          minute: string
+          n: number
+          organization_id: string
+        }
+        Insert: {
+          minute: string
+          n?: number
+          organization_id: string
+        }
+        Update: {
+          minute?: string
+          n?: number
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flow_http_usage_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       flow_run_steps: {
         Row: {
           created_at: string
@@ -1832,6 +1858,7 @@ export type Database = {
     }
     Functions: {
       accept_invitation: { Args: { org: string }; Returns: boolean }
+      ai_keys_status: { Args: { org: string }; Returns: Json }
       claim_inbound_events: {
         Args: { max_rows?: number }
         Returns: {
@@ -1917,6 +1944,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      delete_http_secret: {
+        Args: { org: string; secret_key: string }
+        Returns: undefined
+      }
       flow_stats: {
         Args: { flow: string; period?: number }
         Returns: {
@@ -1933,6 +1964,13 @@ export type Database = {
         Returns: boolean
       }
       heartbeat: { Args: { org: string }; Returns: undefined }
+      list_http_secrets: {
+        Args: { org: string }
+        Returns: {
+          name: string
+          updated_at: string
+        }[]
+      }
       my_invitations: {
         Args: never
         Returns: {
@@ -1982,6 +2020,7 @@ export type Database = {
       }
       service_get_secret: { Args: { secret_name: string }; Returns: string }
       service_has_secret: { Args: { secret_name: string }; Returns: boolean }
+      service_http_take: { Args: { org: string }; Returns: boolean }
       service_put_secret: {
         Args: { secret_name: string; secret_value: string }
         Returns: undefined
@@ -2054,6 +2093,10 @@ export type Database = {
       }
       service_update_message_status: {
         Args: { new_status: string; org: string; pmid: string }
+        Returns: undefined
+      }
+      set_http_secret: {
+        Args: { org: string; secret_key: string; secret_value: string }
         Returns: undefined
       }
       set_instance_secret: {

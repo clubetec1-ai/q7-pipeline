@@ -4,13 +4,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { BLOCK, type BlockData } from "./blocks";
+import { BLOCK, PROVIDER_LABEL, type BlockData } from "./blocks";
 
 /** Espera máxima (min): mantém a mensagem dentro da janela de 24 h do WhatsApp. */
 const MAX_WAIT_MIN = 1380;
 
 export interface Option { id: string; name: string }
-export interface Lookups { departments: Option[]; tags: Option[]; groups: Option[] }
+export interface Lookups {
+  departments: Option[]; tags: Option[]; groups: Option[];
+  closeReasons: Option[]; stages: Option[]; secrets: string[];
+}
 
 const selectCls = "w-full h-9 rounded-md border bg-background px-2 text-sm";
 const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -29,6 +32,51 @@ function Pick({ value, onChange, options, empty }: {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return <div className="space-y-1"><Label className="text-xs">{label}</Label>{children}</div>;
 }
+
+/** Lista de caixas de seleção (permissões fechadas do bloco de IA). */
+function Checks({ options, value, onChange }: { options: Option[]; value: string[]; onChange: (v: string[]) => void }) {
+  if (!options.length) return <p className="text-xs text-muted-foreground">Nada cadastrado.</p>;
+  return (
+    <div className="space-y-1">
+      {options.map((o) => (
+        <label key={o.id} className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={value.includes(o.id)}
+            onChange={(e) => onChange(e.target.checked ? [...value, o.id] : value.filter((x) => x !== o.id))} />
+          {o.name}
+        </label>
+      ))}
+    </div>
+  );
+}
+
+/** Pares editáveis (cabeçalhos, mapeamento da resposta). */
+function Pairs({ rows, keys, placeholders, onChange, max = 10 }: {
+  rows: Record<string, string>[]; keys: [string, string]; placeholders: [string, string];
+  onChange: (rows: Record<string, string>[]) => void; max?: number;
+}) {
+  return (
+    <div className="space-y-2">
+      {rows.map((r, i) => (
+        <div key={i} className="flex gap-1">
+          {keys.map((k, j) => (
+            <Input key={k} className="h-8 text-xs" placeholder={placeholders[j]} value={r[k] ?? ""} maxLength={j ? 2000 : 80}
+              onChange={(e) => onChange(rows.map((x, n) => (n === i ? { ...x, [k]: e.target.value } : x)))} />
+          ))}
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" title="Remover"
+            onClick={() => onChange(rows.filter((_, n) => n !== i))}><Trash2 className="w-4 h-4" /></Button>
+        </div>
+      ))}
+      {rows.length < max && (
+        <Button variant="outline" size="sm" onClick={() => onChange([...rows, { [keys[0]]: "", [keys[1]]: "" }])}>
+          <Plus className="w-4 h-4 mr-1" /> Adicionar
+        </Button>
+      )}
+    </div>
+  );
+}
+
+const FIELD_OPTIONS: Option[] = [{ id: "name", name: "Nome" }, { id: "email", name: "E-mail" }, { id: "document", name: "CPF/CNPJ" }];
+const list = (v: unknown) => (Array.isArray(v) ? (v as string[]) : []);
 
 /** Painel de propriedades do bloco selecionado. */
 export function NodeProperties({ type, data, onChange, onDelete, lookups }: {
@@ -152,6 +200,55 @@ export function NodeProperties({ type, data, onChange, onDelete, lookups }: {
           <Field label="Departamento quando pedir humano (sem ligação na saída)">
             <Pick value={s("handoff_department_id")} onChange={(v) => set({ handoff_department_id: v || null })} empty="Fila geral" options={lookups.departments} />
           </Field>
+          <Field label="Provedor de IA">
+            <Pick value={s("provider") || "groq"} onChange={(v) => set({ provider: v })}
+              options={Object.entries(PROVIDER_LABEL).map(([id, name]) => ({ id, name }))} />
+          </Field>
+          <Field label="Modelo (vazio = padrão do provedor)">
+            <Input value={s("model")} maxLength={80} placeholder="ex.: gpt-4o-mini" onChange={(e) => set({ model: e.target.value.trim() })} />
+          </Field>
+          <p className="text-xs text-muted-foreground">A chave de cada provedor fica em Fluxos → Chaves de IA. Sem chave, o cliente vai para a fila.</p>
+          <p className="text-sm font-medium pt-2">O que a IA pode fazer sozinha</p>
+          <Field label="Transferir para"><Checks options={lookups.departments} value={list(data.allow_departments)} onChange={(v) => set({ allow_departments: v })} /></Field>
+          <Field label="Finalizar com o motivo"><Checks options={lookups.closeReasons} value={list(data.allow_close_reasons)} onChange={(v) => set({ allow_close_reasons: v })} /></Field>
+          <Field label="Mover no funil para"><Checks options={lookups.stages} value={list(data.allow_stages)} onChange={(v) => set({ allow_stages: v })} /></Field>
+          <Field label="Guardar na ficha"><Checks options={FIELD_OPTIONS} value={list(data.allow_fields)} onChange={(v) => set({ allow_fields: v })} /></Field>
+          <p className="text-xs text-muted-foreground">Nada marcado = a IA só conversa. Cada ação é conferida pelo sistema e fica registrada.</p>
+        </>
+      )}
+      {type === "http" && (
+        <>
+          <Field label="Método">
+            <Pick value={s("method") || "GET"} onChange={(v) => set({ method: v })}
+              options={["GET", "POST", "PUT", "PATCH"].map((m) => ({ id: m, name: m }))} />
+          </Field>
+          <Field label="URL (só https)">
+            <Input value={s("url")} maxLength={500} onChange={(e) => set({ url: e.target.value.trim() })} />
+          </Field>
+          <Field label="Cabeçalhos">
+            <Pairs rows={(data.headers as Record<string, string>[]) ?? []} keys={["key", "value"]}
+              placeholders={["Authorization", "Bearer {{segredo.nome}}"]} onChange={(v) => set({ headers: v })} />
+          </Field>
+          {s("method") && s("method") !== "GET" && (
+            <Field label="Corpo (JSON)">
+              <Textarea rows={4} className="font-mono text-xs" maxLength={4000} value={s("body")}
+                placeholder={'{"telefone": "{telefone}", "pedido": "{var.pedido}"}'} onChange={(e) => set({ body: e.target.value })} />
+            </Field>
+          )}
+          <Field label="Guardar da resposta (caminho → variável)">
+            <Pairs rows={(data.map as Record<string, string>[]) ?? []} keys={["path", "var"]}
+              placeholders={["pedido.status", "status"]} onChange={(v) => set({ map: v })} max={20} />
+          </Field>
+          <Field label="Resposta de exemplo (usada no simulador)">
+            <Textarea rows={3} className="font-mono text-xs" maxLength={4000} value={s("sample")}
+              placeholder={'{"pedido": {"status": "enviado"}}'} onChange={(e) => set({ sample: e.target.value })} />
+          </Field>
+          <div className="text-xs text-muted-foreground space-y-1">
+            <p>Use {"{telefone}"}, {"{nome}"}, {"{protocolo}"} e {"{var.nome}"}. As variáveis guardadas aparecem nos próximos blocos como {"{var.nome}"}.</p>
+            <p>Segredos: {"{{segredo.nome}}"} só na URL, cabeçalhos e corpo. {lookups.secrets.length ? `Cadastrados: ${lookups.secrets.join(", ")}.` : "Nenhum cadastrado (Fluxos → Segredos)."}</p>
+            <p><b>Segurança:</b> consulte pelo telefone do cliente (confirmado pelo WhatsApp), não por um documento digitado — assim ninguém vê o pedido de outra pessoa digitando o CPF dela.</p>
+            <p>Endereços internos, http, outras portas e redirecionamentos são recusados. Limite: 10 s, 256 KB, 60 chamadas/min.</p>
+          </div>
         </>
       )}
       {type === "wait" && (

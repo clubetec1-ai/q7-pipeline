@@ -21,6 +21,8 @@ export interface FlowCtx {
   aiTurns: number;
   /** Retomado pelo relógio (wait_until venceu), não por mensagem do cliente. */
   timerFired?: boolean;
+  /** Resultado da chamada do bloco HTTP em que o run parou (o executor chamou). */
+  httpResult?: "success" | "error";
   businessHours?: Record<string, { start: string; end: string }[]>; // "0".."6"
 }
 
@@ -39,7 +41,7 @@ export interface FlowResult {
   actions: FlowAction[];
   steps: { nodeId: string; outcome: string }[];
   currentNodeId: string | null;
-  state: "waiting_input" | "waiting_timer" | "ai" | "done" | "error";
+  state: "waiting_input" | "waiting_timer" | "ai" | "http" | "done" | "error";
   vars: Record<string, string>;
   attempts: number;
   aiTurns: number;
@@ -59,6 +61,30 @@ const clampWait = (v: unknown) => Math.min(MAX_WAIT_MIN, Math.max(1, Math.round(
 const timeoutOf = (d: Record<string, any>) =>
   Number(d.timeout_minutes) > 0 ? { waitMinutes: clampWait(d.timeout_minutes) } : {};
 const HANDOFF = ["atendente", "humano", "pessoa"];
+
+/** Lê um caminho simples `a.b[0].c` de um JSON. */
+export function pickPath(obj: unknown, path: string): unknown {
+  let cur: any = obj;
+  for (const part of String(path).match(/[^.[\]]+/g) ?? []) {
+    if (cur === null || typeof cur !== "object") return undefined;
+    if (part === "__proto__" || part === "constructor" || part === "prototype") return undefined;
+    cur = Object.prototype.hasOwnProperty.call(cur, part) ? cur[part] : undefined;
+  }
+  return cur;
+}
+
+/** Copia campos da resposta do HTTP para variáveis (texto, até 500 caracteres). */
+export function mapResponse(body: unknown, map: unknown, vars: Record<string, string>): Record<string, string> {
+  const out = { ...vars };
+  for (const m of (Array.isArray(map) ? map : []).slice(0, 20)) {
+    const name = String(m?.var ?? "").toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 40);
+    if (!name || !m?.path) continue;
+    const v = pickPath(body, String(m.path));
+    if (v === undefined || v === null) continue;
+    out[name] = (typeof v === "object" ? JSON.stringify(v) : String(v)).slice(0, 500);
+  }
+  return out;
+}
 
 export function fill(text: string, ctx: FlowCtx): string {
   const first = (ctx.contactName || "").trim().split(/\s+/)[0] ?? "";
@@ -127,10 +153,13 @@ export function advance(graph: FlowGraph, nodeId: string, input: string | null, 
   let current: string | null = nodeId;
   let pending = input;
   let fired = !!ctx0.timerFired; // vale só para o bloco em que o run parou
+  let http = ctx0.httpResult;
   for (let i = 0; i < MAX_STEPS; i++) {
     const node = current ? byId.get(current) : undefined;
     const timer = fired;
+    const httpDone = http;
     fired = false;
+    http = undefined;
     if (!node) {
       // Saída sem ligação: fim do fluxo → fila geral (nunca fica preso em "bot").
       actions.push({ type: "queue" });
@@ -194,6 +223,10 @@ export function advance(graph: FlowGraph, nodeId: string, input: string | null, 
         if (timer) { handle = "elapsed"; break; }
         steps.push({ nodeId: node.id, outcome: "waiting" });
         return finish("waiting_timer", node.id, undefined, { waitMinutes: clampWait(d.minutes) });
+      case "http":
+        if (httpDone) { handle = httpDone; break; }
+        steps.push({ nodeId: node.id, outcome: "call" });
+        return finish("http", node.id);
       case "survey": {
         const [min, max] = d.kind === "nps" ? [0, 10] : [1, 5];
         const stage = ctx.vars.__sv;

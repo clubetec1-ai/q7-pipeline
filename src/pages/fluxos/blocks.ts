@@ -15,6 +15,9 @@ const str = (v: unknown) => (typeof v === "string" ? v : "");
 const cut = (s: string, n = 60) => (s.length > n ? `${s.slice(0, n)}…` : s);
 /** Saída "Sem resposta" quando o bloco tem tempo limite. */
 const timeout = (d: BlockData) => (Number(d.timeout_minutes) > 0 ? [{ id: "timeout", label: `Sem resposta em ${d.timeout_minutes} min` }] : []);
+export const PROVIDER_LABEL: Record<string, string> = {
+  groq: "Groq", openai: "OpenAI", openrouter: "OpenRouter", gemini: "Google Gemini", anthropic: "Anthropic (Claude)", deepseek: "DeepSeek",
+};
 export const fmtMinutes = (m: number) => (m >= 60 ? `${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60} min` : ""}` : `${m} min`);
 
 export const BLOCKS: BlockDef[] = [
@@ -62,7 +65,7 @@ export const BLOCKS: BlockDef[] = [
     type: "ai_agent", label: "Agente de IA", color: "#E8618C",
     outputs: () => [{ id: "transferred", label: "Pediu humano" }, { id: "fallback", label: "Limite de respostas" }],
     defaults: () => ({ prompt: "", max_turns: 10, handoff_words: ["atendente", "humano", "pessoa"] }),
-    summary: (d) => cut(str(d.prompt) || "Usa o prompt do agente da empresa"),
+    summary: (d) => `${PROVIDER_LABEL[str(d.provider) || "groq"] ?? "Groq"} · ${cut(str(d.prompt) || "Usa o prompt do agente da empresa", 45)}`,
   },
   {
     type: "wait", label: "Aguardar", color: "#94A3B8",
@@ -75,6 +78,14 @@ export const BLOCKS: BlockDef[] = [
     outputs: () => [{ id: "answered", label: "Respondeu" }, { id: "timeout", label: "Sem resposta em 24 h" }],
     defaults: () => ({ kind: "csat", text: "Como você avalia o nosso atendimento?", comment: "" }),
     summary: (d) => (d.kind === "nps" ? "Nota de 0 a 10" : "Nota de 1 a 5"),
+  },
+  {
+    type: "http", label: "Consultar sistema", color: "#7C3AED",
+    outputs: () => [{ id: "success", label: "Deu certo" }, { id: "error", label: "Deu erro" }],
+    defaults: () => ({ method: "GET", url: "https://", headers: [], body: "", map: [], sample: "" }),
+    summary: (d) => {
+      try { return `${str(d.method) || "GET"} ${new URL(str(d.url)).hostname}`; } catch { return "Configure a URL"; }
+    },
   },
   {
     type: "tag", label: "Etiqueta", color: "#64748B",

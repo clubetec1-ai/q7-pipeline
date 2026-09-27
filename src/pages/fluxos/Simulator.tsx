@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 // O MESMO motor que roda no webhook (função pura): o simulador não envia nada
 // ao WhatsApp nem grava no banco; a IA aparece como marcador.
-import { advance, type FlowAction, type FlowCtx, type FlowGraph, type FlowResult } from "../../../supabase/functions/_shared/flow/engine";
+import { advance, mapResponse, type FlowAction, type FlowCtx, type FlowGraph, type FlowResult } from "../../../supabase/functions/_shared/flow/engine";
 import { fmtMinutes } from "./blocks";
 import type { Lookups } from "./NodeProperties";
 
@@ -50,9 +50,22 @@ export function Simulator({ graph, lookups, onActive }: {
       protocol: "20260101-0001", vars: base?.vars ?? {}, attempts: base?.attempts ?? 0, aiTurns: base?.aiTurns ?? 0,
       timerFired, businessHours: open ? ALL_DAY : {},
     };
-    const r: FlowResult = advance(graph, node, input, ctx);
+    let r: FlowResult = advance(graph, node, input, ctx);
     const out = r.actions.map(describe);
-    if (r.passthrough) out.push({ from: "sys", text: "Não é uma nota: a pesquisa termina e a mensagem abre um atendimento normal." });
+    // Bloco HTTP: no simulador usa a resposta de exemplo (nunca chama o sistema de verdade).
+    for (let hops = 0; r.state === "http" && hops < 10; hops++) {
+      const n = graph.nodes.find((x) => x.id === r.currentNodeId);
+      let body: unknown = null;
+      let ok = true;
+      try { body = JSON.parse(String(n?.data?.sample ?? "")); } catch { ok = false; }
+      out.push({ from: "sys", text: ok ? "Consulta ao sistema: usando a resposta de exemplo." : "Consulta ao sistema: sem resposta de exemplo válida, segue por “Deu erro”." });
+      r = advance(graph, r.currentNodeId!, null, {
+        ...ctx, timerFired: false, attempts: r.attempts, aiTurns: r.aiTurns,
+        vars: ok ? mapResponse(body, n?.data?.map, r.vars) : r.vars, httpResult: ok ? "success" : "error",
+      });
+      out.push(...r.actions.map(describe));
+    }
+    if (r.passthrough) out.push({ from: "sys", text: "Não é uma nota: a pesquisa termina e a mensagem segue para o atendimento normal." });
     if (r.error) out.push({ from: "sys", text: `Erro: ${r.error}` });
     const ended = r.state === "done" || r.state === "error";
     if (ended) out.push({ from: "sys", text: "Fim do fluxo." });

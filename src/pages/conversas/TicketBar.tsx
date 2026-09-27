@@ -90,7 +90,7 @@ export function TicketBar({ ticket, onChanged }: { ticket: Ticket | undefined; o
 
   const mine = ticket.assigned_to === user?.id;
   const canAct = mine || can("conversations.reassign") || !ticket.assigned_to;
-  // Atendimento de outra pessoa só se assume com permissão (fica registrado e ela é avisada).
+  // Atendimento de outra pessoa só se assume com permissão (fica registrado e quem estava atendendo recebe um aviso).
   const canTake = !mine && (!ticket.assigned_to || can("conversations.reassign"));
 
   const sendProtocol = async () => {
@@ -157,7 +157,7 @@ export function TicketBar({ ticket, onChanged }: { ticket: Ticket | undefined; o
           <DialogHeader>
             <DialogTitle>Assumir o atendimento de {owner || "outra pessoa"}?</DialogTitle>
             <DialogDescription>
-              Fica registrado que você assumiu; {owner || "a pessoa"} é avisada e o cliente recebe a mensagem de quem vai atender.
+              Fica registrado que você assumiu. {owner || "Quem estava atendendo"} recebe um aviso, e o cliente recebe a mensagem de quem vai atender.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
