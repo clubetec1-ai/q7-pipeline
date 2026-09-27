@@ -1012,6 +1012,50 @@ export type Database = {
           },
         ]
       }
+      library_files: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          media_path: string
+          mime: string | null
+          name: string
+          organization_id: string
+          size: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          media_path: string
+          mime?: string | null
+          name: string
+          organization_id: string
+          size?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          media_path?: string
+          mime?: string | null
+          name?: string
+          organization_id?: string
+          size?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "library_files_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           content: string
@@ -1411,6 +1455,7 @@ export type Database = {
           created_by: string | null
           department_id: string | null
           id: string
+          library_file_id: string | null
           organization_id: string
           shortcut: string
         }
@@ -1420,6 +1465,7 @@ export type Database = {
           created_by?: string | null
           department_id?: string | null
           id?: string
+          library_file_id?: string | null
           organization_id: string
           shortcut: string
         }
@@ -1429,6 +1475,7 @@ export type Database = {
           created_by?: string | null
           department_id?: string | null
           id?: string
+          library_file_id?: string | null
           organization_id?: string
           shortcut?: string
         }
@@ -1438,6 +1485,13 @@ export type Database = {
             columns: ["department_id", "organization_id"]
             isOneToOne: false
             referencedRelation: "departments"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "quick_replies_library_file_fk"
+            columns: ["library_file_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "library_files"
             referencedColumns: ["id", "organization_id"]
           },
           {

@@ -32,19 +32,21 @@ export async function runAiAgent(p: {
   // deno-lint-ignore no-explicit-any
   admin: any; orgId: string; node: { id: string; data: Record<string, any> }; ticket: any; conv: any;
   send: (text: string) => Promise<unknown>;
+  sendFile: (fileId: string) => Promise<unknown>;
   route: (args: Record<string, unknown>) => Promise<unknown>;
 }): Promise<{ ended: boolean }> {
-  const { admin, orgId, node, ticket, conv, send, route } = p;
+  const { admin, orgId, node, ticket, conv, send, sendFile, route } = p;
   const d = node.data ?? {};
   const org = forOrg(admin, orgId);
   const provider = typeof d.provider === "string" && d.provider ? d.provider : "groq";
   const [apiKey, agent] = await Promise.all([providerKey(admin, orgId, provider), getAgentConfig(orgId)]);
   if (!apiKey) { await route({ action: "queue" }); return { ended: true }; }
 
-  const [depts, reasons, stages] = await Promise.all([
+  const [depts, reasons, stages, files] = await Promise.all([
     allowed(org, "departments", ids(d.allow_departments)),
     allowed(org, "close_reasons", ids(d.allow_close_reasons), (q) => q.eq("active", true)),
     allowed(org, "pipeline_stages", ids(d.allow_stages)),
+    allowed(org, "library_files", ids(d.allow_files)),
   ]);
   const fields = ids(d.allow_fields).filter((f) => FIELDS[f]);
 
@@ -60,6 +62,10 @@ export async function runAiAgent(p: {
   if (stages.size) tools.push({
     name: "mover_etapa", description: "Move o cliente para uma etapa do funil de vendas.",
     parameters: { type: "object", properties: { etapa: { type: "string", enum: [...stages.keys()] } }, required: ["etapa"] },
+  });
+  if (files.size) tools.push({
+    name: "enviar_arquivo", description: "Envia ao cliente um arquivo da empresa (catálogo, tabela de preços, manual...).",
+    parameters: { type: "object", properties: { arquivo: { type: "string", enum: [...files.keys()] } }, required: ["arquivo"] },
   });
   if (fields.length) tools.push({
     name: "salvar_dado_cliente", description: "Guarda um dado que o cliente informou na ficha dele.",
@@ -109,6 +115,8 @@ export async function runAiAgent(p: {
     } else if (c.name === "finalizar_atendimento" && reasons.has(arg("motivo")) && !terminal) {
       terminal = { action: "close", reason: reasons.get(arg("motivo")) };
       outcome = "ok";
+    } else if (c.name === "enviar_arquivo" && files.has(arg("arquivo"))) {
+      outcome = (await sendFile(files.get(arg("arquivo"))!)) === false ? "erro" : "ok";
     } else if (c.name === "mover_etapa" && stages.has(arg("etapa"))) {
       const { error } = await org.update("conversations", { stage_id: stages.get(arg("etapa")) }).eq("id", conv.id);
       outcome = error ? "erro" : "ok";

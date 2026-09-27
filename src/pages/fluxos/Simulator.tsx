@@ -32,7 +32,7 @@ export function Simulator({ graph, lookups, onActive }: {
   const name = (list: { id: string; name: string }[], id: string | null) => list.find((x) => x.id === id)?.name;
   const describe = (a: FlowAction): Line => {
     switch (a.type) {
-      case "send": return { from: "bot", text: a.text };
+      case "send": return { from: "bot", text: a.fileId ? `📎 ${name(lookups.files, a.fileId) ?? "arquivo"}${a.text ? `\n${a.text}` : ""}` : a.text };
       case "set_field": return { from: "sys", text: `Guarda na ficha (${a.field}): ${a.value}` };
       case "tag": return { from: "sys", text: `${a.remove ? "Remove" : "Adiciona"} etiqueta ${name(lookups.tags, a.tagId) ?? ""}` };
       case "ai": return { from: "sys", text: "A IA responderia aqui (não é chamada no simulador)." };

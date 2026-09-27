@@ -497,6 +497,24 @@ BEGIN
   PERFORM pg_temp.expect((SELECT display_name = 'Ana Souza' FROM public.organization_members WHERE organization_id = A AND user_id = agent_a), 'nome final');
   PERFORM pg_temp.expect((SELECT count(*) = 3 FROM public.audit_log WHERE organization_id = A AND action = 'member.renamed'), 'alteracoes auditadas');
 
+  -- 31. Biblioteca: membros leem, so library.manage grava; nunca de/para outra org.
+  INSERT INTO public.library_files (id, organization_id, name, media_path)
+  VALUES ('aaaaaaaa-0000-0000-0012-000000000001', A, 'Catalogo', A::text || '/library/cat.pdf');
+  INSERT INTO storage.objects (bucket_id, name) VALUES ('media', A::text || '/library/cat.pdf');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, 'SELECT count(*) FROM public.library_files') = 1, 'atendente ve a biblioteca');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.library_files') = 0, 'outra org nao ve a biblioteca');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, format('SELECT count(*) FROM storage.objects WHERE name = %L', A::text || '/library/cat.pdf')) = 1, 'atendente le o arquivo');
+  PERFORM pg_temp.expect(pg_temp.q(agent_b, format('SELECT count(*) FROM storage.objects WHERE name = %L', A::text || '/library/cat.pdf')) = 0, 'outra org nao le o arquivo');
+  PERFORM pg_temp.expect_denied(agent_a, format('DELETE FROM storage.objects WHERE name = %L', A::text || '/library/cat.pdf'), 'atendente nao apaga arquivo');
+  PERFORM pg_temp.expect_denied(agent_a, format('INSERT INTO public.library_files (organization_id, name, media_path) VALUES (%L, %L, %L)',
+    A, 'x', A::text || '/library/x.pdf'), 'atendente nao cadastra arquivo');
+  PERFORM pg_temp.expect(pg_temp.run(sup_a, format('INSERT INTO public.library_files (organization_id, name, media_path) VALUES (%L, %L, %L)',
+    A, 'Manual', A::text || '/library/manual.pdf')) = 'ok:1', 'supervisor cadastra arquivo');
+  PERFORM pg_temp.expect_error(owner_a, format('INSERT INTO public.library_files (organization_id, name, media_path) VALUES (%L, %L, %L)',
+    A, 'x', 'bbbbbbbb-0000-0000-0000-000000000001/library/x.pdf'), 'caminho de outra org recusado');
+  PERFORM pg_temp.expect_error(owner_b, format('INSERT INTO public.quick_replies (organization_id, shortcut, content, library_file_id) VALUES (%L, %L, %L, %L)',
+    'bbbbbbbb-0000-0000-0000-000000000001', 'x', 'x', 'aaaaaaaa-0000-0000-0012-000000000001'), 'resposta rapida nao usa arquivo de outra org');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 

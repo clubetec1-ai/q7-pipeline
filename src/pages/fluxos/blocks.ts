@@ -31,7 +31,7 @@ export const BLOCKS: BlockDef[] = [
     type: "message", label: "Mensagem", color: "#3FB8BE",
     outputs: () => [{ id: "next", label: "Depois" }],
     defaults: () => ({ text: "Olá {nome}!" }),
-    summary: (d) => cut(str(d.text)),
+    summary: (d) => `${d.library_file_id ? "📎 " : ""}${cut(str(d.text))}`,
   },
   {
     type: "menu", label: "Menu", color: "#6C8EF5",

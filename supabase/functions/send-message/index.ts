@@ -4,6 +4,7 @@ import { forOrg } from "../_shared/tenant.ts";
 import { withInstanceToken } from "../_shared/secrets.ts";
 import { LIMITS, isDangerous, sniffMime, typeOf } from "../_shared/media.ts";
 import * as providers from "../_shared/providers/index.ts";
+import { loadLibraryFile, SENDABLE } from "../_shared/library.ts";
 
 /**
  * Envio a partir da tela (texto e arquivo) — spec atendimento §6.3.
@@ -20,7 +21,6 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-const SENDABLE = /^(image\/(jpeg|png)|audio\/(ogg|mpeg|mp4|aac|amr)|video\/(mp4|3gpp)|application\/pdf|text\/(plain|csv)|application\/(zip|msword|vnd\.)[\w.+-]*)$/;
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -34,8 +34,10 @@ Deno.serve(async (req) => {
     const text = String(body?.text ?? "").trim();
     const mediaPath: string | null = body?.media_path ? String(body.media_path) : null;
     const mediaName = String(body?.media_name ?? "arquivo").slice(0, 200);
+    const libraryId: string | null = body?.library_file_id ? String(body.library_file_id) : null;
     if (!/^[0-9a-f-]{36}$/i.test(conversationId)) throw new HttpError(400, "Conversa inválida");
-    if (!text && !mediaPath) throw new HttpError(400, "Nada para enviar");
+    if (libraryId && !/^[0-9a-f-]{36}$/i.test(libraryId)) throw new HttpError(400, "Arquivo inválido");
+    if (!text && !mediaPath && !libraryId) throw new HttpError(400, "Nada para enviar");
     if (text.length > 4096) throw new HttpError(400, "Mensagem longa demais (máx. 4096 caracteres)");
 
     const ctx = await requireUser(req);
@@ -79,7 +81,12 @@ Deno.serve(async (req) => {
 
     let sent: providers.SendResult;
     let fields: Record<string, unknown> = { type: "text" };
-    if (mediaPath) {
+    if (libraryId) {
+      // Arquivo da biblioteca: buscado pela organização da conversa (nunca de outra).
+      const f = await loadLibraryFile(admin, orgId, libraryId).catch((e) => { throw new HttpError(400, e.message); });
+      sent = await providers.sendMedia(inst, conv.contact_phone, { type: f.type, bytes: f.bytes, mime: f.mime, name: f.name, caption: text || undefined });
+      fields = { type: f.type, media_path: f.path, media_mime: f.mime, media_size: f.bytes.length, media_name: f.name };
+    } else if (mediaPath) {
       if (!mediaPath.startsWith(`${orgId}/${conv.id}/`)) throw new HttpError(400, "Arquivo de outra conversa");
       if (isDangerous(mediaName)) throw new HttpError(400, "Tipo de arquivo não permitido");
       const { data: blob, error } = await admin.storage.from("media").download(mediaPath);

@@ -48,7 +48,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { ChevronDown, CheckCircle2, XCircle, AlertCircle, Paperclip } from "lucide-react";
+import { BookOpen, ChevronDown, CheckCircle2, XCircle, AlertCircle, Paperclip } from "lucide-react";
+import { LibraryPicker, type LibraryPick } from "./conversas/LibraryPicker";
 import { getActiveOrgId } from "@/lib/org";
 import { useTickets, STATUS_LABEL, TicketTab } from "./conversas/useTickets";
 import { TicketBar } from "./conversas/TicketBar";
@@ -138,6 +139,7 @@ export default function Conversas() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingLib, setPendingLib] = useState<LibraryPick | null>(null);
   const [fichaOpen, setFichaOpen] = useState(false);
   const [tab, setTab] = useState<TicketTab>("todos");
   const [search, setSearch] = useState("");
@@ -463,6 +465,12 @@ export default function Conversas() {
 
   const send = async () => {
     if (pendingFile) return sendFile(pendingFile);
+    if (pendingLib && active) {
+      setSending(true);
+      if (await sendPayload({ library_file_id: pendingLib.id, text: input.trim() })) { setInput(""); setPendingLib(null); }
+      setSending(false);
+      return;
+    }
     if (!input.trim() || !active) return;
     setSending(true);
     if (await sendPayload({ text: input.trim() })) setInput("");
@@ -826,7 +834,7 @@ export default function Conversas() {
                 ))}
               </div>
 
-              <QuickReplies input={input} setInput={setInput} vars={{
+              <QuickReplies input={input} setInput={setInput} onFile={(f) => { setPendingLib(f); setPendingFile(null); }} vars={{
                 nome: (active.contact_name || "").split(" ")[0],
                 protocolo: byConversation.get(active.id)?.protocol ?? "",
                 atendente: firstName(myName),
@@ -834,6 +842,17 @@ export default function Conversas() {
               }} />
               <ContactSheet open={fichaOpen} onClose={() => setFichaOpen(false)} contactId={active.contact_id ?? null}
                 conversationId={active.id} ticketId={byConversation.get(active.id)?.id} />
+              {pendingLib && (
+                <div className="px-3 pt-2 flex items-center gap-2 text-xs">
+                  <BookOpen className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate font-medium">{pendingLib.name}</span>
+                  <span className="text-muted-foreground">· da biblioteca; escreva uma descrição (opcional) e envie</span>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 ml-auto" title="Remover anexo" disabled={sending}
+                    onClick={() => setPendingLib(null)}>
+                    <XCircle className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
               {pendingFile && (
                 <div className="px-3 pt-2 flex items-center gap-2 text-xs">
                   <Paperclip className="w-3.5 h-3.5 shrink-0" />
@@ -864,14 +883,15 @@ export default function Conversas() {
                   onClick={() => fileRef.current?.click()}>
                   <Paperclip className="w-4 h-4" />
                 </Button>
+                {org && <LibraryPicker orgId={org.id} disabled={sending} onPick={(f) => { setPendingLib(f); setPendingFile(null); }} />}
                 <Input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder={pendingFile ? "Descrição do arquivo (opcional)..." : active.ai_enabled ? "IA responderá automaticamente. Envie mensagem manual mesmo assim..." : "Digite sua resposta..."}
+                  placeholder={pendingFile || pendingLib ? "Descrição do arquivo (opcional)..." : active.ai_enabled ? "IA responderá automaticamente. Envie mensagem manual mesmo assim..." : "Digite sua resposta..."}
                   onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), send())}
                   disabled={sending}
                 />
-                <Button onClick={send} disabled={sending || (!input.trim() && !pendingFile)}>
+                <Button onClick={send} disabled={sending || (!input.trim() && !pendingFile && !pendingLib)}>
                   <Send className="w-4 h-4" />
                 </Button>
               </div>
