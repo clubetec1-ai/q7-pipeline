@@ -52,7 +52,7 @@ export function Simulator({ graph, lookups, onActive }: {
     };
     const r: FlowResult = advance(graph, node, input, ctx);
     const out = r.actions.map(describe);
-    if (r.passthrough) out.push({ from: "sys", text: "Não é uma nota: a pesquisa termina e a mensagem abre um atendimento normal." });
+    if (r.passthrough) out.push({ from: "sys", text: "Não é uma nota: a pesquisa termina e a mensagem segue para o atendimento normal." });
     if (r.error) out.push({ from: "sys", text: `Erro: ${r.error}` });
     const ended = r.state === "done" || r.state === "error";
     if (ended) out.push({ from: "sys", text: "Fim do fluxo." });
