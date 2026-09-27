@@ -42,10 +42,13 @@ export function QuickReplies({
   const matches = query === null ? [] : replies.filter((r) => r.shortcut.includes(query)).slice(0, 6);
 
   const add = async () => {
-    const sc = shortcut.trim().toLowerCase().replace(/^\//, "");
-    if (!/^[a-z0-9_-]{1,30}$/.test(sc) || !content.trim()) {
-      return toast({ variant: "destructive", title: "Atalho só com letras minúsculas, números, - ou _" });
+    // Aceita "/Olá Cliente" e grava "ola-cliente".
+    const sc = shortcut.trim().toLowerCase().replace(/^\/+/, "")
+      .normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, "-");
+    if (!/^[a-z0-9_-]{1,30}$/.test(sc)) {
+      return toast({ variant: "destructive", title: "Atalho só com letras, números, - ou _ (até 30)" });
     }
+    if (!content.trim()) return toast({ variant: "destructive", title: "Escreva o texto da resposta" });
     const { error } = await supabase.from("quick_replies")
       .insert({ organization_id: org!.id, shortcut: sc, content: content.trim(), created_by: user?.id });
     if (error) return toast({ variant: "destructive", title: error.code === "23505" ? "Atalho já existe" : "Sem permissão" });

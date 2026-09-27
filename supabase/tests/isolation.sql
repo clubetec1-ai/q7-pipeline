@@ -28,6 +28,15 @@ BEGIN
   RETURN n;
 END $$;
 
+-- Como q(), mas tabela so do backend (sem GRANT) conta como 0 linhas vistas.
+CREATE FUNCTION pg_temp.seen(uid uuid, sql text) RETURNS bigint LANGUAGE plpgsql AS $$
+BEGIN
+  RETURN pg_temp.q(uid, sql);
+EXCEPTION WHEN insufficient_privilege THEN
+  EXECUTE 'RESET ROLE';
+  RETURN 0;
+END $$;
+
 -- Texto de uma consulta vista pelo usuario.
 CREATE FUNCTION pg_temp.t(uid uuid, sql text) RETURNS text LANGUAGE plpgsql AS $$
 DECLARE r text;
@@ -188,10 +197,10 @@ BEGIN
   FOR tbl IN SELECT table_name FROM information_schema.columns
              WHERE table_schema = 'public' AND column_name = 'organization_id'
              ORDER BY table_name LOOP
-    PERFORM pg_temp.expect(pg_temp.q(agent_b, format(
+    PERFORM pg_temp.expect(pg_temp.seen(agent_b, format(
       'SELECT count(*) FROM public.%I WHERE organization_id = %L', tbl, A)) = 0,
       'leitura cruzada ' || tbl);
-    PERFORM pg_temp.expect(pg_temp.q(outsider, format(
+    PERFORM pg_temp.expect(pg_temp.seen(outsider, format(
       'SELECT count(*) FROM public.%I', tbl)) = 0, 'outsider ' || tbl);
     PERFORM pg_temp.expect_denied(owner_b, format(
       'UPDATE public.%I SET organization_id = organization_id WHERE organization_id = %L', tbl, A),
@@ -339,6 +348,27 @@ BEGIN
     'INSERT INTO public.agent_configs (user_id, system_prompt) VALUES (%L, %L)
      ON CONFLICT (organization_id) DO UPDATE SET system_prompt = EXCLUDED.system_prompt', owner_a, 'novo')) = 'ok:1',
     'upsert de agent_configs por organizacao');
+
+  -- 25. Fluxos: so org.settings escreve; publicado so pela RPC; outra org nao ve.
+  INSERT INTO public.flows (id, organization_id, name) VALUES ('aaaaaaaa-0000-0000-0009-000000000001', A, 'fluxo-a');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.flows') = 0, 'outra org nao ve fluxo');
+  PERFORM pg_temp.expect(pg_temp.q(sup_a, 'SELECT count(*) FROM public.flows') = 1, 'supervisor ve fluxo');
+  PERFORM pg_temp.expect_denied(agent_a, format(
+    'INSERT INTO public.flows (organization_id, name) VALUES (%L, %L)', A, 'x'), 'agent nao cria fluxo');
+  PERFORM pg_temp.expect_denied(owner_a, format(
+    'INSERT INTO public.flow_versions (organization_id, flow_id, status) VALUES (%L, %L, %L)',
+    A, 'aaaaaaaa-0000-0000-0009-000000000001', 'published'), 'navegador nao publica por insert');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format(
+    'INSERT INTO public.flow_versions (organization_id, flow_id, status, graph) VALUES (%L, %L, %L, %L)',
+    A, 'aaaaaaaa-0000-0000-0009-000000000001', 'draft',
+    '{"nodes":[{"id":"s","type":"start","data":{}}],"edges":[]}')) = 'ok:1', 'owner cria rascunho');
+  PERFORM pg_temp.expect_error(owner_a,
+    'UPDATE public.flow_versions SET status = ''published''', 'navegador nao troca status');
+  PERFORM pg_temp.expect_error(owner_b, format(
+    'SELECT public.publish_flow(%L)', 'aaaaaaaa-0000-0000-0009-000000000001'), 'outra org nao publica');
+  PERFORM pg_temp.expect(pg_temp.t(owner_a, format(
+    'SELECT public.publish_flow(%L)::text', 'aaaaaaaa-0000-0000-0009-000000000001')) = '1', 'owner publica v1');
+  PERFORM pg_temp.expect_error(owner_a, 'SELECT count(*) FROM public.flow_runs', 'navegador nao le flow_runs');
 
   RAISE NOTICE 'ISOLATION OK';
 END $$;

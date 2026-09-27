@@ -6,6 +6,7 @@ import { cancelPendingFollowups, scheduleInactivityFollowup } from "../_shared/f
 import * as providers from "../_shared/providers/index.ts";
 import { transcribeAudio } from "../_shared/transcribe.ts";
 import { LIMITS, storeMedia } from "../_shared/media.ts";
+import { runFlow } from "../_shared/flow/executor.ts";
 import { forOrg, type OrgScope } from "../_shared/tenant.ts";
 import { getSecret, hasSecret, hmacSha256Hex, safeEqual, sha256Hex, withInstanceToken } from "../_shared/secrets.ts";
 
@@ -524,6 +525,12 @@ serve(async (req) => {
 
     // IA só responde atendimento que está com ela.
     if (ticket.status !== "bot") return ok();
+
+    // Fluxo publicado para este número (ou o padrão da empresa) conduz o
+    // atendimento; sem fluxo, segue a IA da organização como antes.
+    if (await runFlow({ admin: supabase, orgId, inst: instRow, conv, ticket, text: String(text ?? "") })) {
+      return ok();
+    }
     if (!agent || !agent.enabled) return ok();
 
     const { data: history } = await org
