@@ -1,5 +1,8 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { callGroq, listChatModels, resolveModelChain } from "../_shared/get-ai-config.ts";
+import { HttpError, requirePermission, requireUser, resolveOrg } from "../_shared/auth.ts";
+import { forOrg } from "../_shared/tenant.ts";
+import { getSecret } from "../_shared/secrets.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,9 +13,15 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return json({ ok: false, error: "Não autorizado" }, 200);
+    let ctx;
+    let orgId: string;
+    const body = await req.json().catch(() => ({}));
+    try {
+      ctx = await requireUser(req);
+      orgId = await resolveOrg(ctx, body?.organization_id);
+      await requirePermission(ctx, orgId, "org.settings");
+    } catch (e) {
+      return json({ ok: false, error: (e as Error).message }, e instanceof HttpError ? e.status : 401);
     }
 
     const supabase = createClient(
@@ -20,23 +29,15 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
       { auth: { autoRefreshToken: false, persistSession: false } },
     );
-    const { data: { user } } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
-    if (!user) return json({ ok: false, error: "Usuário inválido" }, 200);
-
-    const body = await req.json().catch(() => ({}));
     let { apiKey, model } = body ?? {};
 
     // A UI limpa o campo da chave depois de salvar, então um teste posterior
-    // manda o corpo vazio. Busca o que o usuário salvou antes de desistir.
-    const { data: cfg } = await supabase
-      .from("agent_configs")
-      .select("groq_api_key, groq_model")
-      .eq("user_id", user.id)
+    // manda o corpo vazio: usa a chave da organização, guardada no Vault.
+    const { data: cfg } = await forOrg(supabase, orgId)
+      .select("agent_configs", "groq_model")
       .maybeSingle();
     if (!model) model = cfg?.groq_model ?? "auto";
-    if (!apiKey) apiKey = cfg?.groq_api_key ?? undefined;
-
-    if (!apiKey) apiKey = Deno.env.get("GROQ_API_KEY");
+    if (!apiKey) apiKey = (await getSecret(supabase, `org:${orgId}:groq_api_key`)) ?? undefined;
     if (!apiKey) {
       return json({ ok: false, error: "Chave da Groq não configurada. Adicione em Configurações → Integração." }, 200);
     }

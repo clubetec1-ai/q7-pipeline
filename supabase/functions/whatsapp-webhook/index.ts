@@ -5,6 +5,8 @@ import { getUazapiConfig } from "../_shared/get-uazapi-config.ts";
 import { cancelPendingFollowups, scheduleInactivityFollowup } from "../_shared/followups.ts";
 import * as providers from "../_shared/providers/index.ts";
 import { transcribeAudio } from "../_shared/transcribe.ts";
+import { forOrg, type OrgScope } from "../_shared/tenant.ts";
+import { getSecret, hasSecret, hmacSha256Hex, safeEqual, sha256Hex, withInstanceToken } from "../_shared/secrets.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -155,38 +157,113 @@ async function handleMetaVerification(req: Request) {
   });
 }
 
+function unauthorized(reason: string) {
+  console.warn("[webhook] recusado", { reason });
+  return new Response(JSON.stringify({ ok: false, error: "unauthorized" }), {
+    status: 401,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+type Resolved = { inst: any } | { deny: string } | null;
+
+/**
+ * Cloud API: instância pelo phone_number_id; origem pela assinatura
+ * X-Hub-Signature-256 (HMAC-SHA256 do corpo bruto com o App Secret).
+ */
+async function resolveCloud(admin: any, req: Request, raw: string, phoneNumberId: string | null): Promise<Resolved> {
+  if (!phoneNumberId) return null;
+  const { data: inst } = await admin
+    .from("whatsapp_instances")
+    .select("*")
+    .eq("phone_number_id", phoneNumberId)
+    .maybeSingle();
+  if (!inst) return null;
+
+  const secret =
+    (await getSecret(admin, `instance:${inst.id}:app_secret`)) ||
+    (await getSecret(admin, "platform:meta_app_secret"));
+  if (!secret) {
+    // Transição: sem App Secret configurado não há como validar. Registrado no
+    // plano 1C; configurar platform:meta_app_secret fecha este caminho.
+    console.error("[webhook] ATENCAO: App Secret da Meta nao configurado; assinatura nao validada");
+    return { inst };
+  }
+  const header = req.headers.get("x-hub-signature-256") ?? "";
+  const expected = "sha256=" + (await hmacSha256Hex(secret, raw));
+  if (!safeEqual(header, expected)) return { deny: "assinatura Meta invalida" };
+  return { inst };
+}
+
+/**
+ * Uazapi: com ?i=<instance_id>&k=<segredo>, instância e origem conferidas.
+ * Sem ?i=, busca legada (token por hash, nome, telefone) — aceita só para
+ * número que ainda não ganhou segredo de webhook.
+ */
+async function resolveUazapi(
+  admin: any, url: URL, ref: { token: string | null; name: string; owner: string },
+): Promise<Resolved> {
+  const qi = url.searchParams.get("i");
+  const qk = url.searchParams.get("k") ?? "";
+  if (qi) {
+    if (!/^[0-9a-f-]{36}$/i.test(qi)) return { deny: "i invalido" };
+    const { data: inst } = await admin.from("whatsapp_instances").select("*").eq("id", qi).maybeSingle();
+    if (!inst) return { deny: "instancia inexistente" };
+    const secret = await getSecret(admin, `instance:${inst.id}:webhook`);
+    if (!secret || !safeEqual(qk, secret)) return { deny: "segredo do webhook invalido" };
+    return { inst };
+  }
+
+  // Legado só pelo token da instância, que é segredo (comparado por hash).
+  // Nome e telefone do número NÃO identificam: são conhecíveis por qualquer um
+  // e permitiriam forjar mensagem para a organização de outro cliente.
+  if (!ref.token) return { deny: "sem token e sem URL autenticada" };
+  const { data: inst } = await admin
+    .from("whatsapp_instances")
+    .select("*")
+    .eq("token_hash", await sha256Hex(ref.token))
+    .maybeSingle();
+  if (!inst) return null;
+  if (await hasSecret(admin, `instance:${inst.id}:webhook`)) {
+    return { deny: "numero exige URL autenticada (?i=&k=)" };
+  }
+  return { inst };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method === "GET") return await handleMetaVerification(req);
 
   try {
-    const body = await req.json();
+    const raw = await req.text();
+    let body: any;
+    try {
+      body = JSON.parse(raw);
+    } catch {
+      return ok({ ok: false, error: "json invalido" });
+    }
+    const url = new URL(req.url);
     const providerId = providers.detectPayloadProvider(body);
     const event = providerId === "cloud"
       ? "messages"
       : (body.EventType || body.event || body.type || "messages");
 
-    // Eventos de controle so existem na Uazapi.
-    if (providerId === "uazapi") {
-      if (event === "test") return ok({ ok: true, message: "webhook ok" });
-      if (event === "dry_run") return await runDryRun(body);
-      if (event === "connection" || event === "connection.update") return await handleConnection(body);
-    }
+    if (providerId === "uazapi" && event === "test") return ok({ ok: true, message: "webhook ok" });
 
-    // A Cloud API tem parser proprio em cloud.ts. A Uazapi segue no extractText
-    // historico, que e o caminho comprovado em producao.
-    let text: string | null;
-    let media: string | null;
-    let fromMe: boolean;
-    let phone: string;
-    let isGroup: boolean;
-    let contactName: string | null;
-    let instanceName: string;
-    let instanceToken: string | null;
-    let instanceOwner: string;
+    // Cada provedor tem seu parser; a Uazapi segue no extractText histórico.
+    let text: string | null = null;
+    let media: string | null = null;
+    let fromMe = false;
+    let phone = "";
+    let isGroup = false;
+    let contactName: string | null = null;
+    let instanceName = "";
+    let instanceToken: string | null = null;
+    let instanceOwner = "";
     let phoneNumberId: string | null = null;
     let mediaId: string | null = null;
     let mediaKind: string | null = null;
+    const isConnection = providerId === "uazapi" && (event === "connection" || event === "connection.update");
 
     if (providerId === "cloud") {
       const inbound = providers.parseCloudInbound(body);
@@ -196,16 +273,16 @@ serve(async (req) => {
       }
       text = inbound.text;
       media = inbound.mediaKind ? inbound.text : null;
-      fromMe = false;
       phone = inbound.phone;
-      isGroup = false;
       contactName = inbound.contactName;
-      instanceName = "";
-      instanceToken = null;
-      instanceOwner = "";
       phoneNumberId = inbound.ref.phoneNumberId ?? null;
       mediaId = inbound.mediaId;
       mediaKind = inbound.mediaKind;
+    } else if (isConnection) {
+      const inst = body?.instance ?? {};
+      instanceToken = body?.token || inst?.token || null;
+      instanceName = String(inst?.name || body?.instanceName || "").trim();
+      instanceOwner = jidToPhone(body?.owner || inst?.owner || "");
     } else {
       const parsed = extractText(body);
       text = parsed.text;
@@ -221,21 +298,18 @@ serve(async (req) => {
       mediaKind = parsed.media === "[áudio]" ? "audio" : null;
     }
 
-    // Observabilidade: sem isso, mudança no payload da Uazapi vira descarte silencioso.
+    // Observabilidade sem dado pessoal além do necessário para diagnóstico.
     console.log("[webhook] in", {
       provider: providerId,
       event,
-      body_keys: Object.keys(body || {}).join(","),
       has_text: !!text,
       media: media || null,
-      phone: phone || null,
       is_group: isGroup,
       from_me: fromMe,
-      has_token: !!instanceToken,
-      owner: instanceOwner || null,
+      authed_url: url.searchParams.has("i"),
     });
 
-    if (isGroup || !text || !phone) {
+    if (!isConnection && (isGroup || !text || !phone)) {
       console.log("[webhook] ignorado", {
         reason: isGroup ? "grupo" : !text ? "sem_texto" : "sem_telefone",
       });
@@ -247,131 +321,56 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // Find instance by token or name → resolves owner
-    let instRow: any = null;
-    // Cloud API: identificacao deterministica, o phone_number_id vem em todo payload.
-    if (phoneNumberId) {
-      const { data } = await supabase
-        .from("whatsapp_instances")
-        .select("*")
-        .eq("phone_number_id", phoneNumberId)
-        .maybeSingle();
-      instRow = data;
-    }
-    if (!instRow && instanceToken) {
-      const { data } = await supabase
-        .from("whatsapp_instances")
-        .select("*")
-        .eq("instance_token", instanceToken)
-        .maybeSingle();
-      instRow = data;
-    }
-    if (!instRow && instanceName) {
-      const { data } = await supabase
-        .from("whatsapp_instances")
-        .select("*")
-        .eq("name", instanceName)
-        .maybeSingle();
-      instRow = data;
-    }
-    if (!instRow && instanceName) {
-      const { data } = await supabase
-        .from("whatsapp_instances")
-        .select("*")
-        .not("instance_token", "is", null)
-        .order("updated_at", { ascending: false })
-        .limit(20);
-
-      instRow = (data || []).find((row: any) => normalizeName(row.name) === normalizeName(instanceName)) || null;
-    }
-    // Último recurso: o telefone da instância (`owner`) vem em todo payload da Uazapi
-    if (!instRow && instanceOwner) {
-      const { data } = await supabase
-        .from("whatsapp_instances")
-        .select("*")
-        .eq("phone", instanceOwner)
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      instRow = data;
-    }
-    if (!instRow) {
-      console.warn("[webhook] instance not found", {
-        provider: providerId,
-        phoneNumberId,
-        instanceName,
-        hasToken: !!instanceToken,
-        owner: instanceOwner,
-      });
+    // Origem autenticada + instância. A organização vem da instância (banco),
+    // nunca do payload.
+    const resolved = providerId === "cloud"
+      ? await resolveCloud(supabase, req, raw, phoneNumberId)
+      : await resolveUazapi(supabase, url, { token: instanceToken, name: instanceName, owner: instanceOwner });
+    if (resolved && "deny" in resolved) return unauthorized(resolved.deny);
+    if (!resolved) {
+      console.warn("[webhook] instancia nao encontrada", { provider: providerId });
       return ok();
     }
-    console.log("[webhook] instancia resolvida", { id: instRow.id, name: instRow.name });
+    let instRow: any = resolved.inst;
+    const orgId: string = instRow.organization_id;
 
-    const userId = instRow.user_id;
+    const { data: orgRow } = await supabase
+      .from("organizations")
+      .select("status")
+      .eq("id", orgId)
+      .maybeSingle();
+    if (orgRow?.status !== "active") {
+      console.log("[webhook] organizacao inativa; ignorado", { status: orgRow?.status ?? null });
+      return ok();
+    }
+    const org = forOrg(supabase, orgId);
 
-    // Auto-sincroniza o nome salvo com o nome real vindo da Uazapi (matches por token)
+    if (isConnection) return await handleConnection(org, instRow, body);
+
+    // Auto-sincroniza o nome salvo com o nome real vindo da Uazapi.
     if (instanceName && instRow.name !== instanceName) {
-      await supabase
-        .from("whatsapp_instances")
-        .update({ name: instanceName })
-        .eq("id", instRow.id);
+      await org.update("whatsapp_instances", { name: instanceName }).eq("id", instRow.id);
       instRow.name = instanceName;
     }
 
-    // Upsert conversation
-    // Escopada pela instancia: o mesmo contato falando em dois numeros vira
-    // duas conversas, com historicos e prompts separados.
-    const { data: convExisting } = await supabase
-      .from("conversations")
-      .select("*")
-      .eq("user_id", userId)
+    // Conversa escopada por organização + número: o mesmo contato falando em
+    // dois números vira duas conversas.
+    const { data: convExisting } = await org
+      .select("conversations")
       .eq("instance_id", instRow.id)
       .eq("contact_phone", phone)
       .maybeSingle();
 
-    let conv = convExisting;
+    let conv: any = convExisting;
     if (!conv) {
-      // Novo contato → coluna "Novo Lead" (fallback: primeiro stage por position)
-      const { data: novoLead } = await supabase
-        .from("pipeline_stages")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("name", "Novo Lead")
+      // Novo contato → primeira etapa do funil da organização.
+      const { data: firstStage } = await org
+        .select("pipeline_stages", "id")
+        .order("position", { ascending: true })
         .limit(1)
         .maybeSingle();
-      let firstStage = novoLead;
-      if (!firstStage) {
-        const { data: fallback } = await supabase
-          .from("pipeline_stages")
-          .select("id")
-          .eq("user_id", userId)
-          .order("position", { ascending: true })
-          .limit(1)
-          .maybeSingle();
-        firstStage = fallback;
-      }
-      // Conta criada antes do seed automático → sem kanban, o lead ficaria invisível.
-      // Cria as colunas padrão na hora em vez de gravar stage_id nulo.
-      if (!firstStage) {
-        console.log("[webhook] kanban vazio, criando etapas padrao", { userId });
-        await supabase.from("pipeline_stages").insert([
-          { user_id: userId, name: "Novo Lead", position: 0, color: "#3FB8BE" },
-          { user_id: userId, name: "Em Negociação", position: 1, color: "#F59E0B" },
-          { user_id: userId, name: "Fechado", position: 2, color: "#10B981" },
-        ]);
-        const { data: seeded } = await supabase
-          .from("pipeline_stages")
-          .select("id")
-          .eq("user_id", userId)
-          .order("position", { ascending: true })
-          .limit(1)
-          .maybeSingle();
-        firstStage = seeded;
-      }
-      const { data: created, error: createErr } = await supabase
-        .from("conversations")
-        .insert({
-          user_id: userId,
+      const { data: created, error: createErr } = await org
+        .insert("conversations", {
           instance_id: instRow.id,
           contact_phone: phone,
           contact_name: contactName,
@@ -383,15 +382,12 @@ serve(async (req) => {
         })
         .select()
         .single();
-      // Contato novo mandando duas mensagens juntas: as duas passam pelo select acima sem
-      // achar conversa e as duas tentam inserir. O índice único (user_id, contact_phone)
-      // barra a segunda — sem reler aqui, essa mensagem sumiria sem deixar rastro.
+      // Duas mensagens juntas de contato novo: a segunda perde a corrida no
+      // índice único. Relê em vez de perder a mensagem.
       if (createErr) {
-        console.log("[webhook] corrida na criacao, relendo conversa", { phone });
-        const { data: raced } = await supabase
-          .from("conversations")
-          .select("*")
-          .eq("user_id", userId)
+        console.log("[webhook] corrida na criacao, relendo conversa");
+        const { data: raced } = await org
+          .select("conversations")
           .eq("instance_id", instRow.id)
           .eq("contact_phone", phone)
           .maybeSingle();
@@ -404,7 +400,7 @@ serve(async (req) => {
         last_message_at: new Date().toISOString(),
         contact_name: contactName || conv.contact_name,
       };
-      // So mensagem DO CLIENTE abre a janela de 24h da Meta.
+      // Só mensagem DO CLIENTE abre a janela de 24h da Meta.
       if (!fromMe) {
         update.last_inbound_at = new Date().toISOString();
         conv.last_inbound_at = update.last_inbound_at;
@@ -415,22 +411,19 @@ serve(async (req) => {
         conv.ai_enabled = false;
         conv.human_takeover_at = update.human_takeover_at;
       }
-      await supabase.from("conversations").update(update).eq("id", conv.id);
+      await org.update("conversations", update).eq("id", conv.id);
     }
     if (!conv) return ok();
 
-    // Mensagem enviada do próprio celular do usuário → registra como takeover humano
-    // e encerra aqui (não chama IA, não reenvia via Uazapi).
+    // Mensagem enviada do próprio celular → takeover humano; não chama IA.
     if (fromMe) {
-      console.log("[webhook] takeover humano", { phone, conversa: conv.id, ia: "desligada" });
+      console.log("[webhook] takeover humano", { conversa: conv.id, ia: "desligada" });
       await cancelPendingFollowups(supabase, conv.id);
-      await supabase
-        .from("conversations")
-        .update({ inactivity_followup_at: null, auto_followup_count: 0 })
+      await org
+        .update("conversations", { inactivity_followup_at: null, auto_followup_count: 0 })
         .eq("id", conv.id);
-      await supabase.from("messages").insert({
+      await org.insert("messages", {
         conversation_id: conv.id,
-        user_id: userId,
         direction: "outbound",
         sender: "human",
         content: text,
@@ -438,48 +431,46 @@ serve(async (req) => {
       return ok();
     }
 
-    // Cliente respondeu → cancela follow-ups pendentes e zera contador de auto-follow-ups
+    // Cliente respondeu → cancela follow-ups pendentes e zera o contador.
     await cancelPendingFollowups(supabase, conv.id);
-    await supabase
-      .from("conversations")
-      .update({ inactivity_followup_at: null, auto_followup_count: 0 })
+    await org
+      .update("conversations", { inactivity_followup_at: null, auto_followup_count: 0 })
       .eq("id", conv.id);
 
-    // Audio vira texto antes de ser gravado: o historico guarda o que foi dito,
-    // e a Clara passa a atender quem so manda audio. Qualquer falha aqui cai
-    // silenciosamente no rotulo "[audio]" — transcricao nunca derruba atendimento.
-    if (mediaKind === "audio" && mediaId) {
-      const agentAudio = await getAgentConfig(userId);
-      if (agentAudio?.apiKey) {
-        const bytes = await providers.getAudioBytes(instRow, mediaId);
-        if (bytes) {
-          const falado = await transcribeAudio(agentAudio.apiKey, bytes);
-          if (falado) {
-            text = "🎤 " + falado;
-            console.log("[webhook] audio transcrito", { chars: falado.length });
-          }
+    // Token do número só do Vault, carregado quando for usado.
+    instRow = await withInstanceToken(supabase, instRow);
+    if (providers.providerOf(instRow) === "uazapi" && !instRow.server_url) {
+      // Instância antiga, sem config própria: cai no ajuste global da Uazapi.
+      const uaz = await getUazapiConfig();
+      instRow.server_url = uaz?.serverUrl ?? null;
+      instRow.instance_token = instRow.instance_token || uaz?.instanceToken || null;
+    }
+
+    // Áudio vira texto antes de ser gravado; falha aqui cai no rótulo "[áudio]".
+    const agent = await getAgentConfig(orgId);
+    if (mediaKind === "audio" && mediaId && agent?.apiKey) {
+      const bytes = await providers.getAudioBytes(instRow, mediaId);
+      if (bytes) {
+        const falado = await transcribeAudio(agent.apiKey, bytes);
+        if (falado) {
+          text = "🎤 " + falado;
+          console.log("[webhook] audio transcrito", { chars: falado.length });
         }
       }
     }
 
-    // Save inbound message
-    await supabase.from("messages").insert({
+    await org.insert("messages", {
       conversation_id: conv.id,
-      user_id: userId,
       direction: "inbound",
       sender: "contact",
       content: text,
     });
 
-    // AI reply?
     if (!conv.ai_enabled) return ok();
-    const agent = await getAgentConfig(userId);
     if (!agent || !agent.enabled) return ok();
 
-    // Build history (last 20 messages)
-    const { data: history } = await supabase
-      .from("messages")
-      .select("direction, sender, content")
+    const { data: history } = await org
+      .select("messages", "direction, sender, content")
       .eq("conversation_id", conv.id)
       .order("created_at", { ascending: false })
       .limit(20);
@@ -498,66 +489,43 @@ serve(async (req) => {
       return ok();
     }
 
-    // Envia pelo provedor da instancia. A janela de 24h nao e verificada aqui:
-    // acabamos de RECEBER uma mensagem do contato, entao ela esta aberta por
-    // definicao. Quem precisa checar e o run-followups, que dispara sozinho.
-    if (providers.providerOf(instRow) === "uazapi" && !instRow.server_url) {
-      // Instancia antiga, sem config propria: cai no ajuste global da Uazapi.
-      const uaz = await getUazapiConfig();
-      instRow.server_url = uaz?.serverUrl ?? null;
-      instRow.instance_token = instRow.instance_token || uaz?.instanceToken || null;
-    }
-
+    // Acabamos de RECEBER mensagem do contato: a janela de 24h está aberta.
     const enviado = await providers.sendText(instRow, phone, groq.reply);
     if (!enviado.ok) {
-      console.error("[webhook] envio falhou", {
-        provider: instRow.provider,
-        code: enviado.code,
-        error: enviado.error,
-      });
+      console.error("[webhook] envio falhou", { provider: instRow.provider, code: enviado.code });
       return ok();
     }
 
-    // Persist outbound
-    await supabase.from("messages").insert({
+    await org.insert("messages", {
       conversation_id: conv.id,
-      user_id: userId,
       direction: "outbound",
       sender: "ai",
       content: groq.reply,
     });
-    await supabase
-      .from("conversations")
-      .update({ last_message_at: new Date().toISOString() })
+    await org
+      .update("conversations", { last_message_at: new Date().toISOString() })
       .eq("id", conv.id);
 
-    // Agenda auto-follow-up por inatividade, se habilitado
     await scheduleInactivityFollowup({
       admin: supabase,
-      userId,
+      orgId,
       conversationId: conv.id,
       currentAutoCount: conv.auto_followup_count ?? 0,
     });
 
     return ok();
   } catch (e: any) {
-    console.error("[webhook] error", e);
-    return ok({ ok: false, error: e.message });
+    console.error("[webhook] error", e?.message);
+    return ok({ ok: false });
   }
 });
 
 /**
- * Evento de conexão da Uazapi. Sem isto o status da instância ficava congelado
- * no banco: o WhatsApp caía (bateria, chip removido, sessão expirada) e o painel
- * seguia dizendo "connected" — o problema só aparecia quando um cliente reclamava
- * de não ter sido respondido.
+ * Evento de conexão da Uazapi: mantém o status do número em dia no painel
+ * (bateria, chip removido, sessão expirada). Instância já autenticada.
  */
-async function handleConnection(body: any) {
+async function handleConnection(org: OrgScope, instRow: any, body: any) {
   const inst = body?.instance ?? {};
-  const token: string | null = body?.token || inst?.token || null;
-  const name: string = String(inst?.name || body?.instanceName || "").trim();
-  const ownerPhone = jidToPhone(body?.owner || inst?.owner || "");
-
   const raw = String(
     inst?.status ?? body?.status ?? inst?.state ?? body?.state ?? body?.connection ?? "",
   ).toLowerCase();
@@ -567,150 +535,13 @@ async function handleConnection(body: any) {
   else if (/connecting|qr|pairing|syncing/.test(raw)) status = "connecting";
   else if (/connected|open|online/.test(raw)) status = "connected";
 
-  console.log("[webhook] connection", { raw, status, has_token: !!token, name, ownerPhone });
-
-  if (!status) return ok();
-
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-  );
-
-  // Mesma cascata de identificação usada para mensagens: token, depois nome, depois telefone.
-  let instRow: any = null;
-  if (token) {
-    const { data } = await supabase
-      .from("whatsapp_instances")
-      .select("id, name, status")
-      .eq("instance_token", token)
-      .maybeSingle();
-    instRow = data ?? null;
-  }
-  if (!instRow && (name || ownerPhone)) {
-    const { data } = await supabase
-      .from("whatsapp_instances")
-      .select("id, name, status, phone")
-      .not("instance_token", "is", null)
-      .order("updated_at", { ascending: false })
-      .limit(20);
-    instRow =
-      (data || []).find((r: any) => name && normalizeName(r.name) === normalizeName(name)) ||
-      (data || []).find((r: any) => ownerPhone && r.phone === ownerPhone) ||
-      null;
-  }
-
-  if (!instRow) {
-    console.error("[webhook] connection: instancia nao encontrada", { name, ownerPhone });
-    return ok();
-  }
-  if (instRow.status === status) return ok();
+  console.log("[webhook] connection", { raw, status });
+  if (!status || instRow.status === status) return ok();
 
   const patch: Record<string, unknown> = { status };
   if (status === "disconnected") patch.last_disconnected_at = new Date().toISOString();
-
-  const { error } = await supabase
-    .from("whatsapp_instances")
-    .update(patch)
-    .eq("id", instRow.id);
-
+  const { error } = await org.update("whatsapp_instances", patch).eq("id", instRow.id);
   if (error) console.error("[webhook] connection: update falhou", error.message);
   else console.log("[webhook] connection: status atualizado", { de: instRow.status, para: status });
-
   return ok();
-}
-
-async function runDryRun(body: any) {
-  const inName: string = String(body?.instance?.name || "").trim();
-  const inToken: string = String(body?.instance?.token || "").trim();
-  const checks: any = {
-    instance: { ok: false, matched_by: null, name_mismatch: false, instance_name: null },
-    agent: { ok: false, has_key: false, enabled: false },
-    groq: { ok: false },
-    uazapi: { ok: false },
-  };
-
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-  );
-
-  // 1. Instance lookup
-  let instRow: any = null;
-  if (inToken) {
-    const { data } = await supabase
-      .from("whatsapp_instances")
-      .select("*")
-      .eq("instance_token", inToken)
-      .maybeSingle();
-    if (data) {
-      instRow = data;
-      checks.instance.matched_by = "token";
-    }
-  }
-  if (!instRow && inName) {
-    const { data } = await supabase
-      .from("whatsapp_instances")
-      .select("*")
-      .not("instance_token", "is", null)
-      .order("updated_at", { ascending: false })
-      .limit(20);
-    instRow = (data || []).find((r: any) => normalizeName(r.name) === normalizeName(inName)) || null;
-    if (instRow) checks.instance.matched_by = "name";
-  }
-  if (instRow) {
-    checks.instance.ok = true;
-    checks.instance.instance_name = instRow.name;
-    checks.instance.name_mismatch = !!(inName && instRow.name !== inName);
-  } else {
-    checks.instance.error = "Nenhuma instância encontrada com esse token/nome";
-    return ok({ ok: false, checks });
-  }
-
-  // 2. Agent
-  const agent = await getAgentConfig(instRow.user_id);
-  checks.agent.has_key = !!agent?.apiKey;
-  checks.agent.enabled = !!agent?.enabled;
-  checks.agent.ok = checks.agent.has_key && checks.agent.enabled;
-  if (!checks.agent.has_key) checks.agent.error = "Chave da Groq não configurada";
-  else if (!checks.agent.enabled) checks.agent.error = "Agente não está ativo";
-
-  // 3. Groq ping
-  if (agent?.apiKey) {
-    const r = await callGroq(agent.apiKey, agent.model, [
-      { role: "system", content: "Responda apenas: ok" },
-      { role: "user", content: "ping" },
-    ]);
-    checks.groq.ok = r.ok;
-    if (!r.ok) checks.groq.error = r.error;
-  } else {
-    checks.groq.error = "Sem chave para testar";
-  }
-
-  // 4. Uazapi reachable
-  const uaz = await getUazapiConfig();
-  const serverUrl = (instRow.server_url as string | null)?.replace(/\/$/, "") || uaz?.serverUrl;
-  const token = instRow.instance_token || uaz?.instanceToken;
-  if (!serverUrl || !token) {
-    checks.uazapi.error = "Server URL ou token da instância ausente";
-  } else {
-    try {
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 5000);
-      const res = await fetch(`${serverUrl}/instance/status`, {
-        method: "GET",
-        headers: { token },
-        signal: ctrl.signal,
-      });
-      clearTimeout(t);
-      await res.text().catch(() => "");
-      checks.uazapi.ok = res.ok;
-      checks.uazapi.status = res.status;
-      if (!res.ok) checks.uazapi.error = `Uazapi retornou HTTP ${res.status}`;
-    } catch (e: any) {
-      checks.uazapi.error = e?.message || "Falha ao conectar na Uazapi";
-    }
-  }
-
-  const allOk = checks.instance.ok && checks.agent.ok && checks.groq.ok && checks.uazapi.ok;
-  return ok({ ok: allOk, checks });
 }

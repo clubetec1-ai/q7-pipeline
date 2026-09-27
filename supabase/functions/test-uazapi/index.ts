@@ -1,4 +1,19 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { HttpError, isPlatformOperator, requireUser } from "../_shared/auth.ts";
+
+/** https com nome de host (sem IP literal nem localhost): barra SSRF para a rede interna. */
+function isPublicHttpsUrl(raw: string): boolean {
+  try {
+    const u = new URL(raw);
+    if (u.protocol !== "https:") return false;
+    const h = u.hostname.toLowerCase();
+    if (h === "localhost" || h.endsWith(".local") || h.endsWith(".internal")) return false;
+    if (/^[\d.]+$/.test(h) || h.includes(":")) return false; // IPv4/IPv6 literal
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,10 +27,22 @@ serve(async (req) => {
   }
 
   try {
+    // Config global da Uazapi: só operador da plataforma testa. Sem isso,
+    // qualquer um com a anon key (pública) fazia o servidor chamar URLs à escolha.
+    try {
+      const ctx = await requireUser(req);
+      if (!(await isPlatformOperator(ctx))) throw new HttpError(403, "Apenas operadores da plataforma");
+    } catch (e) {
+      const status = e instanceof HttpError ? e.status : 401;
+      return new Response(JSON.stringify({ ok: false, message: (e as Error).message }), {
+        status, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { serverUrl, instanceToken, adminToken } = await req.json();
-    if (!serverUrl) {
+    if (!serverUrl || !isPublicHttpsUrl(String(serverUrl))) {
       return new Response(
-        JSON.stringify({ ok: false, message: "URL do servidor é obrigatória." }),
+        JSON.stringify({ ok: false, message: "Informe a URL https do servidor Uazapi." }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -104,7 +131,7 @@ serve(async (req) => {
       if (lastStatus === 404) msg = "Endpoint não encontrado (404). Confirme a URL do servidor Uazapi.";
 
       return new Response(
-        JSON.stringify({ ok: false, message: msg, details: lastBody?.slice(0, 300) }),
+        JSON.stringify({ ok: false, message: msg }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

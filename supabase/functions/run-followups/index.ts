@@ -1,8 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { getAgentConfig, callGroq } from "../_shared/get-ai-config.ts";
 import { getUazapiConfig } from "../_shared/get-uazapi-config.ts";
 import * as providers from "../_shared/providers/index.ts";
+import { forOrg } from "../_shared/tenant.ts";
+import { getSecret, safeEqual, withInstanceToken } from "../_shared/secrets.ts";
 
 const BATCH = 20;
 
@@ -25,6 +27,17 @@ serve(async (req) => {
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
+
+  // So o cron dispara: o cabecalho vem do Vault (platform:cron_secret). Antes,
+  // bastava a anon key, que e publica.
+  const expected = await getSecret(supabase, "platform:cron_secret");
+  const got = req.headers.get("x-cron-secret") ?? "";
+  if (!expected || !safeEqual(got, expected)) {
+    return new Response(JSON.stringify({ ok: false, error: "unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   const { data: due, error } = await supabase
     .from("followups")
@@ -65,11 +78,13 @@ serve(async (req) => {
 
       // Instância. Precisa da linha inteira: sem `provider` e `phone_number_id`,
       // um número da Cloud API parece Uazapi e o envio cai no ramo errado.
-      const { data: inst } = await supabase
-        .from("whatsapp_instances")
-        .select("*")
+      // Tudo daqui em diante e da organizacao da conversa; token vem do Vault.
+      const org = forOrg(supabase, conv.organization_id);
+      const { data: instRow } = await org
+        .select("whatsapp_instances")
         .eq("id", conv.instance_id)
         .maybeSingle();
+      const inst = instRow ? await withInstanceToken(supabase, instRow) : null;
       if (!inst?.instance_token) {
         await supabase.from("followups").update({ status: "failed", error: "no instance token" }).eq("id", f.id);
         continue;
@@ -79,14 +94,13 @@ serve(async (req) => {
       let text = (f.text_override || "").trim();
 
       if (!text) {
-        const agent = await getAgentConfig(conv.user_id);
+        const agent = await getAgentConfig(conv.organization_id);
         if (!agent) {
           await supabase.from("followups").update({ status: "failed", error: "agent config missing" }).eq("id", f.id);
           continue;
         }
-        const { data: history } = await supabase
-          .from("messages")
-          .select("direction, content")
+        const { data: history } = await org
+          .select("messages", "direction, content")
           .eq("conversation_id", conv.id)
           .order("created_at", { ascending: false })
           .limit(20);
@@ -154,9 +168,8 @@ serve(async (req) => {
       }
 
       // Persiste mensagem + marca followup enviado
-      await supabase.from("messages").insert({
+      await org.insert("messages", {
         conversation_id: conv.id,
-        user_id: conv.user_id,
         direction: "outbound",
         // Só é "human" quando o texto foi escrito pelo usuário (follow-up manual).
         // Reengajamento automático é da máquina, inclusive o texto de fallback —
@@ -183,17 +196,14 @@ serve(async (req) => {
 
       // Encadeamento: se ainda pode enviar mais um auto, agenda o próximo
       if (f.kind === "auto_inactivity") {
-        const { data: agentCfg } = await supabase
-          .from("agent_configs")
-          .select("followup_inactivity_minutes, followup_max_per_conversation")
-          .eq("user_id", conv.user_id)
+        const { data: agentCfg } = await org
+          .select("agent_configs", "followup_inactivity_minutes, followup_max_per_conversation")
           .maybeSingle();
         const minutes = agentCfg?.followup_inactivity_minutes ?? 0;
         const max = agentCfg?.followup_max_per_conversation ?? 1;
         if (minutes > 0 && newCount < max) {
           const nextAt = new Date(Date.now() + minutes * 60_000).toISOString();
-          await supabase.from("followups").insert({
-            user_id: conv.user_id,
+          await org.insert("followups", {
             conversation_id: conv.id,
             send_at: nextAt,
             status: "pending",

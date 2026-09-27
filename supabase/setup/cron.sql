@@ -4,9 +4,12 @@
 -- Roda a edge function `run-followups` a cada minuto.
 -- Bônus: mantém o projeto Free "ativo" (projetos Free pausam após 7 dias parados).
 --
--- ANTES DE EXECUTAR, substitua os 2 placeholders:
+-- ANTES DE EXECUTAR, substitua o placeholder:
 --   <PROJECT_REF>  → o ref do seu projeto Supabase (ex.: abcdwxyz1234)
---   <ANON_KEY>     → sua anon / publishable key
+--
+-- A função só aceita chamadas com o cabeçalho x-cron-secret, lido do Vault
+-- (segredo platform:cron_secret, criado pela migration 20260926000100). Nenhuma
+-- chave fica escrita no texto do job.
 --
 -- Pré-requisito: extensões pg_cron e pg_net habilitadas
 -- (Database > Extensions no painel do Supabase).
@@ -28,8 +31,11 @@ SELECT cron.schedule(
   $$
   SELECT net.http_post(
     url:='https://<PROJECT_REF>.supabase.co/functions/v1/run-followups',
-    headers:='{"Content-Type":"application/json","apikey":"<ANON_KEY>","Authorization":"Bearer <ANON_KEY>"}'::jsonb,
-    body:=concat('{"time":"', now(), '"}')::jsonb
+    headers:=jsonb_build_object(
+      'Content-Type', 'application/json',
+      'x-cron-secret', (SELECT decrypted_secret FROM vault.decrypted_secrets
+                        WHERE name = 'platform:cron_secret')),
+    body:=jsonb_build_object('time', now())
   ) AS request_id;
   $$
 );

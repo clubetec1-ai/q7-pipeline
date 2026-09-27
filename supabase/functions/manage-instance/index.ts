@@ -1,334 +1,315 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { getUazapiConfig } from "../_shared/get-uazapi-config.ts";
+import { callGroq, getAgentConfig } from "../_shared/get-ai-config.ts";
 import * as providers from "../_shared/providers/index.ts";
+import { HttpError, requirePermission, requireUser, resolveOrg } from "../_shared/auth.ts";
+import { forOrg } from "../_shared/tenant.ts";
+import { putSecret, randomHex, sha256Hex, withInstanceToken } from "../_shared/secrets.ts";
+
+/**
+ * Operações num número de WhatsApp, sempre em nome de um usuário logado.
+ *
+ * O navegador manda só o instance_id: a organização vem da instância (banco),
+ * a permissão é conferida com o JWT do usuário e o token sai do Vault. O token
+ * nunca é aceito do corpo nem devolvido na resposta.
+ */
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-function json(body: any, status = 200) {
+function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }
 
+/** Ações e a permissão que cada uma exige. */
+const PERMISSION: Record<string, string> = {
+  send_text: "conversations.attend",
+  create: "org.settings",
+  connect: "org.settings",
+  disconnect: "org.settings",
+  delete: "org.settings",
+  status: "org.settings",
+  set_webhook: "org.settings",
+  get_webhooks: "org.settings",
+  diagnose: "org.settings",
+};
+
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const body = await req.json();
-    const { action, name, phone, instance_token: bodyInstanceToken } = body;
+    const body = await req.json().catch(() => ({}));
+    const action: string = body?.action ?? "";
+    const perm = PERMISSION[action];
+    if (!perm) return json({ ok: false, error: "Ação inválida" });
 
-    // Resolve configuração preferencialmente pela instância do usuário
-    let baseUrl: string | null = null;
-    let instance_token = bodyInstanceToken || null;
-    let adminToken: string | null = null;
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    if (supabaseUrl && serviceKey && instance_token) {
-      const admin = createClient(supabaseUrl, serviceKey);
-      const { data: instRow } = await admin
-        .from("whatsapp_instances")
-        .select("*")
-        .eq("instance_token", instance_token)
-        .maybeSingle();
-
-      // Número da Cloud API não tem servidor Uazapi: o envio manual passa pelo
-      // mesmo despacho que a IA e os follow-ups usam, antes de o fallback
-      // abaixo exigir uma configuração da Uazapi que esse número não tem.
-      if (action === "send_text" && instRow && providers.providerOf(instRow) === "cloud") {
-        const { number, text } = body;
-        if (!number || !text) {
-          return json({ ok: false, error: "Número e texto são obrigatórios" });
-        }
-        const enviado = await providers.sendText(instRow, number, text);
-        if (!enviado.ok) {
-          console.error("[send_text] cloud falhou", { code: enviado.code });
-          return json({ ok: false, error: enviado.error || "Falha ao enviar mensagem" });
-        }
-        return json({ ok: true, success: true });
-      }
-
-      if (instRow?.server_url) {
-        baseUrl = instRow.server_url.replace(/\/$/, "");
-        instance_token = instRow.instance_token;
-      }
-    }
-
-    // Fallback para configuração global (admin)
+    const ctx = await requireUser(req);
+    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const globalConfig = await getUazapiConfig();
-    if (!baseUrl) {
-      if (!globalConfig) {
-        console.error("Missing Uazapi config");
-        return json({
-          ok: false,
-          error: "Uazapi não configurado. Configure em Configurações > Uazapi.",
-        });
-      }
-      baseUrl = globalConfig.serverUrl;
-      adminToken = globalConfig.adminToken;
-      if (!instance_token) instance_token = globalConfig.instanceToken;
-    }
 
-    const UAZAPI_ADMIN_TOKEN = adminToken;
-
-    console.log(`[manage-instance] action=${action}, name=${name || ""}, phone=${phone || ""}`);
-
-    if (!action) {
-      return json({ ok: false, error: "Ação não informada" });
-    }
-
-
-    // === CREATE (init) ===
+    // === CREATE (init) — não há instância ainda: organização do usuário ===
     if (action === "create") {
-      if (!name) {
-        return json({ ok: false, error: "Nome da instância não informado" });
+      const orgId = await resolveOrg(ctx, body?.organization_id);
+      await requirePermission(ctx, orgId, perm);
+      if (!body?.name) return json({ ok: false, error: "Nome da instância não informado" });
+      if (!globalConfig?.serverUrl || !globalConfig?.adminToken) {
+        return json({ ok: false, error: "Uazapi não configurada na plataforma." });
       }
-
-
-      const uazRes = await fetch(`${baseUrl}/instance/init`, {
+      const res = await fetch(`${globalConfig.serverUrl}/instance/init`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", AdminToken: UAZAPI_ADMIN_TOKEN },
-        body: JSON.stringify({ name }),
+        headers: { "Content-Type": "application/json", AdminToken: globalConfig.adminToken },
+        body: JSON.stringify({ name: body.name }),
       });
-
-      const responseText = await uazRes.text();
-      console.log(`[create] status=${uazRes.status}, body=${responseText}`);
-
-      if (!uazRes.ok) {
-        return json({ ok: false, error: "Falha ao criar instância", details: responseText });
+      const text = await res.text();
+      console.log(`[create] status=${res.status}`);
+      if (!res.ok) return json({ ok: false, error: "Falha ao criar instância" });
+      const data = JSON.parse(text);
+      const token: string | undefined = data?.token || data?.instance?.token;
+      const { data: row, error } = await forOrg(admin, orgId)
+        .insert("whatsapp_instances", {
+          user_id: ctx.user.id,
+          name: body.name,
+          server_url: globalConfig.serverUrl,
+          provider: "uazapi",
+          status: "disconnected",
+        })
+        .select("id")
+        .single();
+      if (error || !row) return json({ ok: false, error: "Falha ao registrar a instância" });
+      if (token) {
+        await putSecret(admin, `instance:${row.id}:token`, token);
+        await forOrg(admin, orgId)
+          .update("whatsapp_instances", {
+            secret_name: `instance:${row.id}:token`,
+            token_hash: await sha256Hex(token),
+          })
+          .eq("id", row.id);
       }
-
-      const data = JSON.parse(responseText);
-      return json({ ok: true, success: true, instance: data });
+      return json({ ok: true, instance_id: row.id });
     }
 
-    // === CONNECT ===
-    if (action === "connect") {
-      if (!instance_token) {
-        return json({ ok: false, error: "Token da instância não informado" });
+    // Demais ações: instância pelo id; organização e permissão a partir dela.
+    const instanceId: string = body?.instance_id ?? "";
+    if (!/^[0-9a-f-]{36}$/i.test(instanceId)) return json({ ok: false, error: "instance_id inválido" }, 400);
+    const { data: bare } = await admin.from("whatsapp_instances").select("*").eq("id", instanceId).maybeSingle();
+    if (!bare) return json({ ok: false, error: "Número não encontrado" }, 404);
+    const orgId: string = bare.organization_id;
+    await requirePermission(ctx, orgId, perm);
+    const org = forOrg(admin, orgId);
+
+    const inst: any = await withInstanceToken(admin, bare);
+    if (providers.providerOf(inst) === "uazapi" && !inst.server_url) {
+      inst.server_url = globalConfig?.serverUrl ?? null; // instância antiga sem config própria
+    }
+    const baseUrl: string | null = inst.server_url ? String(inst.server_url).replace(/\/$/, "") : null;
+    const token: string | null = inst.instance_token;
+
+    console.log(`[manage-instance] action=${action} provider=${inst.provider}`);
+
+    // === SEND TEXT (Uazapi ou Cloud, pelo provedor do número) ===
+    if (action === "send_text") {
+      const { number, text } = body;
+      if (!number || !text) return json({ ok: false, error: "Número e texto são obrigatórios" });
+      // O destino tem de ser uma conversa deste número nesta organização.
+      const { data: conv } = await org
+        .select("conversations", "id, last_inbound_at")
+        .eq("instance_id", inst.id)
+        .eq("contact_phone", String(number))
+        .maybeSingle();
+      if (!conv) return json({ ok: false, error: "Conversa não encontrada para este número" }, 404);
+      if (!providers.isWindowOpen(inst, conv.last_inbound_at)) {
+        return json({ ok: false, error: "Janela de 24h fechada: só modelo aprovado pela Meta." });
       }
+      const sent = await providers.sendText(inst, String(number), String(text));
+      if (!sent.ok) {
+        console.error("[send_text] falhou", { code: sent.code });
+        return json({ ok: false, error: sent.error || "Falha ao enviar mensagem" });
+      }
+      return json({ ok: true, success: true });
+    }
 
+    // Daqui em diante, só Uazapi (a Cloud API não tem estas operações).
+    if (providers.providerOf(inst) !== "uazapi") {
+      if (action === "diagnose") return json({ ok: true, checks: await diagnose(inst, orgId, null, null) });
+      return json({ ok: false, error: "Ação disponível só para números Uazapi" });
+    }
+    if (!baseUrl || !token) return json({ ok: false, error: "Número sem servidor ou token configurado" });
 
-      const connectBody: Record<string, string> = {};
-      if (phone) connectBody.phone = phone;
-
-      const uazRes = await fetch(`${baseUrl}/instance/connect`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", token: instance_token },
-        body: JSON.stringify(connectBody),
+    const uaz = (path: string, init: RequestInit = {}) =>
+      fetch(`${baseUrl}${path}`, {
+        ...init,
+        headers: { "Content-Type": "application/json", token, ...(init.headers || {}) },
       });
 
-      const responseText = await uazRes.text();
-      console.log(`[connect] status=${uazRes.status}, body=${responseText}`);
-
-      if (!uazRes.ok) {
-        // Token inválido/expirado no Uazapi — instância precisa ser recriada
-        if (uazRes.status === 401) {
+    if (action === "connect") {
+      const res = await uaz("/instance/connect", {
+        method: "POST",
+        body: JSON.stringify(body?.phone ? { phone: String(body.phone) } : {}),
+      });
+      const text = await res.text();
+      console.log(`[connect] status=${res.status}`);
+      if (!res.ok) {
+        if (res.status === 401) {
           return json({
             ok: false,
-            error:
-              "A instância do WhatsApp expirou no servidor. Remova a instância atual e crie uma nova.",
             code: "INSTANCE_TOKEN_INVALID",
-            details: responseText,
+            error: "A instância do WhatsApp expirou no servidor. Remova a instância atual e crie uma nova.",
           });
         }
-        return json({ ok: false, error: "Falha ao conectar", details: responseText });
+        return json({ ok: false, error: "Falha ao conectar" });
       }
-
-      const data = JSON.parse(responseText);
+      const data = JSON.parse(text);
       const paircode = data.instance?.paircode || data.paircode || null;
       const alreadyConnected = data.connected === true || data.status?.connected === true || data.loggedIn === true;
-
-      return json({ ok: true, success: true, paircode: paircode || null, already_connected: alreadyConnected });
+      return json({ ok: true, success: true, paircode, already_connected: alreadyConnected });
     }
 
-    // === DISCONNECT ===
     if (action === "disconnect") {
-      if (!instance_token) {
-        return json({ ok: false, error: "Token da instância não informado" });
-      }
-
-      const uazRes = await fetch(`${baseUrl}/instance/disconnect`, {
-        method: "POST",
-        headers: { token: instance_token },
-      });
-      const responseText = await uazRes.text();
-      console.log(`[disconnect] status=${uazRes.status}, body=${responseText}`);
-
+      const res = await uaz("/instance/disconnect", { method: "POST" });
+      console.log(`[disconnect] status=${res.status}`);
       return json({ ok: true, success: true });
     }
 
-    // === DELETE ===
     if (action === "delete") {
-      if (!instance_token) {
-        return json({ ok: false, error: "Token da instância não informado" });
-      }
-
       try {
-        const uazRes = await fetch(`${baseUrl}/instance`, {
-          method: "DELETE",
-          headers: { token: instance_token },
-        });
-        const responseText = await uazRes.text();
-        console.log(`[delete] status=${uazRes.status}, body=${responseText}`);
+        const res = await uaz("/instance", { method: "DELETE" });
+        console.log(`[delete] status=${res.status}`);
       } catch {
-        // best effort
+        // melhor esforço
       }
-
       return json({ ok: true, success: true });
     }
 
-    // === STATUS ===
     if (action === "status") {
-      if (!instance_token) {
-        return json({ ok: false, error: "Token da instância não informado" });
-      }
-
-      const uazRes = await fetch(`${baseUrl}/instance/status`, {
-        method: "GET",
-        headers: { token: instance_token },
-      });
-
-      const responseText = await uazRes.text();
-      console.log(`[status] status=${uazRes.status}, body=${responseText}`);
-
-      if (!uazRes.ok) {
-        return json({ ok: false, error: "Falha ao verificar status", details: responseText });
-      }
-
-      const data = JSON.parse(responseText);
-      
-      // Normalize status from various Uazapi response formats
-      // data.status can be an object like { connected: true } or a string like "connected"
+      const res = await uaz("/instance/status", { method: "GET" });
+      const text = await res.text();
+      console.log(`[status] status=${res.status}`);
+      if (!res.ok) return json({ ok: false, error: "Falha ao verificar status" });
+      const data = JSON.parse(text);
       const statusObj = data?.status;
       const instanceStatus = data?.instance?.status;
-      const isConnected = 
-        (typeof statusObj === 'object' && statusObj?.connected === true) ||
-        (typeof statusObj === 'string' && (statusObj === "open" || statusObj === "connected" || statusObj === "CONNECTED")) ||
-        (typeof instanceStatus === 'string' && (instanceStatus === "open" || instanceStatus === "connected" || instanceStatus === "CONNECTED")) ||
+      const connectedWords = ["open", "connected", "CONNECTED"];
+      const isConnected =
+        (typeof statusObj === "object" && statusObj?.connected === true) ||
+        (typeof statusObj === "string" && connectedWords.includes(statusObj)) ||
+        (typeof instanceStatus === "string" && connectedWords.includes(instanceStatus)) ||
         data?.loggedIn === true ||
         data?.instance?.loggedIn === true;
-      
-      // O token já identifica a instância: nome, telefone e perfil vêm de graça.
-      // Isso dispensa o usuário de digitar o nome à mão.
-      const inst = data?.instance ?? {};
+      // Só o necessário para a tela; a resposta crua pode conter o token.
+      const i = data?.instance ?? {};
       return json({
         ok: true,
         connected: isConnected,
-        name: inst.name || data?.name || null,
-        phone: inst.owner || data?.owner || null,
-        profile_name: inst.profileName || null,
-        raw_status: statusObj,
-        raw_response: data,
+        name: i.name || data?.name || null,
+        phone: i.owner || data?.owner || null,
+        profile_name: i.profileName || null,
       });
     }
 
-    // === SEND TEXT ===
-    if (action === "send_text") {
-      if (!instance_token) {
-        return json({ ok: false, error: "Token da instância não informado" });
-      }
-
-      const { number, text, delay: msgDelay, readchat } = body;
-      if (!number || !text) {
-        return json({ ok: false, error: "Número e texto são obrigatórios" });
-      }
-
-      const sendBody: Record<string, any> = { number, text };
-      if (msgDelay) sendBody.delay = msgDelay;
-      if (readchat !== undefined) sendBody.readchat = readchat;
-
-      const uazRes = await fetch(`${baseUrl}/send/text`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", token: instance_token },
-        body: JSON.stringify(sendBody),
-      });
-
-      const responseText = await uazRes.text();
-      console.log(`[send_text] status=${uazRes.status}, body=${responseText}`);
-
-      if (!uazRes.ok) {
-        return json({ ok: false, error: "Falha ao enviar mensagem", details: responseText });
-      }
-
-      const data = JSON.parse(responseText);
-      return json({ ok: true, success: true, data });
-    }
-
-    // === SET WEBHOOK ===
     if (action === "set_webhook") {
-      if (!instance_token) {
-        return json({ ok: false, error: "Token da instância não informado" });
-      }
-
-      const { webhook_url } = body;
-      if (!webhook_url) {
-        return json({ ok: false, error: "URL do webhook não informada" });
-      }
-
-      // addUrlEvents PRECISA ser false: com true a Uazapi posta em
-      // {url}/messages em vez de {url}, e o webhook nunca recebe nada.
-      const webhookBody = {
-        enabled: true,
-        url: webhook_url,
-        events: ["messages", "connection"],
-        excludeMessages: ["wasSentByApi"],
-        addUrlEvents: false,
-      };
-
-      const uazRes = await fetch(`${baseUrl}/webhook`, {
+      // Segredo novo a cada configuração: a URL antiga deixa de valer. Só vai
+      // para o Vault depois que a Uazapi aceitar a URL nova — senão uma falha
+      // de rede deixaria o número recebendo com o segredo antigo e tomando 401.
+      const secret = randomHex(32);
+      const webhookUrl =
+        `${Deno.env.get("SUPABASE_URL")}/functions/v1/whatsapp-webhook?i=${inst.id}&k=${secret}`;
+      // addUrlEvents PRECISA ser false: com true a Uazapi posta em {url}/messages.
+      const res = await uaz("/webhook", {
         method: "POST",
-        headers: { "Content-Type": "application/json", token: instance_token },
-        body: JSON.stringify(webhookBody),
+        body: JSON.stringify({
+          enabled: true,
+          url: webhookUrl,
+          events: ["messages", "connection"],
+          excludeMessages: ["wasSentByApi"],
+          addUrlEvents: false,
+        }),
       });
-
-      const responseText = await uazRes.text();
-      console.log(`[set_webhook] status=${uazRes.status}, body=${responseText}`);
-
-      if (!uazRes.ok) {
-        return json({ ok: false, error: "Falha ao configurar webhook", details: responseText });
+      console.log(`[set_webhook] status=${res.status}`);
+      if (!res.ok) return json({ ok: false, error: "Falha ao configurar webhook" });
+      const saved =
+        (await putSecret(admin, `instance:${inst.id}:webhook`, secret)) ||
+        (await putSecret(admin, `instance:${inst.id}:webhook`, secret));
+      if (!saved) {
+        return json({ ok: false, error: "Webhook atualizado, mas o segredo não foi salvo: clique em Reconfigurar webhook." });
       }
-
-      const data = JSON.parse(responseText);
-      return json({ ok: true, success: true, data });
+      return json({ ok: true, success: true });
     }
 
-    // === GET WEBHOOKS ===
     if (action === "get_webhooks") {
-      if (!instance_token) {
-        return json({ ok: false, error: "Token da instância não informado" });
-      }
+      const res = await uaz("/webhook", { method: "GET", headers: { Accept: "application/json" } });
+      if (!res.ok) return json({ ok: false, error: "Falha ao buscar webhooks" });
+      const hooks = await res.json().catch(() => []);
+      // A URL cadastrada contém o segredo: devolve só se está ativo e autenticado.
+      const list = (Array.isArray(hooks) ? hooks : [hooks]).map((h: any) => ({
+        enabled: !!h?.enabled,
+        authenticated: typeof h?.url === "string" && h.url.includes("k="),
+        events: h?.events ?? [],
+      }));
+      return json({ ok: true, success: true, webhooks: list });
+    }
 
-      const uazRes = await fetch(`${baseUrl}/webhook`, {
-        method: "GET",
-        headers: { Accept: "application/json", token: instance_token },
-      });
-
-      const responseText = await uazRes.text();
-      console.log(`[get_webhooks] status=${uazRes.status}, body=${responseText}`);
-
-      if (!uazRes.ok) {
-        return json({ ok: false, error: "Falha ao buscar webhooks", details: responseText });
-      }
-
-      const data = JSON.parse(responseText);
-      return json({ ok: true, success: true, webhooks: data });
+    if (action === "diagnose") {
+      return json({ ok: true, checks: await diagnose(inst, orgId, baseUrl, token) });
     }
 
     return json({ ok: false, error: "Ação inválida" });
   } catch (error) {
-    console.error("manage-instance error:", error);
-    return json({
-      ok: false,
-      error: error instanceof Error ? error.message : "Erro desconhecido",
-    });
+    if (error instanceof HttpError) return json({ ok: false, error: error.message }, error.status);
+    console.error("manage-instance error:", error instanceof Error ? error.message : error);
+    return json({ ok: false, error: "Erro interno" }, 500);
   }
 });
+
+/** Os 4 checks que a tela de configuração mostra. */
+async function diagnose(inst: any, orgId: string, baseUrl: string | null, token: string | null) {
+  const checks: any = {
+    instance: { ok: true, instance_name: inst.name, matched_by: "id", name_mismatch: false },
+    agent: { ok: false, has_key: false, enabled: false },
+    groq: { ok: false },
+    uazapi: { ok: false },
+  };
+
+  const agent = await getAgentConfig(orgId);
+  checks.agent.has_key = !!agent?.apiKey;
+  checks.agent.enabled = !!agent?.enabled;
+  checks.agent.ok = checks.agent.has_key && checks.agent.enabled;
+  if (!checks.agent.has_key) checks.agent.error = "Chave da Groq não configurada";
+  else if (!checks.agent.enabled) checks.agent.error = "Agente não está ativo";
+
+  if (agent?.apiKey) {
+    const r = await callGroq(agent.apiKey, agent.model, [
+      { role: "system", content: "Responda apenas: ok" },
+      { role: "user", content: "ping" },
+    ]);
+    checks.groq.ok = r.ok;
+    if (!r.ok) checks.groq.error = r.error;
+  } else {
+    checks.groq.error = "Sem chave para testar";
+  }
+
+  if (providers.providerOf(inst) !== "uazapi") {
+    checks.uazapi = { ok: true, note: "Número da Cloud API" };
+  } else if (!baseUrl || !token) {
+    checks.uazapi.error = "Server URL ou token da instância ausente";
+  } else {
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 5000);
+      const res = await fetch(`${baseUrl}/instance/status`, { headers: { token }, signal: ctrl.signal });
+      clearTimeout(t);
+      await res.text().catch(() => "");
+      checks.uazapi.ok = res.ok;
+      checks.uazapi.status = res.status;
+      if (!res.ok) checks.uazapi.error = `Uazapi retornou HTTP ${res.status}`;
+    } catch (e: any) {
+      checks.uazapi.error = e?.message || "Falha ao conectar na Uazapi";
+    }
+  }
+  return checks;
+}

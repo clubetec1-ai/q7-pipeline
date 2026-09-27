@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { getActiveOrgId } from "@/lib/org";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import {
@@ -87,15 +88,18 @@ export function ConfigDrawer({ open, onOpenChange }: Props) {
 
   const loadAgent = async () => {
     if (!user) return;
+    const orgId = await getActiveOrgId(user.id);
+    if (!orgId) return;
     const { data } = await supabase
       .from("agent_configs")
-      .select("*")
-      .eq("user_id", user.id)
+      .select("system_prompt, enabled, followup_inactivity_minutes, followup_max_per_conversation")
       .maybeSingle();
+    // A chave fica no Vault: aqui só se sabe SE ela existe.
+    const { data: setup } = await supabase.rpc("org_setup_status" as any, { org: orgId });
+    setHasKey(!!(setup as { groq_api_key?: boolean } | null)?.groq_api_key);
     if (data) {
       setPrompt(data.system_prompt);
       setEnabled(data.enabled);
-      setHasKey(!!data.groq_api_key);
       const m = (data as any).followup_inactivity_minutes;
       setFollowupOn(!!m && m > 0);
       setFollowupMinutes(m && m > 0 ? m : 60);
@@ -107,7 +111,7 @@ export function ConfigDrawer({ open, onOpenChange }: Props) {
     if (!user) return;
     const { data } = await supabase
       .from("whatsapp_instances")
-      .select("id,name,phone,status,server_url,instance_token,provider,phone_number_id,waba_id")
+      .select("id,name,phone,status,server_url,secret_name,provider,phone_number_id,waba_id")
       .eq("user_id", user.id)
       .order("updated_at", { ascending: false })
       .limit(1)
@@ -118,7 +122,7 @@ export function ConfigDrawer({ open, onOpenChange }: Props) {
       setInstancePhone(data.phone || "");
       setInstanceConnected(data.status === "connected");
       setServerUrl(data.server_url || "");
-      setHasInstanceToken(!!data.instance_token);
+      setHasInstanceToken(!!(data as { secret_name?: string | null }).secret_name);
       setProvider(data.provider === "cloud" ? "cloud" : "uazapi");
       setPhoneNumberId(data.phone_number_id || "");
       setWabaId(data.waba_id || "");
@@ -132,19 +136,10 @@ export function ConfigDrawer({ open, onOpenChange }: Props) {
     loadUazapi();
   }, [open, user]);
 
-  /** Token da instância: o que foi digitado agora ou o que já está salvo. */
-  const resolveToken = async (): Promise<string> => {
-    const typed = instanceToken.trim();
-    if (typed) return typed;
-    if (!user) return "";
-    const { data } = await supabase
-      .from("whatsapp_instances")
-      .select("instance_token")
-      .eq("user_id", user.id)
-      .order("updated_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    return data?.instance_token || "";
+  /** Grava o token no Vault pela RPC; ele nunca volta para o navegador. */
+  const saveInstanceToken = async (id: string, token: string) => {
+    const { error } = await supabase.rpc("set_instance_secret" as any, { instance: id, secret_value: token });
+    if (error) throw new Error(error.message);
   };
 
   /**
@@ -159,8 +154,8 @@ export function ConfigDrawer({ open, onOpenChange }: Props) {
       toast({ variant: "destructive", title: "Informe o Server URL" });
       return;
     }
-    const token = instanceToken.trim() || (await resolveToken());
-    if (!token) {
+    const token = instanceToken.trim();
+    if (!token && !hasInstanceToken) {
       toast({ variant: "destructive", title: "Informe o Instance Token" });
       return;
     }
@@ -169,16 +164,14 @@ export function ConfigDrawer({ open, onOpenChange }: Props) {
     setWebhookOk(null);
     setHookReport(null);
     try {
-      // 1. Grava servidor + token primeiro: o backend descobre a URL do
-      //    servidor a partir do token já salvo no banco.
+      // 1. Grava o servidor e o token (este, no Vault) antes de falar com a Uazapi.
       setConnectStep("Salvando credenciais...");
       let id = instanceId;
       if (id) {
         const { error } = await supabase
           .from("whatsapp_instances")
-          .update({ server_url: url, instance_token: token })
-          .eq("id", id)
-          .eq("user_id", user.id);
+          .update({ server_url: url })
+          .eq("id", id);
         if (error) throw new Error(error.message);
       } else {
         const { data, error } = await supabase
@@ -186,7 +179,6 @@ export function ConfigDrawer({ open, onOpenChange }: Props) {
           .insert({
             user_id: user.id,
             server_url: url,
-            instance_token: token,
             name: "Instância WhatsApp", // provisório: substituído pelo nome real logo abaixo
             status: "disconnected",
           })
@@ -196,11 +188,12 @@ export function ConfigDrawer({ open, onOpenChange }: Props) {
         id = data.id;
         setInstanceId(id);
       }
+      if (token) await saveInstanceToken(id!, token);
 
       // 2. O token já identifica a instância — nome e telefone vêm da Uazapi.
       setConnectStep("Identificando a instância...");
       const { data: st, error: stErr } = await supabase.functions.invoke("manage-instance", {
-        body: { action: "status", instance_token: token },
+        body: { action: "status", instance_id: id },
       });
       if (stErr || !st?.ok) {
         throw new Error(
@@ -214,7 +207,7 @@ export function ConfigDrawer({ open, onOpenChange }: Props) {
       if (st.name) detected.name = st.name;
       if (st.phone) detected.phone = st.phone;
       if (st.profile_name) detected.profile_name = st.profile_name;
-      await supabase.from("whatsapp_instances").update(detected).eq("id", id).eq("user_id", user.id);
+      await supabase.from("whatsapp_instances").update(detected).eq("id", id);
 
       if (st.name) setInstanceName(st.name);
       if (st.phone) setInstancePhone(st.phone);
@@ -223,14 +216,14 @@ export function ConfigDrawer({ open, onOpenChange }: Props) {
       // 3. Registra o webhook sozinho, direto na Uazapi.
       setConnectStep("Registrando o webhook...");
       const { data: wh, error: whErr } = await supabase.functions.invoke("manage-instance", {
-        body: { action: "set_webhook", instance_token: token, webhook_url: webhookUrl },
+        body: { action: "set_webhook", instance_id: id },
       });
       const hookRegistered = !whErr && !!wh?.ok;
       setWebhookOk(hookRegistered);
 
       // 4. Diagnóstico ponta a ponta, sem clicar em mais nada.
       setConnectStep("Testando ponta a ponta...");
-      await runWebhookDiagnostic(token, st.name || instanceName);
+      await runWebhookDiagnostic(id!);
 
       setHasInstanceToken(true);
       setInstanceToken("");
@@ -270,10 +263,23 @@ export function ConfigDrawer({ open, onOpenChange }: Props) {
       followup_inactivity_minutes: followupOn ? followupMinutes : null,
       followup_max_per_conversation: followupMax,
     };
-    if (apiKey.trim()) payload.groq_api_key = apiKey.trim();
+    // A chave da Groq vai para o Vault pela RPC, nunca para a tabela.
+    if (apiKey.trim()) {
+      const orgId = await getActiveOrgId(user.id);
+      const { error: keyErr } = orgId
+        ? await supabase.rpc("set_org_secret" as any, { org: orgId, secret_key: "groq_api_key", secret_value: apiKey.trim() })
+        : { error: { message: "Organização não encontrada" } };
+      if (keyErr) {
+        setSaving(false);
+        toast({ variant: "destructive", title: "Erro ao salvar a chave", description: keyErr.message });
+        return;
+      }
+    }
     const { error } = await supabase
       .from("agent_configs")
-      .upsert(payload, { onConflict: "user_id" });
+      // A configuração é da organização; o banco preenche organization_id pela
+      // associação do usuário antes de checar o conflito.
+      .upsert(payload, { onConflict: "organization_id" });
     setSaving(false);
     if (error) {
       toast({ variant: "destructive", title: "Erro", description: error.message });
@@ -332,15 +338,14 @@ export function ConfigDrawer({ open, onOpenChange }: Props) {
         waba_id: wabaId.trim(),
         server_url: null,
         status: "connected",
-        ...(accessToken.trim() ? { instance_token: accessToken.trim() } : {}),
       };
 
-      if (instanceId) {
+      let id = instanceId;
+      if (id) {
         const { error } = await supabase
           .from("whatsapp_instances")
           .update(patch)
-          .eq("id", instanceId)
-          .eq("user_id", user.id);
+          .eq("id", id);
         if (error) throw error;
       } else {
         const { data, error } = await supabase
@@ -349,8 +354,11 @@ export function ConfigDrawer({ open, onOpenChange }: Props) {
           .select("id")
           .single();
         if (error) throw error;
-        setInstanceId(data.id);
+        id = data.id;
+        setInstanceId(id);
       }
+      // Access token da Meta: só no Vault.
+      if (accessToken.trim()) await saveInstanceToken(id!, accessToken.trim());
 
       setAccessToken("");
       setHasInstanceToken(true);
@@ -381,26 +389,24 @@ export function ConfigDrawer({ open, onOpenChange }: Props) {
     }
   };
 
-  /** Dispara o dry_run no webhook e publica os 4 checks na tela. */
-  const runWebhookDiagnostic = async (token: string, name: string) => {
-    const res = await fetch(webhookUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ event: "dry_run", instance: { name, token } }),
+  /** Diagnóstico ponta a ponta (autenticado, no servidor): publica os 4 checks. */
+  const runWebhookDiagnostic = async (id: string) => {
+    const { data, error } = await supabase.functions.invoke("manage-instance", {
+      body: { action: "diagnose", instance_id: id },
     });
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      toast({ variant: "destructive", title: "Webhook inacessível", description: `HTTP ${res.status}` });
+    if (error) {
+      toast({ variant: "destructive", title: "Diagnóstico falhou", description: error.message });
       return;
     }
-    setHookReport(json.checks || { error: json.error || "Sem detalhes" });
+    setHookReport(data?.checks || { error: data?.error || "Sem detalhes" });
   };
 
   const testWebhook = async () => {
     setTestingHook(true);
     setHookReport(null);
     try {
-      await runWebhookDiagnostic(await resolveToken(), instanceName);
+      if (!instanceId) throw new Error("Configure a instância primeiro");
+      await runWebhookDiagnostic(instanceId);
     } catch (e: any) {
       toast({ variant: "destructive", title: "Falha no webhook", description: e.message });
     } finally {
@@ -412,19 +418,18 @@ export function ConfigDrawer({ open, onOpenChange }: Props) {
   const reconfigureWebhook = async () => {
     setTestingHook(true);
     try {
-      const token = await resolveToken();
-      if (!token) {
+      if (!instanceId || !hasInstanceToken) {
         toast({ variant: "destructive", title: "Configure a instância primeiro" });
         return;
       }
       const { data, error } = await supabase.functions.invoke("manage-instance", {
-        body: { action: "set_webhook", instance_token: token, webhook_url: webhookUrl },
+        body: { action: "set_webhook", instance_id: instanceId },
       });
       const ok = !error && !!data?.ok;
       setWebhookOk(ok);
       if (ok) {
         toast({ title: "Webhook registrado na Uazapi" });
-        await runWebhookDiagnostic(token, instanceName);
+        await runWebhookDiagnostic(instanceId);
       } else {
         toast({
           variant: "destructive",

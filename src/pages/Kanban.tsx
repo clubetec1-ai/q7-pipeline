@@ -170,7 +170,6 @@ export default function Kanban() {
     const { data } = await supabase
       .from("pipeline_stages")
       .select("*")
-      .eq("user_id", user.id)
       .order("position", { ascending: true });
     setStages((data as Stage[]) || []);
   };
@@ -188,8 +187,8 @@ export default function Kanban() {
     loadConvs();
     const ch = supabase
       .channel("kanban-live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "conversations", filter: `user_id=eq.${user.id}` }, loadConvs)
-      .on("postgres_changes", { event: "*", schema: "public", table: "pipeline_stages", filter: `user_id=eq.${user.id}` }, loadStages)
+      .on("postgres_changes", { event: "*", schema: "public", table: "conversations" }, loadConvs)
+      .on("postgres_changes", { event: "*", schema: "public", table: "pipeline_stages" }, loadStages)
       .subscribe();
     return () => {
       supabase.removeChannel(ch);
