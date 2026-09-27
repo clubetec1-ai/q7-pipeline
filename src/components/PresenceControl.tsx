@@ -11,8 +11,7 @@ const DOT: Record<string, string> = { online: "bg-emerald-500", paused: "bg-ambe
 
 /**
  * Presença do atendente (spec atendimento §5.1): online, pausa (com motivo) ou
- * offline. Enquanto a tela está aberta manda um sinal por minuto; sem sinal
- * há 3 min, a distribuição automática deixa de enviar atendimentos.
+ * offline. O sinal de vida (heartbeat) sai do OrgProvider, em qualquer tela.
  */
 export function PresenceControl() {
   const { user } = useAuth();
@@ -34,9 +33,6 @@ export function PresenceControl() {
       setReasonId(p.data?.pause_reason_id ?? null);
       setReasons((r.data as Reason[]) ?? []);
     });
-    supabase.rpc("heartbeat", { org: org.id });
-    const id = window.setInterval(() => supabase.rpc("heartbeat", { org: org.id }), 60_000);
-    return () => window.clearInterval(id);
   }, [org, user, canAttend]);
 
   if (!org || !canAttend) return null;
