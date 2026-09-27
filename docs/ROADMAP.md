@@ -3,6 +3,11 @@
 Lista viva. Cada item vira spec/plano em `docs/superpowers/` quando começar.
 Regra de sempre: isolamento entre organizações, segredos no Vault, testes em `supabase/tests/isolation.sql`.
 
+**Princípio do produto:** o dono da empresa cliente faz praticamente tudo sozinho pela tela (conectar números e
+e-mails, montar fluxos e agentes, instalar automações prontas, seguir guias de integração) — com modelos, presets,
+botão “testar” e mensagens claras. Só integrações complexas ficam com o time Clubetec, como serviço pago.
+Mais receita, menos suporte.
+
 ## Próximos (ordem combinada)
 1. **Canal de e-mail** (abaixo) — anexos usam a biblioteca/bucket privado.
 2. **Infraestrutura (1C-2)** — fila de mensagens recebidas com reprocessamento (`inbound_events` /
