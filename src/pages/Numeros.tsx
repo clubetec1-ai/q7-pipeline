@@ -21,6 +21,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { AddNumberDialog } from "./numeros/AddNumberDialog";
+import { EmailAccounts } from "./numeros/EmailAccounts";
 
 interface NumberRow {
   id: string;
@@ -202,6 +203,7 @@ export default function Numeros() {
             })}
           </div>
         )}
+        <EmailAccounts orgId={org.id} />
       </main>
 
       <AddNumberDialog open={adding} orgId={org.id} reconnectId={reconnectId}

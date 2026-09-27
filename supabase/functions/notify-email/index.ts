@@ -23,7 +23,9 @@ Deno.serve(async (req) => {
   if (!/^[0-9a-f-]{36}$/i.test(String(notification_id ?? ""))) return ok({ ok: false }, 400);
   const { data: n } = await admin.from("notifications")
     .select("id, organization_id, user_id, kind, ref, emailed_at").eq("id", notification_id).maybeSingle();
-  if (!n || n.emailed_at || n.kind !== "number_health") return ok({ ok: true, skipped: "nada a enviar" });
+  if (!n || n.emailed_at || !["number_health", "email_health"].includes(n.kind)) return ok({ ok: true, skipped: "nada a enviar" });
+  const what = n.kind === "email_health" ? "A caixa de e-mail" : "O número";
+  const page = n.kind === "email_health" ? "Números → E-mails" : "Números";
 
   const [{ data: p }, { data: o }, { data: appUrl }] = await Promise.all([
     admin.from("profiles").select("email").eq("user_id", n.user_id).maybeSingle(),
@@ -33,11 +35,11 @@ Deno.serve(async (req) => {
   const r = (n.ref ?? {}) as Record<string, string>;
   const problem = r.error || STATUS[r.status] || "precisa de atenção";
   const link = appUrl?.value ? `${String(appUrl.value).replace(/\/$/, "")}/numeros` : "";
-  const subject = `[ClubeCRM] Número ${r.name ?? ""}: ${problem}`;
-  const text = `Olá!\n\nO número "${r.name ?? ""}" da empresa ${o?.name ?? ""} ${problem.toLowerCase()}.\n` +
-    `Veja os detalhes na tela Números${link ? `: ${link}` : " do ClubeCRM"}.\n\nClubeCRM`;
-  const html = `<p>Olá!</p><p>O número <b>${esc(r.name)}</b> da empresa ${esc(o?.name)}: <b>${esc(problem)}</b>.</p>` +
-    `<p>${link ? `<a href="${esc(link)}">Ver na tela Números</a>` : "Veja os detalhes na tela Números do ClubeCRM."}</p><p>ClubeCRM</p>`;
+  const subject = `[ClubeCRM] ${what} ${r.name ?? ""}: ${problem}`;
+  const text = `Olá!\n\n${what} "${r.name ?? ""}" da empresa ${o?.name ?? ""}: ${problem}\n` +
+    `Veja os detalhes em ${page}${link ? `: ${link}` : " no ClubeCRM"}.\n\nClubeCRM`;
+  const html = `<p>Olá!</p><p>${what} <b>${esc(r.name)}</b> da empresa ${esc(o?.name)}: <b>${esc(problem)}</b>.</p>` +
+    `<p>${link ? `<a href="${esc(link)}">Ver em ${esc(page)}</a>` : `Veja os detalhes em ${esc(page)} no ClubeCRM.`}</p><p>ClubeCRM</p>`;
 
   const res = await sendSystemEmail(admin, { to: String(p?.email ?? ""), subject, text, html });
   if (res.ok) await admin.from("notifications").update({ emailed_at: new Date().toISOString() }).eq("id", n.id);

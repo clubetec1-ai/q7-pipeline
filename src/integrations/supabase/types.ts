@@ -359,7 +359,7 @@ export type Database = {
           notes: string | null
           opted_out_at: string | null
           organization_id: string
-          phone: string
+          phone: string | null
           updated_at: string
         }
         Insert: {
@@ -373,7 +373,7 @@ export type Database = {
           notes?: string | null
           opted_out_at?: string | null
           organization_id: string
-          phone: string
+          phone?: string | null
           updated_at?: string
         }
         Update: {
@@ -387,7 +387,7 @@ export type Database = {
           notes?: string | null
           opted_out_at?: string | null
           organization_id?: string
-          phone?: string
+          phone?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -405,15 +405,18 @@ export type Database = {
           ai_enabled: boolean
           assigned_to: string | null
           auto_followup_count: number
+          channel: string
+          contact_email: string | null
           contact_id: string | null
           contact_name: string | null
-          contact_phone: string
+          contact_phone: string | null
           created_at: string
           department_id: string | null
+          email_account_id: string | null
           human_takeover_at: string | null
           id: string
           inactivity_followup_at: string | null
-          instance_id: string
+          instance_id: string | null
           last_inbound_at: string | null
           last_message_at: string
           organization_id: string
@@ -425,15 +428,18 @@ export type Database = {
           ai_enabled?: boolean
           assigned_to?: string | null
           auto_followup_count?: number
+          channel?: string
+          contact_email?: string | null
           contact_id?: string | null
           contact_name?: string | null
-          contact_phone: string
+          contact_phone?: string | null
           created_at?: string
           department_id?: string | null
+          email_account_id?: string | null
           human_takeover_at?: string | null
           id?: string
           inactivity_followup_at?: string | null
-          instance_id: string
+          instance_id?: string | null
           last_inbound_at?: string | null
           last_message_at?: string
           organization_id: string
@@ -445,15 +451,18 @@ export type Database = {
           ai_enabled?: boolean
           assigned_to?: string | null
           auto_followup_count?: number
+          channel?: string
+          contact_email?: string | null
           contact_id?: string | null
           contact_name?: string | null
-          contact_phone?: string
+          contact_phone?: string | null
           created_at?: string
           department_id?: string | null
+          email_account_id?: string | null
           human_takeover_at?: string | null
           id?: string
           inactivity_followup_at?: string | null
-          instance_id?: string
+          instance_id?: string | null
           last_inbound_at?: string | null
           last_message_at?: string
           organization_id?: string
@@ -481,6 +490,13 @@ export type Database = {
             columns: ["department_id", "organization_id"]
             isOneToOne: false
             referencedRelation: "departments"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "conversations_email_account_fk"
+            columns: ["email_account_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "email_accounts"
             referencedColumns: ["id", "organization_id"]
           },
           {
@@ -585,6 +601,87 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "departments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_accounts: {
+        Row: {
+          address: string
+          created_at: string
+          department_id: string | null
+          has_password: boolean
+          health_error: string | null
+          health_status: string | null
+          id: string
+          imap_host: string
+          imap_port: number
+          last_sync_at: string | null
+          last_uid: number | null
+          name: string
+          organization_id: string
+          signature: string | null
+          smtp_host: string
+          smtp_port: number
+          status: string
+          uidvalidity: number | null
+          username: string
+        }
+        Insert: {
+          address: string
+          created_at?: string
+          department_id?: string | null
+          has_password?: boolean
+          health_error?: string | null
+          health_status?: string | null
+          id?: string
+          imap_host: string
+          imap_port?: number
+          last_sync_at?: string | null
+          last_uid?: number | null
+          name: string
+          organization_id: string
+          signature?: string | null
+          smtp_host: string
+          smtp_port?: number
+          status?: string
+          uidvalidity?: number | null
+          username: string
+        }
+        Update: {
+          address?: string
+          created_at?: string
+          department_id?: string | null
+          has_password?: boolean
+          health_error?: string | null
+          health_status?: string | null
+          id?: string
+          imap_host?: string
+          imap_port?: number
+          last_sync_at?: string | null
+          last_uid?: number | null
+          name?: string
+          organization_id?: string
+          signature?: string | null
+          smtp_host?: string
+          smtp_port?: number
+          status?: string
+          uidvalidity?: number | null
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_accounts_department_id_organization_id_fkey"
+            columns: ["department_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "email_accounts_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -1062,6 +1159,9 @@ export type Database = {
           conversation_id: string
           created_at: string
           direction: string
+          email_in_reply_to: string | null
+          email_message_id: string | null
+          email_subject: string | null
           error: string | null
           id: string
           media_mime: string | null
@@ -1082,6 +1182,9 @@ export type Database = {
           conversation_id: string
           created_at?: string
           direction: string
+          email_in_reply_to?: string | null
+          email_message_id?: string | null
+          email_subject?: string | null
           error?: string | null
           id?: string
           media_mime?: string | null
@@ -1102,6 +1205,9 @@ export type Database = {
           conversation_id?: string
           created_at?: string
           direction?: string
+          email_in_reply_to?: string | null
+          email_message_id?: string | null
+          email_subject?: string | null
           error?: string | null
           id?: string
           media_mime?: string | null
@@ -1144,6 +1250,7 @@ export type Database = {
       notifications: {
         Row: {
           created_at: string
+          emailed_at: string | null
           id: string
           kind: string
           organization_id: string
@@ -1153,6 +1260,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          emailed_at?: string | null
           id?: string
           kind: string
           organization_id: string
@@ -1162,6 +1270,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          emailed_at?: string | null
           id?: string
           kind?: string
           organization_id?: string
@@ -2157,6 +2266,10 @@ export type Database = {
       }
       service_update_message_status: {
         Args: { new_status: string; org: string; pmid: string }
+        Returns: undefined
+      }
+      set_email_password: {
+        Args: { account: string; secret_value: string }
         Returns: undefined
       }
       set_http_secret: {

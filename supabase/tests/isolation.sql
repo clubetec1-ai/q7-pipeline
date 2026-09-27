@@ -515,6 +515,39 @@ BEGIN
   PERFORM pg_temp.expect_error(owner_b, format('INSERT INTO public.quick_replies (organization_id, shortcut, content, library_file_id) VALUES (%L, %L, %L, %L)',
     'bbbbbbbb-0000-0000-0000-000000000001', 'x', 'x', 'aaaaaaaa-0000-0000-0012-000000000001'), 'resposta rapida nao usa arquivo de outra org');
 
+  -- 32. Canal de e-mail: caixa por org, senha so no Vault, conversa herda a org da caixa.
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format(
+    'INSERT INTO public.email_accounts (id, organization_id, name, address, username, imap_host, smtp_host, department_id)
+     VALUES (%L, %L, %L, %L, %L, %L, %L, %L)', 'aaaaaaaa-0000-0000-0013-000000000001', A, 'Contato', 'contato@a.test',
+    'contato@a.test', 'imap.a.test', 'smtp.a.test', 'aaaaaaaa-0000-0000-0001-000000000001')) = 'ok:1', 'owner cria caixa');
+  PERFORM pg_temp.expect_denied(agent_a, format(
+    'INSERT INTO public.email_accounts (organization_id, name, address, username, imap_host, smtp_host) VALUES (%L, %L, %L, %L, %L, %L)',
+    A, 'x', 'x@a.test', 'x', 'imap.a.test', 'smtp.a.test'), 'atendente nao cria caixa');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.email_accounts') = 0, 'outra org nao ve caixa');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, 'SELECT count(*) FROM public.email_accounts') = 1, 'atendente ve a caixa');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.set_email_password(%L, %L)', 'aaaaaaaa-0000-0000-0013-000000000001', 'x'), 'atendente nao grava senha');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.set_email_password(%L, %L)', 'aaaaaaaa-0000-0000-0013-000000000001', 'x'), 'outra org nao grava senha');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('SELECT public.set_email_password(%L, %L)', 'aaaaaaaa-0000-0000-0013-000000000001', 'segredo')) LIKE 'ok:%', 'owner grava senha');
+  PERFORM pg_temp.expect((SELECT has_password FROM public.email_accounts WHERE id = 'aaaaaaaa-0000-0000-0013-000000000001'), 'caixa marcada com senha');
+  PERFORM pg_temp.expect((SELECT private.get_secret('email:aaaaaaaa-0000-0000-0013-000000000001:password') = 'segredo'), 'senha no vault');
+  PERFORM pg_temp.expect_error(owner_a, 'UPDATE public.email_accounts SET has_password = false', 'has_password nao gravavel');
+  PERFORM pg_temp.expect_error(owner_a, format('UPDATE public.email_accounts SET imap_host = %L', 'bad host!'), 'host invalido recusado');
+
+  INSERT INTO public.conversations (id, channel, email_account_id, contact_email, contact_name)
+  VALUES ('aaaaaaaa-0000-0000-0010-000000000032', 'email', 'aaaaaaaa-0000-0000-0013-000000000001', 'cliente@b.test', 'Cliente');
+  PERFORM pg_temp.expect((SELECT organization_id = A AND contact_id IS NOT NULL FROM public.conversations
+    WHERE id = 'aaaaaaaa-0000-0000-0010-000000000032'), 'conversa de e-mail herda org e ganha contato');
+  PERFORM pg_temp.expect((SELECT phone IS NULL AND email = 'cliente@b.test' FROM public.contacts ct
+    JOIN public.conversations c ON c.contact_id = ct.id WHERE c.id = 'aaaaaaaa-0000-0000-0010-000000000032'), 'contato so de e-mail');
+  PERFORM pg_temp.expect(pg_temp.run(NULL, format('INSERT INTO public.conversations (channel, email_account_id, contact_email, instance_id) VALUES (%L, %L, %L, %L)',
+    'email', 'aaaaaaaa-0000-0000-0013-000000000001', 'z@b.test', 'aaaaaaaa-0000-0000-0003-000000000001')) LIKE 'err:%', 'canal misturado recusado');
+  PERFORM pg_temp.expect(pg_temp.run(NULL, format('INSERT INTO public.conversations (organization_id, channel, email_account_id, contact_email) VALUES (%L, %L, %L, %L)',
+    'bbbbbbbb-0000-0000-0000-000000000001', 'email', 'aaaaaaaa-0000-0000-0013-000000000001', 'z@b.test')) LIKE 'err:%', 'conversa nao troca de org');
+  PERFORM pg_temp.expect((SELECT status = 'queued' AND department_id = 'aaaaaaaa-0000-0000-0001-000000000001'
+    FROM public.service_ticket_for_inbound('aaaaaaaa-0000-0000-0010-000000000032', false)), 'e-mail vai para a fila do departamento da caixa');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('DELETE FROM public.email_accounts WHERE id = %L', 'aaaaaaaa-0000-0000-0013-000000000001')) = 'ok:1', 'owner apaga caixa');
+  PERFORM pg_temp.expect((SELECT private.get_secret('email:aaaaaaaa-0000-0000-0013-000000000001:password') IS NULL), 'senha sai do vault');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 

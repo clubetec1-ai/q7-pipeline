@@ -48,7 +48,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { BookOpen, ChevronDown, CheckCircle2, XCircle, AlertCircle, Paperclip } from "lucide-react";
+import { BookOpen, Mail, ChevronDown, CheckCircle2, XCircle, AlertCircle, Paperclip } from "lucide-react";
 import { LibraryPicker, type LibraryPick } from "./conversas/LibraryPicker";
 import { getActiveOrgId } from "@/lib/org";
 import { useTickets, STATUS_LABEL, TicketTab } from "./conversas/useTickets";
@@ -59,7 +59,10 @@ import { useOrg } from "@/contexts/OrgContext";
 
 type Conversation = {
   id: string;
-  contact_phone: string;
+  channel?: "whatsapp" | "email";
+  email_account_id?: string | null;
+  contact_email?: string | null;
+  contact_phone: string | null;
   contact_name: string | null;
   ai_enabled: boolean;
   last_message_at: string;
@@ -84,6 +87,7 @@ type Message = {
   media_size?: number | null;
   status?: string | null;
   error?: string | null;
+  email_subject?: string | null;
 };
 
 type Stage = { id: string; name: string; position: number; color: string | null };
@@ -145,7 +149,11 @@ export default function Conversas() {
   const [search, setSearch] = useState("");
   // Números da organização: etiqueta (nome + cor) e filtro quando há mais de um.
   const [numbers, setNumbers] = useState<Map<string, { name: string; color: string | null }>>(new Map());
+  const [mailboxes, setMailboxes] = useState<Map<string, string>>(new Map());
   const [numberFilter, setNumberFilter] = useState("");
+  const channelKey = (c: Conversation) => (c.channel === "email" ? `e:${c.email_account_id}` : `n:${c.instance_id}`);
+  const inChannel = (c: Conversation) => !numberFilter || channelKey(c) === numberFilter;
+  const multiChannel = numbers.size + mailboxes.size > 1;
   const [myName, setMyName] = useState("");
   useEffect(() => {
     if (org && user) memberNames(org.id, [user.id]).then((m) => setMyName(m.get(user.id)?.name ?? ""));
@@ -154,9 +162,19 @@ export default function Conversas() {
     if (!org) return;
     supabase.from("whatsapp_instances").select("id, name, color").eq("organization_id", org.id).order("created_at")
       .then(({ data }) => setNumbers(new Map((data ?? []).map((n) => [n.id, { name: n.name, color: n.color }]))));
+    supabase.from("email_accounts").select("id, name").eq("organization_id", org.id).order("created_at")
+      .then(({ data }) => setMailboxes(new Map((data ?? []).map((m) => [m.id, m.name]))));
   }, [org]);
-  const numberTag = (id: string | null) => {
-    const n = id && numbers.size > 1 ? numbers.get(id) : null;
+  const numberTag = (c: Conversation) => {
+    if (c.channel === "email") {
+      const box = c.email_account_id ? mailboxes.get(c.email_account_id) : null;
+      return (
+        <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground shrink-0" title="Caixa de e-mail">
+          <Mail className="w-3 h-3" />{multiChannel ? box ?? "E-mail" : "E-mail"}
+        </span>
+      );
+    }
+    const n = c.instance_id && multiChannel ? numbers.get(c.instance_id) : null;
     return n ? (
       <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground shrink-0" title="Número de atendimento">
         <span className="w-2 h-2 rounded-full" style={{ background: n.color ?? "#94A3B8" }} />{n.name}
@@ -175,10 +193,11 @@ export default function Conversas() {
     }, 300);
     return () => window.clearTimeout(h);
   }, [search, org]);
-  const matchesSearch = (c: { id: string; contact_name?: string | null; contact_phone?: string | null }) => {
+  const matchesSearch = (c: { id: string; contact_name?: string | null; contact_phone?: string | null; contact_email?: string | null }) => {
     const q = search.trim().toLowerCase();
     if (!q) return true;
     return (c.contact_name ?? "").toLowerCase().includes(q) || (c.contact_phone ?? "").includes(q.replace(/\D/g, "") || q)
+      || (c.contact_email ?? "").toLowerCase().includes(q)
       || !!protocolHits?.has(c.id);
   };
   const { byConversation, inTab, reload: reloadTickets } = useTickets(org?.id, user?.id);
@@ -567,18 +586,19 @@ export default function Conversas() {
               <Input value={search} onChange={(e) => setSearch(e.target.value)} className="h-8 text-sm"
                 placeholder="Buscar nome, telefone ou protocolo" />
             </div>
-            {numbers.size > 1 && (
+            {multiChannel && (
               <div className="px-2 pt-2">
                 <select className="w-full h-8 rounded-md border bg-background px-2 text-xs" value={numberFilter}
                   onChange={(e) => setNumberFilter(e.target.value)} title="Filtrar por número">
-                  <option value="">Todos os números</option>
-                  {[...numbers].map(([id, n]) => <option key={id} value={id}>{n.name}</option>)}
+                  <option value="">Todos os canais</option>
+                  {[...numbers].map(([id, n]) => <option key={id} value={`n:${id}`}>{n.name}</option>)}
+                  {[...mailboxes].map(([id, name]) => <option key={id} value={`e:${id}`}>✉ {name}</option>)}
                 </select>
               </div>
             )}
             <div className="flex gap-1 p-2 border-b">
               {(["meus", "fila", "ia", "todos"] as TicketTab[]).map((k) => {
-                const pool = conversations.filter((c) => !numberFilter || c.instance_id === numberFilter);
+                const pool = conversations.filter(inChannel);
                 const n = k === "todos" ? pool.length : pool.filter((c) => inTab(c.id, k)).length;
                 return (
                   <button key={k} onClick={() => setTab(k)}
@@ -588,7 +608,7 @@ export default function Conversas() {
                 );
               })}
             </div>
-            {conversations.filter((c) => inTab(c.id, tab) && matchesSearch(c) && (!numberFilter || c.instance_id === numberFilter)).map((c) => (
+            {conversations.filter((c) => inTab(c.id, tab) && matchesSearch(c) && inChannel(c)).map((c) => (
               <button
                 key={c.id}
                 onClick={() => setActiveId(c.id)}
@@ -598,7 +618,7 @@ export default function Conversas() {
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-medium text-sm truncate">
-                    {c.contact_name || c.contact_phone}
+                    {c.contact_name || c.contact_phone || c.contact_email}
                   </span>
                   {byConversation.get(c.id) && (
                     <Badge variant={byConversation.get(c.id)!.status === "bot" ? "default" : "secondary"} className="text-[10px]">
@@ -607,8 +627,8 @@ export default function Conversas() {
                   )}
                 </div>
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs text-muted-foreground truncate">{c.contact_phone}</span>
-                  {numberTag(c.instance_id)}
+                  <span className="text-xs text-muted-foreground truncate">{c.contact_phone ?? c.contact_email}</span>
+                  {numberTag(c)}
                 </div>
               </button>
             ))}
@@ -626,11 +646,11 @@ export default function Conversas() {
               <div className="p-3 border-b flex items-center justify-between gap-3 flex-wrap">
                 <div>
                   <div className="font-semibold text-sm">
-                    {active.contact_name || active.contact_phone}
+                    {active.contact_name || active.contact_phone || active.contact_email}
                   </div>
                   <div className="text-xs text-muted-foreground flex items-center gap-2">
-                    {active.contact_phone}
-                    {numberTag(active.instance_id)}
+                    {active.contact_phone ?? active.contact_email}
+                    {numberTag(active)}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -647,7 +667,7 @@ export default function Conversas() {
                     </Select>
                   )}
                   <Button size="sm" variant="outline" className="h-8" onClick={() => setFichaOpen(true)}>Ficha</Button>
-                  <TicketBar ticket={byConversation.get(active.id)} onChanged={reloadTickets} />
+                  <TicketBar ticket={byConversation.get(active.id)} onChanged={reloadTickets} greet={active.channel !== "email"} />
                 </div>
               </div>
 
@@ -824,6 +844,7 @@ export default function Conversas() {
                       </div>
                     )}
                     <MessageMedia m={m} />
+                    {m.email_subject && <div className="text-xs font-semibold mb-1">{m.email_subject}</div>}
                     {m.content && !(m.type && m.type !== "text" && /^\[.+\]$/.test(m.content)) && (
                       <div className="whitespace-pre-wrap">{m.content}</div>
                     )}
@@ -887,7 +908,7 @@ export default function Conversas() {
                 <Input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder={pendingFile || pendingLib ? "Descrição do arquivo (opcional)..." : active.ai_enabled ? "IA responderá automaticamente. Envie mensagem manual mesmo assim..." : "Digite sua resposta..."}
+                  placeholder={pendingFile || pendingLib ? "Descrição do arquivo (opcional)..." : active.channel === "email" ? "Responder por e-mail..." : active.ai_enabled ? "IA responderá automaticamente. Envie mensagem manual mesmo assim..." : "Digite sua resposta..."}
                   onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), send())}
                   disabled={sending}
                 />

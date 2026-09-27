@@ -25,3 +25,6 @@ verify_jwt = false
 
 [functions.notify-email]
 verify_jwt = false
+
+[functions.sync-email]
+verify_jwt = false

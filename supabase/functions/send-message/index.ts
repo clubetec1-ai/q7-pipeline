@@ -5,6 +5,7 @@ import { withInstanceToken } from "../_shared/secrets.ts";
 import { LIMITS, isDangerous, sniffMime, typeOf } from "../_shared/media.ts";
 import * as providers from "../_shared/providers/index.ts";
 import { loadLibraryFile, SENDABLE } from "../_shared/library.ts";
+import { sendEmailMessage } from "../_shared/mail-send.ts";
 
 /**
  * Envio a partir da tela (texto e arquivo) — spec atendimento §6.3.
@@ -43,7 +44,7 @@ Deno.serve(async (req) => {
     const ctx = await requireUser(req);
     const { data: conv } = await ctx.userClient
       .from("conversations")
-      .select("id, organization_id, instance_id, contact_phone, last_inbound_at")
+      .select("id, organization_id, channel, instance_id, email_account_id, contact_phone, contact_email, last_inbound_at")
       .eq("id", conversationId)
       .maybeSingle();
     if (!conv) throw new HttpError(404, "Conversa não encontrada");
@@ -71,6 +72,12 @@ Deno.serve(async (req) => {
       }
     }
 
+    let sent: providers.SendResult;
+    let fields: Record<string, unknown> = { type: "text" };
+    if (conv.channel === "email") {
+      // E-mail: mesma permissão e regra de assumir; sem janela de 24 h.
+      ({ sent, fields } = await sendEmailMessage({ admin, orgId, conv, ticketId, text, mediaPath, mediaName, libraryId }));
+    } else {
     const { data: bare } = await org.select("whatsapp_instances").eq("id", conv.instance_id).maybeSingle();
     if (!bare) throw new HttpError(404, "Número da conversa não encontrado");
     if (bare.status === "disabled") throw new HttpError(409, "Este número está desativado.");
@@ -79,8 +86,6 @@ Deno.serve(async (req) => {
       throw new HttpError(409, "Janela de 24h fechada: só modelo aprovado pela Meta.");
     }
 
-    let sent: providers.SendResult;
-    let fields: Record<string, unknown> = { type: "text" };
     if (libraryId) {
       // Arquivo da biblioteca: buscado pela organização da conversa (nunca de outra).
       const f = await loadLibraryFile(admin, orgId, libraryId).catch((e) => { throw new HttpError(400, e.message); });
@@ -102,6 +107,7 @@ Deno.serve(async (req) => {
       fields = { type, media_path: mediaPath, media_mime: mime, media_size: bytes.length, media_name: mediaName };
     } else {
       sent = await providers.sendText(inst, conv.contact_phone, text);
+    }
     }
 
     await org.insert("messages", {

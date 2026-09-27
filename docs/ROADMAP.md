@@ -9,11 +9,13 @@ botão “testar” e mensagens claras. Só integrações complexas ficam com o 
 Mais receita, menos suporte.
 
 ## Próximos (ordem combinada)
-1. **Canal de e-mail** (abaixo) — anexos usam a biblioteca/bucket privado.
-2. **Infraestrutura (1C-2)** — fila de mensagens recebidas com reprocessamento (`inbound_events` /
+1. **Infraestrutura (1C-2)** — fila de mensagens recebidas com reprocessamento (`inbound_events` /
    `process-inbound`), limite de requisições por organização, painel da plataforma para gerenciar as empresas clientes.
 
-## Canal de e-mail (pedido em 28/09)
+## Canal de e-mail (pedido em 28/09) — IMAP/SMTP e alertas entregues; falta o que segue
+- Pendente: Microsoft 365 por OAuth; Google direto (com demanda); cópia das respostas na pasta “Enviados” da caixa;
+  IA/fluxos no e-mail.
+
 Objetivo: enviar e receber e-mail pelo ClubeCRM, no mesmo lugar do WhatsApp.
 - **Serviço de envio com provedores plugáveis** (por organização, credenciais no Vault):
   SMTP genérico; Google Workspace/Gmail e Microsoft 365/Outlook (OAuth); APIs como Resend, SendGrid, Amazon SES.
@@ -104,7 +106,8 @@ Vários números (Meta e QR), fluxos com IA/humano/transferir/finalizar, departa
 pessoas, papéis e modelos prontos, multiempresa com isolamento, protocolo e assumir com permissão, pesquisa,
 opt-out, bloco HTTP, IA com permissões e vários provedores, monitor de saúde, nome na equipe, termos e exclusão
 de dados, legenda em anexos, transcrição de áudio, biblioteca de arquivos (envio pelo atendente, respostas rápidas
-com arquivo, arquivo no bloco Mensagem e IA enviando arquivo permitido).
+com arquivo, arquivo no bloco Mensagem e IA enviando arquivo permitido), canal de e-mail IMAP/SMTP (caixas conectadas
+pelo dono com presets e teste, e-mail vira atendimento, resposta pela mesma caixa), alertas por e-mail (Resend ou SMTP).
 
 ## Visual
 - Trocar logo e ícone da aba (nome “Clube” junto do logo, em cima).
