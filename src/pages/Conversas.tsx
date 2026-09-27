@@ -44,6 +44,8 @@ import {
 } from "@/components/ui/collapsible";
 import { ChevronDown, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import { getActiveOrgId } from "@/lib/org";
+import { useTickets, STATUS_LABEL, TicketTab } from "./conversas/useTickets";
+import { TicketBar } from "./conversas/TicketBar";
 import { useOrg } from "@/contexts/OrgContext";
 
 type Conversation = {
@@ -118,6 +120,8 @@ export default function Conversas() {
   const [fuCustom, setFuCustom] = useState("");
   const [fuOpen, setFuOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [tab, setTab] = useState<TicketTab>("todos");
+  const { byConversation, inTab, reload: reloadTickets } = useTickets(org?.id, user?.id);
 
   const active = useMemo(
     () => conversations.find((c) => c.id === activeId) || null,
@@ -488,7 +492,18 @@ export default function Conversas() {
                 Nenhuma conversa ainda. Quando o WhatsApp receber mensagens, elas aparecem aqui.
               </div>
             )}
-            {conversations.map((c) => (
+            <div className="flex gap-1 p-2 border-b">
+              {(["meus", "fila", "ia", "todos"] as TicketTab[]).map((k) => {
+                const n = k === "todos" ? conversations.length : conversations.filter((c) => inTab(c.id, k)).length;
+                return (
+                  <button key={k} onClick={() => setTab(k)}
+                    className={`flex-1 rounded-md px-2 py-1 text-xs transition ${tab === k ? "bg-muted font-medium" : "text-muted-foreground hover:bg-muted"}`}>
+                    {{ meus: "Meus", fila: "Fila", ia: "IA", todos: "Todos" }[k]} {n > 0 && <span className="opacity-70">{n}</span>}
+                  </button>
+                );
+              })}
+            </div>
+            {conversations.filter((c) => inTab(c.id, tab)).map((c) => (
               <button
                 key={c.id}
                 onClick={() => setActiveId(c.id)}
@@ -500,9 +515,11 @@ export default function Conversas() {
                   <span className="font-medium text-sm truncate">
                     {c.contact_name || c.contact_phone}
                   </span>
-                  <Badge variant={c.ai_enabled ? "default" : "secondary"} className="text-[10px]">
-                    {c.ai_enabled ? "IA" : "Humano"}
-                  </Badge>
+                  {byConversation.get(c.id) && (
+                    <Badge variant={byConversation.get(c.id)!.status === "bot" ? "default" : "secondary"} className="text-[10px]">
+                      {STATUS_LABEL[byConversation.get(c.id)!.status]}
+                    </Badge>
+                  )}
                 </div>
                 <div className="text-xs text-muted-foreground truncate">{c.contact_phone}</div>
               </button>
@@ -518,18 +535,13 @@ export default function Conversas() {
             </div>
           ) : (
             <>
-              <div className="p-3 border-b flex items-center justify-between">
+              <div className="p-3 border-b flex items-center justify-between gap-3 flex-wrap">
                 <div>
                   <div className="font-semibold text-sm">
                     {active.contact_name || active.contact_phone}
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {active.contact_phone}
-                    {!active.ai_enabled && active.human_takeover_at && (
-                      <span className="ml-2 text-primary">
-                        · Humano assumiu — reative a IA manualmente
-                      </span>
-                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -545,15 +557,7 @@ export default function Conversas() {
                       </SelectContent>
                     </Select>
                   )}
-                  <label className="flex items-center gap-2 text-xs cursor-pointer">
-                    {active.ai_enabled ? (
-                      <Bot className="w-4 h-4 text-primary" />
-                    ) : (
-                      <User className="w-4 h-4" />
-                    )}
-                    IA
-                    <Switch checked={active.ai_enabled} onCheckedChange={toggleAI} />
-                  </label>
+                  <TicketBar ticket={byConversation.get(active.id)} onChanged={reloadTickets} />
                 </div>
               </div>
 

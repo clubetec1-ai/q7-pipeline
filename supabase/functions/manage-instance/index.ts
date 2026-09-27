@@ -3,7 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { getUazapiConfig } from "../_shared/get-uazapi-config.ts";
 import { callGroq, getAgentConfig } from "../_shared/get-ai-config.ts";
 import * as providers from "../_shared/providers/index.ts";
-import { HttpError, requirePermission, requireUser, resolveOrg } from "../_shared/auth.ts";
+import { HttpError, permissionsIn, requirePermission, requireUser, resolveOrg } from "../_shared/auth.ts";
 import { forOrg } from "../_shared/tenant.ts";
 import { putSecret, randomHex, sha256Hex, withInstanceToken } from "../_shared/secrets.ts";
 
@@ -158,6 +158,21 @@ serve(async (req) => {
         .eq("contact_phone", String(number))
         .maybeSingle();
       if (!conv) return json({ ok: false, error: "Conversa não encontrada para este número" }, 404);
+      // Responder assume o atendimento se ninguém está com ele; atendimento de
+      // outra pessoa só com permissão de supervisor ou acima.
+      const { data: ticket } = await org
+        .select("tickets", "id, status, assigned_to")
+        .eq("conversation_id", conv.id)
+        .neq("status", "closed")
+        .maybeSingle();
+      if (ticket && ticket.assigned_to !== ctx.user.id) {
+        if (!ticket.assigned_to) {
+          const { error: claimErr } = await ctx.userClient.rpc("claim_ticket", { ticket: ticket.id });
+          if (claimErr) return json({ ok: false, error: claimErr.message }, 409);
+        } else if (!(await permissionsIn(ctx, orgId)).includes("conversations.reassign")) {
+          return json({ ok: false, error: "Este atendimento está com outra pessoa." }, 403);
+        }
+      }
       if (!providers.isWindowOpen(inst, conv.last_inbound_at)) {
         return json({ ok: false, error: "Janela de 24h fechada: só modelo aprovado pela Meta." });
       }

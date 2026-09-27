@@ -154,6 +154,38 @@ export type Database = {
           },
         ]
       }
+      close_reasons: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          organization_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          organization_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "close_reasons_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           ai_enabled: boolean
@@ -459,6 +491,7 @@ export type Database = {
           id: string
           organization_id: string
           sender: string
+          ticket_id: string | null
           user_id: string | null
         }
         Insert: {
@@ -469,6 +502,7 @@ export type Database = {
           id?: string
           organization_id: string
           sender: string
+          ticket_id?: string | null
           user_id?: string | null
         }
         Update: {
@@ -479,6 +513,7 @@ export type Database = {
           id?: string
           organization_id?: string
           sender?: string
+          ticket_id?: string | null
           user_id?: string | null
         }
         Relationships: [
@@ -494,6 +529,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
             referencedColumns: ["id"]
           },
         ]
@@ -609,6 +651,8 @@ export type Database = {
           slug: string
           status: string
           template_key: string | null
+          ticket_seq: number
+          ticket_year: number | null
           updated_at: string
         }
         Insert: {
@@ -621,6 +665,8 @@ export type Database = {
           slug: string
           status?: string
           template_key?: string | null
+          ticket_seq?: number
+          ticket_year?: number | null
           updated_at?: string
         }
         Update: {
@@ -633,6 +679,8 @@ export type Database = {
           slug?: string
           status?: string
           template_key?: string | null
+          ticket_seq?: number
+          ticket_year?: number | null
           updated_at?: string
         }
         Relationships: []
@@ -839,6 +887,144 @@ export type Database = {
           },
         ]
       }
+      ticket_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          id: number
+          meta: Json
+          organization_id: string
+          ticket_id: string
+          type: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          id?: never
+          meta?: Json
+          organization_id: string
+          ticket_id: string
+          type: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          id?: never
+          meta?: Json
+          organization_id?: string
+          ticket_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_events_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tickets: {
+        Row: {
+          assigned_to: string | null
+          close_note: string | null
+          close_reason_id: string | null
+          closed_at: string | null
+          conversation_id: string
+          created_at: string
+          department_id: string | null
+          external_reply: boolean
+          id: string
+          opened_at: string | null
+          organization_id: string
+          protocol: string
+          queued_at: string | null
+          rating: number | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          close_note?: string | null
+          close_reason_id?: string | null
+          closed_at?: string | null
+          conversation_id: string
+          created_at?: string
+          department_id?: string | null
+          external_reply?: boolean
+          id?: string
+          opened_at?: string | null
+          organization_id: string
+          protocol: string
+          queued_at?: string | null
+          rating?: number | null
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          close_note?: string | null
+          close_reason_id?: string | null
+          closed_at?: string | null
+          conversation_id?: string
+          created_at?: string
+          department_id?: string | null
+          external_reply?: boolean
+          id?: string
+          opened_at?: string | null
+          organization_id?: string
+          protocol?: string
+          queued_at?: string | null
+          rating?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tickets_close_reason_id_organization_id_fkey"
+            columns: ["close_reason_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "close_reasons"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "tickets_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_department_id_organization_id_fkey"
+            columns: ["department_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "tickets_organization_id_assigned_to_fkey"
+            columns: ["organization_id", "assigned_to"]
+            isOneToOne: false
+            referencedRelation: "organization_members"
+            referencedColumns: ["organization_id", "user_id"]
+          },
+          {
+            foreignKeyName: "tickets_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -976,6 +1162,60 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      claim_ticket: {
+        Args: { ticket: string }
+        Returns: {
+          assigned_to: string | null
+          close_note: string | null
+          close_reason_id: string | null
+          closed_at: string | null
+          conversation_id: string
+          created_at: string
+          department_id: string | null
+          external_reply: boolean
+          id: string
+          opened_at: string | null
+          organization_id: string
+          protocol: string
+          queued_at: string | null
+          rating: number | null
+          status: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tickets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      close_ticket: {
+        Args: { note?: string; reason: string; ticket: string }
+        Returns: {
+          assigned_to: string | null
+          close_note: string | null
+          close_reason_id: string | null
+          closed_at: string | null
+          conversation_id: string
+          created_at: string
+          department_id: string | null
+          external_reply: boolean
+          id: string
+          opened_at: string | null
+          organization_id: string
+          protocol: string
+          queued_at: string | null
+          rating: number | null
+          status: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tickets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -993,6 +1233,33 @@ export type Database = {
       }
       my_permissions: { Args: { org: string }; Returns: string[] }
       org_setup_status: { Args: { org: string }; Returns: Json }
+      return_ticket_to_ai: {
+        Args: { ticket: string }
+        Returns: {
+          assigned_to: string | null
+          close_note: string | null
+          close_reason_id: string | null
+          closed_at: string | null
+          conversation_id: string
+          created_at: string
+          department_id: string | null
+          external_reply: boolean
+          id: string
+          opened_at: string | null
+          organization_id: string
+          protocol: string
+          queued_at: string | null
+          rating: number | null
+          status: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tickets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       seed_pipeline_stages: { Args: { _user_id: string }; Returns: undefined }
       service_can_add_number: { Args: { org: string }; Returns: boolean }
       service_delete_instance_secrets: {
@@ -1005,6 +1272,33 @@ export type Database = {
         Args: { secret_name: string; secret_value: string }
         Returns: undefined
       }
+      service_ticket_for_inbound: {
+        Args: { conv: string; from_me: boolean }
+        Returns: {
+          assigned_to: string | null
+          close_note: string | null
+          close_reason_id: string | null
+          closed_at: string | null
+          conversation_id: string
+          created_at: string
+          department_id: string | null
+          external_reply: boolean
+          id: string
+          opened_at: string | null
+          organization_id: string
+          protocol: string
+          queued_at: string | null
+          rating: number | null
+          status: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tickets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       set_instance_secret: {
         Args: { instance: string; secret_value: string }
         Returns: undefined
@@ -1016,6 +1310,38 @@ export type Database = {
       set_platform_secret: {
         Args: { secret_key: string; secret_value: string }
         Returns: undefined
+      }
+      transfer_ticket: {
+        Args: {
+          note?: string
+          ticket: string
+          to_department?: string
+          to_user?: string
+        }
+        Returns: {
+          assigned_to: string | null
+          close_note: string | null
+          close_reason_id: string | null
+          closed_at: string | null
+          conversation_id: string
+          created_at: string
+          department_id: string | null
+          external_reply: boolean
+          id: string
+          opened_at: string | null
+          organization_id: string
+          protocol: string
+          queued_at: string | null
+          rating: number | null
+          status: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tickets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
     }
     Enums: {
