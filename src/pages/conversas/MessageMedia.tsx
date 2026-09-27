@@ -65,9 +65,14 @@ export function MessageMedia({ m }: { m: MediaFields }) {
 export function DeliveryStatus({ status, error }: { status?: string | null; error?: string | null }) {
   if (!status) return null;
   if (status === "failed") {
-    return <span title={error ?? "Falhou"} className="inline-flex items-center gap-0.5 text-[10px] text-red-300"><AlertTriangle className="w-3 h-3" /> falhou</span>;
+    return <span title={error ?? "Falhou"} className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-red-900"><AlertTriangle className="w-3 h-3" /> falhou</span>;
   }
-  if (status === "read") return <CheckCheck className="w-3.5 h-3.5 text-sky-300" aria-label="lida" />;
-  if (status === "delivered") return <CheckCheck className="w-3.5 h-3.5 opacity-80" aria-label="entregue" />;
-  return <Check className="w-3.5 h-3.5 opacity-80" aria-label="enviada" />;
+  // Ícone + texto: cor sozinha não basta sobre o balão colorido.
+  if (status === "read") {
+    return <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-blue-900"><CheckCheck className="w-3.5 h-3.5" /> lida</span>;
+  }
+  if (status === "delivered") {
+    return <span className="inline-flex items-center gap-0.5 text-[10px] opacity-90"><CheckCheck className="w-3.5 h-3.5" /> entregue</span>;
+  }
+  return <span className="inline-flex items-center gap-0.5 text-[10px] opacity-80"><Check className="w-3.5 h-3.5" /> enviada</span>;
 }

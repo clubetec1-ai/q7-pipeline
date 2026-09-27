@@ -130,6 +130,7 @@ export default function Conversas() {
   const [fuOpen, setFuOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [tab, setTab] = useState<TicketTab>("todos");
   const { byConversation, inTab, reload: reloadTickets } = useTickets(org?.id, user?.id);
 
@@ -414,6 +415,7 @@ export default function Conversas() {
   };
 
   const send = async () => {
+    if (pendingFile) return sendFile(pendingFile);
     if (!input.trim() || !active) return;
     setSending(true);
     if (await sendPayload({ text: input.trim() })) setInput("");
@@ -436,6 +438,7 @@ export default function Conversas() {
       toast({ variant: "destructive", title: "Não foi possível anexar", description: "Tipo ou tamanho de arquivo não aceito." });
     } else if (await sendPayload({ media_path: path, media_name: file.name, text: input.trim() })) {
       setInput("");
+      setPendingFile(null);
     }
     setSending(false);
     if (fileRef.current) fileRef.current.value = "";
@@ -754,10 +757,24 @@ export default function Conversas() {
                 ))}
               </div>
 
+              {pendingFile && (
+                <div className="px-3 pt-2 flex items-center gap-2 text-xs">
+                  <Paperclip className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate font-medium">{pendingFile.name}</span>
+                  <span className="text-muted-foreground shrink-0">
+                    {pendingFile.size > 1048576 ? `${(pendingFile.size / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(pendingFile.size / 1024))} KB`}
+                  </span>
+                  <span className="text-muted-foreground">· escreva uma descrição (opcional) e envie</span>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 ml-auto" title="Remover anexo" disabled={sending}
+                    onClick={() => { setPendingFile(null); if (fileRef.current) fileRef.current.value = ""; }}>
+                    <XCircle className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
               <div className="p-3 border-t flex gap-2">
                 <input ref={fileRef} type="file" className="hidden"
                   accept="image/jpeg,image/png,audio/*,video/mp4,video/3gpp,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip"
-                  onChange={(e) => e.target.files?.[0] && sendFile(e.target.files[0])} />
+                  onChange={(e) => e.target.files?.[0] && setPendingFile(e.target.files[0])} />
                 <Button variant="ghost" size="icon" title="Anexar arquivo" disabled={sending}
                   onClick={() => fileRef.current?.click()}>
                   <Paperclip className="w-4 h-4" />
@@ -765,11 +782,11 @@ export default function Conversas() {
                 <Input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder={active.ai_enabled ? "IA responderá automaticamente. Envie mensagem manual mesmo assim..." : "Digite sua resposta..."}
+                  placeholder={pendingFile ? "Descrição do arquivo (opcional)..." : active.ai_enabled ? "IA responderá automaticamente. Envie mensagem manual mesmo assim..." : "Digite sua resposta..."}
                   onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), send())}
                   disabled={sending}
                 />
-                <Button onClick={send} disabled={sending || !input.trim()}>
+                <Button onClick={send} disabled={sending || (!input.trim() && !pendingFile)}>
                   <Send className="w-4 h-4" />
                 </Button>
               </div>
