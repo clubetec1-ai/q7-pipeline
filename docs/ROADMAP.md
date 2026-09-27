@@ -32,6 +32,22 @@ Objetivo: a ligação cai na mesma tela do WhatsApp.
 - Cuidados: aviso de gravação/transcrição (LGPD), retenção do áudio, permissão por papel, custo por minuto.
 
 ## IA
+- **Agente entrevistador (levantamento da empresa)** — primeiro passo do “cérebro”. Conversa com o dono (e, se ele
+  quiser, com responsáveis de cada área) como um consultor, e monta o retrato de como a empresa funciona:
+  - processos repetidos do dia a dia (o que se faz, quem faz, com que frequência, quanto tempo leva, onde trava);
+  - políticas (troca, cancelamento, prazos, pagamento, garantia, descontos), horários de atendimento e feriados;
+  - produtos/serviços, preços ou regra de orçamento, perguntas frequentes dos clientes;
+  - áreas, departamentos, pessoas e responsáveis; sistemas usados (ERP, planilhas, agenda) e o que dá para integrar;
+  - volumes (mensagens, ligações, pedidos), metas e maiores dores.
+  Resultado: uma **base de conhecimento da empresa** (por organização, editável pelo dono) e um **relatório de
+  sugestões** — quais agentes/automações implementar, por área, priorizados por impacto e esforço, com o que cada
+  um precisa (dados, integrações, permissões). Retoma a entrevista de onde parou e pergunta só o que falta.
+  Aproveita o que já está cadastrado (horários, departamentos, motivos, fluxos). Acesso só `org.settings`; dados
+  sensíveis marcados e fora do contexto da IA de atendimento (LGPD).
+- **Agente implementador (depois)** — a partir do levantamento aprovado, monta automaticamente os rascunhos:
+  fluxos, agentes de IA com prompt e permissões fechadas, respostas rápidas, blocos “Consultar sistema”, horários e
+  departamentos. Tudo fica **em rascunho para o dono revisar e publicar** (nada entra no ar sozinho), com registro na
+  auditoria e simulador para testar antes.
 - **“Cérebro” da operação**: agente que coordena agentes por área — administrativo, financeiro, RH, vendas,
   pós-venda, suporte e outras — com as automações de cada área (software completo para a empresa).
 - **IA entender imagens, vídeos e PDFs** que o cliente envia (hoje só áudio é transcrito).
