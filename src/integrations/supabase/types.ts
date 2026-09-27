@@ -234,11 +234,175 @@ export type Database = {
           },
         ]
       }
+      contact_group_members: {
+        Row: {
+          actor_type: string
+          added_by: string | null
+          contact_id: string
+          created_at: string
+          group_id: string
+          organization_id: string
+        }
+        Insert: {
+          actor_type?: string
+          added_by?: string | null
+          contact_id: string
+          created_at?: string
+          group_id: string
+          organization_id: string
+        }
+        Update: {
+          actor_type?: string
+          added_by?: string | null
+          contact_id?: string
+          created_at?: string
+          group_id?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_group_members_contact_id_organization_id_fkey"
+            columns: ["contact_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "contact_group_members_group_id_organization_id_fkey"
+            columns: ["group_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "contact_groups"
+            referencedColumns: ["id", "organization_id"]
+          },
+        ]
+      }
+      contact_groups: {
+        Row: {
+          color: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          organization_id: string
+          sensitive: boolean
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          organization_id: string
+          sensitive?: boolean
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          organization_id?: string
+          sensitive?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_groups_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_tags: {
+        Row: {
+          contact_id: string
+          organization_id: string
+          tag_id: string
+        }
+        Insert: {
+          contact_id: string
+          organization_id: string
+          tag_id: string
+        }
+        Update: {
+          contact_id?: string
+          organization_id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_tags_contact_id_organization_id_fkey"
+            columns: ["contact_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "contact_tags_tag_id_organization_id_fkey"
+            columns: ["tag_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
+            referencedColumns: ["id", "organization_id"]
+          },
+        ]
+      }
+      contacts: {
+        Row: {
+          anonymized_at: string | null
+          created_at: string
+          custom: Json
+          document: string | null
+          email: string | null
+          id: string
+          name: string | null
+          notes: string | null
+          organization_id: string
+          phone: string
+          updated_at: string
+        }
+        Insert: {
+          anonymized_at?: string | null
+          created_at?: string
+          custom?: Json
+          document?: string | null
+          email?: string | null
+          id?: string
+          name?: string | null
+          notes?: string | null
+          organization_id: string
+          phone: string
+          updated_at?: string
+        }
+        Update: {
+          anonymized_at?: string | null
+          created_at?: string
+          custom?: Json
+          document?: string | null
+          email?: string | null
+          id?: string
+          name?: string | null
+          notes?: string | null
+          organization_id?: string
+          phone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           ai_enabled: boolean
           assigned_to: string | null
           auto_followup_count: number
+          contact_id: string | null
           contact_name: string | null
           contact_phone: string
           created_at: string
@@ -258,6 +422,7 @@ export type Database = {
           ai_enabled?: boolean
           assigned_to?: string | null
           auto_followup_count?: number
+          contact_id?: string | null
           contact_name?: string | null
           contact_phone: string
           created_at?: string
@@ -277,6 +442,7 @@ export type Database = {
           ai_enabled?: boolean
           assigned_to?: string | null
           auto_followup_count?: number
+          contact_id?: string | null
           contact_name?: string | null
           contact_phone?: string
           created_at?: string
@@ -299,6 +465,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "organization_members"
             referencedColumns: ["organization_id", "user_id"]
+          },
+          {
+            foreignKeyName: "conversations_contact_fk"
+            columns: ["contact_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id", "organization_id"]
           },
           {
             foreignKeyName: "conversations_department_fk"
@@ -542,6 +715,61 @@ export type Database = {
           },
         ]
       }
+      internal_notes: {
+        Row: {
+          author_id: string
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          mentions: string[]
+          organization_id: string
+          ticket_id: string | null
+        }
+        Insert: {
+          author_id?: string
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          mentions?: string[]
+          organization_id: string
+          ticket_id?: string | null
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          mentions?: string[]
+          organization_id?: string
+          ticket_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_notes_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_notes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_notes_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           content: string
@@ -623,6 +851,44 @@ export type Database = {
             columns: ["ticket_id"]
             isOneToOne: false
             referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          organization_id: string
+          read_at: string | null
+          ref: Json
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          organization_id: string
+          read_at?: string | null
+          ref?: Json
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          organization_id?: string
+          read_at?: string | null
+          ref?: Json
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -893,6 +1159,51 @@ export type Database = {
         }
         Relationships: []
       }
+      quick_replies: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string | null
+          department_id: string | null
+          id: string
+          organization_id: string
+          shortcut: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          id?: string
+          organization_id: string
+          shortcut: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          id?: string
+          organization_id?: string
+          shortcut?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quick_replies_department_id_organization_id_fkey"
+            columns: ["department_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "quick_replies_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       support_access: {
         Row: {
           created_at: string
@@ -928,6 +1239,35 @@ export type Database = {
           },
           {
             foreignKeyName: "support_access_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tags: {
+        Row: {
+          color: string | null
+          id: string
+          name: string
+          organization_id: string
+        }
+        Insert: {
+          color?: string | null
+          id?: string
+          name: string
+          organization_id: string
+        }
+        Update: {
+          color?: string | null
+          id?: string
+          name?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tags_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
