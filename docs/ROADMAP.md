@@ -4,8 +4,7 @@ Lista viva. Cada item vira spec/plano em `docs/superpowers/` quando começar.
 Regra de sempre: isolamento entre organizações, segredos no Vault, testes em `supabase/tests/isolation.sql`.
 
 ## Próximos (ordem combinada)
-1. **Biblioteca de arquivos** — arquivos da empresa (bucket privado por org); destrava a IA enviar arquivo
-   (`send_file` no bloco de IA) e anexos nas respostas rápidas.
+1. **Canal de e-mail** (abaixo) — anexos usam a biblioteca/bucket privado.
 2. **Infraestrutura (1C-2)** — fila de mensagens recebidas com reprocessamento (`inbound_events` /
    `process-inbound`), limite de requisições por organização, painel da plataforma para gerenciar as empresas clientes.
 
@@ -80,7 +79,8 @@ Objetivo: a ligação cai na mesma tela do WhatsApp.
 Vários números (Meta e QR), fluxos com IA/humano/transferir/finalizar, departamentos, grupos de clientes e de
 pessoas, papéis e modelos prontos, multiempresa com isolamento, protocolo e assumir com permissão, pesquisa,
 opt-out, bloco HTTP, IA com permissões e vários provedores, monitor de saúde, nome na equipe, termos e exclusão
-de dados, legenda em anexos, transcrição de áudio.
+de dados, legenda em anexos, transcrição de áudio, biblioteca de arquivos (envio pelo atendente, respostas rápidas
+com arquivo, arquivo no bloco Mensagem e IA enviando arquivo permitido).
 
 ## Visual
 - Trocar logo e ícone da aba (nome “Clube” junto do logo, em cima).

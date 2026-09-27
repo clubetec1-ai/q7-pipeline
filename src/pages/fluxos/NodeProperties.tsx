@@ -12,7 +12,7 @@ const MAX_WAIT_MIN = 1380;
 export interface Option { id: string; name: string }
 export interface Lookups {
   departments: Option[]; tags: Option[]; groups: Option[];
-  closeReasons: Option[]; stages: Option[]; secrets: string[];
+  closeReasons: Option[]; stages: Option[]; secrets: string[]; files: Option[];
 }
 
 const selectCls = "w-full h-9 rounded-md border bg-background px-2 text-sm";
@@ -111,7 +111,14 @@ export function NodeProperties({ type, data, onChange, onDelete, lookups }: {
           Todo fluxo começa aqui. Ligue “Cliente que volta” só se quiser um caminho diferente para quem já foi atendido.
         </p>
       )}
-      {type === "message" && text("text", "Texto")}
+      {type === "message" && (
+        <>
+          {text("text", "Texto (vira a legenda quando há arquivo)")}
+          <Field label="Arquivo da biblioteca (opcional)">
+            <Pick value={s("library_file_id")} onChange={(v) => set({ library_file_id: v || null })} empty="Sem arquivo" options={lookups.files} />
+          </Field>
+        </>
+      )}
       {type === "menu" && (
         <>
           {text("text", "Pergunta")}
@@ -212,6 +219,7 @@ export function NodeProperties({ type, data, onChange, onDelete, lookups }: {
           <Field label="Transferir para"><Checks options={lookups.departments} value={list(data.allow_departments)} onChange={(v) => set({ allow_departments: v })} /></Field>
           <Field label="Finalizar com o motivo"><Checks options={lookups.closeReasons} value={list(data.allow_close_reasons)} onChange={(v) => set({ allow_close_reasons: v })} /></Field>
           <Field label="Mover no funil para"><Checks options={lookups.stages} value={list(data.allow_stages)} onChange={(v) => set({ allow_stages: v })} /></Field>
+          <Field label="Enviar arquivos da biblioteca"><Checks options={lookups.files} value={list(data.allow_files)} onChange={(v) => set({ allow_files: v })} /></Field>
           <Field label="Guardar na ficha"><Checks options={FIELD_OPTIONS} value={list(data.allow_fields)} onChange={(v) => set({ allow_fields: v })} /></Field>
           <p className="text-xs text-muted-foreground">Nada marcado = a IA só conversa. Cada ação é conferida pelo sistema e fica registrada.</p>
         </>

@@ -10,6 +10,7 @@ import * as providers from "../providers/index.ts";
 import { advance, FlowAction, FlowCtx, FlowGraph, mapResponse } from "./engine.ts";
 import { callHttp, type HttpOutcome, type HttpVars, secretNames } from "./http.ts";
 import { runAiAgent } from "./ai-agent.ts";
+import { sendLibraryFile } from "../library.ts";
 
 /** A IA sabe o protocolo e informa se o cliente pedir. */
 export function withProtocol(prompt: string, protocol?: string | null) {
@@ -187,6 +188,9 @@ export async function runFlow(p: {
     // Mensagem que o cliente não pediu (relógio) respeita o opt-out.
     const muted = !!p.timer && !!contact?.opted_out_at;
     const send = (body: string) => (muted ? Promise.resolve() : sendAndStore(org, inst, conv, ticket.id, body));
+    const sendFile = (fileId: string, caption?: string) => (muted ? Promise.resolve(false) : sendLibraryFile({
+      admin, orgId, inst, conv, ticketId: ticket.id, fileId, caption, sender: "ai",
+    }));
     const route = async (args: Record<string, unknown>) => {
       routed = true;
       if (!closed) await admin.rpc("service_ticket_route", { ticket: ticket.id, ...args });
@@ -196,7 +200,7 @@ export async function runFlow(p: {
       for (const a of list) {
         if (routed) break; // depois de sair do robô, nada mais do fluxo roda
         try {
-          if (a.type === "send") await send(a.text);
+          if (a.type === "send") await (a.fileId ? sendFile(a.fileId, a.text) : send(a.text));
           else if (a.type === "set_field" && conv.contact_id) {
             await org.update("contacts", { [a.field]: a.value }).eq("id", conv.contact_id);
           } else if (a.type === "tag" && conv.contact_id) {
@@ -209,7 +213,7 @@ export async function runFlow(p: {
           } else if (a.type === "ai") {
             if (closed) continue;
             const node = graph.nodes.find((n) => n.id === a.nodeId);
-            if (node) await runAiAgent({ admin, orgId, node, ticket, conv, send, route });
+            if (node) await runAiAgent({ admin, orgId, node, ticket, conv, send, sendFile, route });
           } else if (a.type === "transfer") {
             await route({ action: "transfer", dept: a.departmentId, to_user: a.userId });
           } else if (a.type === "close") {

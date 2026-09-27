@@ -27,7 +27,7 @@ export interface FlowCtx {
 }
 
 export type FlowAction =
-  | { type: "send"; text: string }
+  | { type: "send"; text: string; fileId?: string }
   | { type: "set_field"; field: "name" | "email" | "document"; value: string }
   | { type: "tag"; tagId: string; remove: boolean }
   | { type: "ai"; nodeId: string }
@@ -173,7 +173,7 @@ export function advance(graph: FlowGraph, nodeId: string, input: string | null, 
         handle = ctx.firstContact || !nextOf(node.id, "returning") ? "first_contact" : "returning";
         break;
       case "message":
-        actions.push({ type: "send", text: fill(d.text ?? "", ctx) });
+        actions.push({ type: "send", text: fill(d.text ?? "", ctx), ...(d.library_file_id ? { fileId: String(d.library_file_id) } : {}) });
         handle = "next";
         break;
       case "menu": {

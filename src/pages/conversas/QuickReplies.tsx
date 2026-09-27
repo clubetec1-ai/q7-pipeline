@@ -11,7 +11,8 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 
-interface Reply { id: string; shortcut: string; content: string }
+interface Reply { id: string; shortcut: string; content: string; library_file_id: string | null; library_files: { name: string } | null }
+interface LibFile { id: string; name: string }
 
 /**
  * Respostas rápidas: digitar "/" na caixa de texto lista os atalhos; escolher
@@ -19,8 +20,8 @@ interface Reply { id: string; shortcut: string; content: string }
  * preenchidos. Quem tem library.manage cria e apaga.
  */
 export function QuickReplies({
-  input, setInput, vars,
-}: { input: string; setInput: (v: string) => void; vars: Record<string, string> }) {
+  input, setInput, vars, onFile,
+}: { input: string; setInput: (v: string) => void; vars: Record<string, string>; onFile?: (f: LibFile) => void }) {
   const { org, can } = useOrg();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -28,12 +29,18 @@ export function QuickReplies({
   const [manage, setManage] = useState(false);
   const [shortcut, setShortcut] = useState("");
   const [content, setContent] = useState("");
+  const [fileId, setFileId] = useState("");
+  const [files, setFiles] = useState<LibFile[]>([]);
 
   const load = useCallback(async () => {
     if (!org) return;
-    const { data } = await supabase.from("quick_replies").select("id, shortcut, content")
-      .eq("organization_id", org.id).order("shortcut");
-    setReplies((data as Reply[]) ?? []);
+    const [{ data }, lf] = await Promise.all([
+      supabase.from("quick_replies").select("id, shortcut, content, library_file_id, library_files(name)")
+        .eq("organization_id", org.id).order("shortcut"),
+      supabase.from("library_files").select("id, name").eq("organization_id", org.id).order("name"),
+    ]);
+    setReplies((data as unknown as Reply[]) ?? []);
+    setFiles(lf.data ?? []);
   }, [org]);
   useEffect(() => { load(); }, [load]);
 
@@ -50,9 +57,9 @@ export function QuickReplies({
     }
     if (!content.trim()) return toast({ variant: "destructive", title: "Escreva o texto da resposta" });
     const { error } = await supabase.from("quick_replies")
-      .insert({ organization_id: org!.id, shortcut: sc, content: content.trim(), created_by: user?.id });
+      .insert({ organization_id: org!.id, shortcut: sc, content: content.trim(), created_by: user?.id, library_file_id: fileId || null });
     if (error) return toast({ variant: "destructive", title: error.code === "23505" ? "Atalho já existe" : "Sem permissão" });
-    setShortcut(""); setContent("");
+    setShortcut(""); setContent(""); setFileId("");
     load();
   };
   const remove = async (id: string) => {
@@ -71,10 +78,13 @@ export function QuickReplies({
             </div>
           )}
           {matches.map((r) => (
-            <button key={r.id} type="button" onClick={() => setInput(fill(r.content))}
+            <button key={r.id} type="button" onClick={() => {
+              setInput(fill(r.content));
+              if (r.library_file_id && r.library_files) onFile?.({ id: r.library_file_id, name: r.library_files.name });
+            }}
               className="w-full text-left px-3 py-2 hover:bg-muted border-b last:border-0">
               <span className="font-mono text-xs text-primary">/{r.shortcut}</span>
-              <span className="text-muted-foreground ml-2 truncate">{fill(r.content).slice(0, 80)}</span>
+              <span className="text-muted-foreground ml-2 truncate">{r.library_files ? "📎 " : ""}{fill(r.content).slice(0, 80)}</span>
             </button>
           ))}
           {can("library.manage") && matches.length > 0 && (
@@ -106,6 +116,10 @@ export function QuickReplies({
           <div className="space-y-2">
             <Input placeholder="atalho (ex.: preco)" value={shortcut} onChange={(e) => setShortcut(e.target.value)} />
             <Textarea rows={3} placeholder="Olá {nome}! Nossos preços..." value={content} onChange={(e) => setContent(e.target.value)} />
+            <select className="w-full h-9 rounded-md border bg-background px-2 text-sm" value={fileId} onChange={(e) => setFileId(e.target.value)}>
+              <option value="">Sem arquivo</option>
+              {files.map((f) => <option key={f.id} value={f.id}>📎 {f.name}</option>)}
+            </select>
           </div>
           <DialogFooter><Button onClick={add}>Adicionar</Button></DialogFooter>
         </DialogContent>
