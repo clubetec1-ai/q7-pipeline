@@ -2,7 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { HttpError, requirePermission, requireUser, resolveOrg } from "../_shared/auth.ts";
 import { forOrg } from "../_shared/tenant.ts";
 import { getAgentConfig } from "../_shared/get-ai-config.ts";
-import { chat, type ChatMsg, providerKey, type ToolDef } from "../_shared/ai-chat.ts";
+import { chat, type ChatMsg, providerKey } from "../_shared/ai-chat.ts";
 import { SECTIONS } from "../_shared/company.ts";
 
 /**
@@ -56,7 +56,8 @@ Deno.serve(async (req) => {
     const provider = typeof settings.interviewer_provider === "string" ? settings.interviewer_provider : "groq";
     const [apiKey, agent] = await Promise.all([providerKey(admin, orgId, provider), getAgentConfig(orgId)]);
     if (!apiKey) throw new HttpError(409, "Configure a chave da IA (Fluxos → Chaves de IA) para usar o entrevistador.");
-    const model = String(settings.interviewer_model || (provider === "groq" ? agent?.model ?? "" : ""));
+    // Entrevista pede raciocínio e ferramentas: modelo maior por padrão (o "auto" começa pelo 8b).
+    const model = String(settings.interviewer_model || (provider === "groq" ? "llama-3.3-70b-versatile" : ""));
 
     // Retrato atual + o que já está no CRM (para não perguntar de novo).
     let { data: profile } = await org.select("company_profiles").maybeSingle();
@@ -85,6 +86,7 @@ Deno.serve(async (req) => {
         "A partir do retrato da empresa, sugira até 12 automações priorizadas por impacto e esforço.",
         `Automações PRONTAS no CRM (tipo "pronta", use a chave em "modelo"): ${JSON.stringify(READY)}.`,
         'Automações que dependem de outro sistema (ERP, agenda, banco...) têm tipo "integracao", com "sistema" e "passos" (3 a 6 passos simples para o dono seguir; chaves e tokens vão em Fluxos → Segredos, nunca no chat).',
+        'O próprio ClubeCRM nunca é "sistema" de integração: tudo que o CRM já faz (horário de atendimento, fluxos, IA, registros, biblioteca, pesquisa, follow-up, e-mail) é tipo "pronta". Não repita sugestões.',
         'Responda SOMENTE com JSON: {"sugestoes":[{"titulo":"","area":"","tipo":"pronta|integracao","impacto":"alto|medio|baixo","esforco":"baixo|medio|alto","descricao":"","modelo":"","sistema":"","passos":[""]}]}',
       ].join("\n");
       const r = await chat(apiKey, provider, model, [
@@ -109,60 +111,50 @@ Deno.serve(async (req) => {
       return json({ ok: true, suggestions });
     }
 
-    // Conversa.
+    // Conversa: UMA chamada por mensagem, resposta em JSON com o que salvar e o
+    // que dizer (menos consumo que ferramentas + 2ª chamada e igual em todo provedor).
     const text = clip(body?.text, 4000);
     if (text) await org.insert("interview_messages", { role: "user", content: text, created_by: ctx.user.id });
-    const { data: hist } = await org.select("interview_messages", "role, content").order("id", { ascending: false }).limit(30);
+    const { data: hist } = await org.select("interview_messages", "role, content").order("id", { ascending: false }).limit(20);
     const system = [
       `Você é um consultor de processos conduzindo uma entrevista com o dono da empresa "${orgRow?.name ?? ""}" para entender como ela funciona e depois sugerir automações no ClubeCRM.`,
-      "Regras: fale em português do Brasil, simples e amigável; faça no máximo 2 perguntas por vez; confirme o que entendeu;",
+      "Regras: português do Brasil, simples e amigável; no máximo 2 perguntas por vez; confirme o que entendeu;",
       "não pergunte o que já está no retrato ou no CRM; siga as seções ainda vazias nesta ordem:",
       `${Object.entries(SECTIONS).map(([k, s]) => `${k} (${s.label})`).join(", ")}, e processos repetidos do dia a dia (o que é feito, quem faz, frequência, tempo, onde trava).`,
-      "Sempre que o dono informar algo, SALVE com as ferramentas (em salvar_secao envie o texto COMPLETO consolidado da seção, em tópicos, somando ao que já havia).",
       "Nunca invente. Não peça senhas, tokens nem dados pessoais de clientes. Quando o retrato estiver razoavelmente completo, diga que ele pode clicar em “Gerar sugestões”.",
-      `\nO que já existe no CRM:\n${crm}\n\nRetrato atual:\n${retrato}`,
+      'Responda SOMENTE com um JSON válido neste formato: {"secoes":{"<secao>":"texto COMPLETO consolidado da seção, em tópicos, somando ao que já havia"},"processos":[{"nome":"","area":"","quem_faz":"","frequencia":"","tempo":"","dificuldade":""}],"resposta":"sua mensagem ao dono"}.',
+      `Em "secoes" inclua só as seções que mudaram (chaves possíveis: ${Object.keys(SECTIONS).join(", ")}). Em "processos" inclua TODOS os processos NOVOS citados agora (um item para cada). Se nada mudou, use {} e [].`,
+      `\nO que já existe no CRM:\n${crm}\n\nRetrato atual:\n${retrato.slice(0, 12_000)}`,
     ].join(" ");
-    const tools: ToolDef[] = [
-      { name: "salvar_secao", description: "Salva o texto consolidado de uma seção do retrato da empresa.",
-        parameters: { type: "object", properties: { secao: { type: "string", enum: Object.keys(SECTIONS) }, texto: { type: "string" } }, required: ["secao", "texto"] } },
-      { name: "adicionar_processo", description: "Registra um processo repetido do dia a dia da empresa.",
-        parameters: { type: "object", properties: {
-          nome: { type: "string" }, area: { type: "string" }, quem_faz: { type: "string" }, frequencia: { type: "string" },
-          tempo: { type: "string" }, dificuldade: { type: "string" } }, required: ["nome"] } },
-    ];
     const messages: ChatMsg[] = [
       { role: "system", content: system },
       ...(hist ?? []).reverse().map((m: { role: "assistant" | "user"; content: string }) => ({ role: m.role, content: m.content })),
     ];
     if (!hist?.length) messages.push({ role: "user", content: "Olá! Vamos começar." });
 
-    const r = await chat(apiKey, provider, model, messages, tools);
-    if (!r.ok) throw new HttpError(502, "A IA não respondeu. Tente de novo.");
+    const r = await chat(apiKey, provider, model, messages);
+    if (!r.ok || !r.reply) throw new HttpError(502, r.status === 429 ? "A IA está no limite de uso agora. Tente de novo em 1 minuto." : "A IA não respondeu. Tente de novo.");
+    let out: { secoes?: Record<string, unknown>; processos?: unknown[]; resposta?: unknown } = {};
+    try { out = JSON.parse(r.reply.match(/\{[\s\S]*\}/)?.[0] ?? "{}"); } catch { /* respondeu em texto livre */ }
+
     const sections = { ...(profile.sections ?? {}) } as Record<string, string>;
     const processes = [...(profile.processes ?? [])] as Record<string, string>[];
-    const results: ChatMsg[] = [];
     let saved = 0;
-    for (const c of r.toolCalls ?? []) {
-      let outcome = "ignorado";
-      if (c.name === "salvar_secao" && SECTIONS[String(c.args?.secao)]) {
-        sections[String(c.args.secao)] = clip(c.args?.texto, 8000);
-        outcome = "salvo"; saved++;
-      } else if (c.name === "adicionar_processo" && clip(c.args?.nome, 120) && processes.length < 100) {
-        processes.push(Object.fromEntries(["nome", "area", "quem_faz", "frequencia", "tempo", "dificuldade"]
-          .map((k) => [k, clip(c.args?.[k], 300)])));
-        outcome = "salvo"; saved++;
+    for (const [k, v] of Object.entries(out.secoes ?? {})) {
+      if (SECTIONS[k] && clip(v, 8000)) { sections[k] = clip(v, 8000); saved++; }
+    }
+    const known = new Set(processes.map((p) => String(p.nome ?? "").toLowerCase()));
+    for (const p of Array.isArray(out.processos) ? out.processos.slice(0, 20) : []) {
+      const item = Object.fromEntries(["nome", "area", "quem_faz", "frequencia", "tempo", "dificuldade"]
+        .map((k) => [k, clip((p as Record<string, unknown>)?.[k], 300)])) as Record<string, string>;
+      if (item.nome && !known.has(item.nome.toLowerCase()) && processes.length < 100) {
+        processes.push(item); known.add(item.nome.toLowerCase()); saved++;
       }
-      results.push({ role: "tool", tool_call_id: c.id, content: outcome });
     }
-    if (saved) {
-      await org.update("company_profiles", { sections, processes, updated_by: ctx.user.id }).eq("organization_id", orgId);
-    }
-    let reply = r.reply;
-    if (!reply && results.length) {
-      const again = await chat(apiKey, provider, model, [...messages, r.raw, ...results]);
-      reply = again.ok ? again.reply : "";
-    }
-    reply = clip(reply || "Anotado! Pode me contar mais?", 8000);
+    if (saved) await org.update("company_profiles", { sections, processes, updated_by: ctx.user.id }).eq("organization_id", orgId);
+
+    const reply = clip(typeof out.resposta === "string" && out.resposta.trim() ? out.resposta : (Object.keys(out).length ? "" : r.reply), 8000)
+      || "Anotado! Quer me contar mais algum detalhe, ou seguimos para o próximo assunto?";
     await org.insert("interview_messages", { role: "assistant", content: reply });
     return json({ ok: true, reply, saved });
   } catch (e) {

@@ -24,6 +24,9 @@ const SECTIONS: [string, string, boolean][] = [
   ["sistemas", "Sistemas usados", false], ["metas", "Volumes, metas e maiores dores", false],
 ];
 interface Msg { id: number; role: "assistant" | "user"; content: string }
+
+/** Negrito "**texto**" da IA vira <b> (sem HTML: só texto e <b>). */
+const rich = (t: string) => t.split(/\*\*(.+?)\*\*/g).map((part, i) => (i % 2 ? <b key={i}>{part}</b> : part));
 interface Suggestion {
   titulo: string; area: string; tipo: "pronta" | "integracao"; impacto: string; esforco: string;
   descricao: string; modelo: string | null; sistema: string | null; passos: string[];
@@ -128,7 +131,7 @@ export default function Diagnostico() {
             {msgs.map((m) => (
               <div key={m.id} className={m.role === "user" ? "text-right" : ""}>
                 <span className={`inline-block max-w-[90%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap text-left ${m.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
-                  {m.content}
+                  {m.role === "assistant" ? rich(m.content) : m.content}
                 </span>
               </div>
             ))}
