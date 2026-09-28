@@ -160,6 +160,23 @@ Objetivo: a ligação cai na mesma tela do WhatsApp.
   liga/desliga em Fluxos → Chaves de IA; anonimização LGPD apaga. Falta: vídeo, PDF digitalizado (OCR), anexos de
   e-mail.*
 
+## Relatórios (pedido em 29/09)
+Aba **Relatórios** com vários tipos, para dar clareza a quem decide e alimentar o ciclo de melhoria. Cada pessoa
+vê só o que o papel permite (atendente: os próprios; supervisor: o setor; dono/admin: tudo). Filtros por
+período, setor, atendente, canal e número; comparação com o período anterior; exportar (CSV/PDF, com auditoria).
+- **Atendente:** atendimentos, tempo de 1ª resposta e de atendimento, finalizados por motivo, nota e satisfação
+  das avaliações, feedbacks recebidos, evolução no tempo.
+- **Supervisor/operação:** filas e espera por setor, transbordo entre setores, horários de pico, SLA estourado,
+  presença e pausas da equipe, transferências.
+- **Qualidade do atendimento:** satisfação, notas, motivos de insatisfação, falhas de processo mais frequentes,
+  comparação entre setores e atendentes.
+- **Feedback e melhorias:** melhorias sugeridas/aprovadas/no ar, resultado de cada uma (antes × depois),
+  correções geradas, tempo até aprovar.
+- **Comercial:** funil (Kanban) e conversão por etapa, origem dos contatos, campanhas (enviadas, respostas,
+  opt-out), cobranças (emitidas, pagas, atraso, recebido no mês).
+- **IA e automação:** conversas resolvidas pela IA × passadas para humano, uso e custo estimado da IA, fluxos
+  (execuções, onde param), leitura de mídia, base de conhecimento mais consultada.
+
 ## Disparos (campanhas)
 - Envio em massa para grupos de clientes, escolhendo o número (ex.: um número QR para disparos e o da Meta para
   receber clientes, como pedido). Respeita opt-out, horário e limite por minuto; modelos aprovados no número da Meta.

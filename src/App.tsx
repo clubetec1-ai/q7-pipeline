@@ -29,6 +29,7 @@ import Seguranca from "./pages/Seguranca";
 import Melhorias from "./pages/Melhorias";
 import Conhecimento from "./pages/Conhecimento";
 import Clientes from "./pages/Clientes";
+import Agente from "./pages/Agente";
 import Fluxos from "./pages/Fluxos";
 import FlowEditor from "./pages/FlowEditor";
 
@@ -68,7 +69,7 @@ const App = () => (
             <Route path="/admin/uazapi" element={<ProtectedRoute><AdminRoute><UazapiConfig /></AdminRoute></ProtectedRoute>} />
             <Route path="/conversas" element={<Navigate to="/" replace />} />
             <Route path="/dashboard" element={<Navigate to="/" replace />} />
-            <Route path="/agente" element={<Navigate to="/" replace />} />
+            <Route path="/agente" element={<ProtectedRoute><Agente /></ProtectedRoute>} />
             <Route path="/conectar" element={<Navigate to="/" replace />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
