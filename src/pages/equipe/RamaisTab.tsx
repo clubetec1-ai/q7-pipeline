@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Badge } from "@/components/ui/badge";
+import { extStatus } from "@/lib/extStatus";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { EquipeData } from "./useEquipeData";
 
-interface Ext { id: string; number: string; label: string | null; wss_url: string | null; has_password: boolean; user_id: string | null; mode: string }
+interface Ext { id: string; number: string; label: string | null; wss_url: string | null; has_password: boolean; user_id: string | null; mode: string; reg_state: string | null; reg_detail: string | null; reg_at: string | null }
 const MODES: [string, string][] = [["webrtc", "Navegador (WebRTC)"], ["sip", "MicroSIP / aparelho"], ["off", "Desligado"]];
 
 /**
@@ -17,10 +17,11 @@ export function RamaisTab({ orgId, data }: { orgId: string; data: EquipeData }) 
   const [rows, setRows] = useState<Ext[]>([]);
   const load = useCallback(async () => {
     const { data: r } = await supabase.from("pbx_extensions")
-      .select("id, number, label, wss_url, has_password, user_id, mode").eq("organization_id", orgId).order("number");
+      .select("id, number, label, wss_url, has_password, user_id, mode, reg_state, reg_detail, reg_at").eq("organization_id", orgId).order("number");
     setRows((r as Ext[]) ?? []);
   }, [orgId]);
   useEffect(() => { void load(); }, [load]);
+  useEffect(() => { const t = window.setInterval(() => void load(), 30_000); return () => window.clearInterval(t); }, [load]);
 
   const act = async (p: PromiseLike<{ error: { message: string } | null }>, ok: string) => {
     const { error } = await p;
@@ -31,12 +32,12 @@ export function RamaisTab({ orgId, data }: { orgId: string; data: EquipeData }) 
   const active = data.members.filter((m) => m.status === "active");
 
   if (!rows.length) {
-    return <p className="text-sm text-muted-foreground">Nenhum ramal ainda. Ao contratar o PBX com a Clubetec, os ramais aparecem aqui prontos para escolher o atendente.</p>;
+    return <p className="text-sm text-muted-foreground">Nenhum ramal ainda. Ao contratar o PBX com a Clubetec, os ramais chegam aqui prontos e já associados à equipe; você pode trocar o atendente quando quiser.</p>;
   }
   return (
     <div className="overflow-x-auto">
       <Table>
-        <TableHeader><TableRow><TableHead>Ramal</TableHead><TableHead>Atendente</TableHead><TableHead>Como usa</TableHead><TableHead>Situação</TableHead></TableRow></TableHeader>
+        <TableHeader><TableRow><TableHead>Ramal</TableHead><TableHead>Atendente</TableHead><TableHead>Como usa</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
         <TableBody>
           {rows.map((e) => (
             <TableRow key={e.id}>
@@ -55,14 +56,17 @@ export function RamaisTab({ orgId, data }: { orgId: string; data: EquipeData }) 
                 </select>
               </TableCell>
               <TableCell>
-                {!e.has_password ? <Badge variant="outline">Aguardando Clubetec</Badge>
-                  : !e.wss_url ? <Badge variant="outline">Só MicroSIP/aparelho</Badge> : <Badge>Pronto</Badge>}
+                {(() => { const st = extStatus(e); return (
+                  <span className="inline-flex items-center gap-1.5 text-xs" title={st.hint}><span className={`w-2.5 h-2.5 rounded-full ${st.dot}`} />{st.label}</span>
+                ); })()}
               </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
-      <p className="text-xs text-muted-foreground mt-2">Cada pessoa tem um ramal. No MicroSIP/aparelho, o ClubeCRM identifica o cliente pelo número e continua o atendimento no WhatsApp.</p>
+      <p className="text-xs text-muted-foreground mt-2">Cada pessoa tem um ramal e vê o botão 📞 no canto da tela. <b>Navegador</b>: liga e atende dentro do ClubeCRM
+        (precisa do endereço WebRTC da central). <b>MicroSIP/aparelho</b>: liga pelo MicroSIP; o ClubeCRM identifica o cliente pelo número e continua o
+        atendimento no WhatsApp. 🟢 online · 🔴 erro · ⚪ desconectado · 🔵 MicroSIP (fora do navegador).</p>
     </div>
   );
 }

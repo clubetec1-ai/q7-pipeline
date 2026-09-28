@@ -59,6 +59,14 @@ Objetivo: a ligação cai na mesma tela do WhatsApp.
   mudo, espera, teclado; MicroSIP: disca pelo link sip:, "Quem está ligando?" e registrar); identifica o cliente pelo
   número; "Enviar olá no WhatsApp" abre/continua a conversa; histórico de ligações imutável. Falta: avisos de
   chamada da central (identificação automática no MicroSIP), gravações e transcrição — dependem da Handphone.*
+- **Ramal: status, explicação e instalação em lote (pedido em 29/09)** — ícone em Plataforma mostrando se o ramal
+  está online/funcionando; explicar melhor como funciona; ramais já associados aos usuários na instalação; planilha
+  com os ramais e os usuários, ou associação automática.
+  *Entregue (29/09): status 🟢 online / 🔴 erro / ⚪ desconectado / 🔵 MicroSIP em Plataforma e em Configurar → Ramais
+  (o telefone do navegador manda sinal a cada 2 min); passo a passo "Como funciona"; botão Testar (registra na central
+  com a senha digitada, sem salvar); atendente escolhido já no cadastro; modelo de planilha com os e-mails da equipe +
+  importação (colar do Excel ou .csv); "Associar automaticamente" (ramais livres → pessoas sem ramal); sem wss o modo
+  vira MicroSIP; menu: "Ramais (telefone)" em Configurar e o chat interno renomeado para "Chat equipe".*
 - **Identifica o número** que ligou e abre/associa o contato e a conversa (mesmo atendimento, protocolo).
 - **Transcrição da ligação** em tempo real ou ao final, gravada no histórico do atendimento.
 - **Confirmação do número**: o atendente pede para o cliente repetir/confirmar o número de WhatsApp e, ainda durante

@@ -2326,6 +2326,9 @@ export type Database = {
           number: string
           organization_id: string
           provider: string
+          reg_at: string | null
+          reg_detail: string | null
+          reg_state: string | null
           sip_domain: string
           sip_user: string
           updated_at: string
@@ -2341,6 +2344,9 @@ export type Database = {
           number: string
           organization_id: string
           provider?: string
+          reg_at?: string | null
+          reg_detail?: string | null
+          reg_state?: string | null
           sip_domain: string
           sip_user: string
           updated_at?: string
@@ -2356,6 +2362,9 @@ export type Database = {
           number?: string
           organization_id?: string
           provider?: string
+          reg_at?: string | null
+          reg_detail?: string | null
+          reg_state?: string | null
           sip_domain?: string
           sip_user?: string
           updated_at?: string
@@ -3575,6 +3584,15 @@ export type Database = {
         Returns: string
       }
       operator_delete_extension: { Args: { ext: string }; Returns: undefined }
+      operator_org_members: {
+        Args: { org: string }
+        Returns: {
+          email: string
+          name: string
+          role: string
+          user_id: string
+        }[]
+      }
       operator_save_extension: {
         Args: {
           ext: string
@@ -3634,6 +3652,10 @@ export type Database = {
           until: string
         }
         Returns: Json
+      }
+      report_extension_status: {
+        Args: { ext: string; p_detail?: string; p_state: string }
+        Returns: undefined
       }
       reset_company_profile: { Args: { org: string }; Returns: Json }
       restore_company_profile: { Args: { org: string }; Returns: Json }

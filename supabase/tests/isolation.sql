@@ -1059,8 +1059,8 @@ BEGIN
   PERFORM pg_temp.expect(pg_temp.q(agent_a, format('SELECT count(*) FROM public.lookup_caller(%L, %L)', A, '11900000003')) = 0, 'nao identifica cliente de outro setor');
   PERFORM pg_temp.expect(pg_temp.q(owner_b, format('SELECT count(*) FROM public.lookup_caller(%L, %L)', A, '11900000001')) = 0, 'outra org nao identifica');
   PERFORM pg_temp.expect(pg_temp.run(operator, format('SELECT public.operator_delete_extension((SELECT id FROM public.pbx_extensions WHERE number = %L))', '201')) = 'ok:1', 'clubetec exclui ramal');
-  PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM vault.secrets WHERE name LIKE 'ext:%'), 'senha sai do cofre');
-  PERFORM pg_temp.expect((SELECT count(*) FROM public.calls) = 1, 'historico fica apos excluir o ramal');
+  PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM vault.secrets s WHERE s.name LIKE 'ext:%' AND NOT EXISTS (SELECT 1 FROM public.pbx_extensions e WHERE s.name = format('ext:%s:password', e.id))), 'senha sai do cofre');
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.calls WHERE organization_id = A) = 1, 'historico fica apos excluir o ramal');
 
   -- 55. Etiquetas padrao em toda empresa; etiqueta de setor(es): so quem e do setor ve e marca (ou quem ve tudo).
   PERFORM pg_temp.expect((SELECT count(*) FROM public.tags WHERE organization_id = A AND is_default) >= 9, 'empresa tem etiquetas padrao');
@@ -1087,6 +1087,20 @@ BEGIN
   PERFORM pg_temp.expect(pg_temp.run(owner_a, format('INSERT INTO public.tag_departments (organization_id, tag_id, department_id) SELECT %L, t.id, d.id FROM public.tags t, public.departments d WHERE t.organization_id = %L AND t.name = %L AND d.organization_id = %L AND d.name = %L',
     A, A, 'Garantia D2', A, 'D1')) = 'ok:1', 'etiqueta em mais de um setor');
   PERFORM pg_temp.expect(pg_temp.q(agent_a, format('SELECT count(*) FROM public.tags WHERE name = %L', 'Garantia D2')) = 1, 'agora D1 tambem ve');
+
+  -- 56. Status do ramal: so o atendente do ramal informa; outra org nunca.
+  PERFORM pg_temp.run(operator, format('SELECT public.operator_save_extension(%L, NULL, %L, %L, %L, %L, %L, %L, %L)',
+    A, '301', '301', 'pbx.exemplo.com', 'wss://pbx.exemplo.com/ws', 'nvoip', '', 'x1'));
+  PERFORM pg_temp.run(owner_a, format('SELECT public.assign_extension((SELECT id FROM public.pbx_extensions WHERE number = %L), %L)', '301', agent_a));
+  PERFORM pg_temp.expect(pg_temp.run(agent_a, format('SELECT public.report_extension_status((SELECT id FROM public.pbx_extensions WHERE number = %L), %L)', '301', 'online')) = 'ok:1', 'atendente informa online');
+  PERFORM pg_temp.expect((SELECT reg_state FROM public.pbx_extensions WHERE number = '301') = 'online', 'status gravado');
+  PERFORM pg_temp.expect_error(agent2_a, format('SELECT public.report_extension_status(%L, %L)', (SELECT id FROM public.pbx_extensions WHERE number = '301'), 'offline'), 'outro atendente nao informa');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.report_extension_status(%L, %L)', (SELECT id FROM public.pbx_extensions WHERE number = '301'), 'offline'), 'outra org nao informa');
+  PERFORM pg_temp.expect(pg_temp.t(operator, format('SELECT reg_state FROM public.pbx_extensions WHERE number = %L', '301')) = 'online', 'clubetec ve o status');
+
+  PERFORM pg_temp.expect(pg_temp.q(operator, format('SELECT count(*) FROM public.operator_org_members(%L)', A)) >= 5, 'clubetec ve a equipe para instalar ramais');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT * FROM public.operator_org_members(%L)', A), 'dono nao usa a lista da clubetec');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT * FROM public.operator_org_members(%L)', A), 'outra org nao lista a equipe');
 
   RAISE NOTICE 'ISOLATION OK';
 END $$;
