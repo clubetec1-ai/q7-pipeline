@@ -12,6 +12,7 @@ import { callHttp, type HttpOutcome, type HttpVars, secretNames } from "./http.t
 import { runAiAgent } from "./ai-agent.ts";
 import { sendLibraryFile } from "../library.ts";
 import { setContactField } from "../contact-fields.ts";
+import { runRecord } from "../records.ts";
 
 /** A IA sabe o protocolo e informa se o cliente pedir. */
 export function withProtocol(prompt: string, protocol?: string | null) {
@@ -230,12 +231,24 @@ export async function runFlow(p: {
 
     await apply(actions);
     // Bloco HTTP: o executor chama e o motor segue por success/error.
-    for (let hops = 0; result.state === "http" && !routed; hops++) {
+    for (let hops = 0; (result.state === "http" || result.state === "record") && !routed; hops++) {
       const node = graph.nodes.find((n) => n.id === result.currentNodeId);
       if (!node || hops >= 10) {
-        result = { ...result, state: "error", currentNodeId: null, error: "muitas chamadas HTTP seguidas" };
+        result = { ...result, state: "error", currentNodeId: null, error: "muitas etapas automáticas seguidas" };
         await route({ action: "queue" });
         break;
+      }
+      if (result.state === "record") {
+        // Bloco Registro: só da organização e do próprio contato da conversa.
+        const rec = await runRecord(org, conv.contact_id ?? null, node.data ?? {}, { ...ctx, vars: result.vars });
+        if (!rec.ok) console.log("[flow/registro]", { node: node.id, error: rec.error });
+        result = advance(graph, node.id, null, {
+          ...ctx, timerFired: false, attempts: result.attempts, aiTurns: result.aiTurns,
+          vars: { ...result.vars, ...(rec.vars ?? {}) }, recordResult: rec.ok ? "success" : "error",
+        });
+        steps.push(...result.steps);
+        await apply(result.actions as FlowAction[]);
+        continue;
       }
       const out = await runHttp(admin, orgId, node.data ?? {}, {
         vars: result.vars, name: conv.contact_name ?? "", phone: conv.contact_phone ?? "", protocol: ticket.protocol ?? "",

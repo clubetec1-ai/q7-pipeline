@@ -10,6 +10,7 @@ import { chat, type ChatMsg, resolveAI, type ToolDef } from "../ai-chat.ts";
 import { validate } from "./engine.ts";
 import { aiContactContext, contactFieldDefs, setContactField } from "../contact-fields.ts";
 import { companyKnowledge } from "../company.ts";
+import { aiRecordsContext } from "../records.ts";
 
 const DEFAULT_PROMPT = "Você é um assistente de atendimento simpático e objetivo.";
 const FIELDS: Record<string, { label: string; kind: string }> = {
@@ -55,10 +56,11 @@ export async function runAiAgent(p: {
     allowed(org, "library_files", ids(d.allow_files)),
   ]);
   // Campos que a IA pode preencher: padrão ou personalizados (nunca os sensíveis).
-  const [defs, { data: contactRow }, knowledge] = await Promise.all([
+  const [defs, { data: contactRow }, knowledge, recordsCtx] = await Promise.all([
     contactFieldDefs(org),
     conv.contact_id ? org.select("contacts", "custom").eq("id", conv.contact_id).maybeSingle() : Promise.resolve({ data: null }),
     companyKnowledge(org),
+    aiRecordsContext(org, conv.contact_id ?? null, ids(d.allow_record_types)),
   ]);
   const customDef = (f: string) => defs.find((x) => `custom:${x.key}` === f && !x.sensitive);
   const fields = ids(d.allow_fields).filter((f) => FIELDS[f] || customDef(f));
@@ -99,6 +101,7 @@ export async function runAiAgent(p: {
     first ? `Primeiro nome do cliente: ${first}.` : "",
     aiContactContext(defs, contactRow?.custom as Record<string, unknown> | null),
     knowledge,
+    recordsCtx,
     tools.length ? "Use as ferramentas só quando o cliente pedir ou quando for claramente necessário. Nunca invente dados." : "",
   ].filter(Boolean).join("\n\n");
   const messages: ChatMsg[] = [
