@@ -88,6 +88,12 @@ export const BLOCKS: BlockDef[] = [
     },
   },
   {
+    type: "connector", label: "Conector", color: "#9333EA",
+    outputs: () => [{ id: "success", label: "Deu certo" }, { id: "error", label: "Não deu" }],
+    defaults: () => ({ connector: "", connector_action: "" }),
+    summary: (d) => (str(d.connector) ? `${str(d.connector)}: ${str(d.connector_action)}` : "Escolha o sistema"),
+  },
+  {
     type: "record", label: "Registro", color: "#0F766E",
     outputs: () => [{ id: "success", label: "Deu certo" }, { id: "error", label: "Não deu" }],
     defaults: () => ({ mode: "create", type_id: "", values: {} }),

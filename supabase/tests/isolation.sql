@@ -657,6 +657,17 @@ BEGIN
   PERFORM pg_temp.expect(pg_temp.run(operator, format('SELECT public.platform_set_request_status((SELECT id FROM public.service_requests WHERE organization_id = %L LIMIT 1), %L)', A, 'in_progress')) LIKE 'ok:%',
     'operador muda situacao');
 
+  -- 38. Conectores: conexao so visivel a dono/admin da org; state e aplicativo so backend/operador.
+  INSERT INTO public.org_connections (organization_id, connector) VALUES (A, 'bling');
+  INSERT INTO public.oauth_states (state, organization_id, connector, user_id) VALUES (repeat('a', 48), A, 'bling', owner_a);
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT count(*) FROM public.org_connections') = 1, 'owner ve conexao');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, 'SELECT count(*) FROM public.org_connections') = 0, 'atendente nao ve conexao');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.org_connections') = 0, 'outra org nao ve conexao');
+  PERFORM pg_temp.expect_error(owner_a, 'SELECT count(*) FROM public.oauth_states', 'navegador nao le state do oauth');
+  PERFORM pg_temp.expect_error(owner_a, format('UPDATE public.org_connections SET status = %L', 'connected'), 'navegador nao altera conexao');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.platform_set_connector_app(%L, %L, %L)', 'bling', 'clienteid123', 'segredo123'), 'dono nao cadastra aplicativo');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_put_secret(%L, %L)', format('conn:%s:bling:access', A), 'x'), 'token do conector so pelo backend');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 

@@ -40,6 +40,8 @@ export default function Plataforma() {
   const [confirm, setConfirm] = useState<OrgRow | null>(null);
   const [busy, setBusy] = useState(false);
   const [requests, setRequests] = useState<HelpRequest[]>([]);
+  const [apps, setApps] = useState<Record<string, boolean>>({});
+  const [appForm, setAppForm] = useState({ id: "", secret: "" });
 
   const load = useCallback(async () => {
     const [o, t, rq] = await Promise.all([
@@ -48,6 +50,8 @@ export default function Plataforma() {
       supabase.from("service_requests").select("id, organization_id, topic, message, status, created_at").order("created_at", { ascending: false }).limit(100),
     ]);
     setRequests((rq.data as HelpRequest[]) ?? []);
+    const { data: ap } = await supabase.rpc("connector_apps_status");
+    setApps((ap as Record<string, boolean> | null) ?? {});
     setRows((o.data as OrgRow[]) ?? []);
     setTemplates(t.data ?? []);
   }, []);
@@ -155,6 +159,27 @@ export default function Plataforma() {
             </TableBody>
           </Table>
         </div>
+        <section className="space-y-2 rounded-lg border p-4">
+          <h2 className="font-semibold">Aplicativo do conector Bling {apps.bling ? <Badge className="ml-2">Ativo</Badge> : <Badge variant="outline" className="ml-2">Não configurado</Badge>}</h2>
+          <ol className="list-decimal pl-5 text-xs text-muted-foreground space-y-0.5">
+            <li>Entre em developer.bling.com.br com a conta Bling da Clubetec e crie um aplicativo “ClubeCRM” (tipo: aplicativo público/para terceiros).</li>
+            <li>Em “Link de redirecionamento”, use: <code className="select-all">{`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connectors-callback`}</code></li>
+            <li>Escopos: contatos, pedidos de venda e situações (leitura).</li>
+            <li>Copie o Client ID e o Client Secret e cole abaixo (vão para o cofre; não aparecem de novo).</li>
+          </ol>
+          <div className="flex flex-wrap gap-2">
+            <Input className="max-w-xs" placeholder="Client ID" value={appForm.id} onChange={(e) => setAppForm({ ...appForm, id: e.target.value })} />
+            <Input className="max-w-xs" type="password" autoComplete="off" placeholder="Client Secret" value={appForm.secret} onChange={(e) => setAppForm({ ...appForm, secret: e.target.value })} />
+            <Button variant="outline" disabled={appForm.id.length < 8 || appForm.secret.length < 8} onClick={async () => {
+              const { error } = await supabase.rpc("platform_set_connector_app", { connector: "bling", client_id: appForm.id.trim(), client_secret: appForm.secret.trim() });
+              if (error) return toast({ variant: "destructive", title: "Não salvo", description: error.message });
+              setAppForm({ id: "", secret: "" });
+              toast({ title: "Aplicativo do Bling salvo", description: "As empresas já podem conectar em Integrações." });
+              void load();
+            }}>Salvar</Button>
+          </div>
+        </section>
+
         <section className="space-y-2">
           <h2 className="font-semibold">Pedidos de ajuda (serviço Clubetec)</h2>
           {requests.length === 0 && <p className="text-sm text-muted-foreground">Nenhum pedido.</p>}

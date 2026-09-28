@@ -7,6 +7,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import { ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { callFunction } from "@/lib/callFunction";
 import type { Json } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/contexts/OrgContext";
@@ -45,7 +46,7 @@ export default function FlowEditor() {
   const [selected, setSelected] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [lookups, setLookups] = useState<Lookups>({ departments: [], tags: [], groups: [], closeReasons: [], stages: [], secrets: [], files: [], contactFields: [], recordTypes: [] });
+  const [lookups, setLookups] = useState<Lookups>({ departments: [], tags: [], groups: [], closeReasons: [], stages: [], secrets: [], files: [], contactFields: [], recordTypes: [], connectors: [] });
   const [simOpen, setSimOpen] = useState(false);
   const [active, setActive] = useState<string | null>(null);
   const [period, setPeriod] = useState(0);
@@ -88,7 +89,11 @@ export default function FlowEditor() {
       contactFields: ((cf.data?.fields ?? []) as unknown as { key: string; label: string; sensitive?: boolean }[])
         .filter((f) => !f.sensitive).map((f) => ({ id: `custom:${f.key}`, name: `${f.label} (campo do contato)` })),
       recordTypes: ((rts.data ?? []) as unknown as Lookups["recordTypes"]),
+      connectors: [],
     });
+    // Conectores conectados (catálogo vem do servidor).
+    callFunction<{ catalog: (Lookups["connectors"][number] & { connection: { status: string } | null })[] }>("connectors", { action: "list", organization_id: org.id })
+      .then((r) => r.ok && setLookups((l) => ({ ...l, connectors: r.data.catalog.filter((c) => c.connection?.status === "connected") })));
     const draft = versions?.find((v) => v.status === "draft");
     const pub = versions?.find((v) => v.status === "published");
     setVersion(pub?.version ?? null);

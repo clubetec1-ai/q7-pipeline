@@ -9,6 +9,7 @@ import { callFunction } from "@/lib/callFunction";
 import { Logo } from "@/components/Logo";
 import { MainNav } from "@/components/MainNav";
 import { NumberHealthBanner } from "@/components/NumberHealthBanner";
+import { ConnectorsPanel } from "./integracoes/ConnectorsPanel";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -161,7 +162,8 @@ export default function Integracoes() {
         </aside>
 
         {!g || !cfg ? (
-          <section className="text-sm text-muted-foreground space-y-2">
+          <section className="text-sm text-muted-foreground space-y-4">
+            <ConnectorsPanel orgId={org.id} />
             <h1 className="text-2xl font-semibold text-foreground">Integrações</h1>
             <p>Conecte o ClubeCRM a outro sistema (ERP, agenda, loja) para a IA e os fluxos consultarem dados de verdade — por exemplo, o status do pedido pelo telefone do cliente.</p>
             <p>Clique em “Nova integração”: a IA monta o passo a passo, você guarda a chave, testa e cria o fluxo em rascunho.</p>
