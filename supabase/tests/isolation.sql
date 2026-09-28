@@ -983,7 +983,7 @@ BEGIN
 
   -- 52. Etiquetas e grupos: dono gerencia (cor, icone, juntar, excluir); atendente nao; sensivel nao se mistura; outra org nunca.
   INSERT INTO public.tags (id, organization_id, name) VALUES
-    ('aaaaaaaa-0000-0000-0052-000000000001', A, 'VIP'), ('aaaaaaaa-0000-0000-0052-000000000002', A, 'Vip ');
+    ('aaaaaaaa-0000-0000-0052-000000000001', A, 'Cliente VIP'), ('aaaaaaaa-0000-0000-0052-000000000002', A, 'Cliente Vip ');
   INSERT INTO public.contact_groups (id, organization_id, name, sensitive) VALUES
     ('aaaaaaaa-0000-0000-0052-000000000011', A, 'Inadimplentes', true), ('aaaaaaaa-0000-0000-0052-000000000012', A, 'Clientes ouro', false);
   INSERT INTO public.contact_tags (organization_id, contact_id, tag_id)
@@ -1025,6 +1025,68 @@ BEGIN
   PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT count(*) FROM public.team_channels WHERE kind = ''direto''') = 0, 'direta e privada ate para o dono');
   PERFORM pg_temp.expect_error(agent_a, format('SELECT public.open_direct_chat(%L, %L)', A, owner_b), 'nao abre direta com outra org');
   PERFORM pg_temp.expect(pg_temp.q(sup_a, format('SELECT count(*) FROM public.team_unread(%L)', A)) >= 1, 'nao lidas para quem ve');
+
+  -- 54. Ramal: so a Clubetec cadastra; dono escolhe o atendente; senha so para o dono do ramal em WebRTC;
+  --     ligacoes imutaveis, cada um ve as suas; outra org nunca.
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.operator_save_extension(%L, NULL, %L, %L, %L, %L, %L, %L, %L)',
+    A, '201', '201', 'pbx.exemplo.com', 'wss://pbx.exemplo.com:8089/ws', 'handphone', 'Recepcao', 'segredo123'), 'dono nao cadastra ramal');
+  PERFORM pg_temp.expect(pg_temp.run(operator, format('SELECT public.operator_save_extension(%L, NULL, %L, %L, %L, %L, %L, %L, %L)',
+    A, '201', '201', 'pbx.exemplo.com', 'wss://pbx.exemplo.com:8089/ws', 'handphone', 'Recepcao', 'segredo123')) = 'ok:1', 'clubetec cadastra ramal');
+  PERFORM pg_temp.expect_error(operator, format('SELECT public.operator_save_extension(%L, NULL, %L, %L, %L, %L, %L, %L, %L)',
+    A, '202', '202', 'pbx.exemplo.com', 'https://malicioso.com', 'handphone', '', ''), 'servidor so wss');
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT count(*) FROM public.pbx_extensions') = 1, 'dono ve os ramais');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.pbx_extensions') = 0, 'outra org nao ve ramais');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, 'SELECT count(*) FROM public.pbx_extensions') = 0, 'atendente sem ramal nao ve ramais');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.assign_extension((SELECT id FROM public.pbx_extensions WHERE number = %L), %L)', '201', owner_b), 'outra org nao atribui');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.assign_extension((SELECT id FROM public.pbx_extensions WHERE number = %L), %L)', '201', owner_b), 'nao atribui a pessoa de outra org');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('SELECT public.assign_extension((SELECT id FROM public.pbx_extensions WHERE number = %L), %L)', '201', agent_a)) = 'ok:1', 'dono atribui ao atendente');
+  PERFORM pg_temp.expect(pg_temp.t(agent_a, format('SELECT public.my_extension(%L)->>%L', A, 'password')) = 'segredo123', 'atendente recebe a senha em webrtc');
+  PERFORM pg_temp.expect(pg_temp.t(agent2_a, format('SELECT coalesce(public.my_extension(%L)::text, %L)', A, 'nada')) = 'nada', 'outro atendente nao recebe ramal');
+  PERFORM pg_temp.expect(pg_temp.t(owner_b, format('SELECT coalesce(public.my_extension(%L)::text, %L)', A, 'nada')) = 'nada', 'outra org nao recebe ramal');
+  PERFORM pg_temp.expect_error(agent2_a, format('SELECT public.set_extension_mode((SELECT id FROM public.pbx_extensions WHERE organization_id = %L AND number = %L), %L)', A, '201', 'off'), 'outro atendente nao muda o modo');
+  PERFORM pg_temp.expect(pg_temp.run(agent_a, format('SELECT public.set_extension_mode((SELECT id FROM public.pbx_extensions WHERE number = %L), %L)', '201', 'sip')) = 'ok:1', 'atendente muda para sip');
+  PERFORM pg_temp.expect(pg_temp.t(agent_a, format('SELECT coalesce(public.my_extension(%L)->>%L, %L)', A, 'password', 'sem')) = 'sem', 'em sip a senha nao vai ao navegador');
+  PERFORM pg_temp.expect_error(agent_a, format('UPDATE public.pbx_extensions SET wss_url = %L', 'wss://outro.com'), 'atendente nao altera ramal direto');
+  PERFORM pg_temp.expect(pg_temp.run(agent_a, format('SELECT public.log_call(%L, NULL, %L, %L, %L, %L)', A, 'in', '(11) 90000-0001', 'ringing', 'sip')) = 'ok:1', 'atendente registra ligacao');
+  PERFORM pg_temp.expect((SELECT contact_id IS NOT NULL FROM public.calls WHERE phone = '11900000001'), 'ligacao liga ao cliente pelo numero');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, 'SELECT count(*) FROM public.calls') = 1, 'atendente ve a sua ligacao');
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT count(*) FROM public.calls') = 1, 'dono ve as ligacoes');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.calls') = 0, 'outra org nao ve ligacoes');
+  PERFORM pg_temp.expect_error(agent2_a, format('SELECT public.log_call(%L, (SELECT id FROM public.calls LIMIT 1), %L, %L, %L, %L)', A, 'in', '1', 'ended', 'sip'), 'nao altera ligacao de outro');
+  PERFORM pg_temp.expect_error(agent_a, format('INSERT INTO public.calls (organization_id, direction, phone, source) VALUES (%L, %L, %L, %L)', A, 'out', '11999', 'sip'), 'ligacao so pela funcao');
+  PERFORM pg_temp.expect_error(owner_a, 'DELETE FROM public.calls', 'ligacao nao se apaga');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, format('SELECT count(*) FROM public.lookup_caller(%L, %L)', A, '11900000001')) = 1, 'identifica cliente visivel');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, format('SELECT count(*) FROM public.lookup_caller(%L, %L)', A, '11900000003')) = 0, 'nao identifica cliente de outro setor');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, format('SELECT count(*) FROM public.lookup_caller(%L, %L)', A, '11900000001')) = 0, 'outra org nao identifica');
+  PERFORM pg_temp.expect(pg_temp.run(operator, format('SELECT public.operator_delete_extension((SELECT id FROM public.pbx_extensions WHERE number = %L))', '201')) = 'ok:1', 'clubetec exclui ramal');
+  PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM vault.secrets WHERE name LIKE 'ext:%'), 'senha sai do cofre');
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.calls) = 1, 'historico fica apos excluir o ramal');
+
+  -- 55. Etiquetas padrao em toda empresa; etiqueta de setor(es): so quem e do setor ve e marca (ou quem ve tudo).
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.tags WHERE organization_id = A AND is_default) >= 9, 'empresa tem etiquetas padrao');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.add_default_tags(%L)', A), 'atendente nao recria padrao');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('SELECT public.add_default_tags(%L)', A)) = 'ok:1', 'dono recria padrao');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.add_default_tags(%L)', A), 'outra org nao mexe');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('INSERT INTO public.tags (organization_id, name) VALUES (%L, %L)', A, 'Garantia D2')) = 'ok:1', 'dono cria etiqueta');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('INSERT INTO public.tag_departments (organization_id, tag_id, department_id) SELECT %L, t.id, d.id FROM public.tags t, public.departments d WHERE t.organization_id = %L AND t.name = %L AND d.organization_id = %L AND d.name = %L',
+    A, A, 'Garantia D2', A, 'D2')) = 'ok:1', 'dono associa etiqueta ao setor D2');
+  PERFORM pg_temp.expect_error(owner_a, format('INSERT INTO public.tag_departments (organization_id, tag_id, department_id) SELECT %L, t.id, %L FROM public.tags t WHERE t.organization_id = %L AND t.name = %L',
+    A, 'bbbbbbbb-0000-0000-0001-000000000001', A, 'Garantia D2'), 'etiqueta nao usa setor de outra org');
+  PERFORM pg_temp.expect_error(agent_a, format('INSERT INTO public.tag_departments (organization_id, tag_id, department_id) SELECT %L, t.id, d.id FROM public.tags t, public.departments d WHERE t.organization_id = %L AND t.name = %L AND d.organization_id = %L AND d.name = %L',
+    A, A, 'VIP', A, 'D1'), 'atendente nao associa setor');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, format('SELECT count(*) FROM public.tags WHERE name = %L', 'Garantia D2')) = 0, 'atendente de D1 nao ve etiqueta de D2');
+  PERFORM pg_temp.expect(pg_temp.q(agent2_a, format('SELECT count(*) FROM public.tags WHERE name = %L', 'Garantia D2')) = 1, 'atendente de D2 ve etiqueta de D2');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, format('SELECT count(*) FROM public.tags WHERE name = %L', 'VIP')) = 1, 'atendente ve etiqueta geral');
+  PERFORM pg_temp.expect_error(agent_a, format('INSERT INTO public.contact_tags (organization_id, contact_id, tag_id) VALUES (%L, (SELECT contact_id FROM public.conversations WHERE id = %L), (SELECT id FROM public.tags WHERE organization_id = %L AND name = %L))',
+    A, 'aaaaaaaa-0000-0000-0004-000000000001', A, 'Garantia D2'), 'atendente de D1 nao usa etiqueta de D2');
+  PERFORM pg_temp.expect(pg_temp.run(agent_a, format('INSERT INTO public.contact_tags (organization_id, contact_id, tag_id) VALUES (%L, (SELECT contact_id FROM public.conversations WHERE id = %L), (SELECT id FROM public.tags WHERE organization_id = %L AND name = %L))',
+    A, 'aaaaaaaa-0000-0000-0004-000000000001', A, 'VIP')) = 'ok:1', 'atendente usa etiqueta geral');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('INSERT INTO public.contact_tags (organization_id, contact_id, tag_id) VALUES (%L, (SELECT contact_id FROM public.conversations WHERE id = %L), (SELECT id FROM public.tags WHERE organization_id = %L AND name = %L))',
+    A, 'aaaaaaaa-0000-0000-0004-000000000001', A, 'Garantia D2')) = 'ok:1', 'dono usa etiqueta de qualquer setor');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, format('SELECT count(*) FROM public.contact_tags ct JOIN public.conversations c ON c.contact_id = ct.contact_id WHERE c.id = %L', 'aaaaaaaa-0000-0000-0004-000000000001')) = 1, 'atendente so ve as etiquetas do seu setor no cliente');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('INSERT INTO public.tag_departments (organization_id, tag_id, department_id) SELECT %L, t.id, d.id FROM public.tags t, public.departments d WHERE t.organization_id = %L AND t.name = %L AND d.organization_id = %L AND d.name = %L',
+    A, A, 'Garantia D2', A, 'D1')) = 'ok:1', 'etiqueta em mais de um setor');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, format('SELECT count(*) FROM public.tags WHERE name = %L', 'Garantia D2')) = 1, 'agora D1 tambem ve');
 
   RAISE NOTICE 'ISOLATION OK';
 END $$;

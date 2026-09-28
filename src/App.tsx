@@ -8,6 +8,7 @@ import { OrgProvider } from "@/contexts/OrgContext";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/admin/AdminRoute";
+import { PhoneWidget } from "@/components/voice/PhoneWidget";
 import Login from "./pages/Login";
 import Conversas from "./pages/Conversas";
 import Kanban from "./pages/Kanban";
@@ -79,6 +80,7 @@ const App = () => (
             <Route path="/conectar" element={<Navigate to="/" replace />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <PhoneWidget />
         </BrowserRouter>
         </TooltipProvider>
         </OrgProvider>

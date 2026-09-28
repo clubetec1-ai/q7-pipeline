@@ -47,6 +47,18 @@ Objetivo: enviar e receber e-mail pelo ClubeCRM, no mesmo lugar do WhatsApp.
 Objetivo: a ligação cai na mesma tela do WhatsApp.
 - **Ramal SIP de PBX em nuvem dentro do navegador** (WebRTC/SIP.js), por atendente; integração com a central
   (ou via API de voz, como alternativa) — credenciais SIP no Vault, por organização.
+- **Multiplataforma (29/09)**: qualquer central com SIP (Handphone primeiro, Nvoip, 3CX, Asterisk…), com um
+  adaptador por central para avisos de chamada, gravações e clique-para-ligar; funciona em qualquer navegador (PC e celular).
+- **Softphone embutido no cadastro do atendente, estilo MicroSIP (29/09)**: hoje o dono configura os ramais no
+  MicroSIP. No ClubeCRM, cada atendente tem o seu ramal (servidor/domínio, usuário, senha no Vault, número) e escolhe o modo:
+  **WebRTC** (telefone dentro do navegador, precisa da central com WSS) ou **só SIP** (continua no MicroSIP ou
+  aparelho; o CRM liga pelo link `sip:`/`tel:` ou pela API da central e identifica as chamadas pelos avisos da central).
+  Senha do ramal só no cofre; volta apenas para o navegador do próprio atendente, e só em WebRTC; nunca vai para outra empresa.
+  *Entregue (29/09), fase 1: Plataforma → Ramais (Clubetec cadastra número, usuário, servidor, wss e senha no cofre);
+  Equipe → Ramais (dono escolhe atendente e modo); telefone flutuante em todas as telas (WebRTC: ligar, atender,
+  mudo, espera, teclado; MicroSIP: disca pelo link sip:, "Quem está ligando?" e registrar); identifica o cliente pelo
+  número; "Enviar olá no WhatsApp" abre/continua a conversa; histórico de ligações imutável. Falta: avisos de
+  chamada da central (identificação automática no MicroSIP), gravações e transcrição — dependem da Handphone.*
 - **Identifica o número** que ligou e abre/associa o contato e a conversa (mesmo atendimento, protocolo).
 - **Transcrição da ligação** em tempo real ou ao final, gravada no histórico do atendimento.
 - **Confirmação do número**: o atendente pede para o cliente repetir/confirmar o número de WhatsApp e, ainda durante
@@ -167,6 +179,21 @@ Objetivo: a ligação cai na mesma tela do WhatsApp.
   de quem não pode ver. Ícone aparece junto da cor na lista, na ficha, na fila e nas campanhas.
   *Entregue (29/09): tela Clientes → Etiquetas e grupos (renomear, cor, 18 ícones, contagem, juntar duplicados sem
   misturar sensível com comum, excluir auditado); ícone aparece na fila, na ficha, em Clientes e em Campanhas.*
+- **Etiquetas e grupos visíveis em Conversas (pedido em 29/09)** — as etiquetas e os grupos definidos no cliente
+  aparecem na conversa (lista e topo do atendimento), com cor e ícone, para o atendente ver ao retomar o atendimento
+  o que é preciso para aquele cliente. Dá para pôr **mais de uma etiqueta** e escolher **a quais grupos** o cliente
+  pertence ali mesmo, sem sair da conversa.
+  *Entregue (29/09): barra no topo do atendimento com grupos e etiquetas (cor e ícone) e botão para marcar várias
+  etiquetas e escolher os grupos; a lista de conversas mostra setor, grupos e etiquetas. Grupos só por supervisor,
+  admin ou dono (grupo sensível continua escondido de quem não pode ver).*
+- **Etiquetas padrão e etiquetas por setor (pedido em 29/09)** — o sistema já vem com etiquetas padrão (ponto de
+  partida que mostra como etiqueta funciona); o dono/admin edita, cria outras e associa cada etiqueta a **um ou mais
+  setores**. Atendente só vê e usa as gerais e as dos setores a que pertence. As etiquetas aparecem na tela do
+  atendimento, na cor configurada, sinalizando o cliente que está sendo atendido.
+  *Entregue (29/09): 9 etiquetas padrão (VIP, Novo cliente, Retornar contato, Urgente, Reclamação, Orçamento enviado,
+  Aguardando pagamento, Pedido em andamento, Não incomodar) em toda empresa nova e nas atuais, botão "Padrão" recria
+  as que faltarem; setores por etiqueta em Etiquetas e grupos (nenhum = todos); regra no banco (RLS): atendente não vê
+  nem marca etiqueta de outro setor; barra do atendimento com as etiquetas em destaque na cor configurada.*
 - **Chat interno da equipe** — conversa entre as pessoas da empresa dentro do ClubeCRM, separada das conversas com
   clientes: canais por setor e mensagens diretas, menção com @, anexos, aviso no sino, e “compartilhar
   atendimento” (link para a conversa do cliente sem expor dados a quem não pode ver). Isolado por empresa (RLS),

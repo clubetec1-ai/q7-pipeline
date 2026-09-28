@@ -7,6 +7,7 @@ import { useOrg } from "@/contexts/OrgContext";
 import { useToast } from "@/hooks/use-toast";
 import { callFunction } from "@/lib/callFunction";
 import { Logo } from "@/components/Logo";
+import { RamaisPanel } from "./plataforma/RamaisPanel";
 import { MainNav } from "@/components/MainNav";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Badge } from "@/components/ui/badge";
@@ -159,6 +160,7 @@ export default function Plataforma() {
             </TableBody>
           </Table>
         </div>
+        <RamaisPanel orgs={rows} />
         <section className="space-y-2 rounded-lg border p-4">
           <h2 className="font-semibold">Aplicativo do conector Bling {apps.bling ? <Badge className="ml-2">Ativo</Badge> : <Badge variant="outline" className="ml-2">Não configurado</Badge>}</h2>
           <ol className="list-decimal pl-5 text-xs text-muted-foreground space-y-0.5">

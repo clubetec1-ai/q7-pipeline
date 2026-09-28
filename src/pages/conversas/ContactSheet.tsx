@@ -1,6 +1,7 @@
 import { firstName, memberNames } from "@/lib/memberNames";
 import { useCallback, useEffect, useState } from "react";
-import { Lock, Plus } from "lucide-react";
+import { Lock, Phone, Plus } from "lucide-react";
+import { requestCall } from "@/lib/requestCall";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/contexts/OrgContext";
 import { useToast } from "@/hooks/use-toast";
@@ -194,7 +195,12 @@ export function ContactSheet({
             <TabsContent value="dados" className="space-y-3 pt-3">
               {c && (
                 <>
-                  <p className="text-xs text-muted-foreground">Telefone: {c.phone}</p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs text-muted-foreground">Telefone: {c.phone}</p>
+                    {can("conversations.attend") && !c.name?.startsWith("Anonimizado") && (
+                      <Button size="sm" variant="outline" onClick={() => requestCall(c.phone)} title="Ligar pelo seu ramal"><Phone className="w-4 h-4 mr-1" /> Ligar</Button>
+                    )}
+                  </div>
                   {(["name", "email", "document"] as const).map((k) => (
                     <div key={k} className="space-y-1.5">
                       <Label>{{ name: "Nome", email: "E-mail", document: "CPF/CNPJ" }[k]}</Label>
