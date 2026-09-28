@@ -186,6 +186,14 @@ Objetivo: a ligação cai na mesma tela do WhatsApp.
   *Entregue (29/09): barra no topo do atendimento com grupos e etiquetas (cor e ícone) e botão para marcar várias
   etiquetas e escolher os grupos; a lista de conversas mostra setor, grupos e etiquetas. Grupos só por supervisor,
   admin ou dono (grupo sensível continua escondido de quem não pode ver).*
+- **Etiquetas padrão e etiquetas por setor (pedido em 29/09)** — o sistema já vem com etiquetas padrão (ponto de
+  partida que mostra como etiqueta funciona); o dono/admin edita, cria outras e associa cada etiqueta a **um ou mais
+  setores**. Atendente só vê e usa as gerais e as dos setores a que pertence. As etiquetas aparecem na tela do
+  atendimento, na cor configurada, sinalizando o cliente que está sendo atendido.
+  *Entregue (29/09): 9 etiquetas padrão (VIP, Novo cliente, Retornar contato, Urgente, Reclamação, Orçamento enviado,
+  Aguardando pagamento, Pedido em andamento, Não incomodar) em toda empresa nova e nas atuais, botão "Padrão" recria
+  as que faltarem; setores por etiqueta em Etiquetas e grupos (nenhum = todos); regra no banco (RLS): atendente não vê
+  nem marca etiqueta de outro setor; barra do atendimento com as etiquetas em destaque na cor configurada.*
 - **Chat interno da equipe** — conversa entre as pessoas da empresa dentro do ClubeCRM, separada das conversas com
   clientes: canais por setor e mensagens diretas, menção com @, anexos, aviso no sino, e “compartilhar
   atendimento” (link para a conversa do cliente sem expor dados a quem não pode ver). Isolado por empresa (RLS),

@@ -2714,11 +2714,45 @@ export type Database = {
           },
         ]
       }
+      tag_departments: {
+        Row: {
+          department_id: string
+          organization_id: string
+          tag_id: string
+        }
+        Insert: {
+          department_id: string
+          organization_id: string
+          tag_id: string
+        }
+        Update: {
+          department_id?: string
+          organization_id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tag_departments_department_id_organization_id_fkey"
+            columns: ["department_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "tag_departments_tag_id_organization_id_fkey"
+            columns: ["tag_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
+            referencedColumns: ["id", "organization_id"]
+          },
+        ]
+      }
       tags: {
         Row: {
           color: string | null
           icon: string | null
           id: string
+          is_default: boolean
           name: string
           organization_id: string
         }
@@ -2726,6 +2760,7 @@ export type Database = {
           color?: string | null
           icon?: string | null
           id?: string
+          is_default?: boolean
           name: string
           organization_id: string
         }
@@ -2733,6 +2768,7 @@ export type Database = {
           color?: string | null
           icon?: string | null
           id?: string
+          is_default?: boolean
           name?: string
           organization_id?: string
         }
@@ -3316,6 +3352,7 @@ export type Database = {
     }
     Functions: {
       accept_invitation: { Args: { org: string }; Returns: boolean }
+      add_default_tags: { Args: { org: string }; Returns: number }
       ai_keys_status: { Args: { org: string }; Returns: Json }
       approve_improvement: { Args: { improvement: string }; Returns: undefined }
       assign_extension: {

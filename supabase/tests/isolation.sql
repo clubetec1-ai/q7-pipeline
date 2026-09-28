@@ -983,7 +983,7 @@ BEGIN
 
   -- 52. Etiquetas e grupos: dono gerencia (cor, icone, juntar, excluir); atendente nao; sensivel nao se mistura; outra org nunca.
   INSERT INTO public.tags (id, organization_id, name) VALUES
-    ('aaaaaaaa-0000-0000-0052-000000000001', A, 'VIP'), ('aaaaaaaa-0000-0000-0052-000000000002', A, 'Vip ');
+    ('aaaaaaaa-0000-0000-0052-000000000001', A, 'Cliente VIP'), ('aaaaaaaa-0000-0000-0052-000000000002', A, 'Cliente Vip ');
   INSERT INTO public.contact_groups (id, organization_id, name, sensitive) VALUES
     ('aaaaaaaa-0000-0000-0052-000000000011', A, 'Inadimplentes', true), ('aaaaaaaa-0000-0000-0052-000000000012', A, 'Clientes ouro', false);
   INSERT INTO public.contact_tags (organization_id, contact_id, tag_id)
@@ -1061,6 +1061,32 @@ BEGIN
   PERFORM pg_temp.expect(pg_temp.run(operator, format('SELECT public.operator_delete_extension((SELECT id FROM public.pbx_extensions WHERE number = %L))', '201')) = 'ok:1', 'clubetec exclui ramal');
   PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM vault.secrets WHERE name LIKE 'ext:%'), 'senha sai do cofre');
   PERFORM pg_temp.expect((SELECT count(*) FROM public.calls) = 1, 'historico fica apos excluir o ramal');
+
+  -- 55. Etiquetas padrao em toda empresa; etiqueta de setor(es): so quem e do setor ve e marca (ou quem ve tudo).
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.tags WHERE organization_id = A AND is_default) >= 9, 'empresa tem etiquetas padrao');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.add_default_tags(%L)', A), 'atendente nao recria padrao');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('SELECT public.add_default_tags(%L)', A)) = 'ok:1', 'dono recria padrao');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.add_default_tags(%L)', A), 'outra org nao mexe');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('INSERT INTO public.tags (organization_id, name) VALUES (%L, %L)', A, 'Garantia D2')) = 'ok:1', 'dono cria etiqueta');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('INSERT INTO public.tag_departments (organization_id, tag_id, department_id) SELECT %L, t.id, d.id FROM public.tags t, public.departments d WHERE t.organization_id = %L AND t.name = %L AND d.organization_id = %L AND d.name = %L',
+    A, A, 'Garantia D2', A, 'D2')) = 'ok:1', 'dono associa etiqueta ao setor D2');
+  PERFORM pg_temp.expect_error(owner_a, format('INSERT INTO public.tag_departments (organization_id, tag_id, department_id) SELECT %L, t.id, %L FROM public.tags t WHERE t.organization_id = %L AND t.name = %L',
+    A, 'bbbbbbbb-0000-0000-0001-000000000001', A, 'Garantia D2'), 'etiqueta nao usa setor de outra org');
+  PERFORM pg_temp.expect_error(agent_a, format('INSERT INTO public.tag_departments (organization_id, tag_id, department_id) SELECT %L, t.id, d.id FROM public.tags t, public.departments d WHERE t.organization_id = %L AND t.name = %L AND d.organization_id = %L AND d.name = %L',
+    A, A, 'VIP', A, 'D1'), 'atendente nao associa setor');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, format('SELECT count(*) FROM public.tags WHERE name = %L', 'Garantia D2')) = 0, 'atendente de D1 nao ve etiqueta de D2');
+  PERFORM pg_temp.expect(pg_temp.q(agent2_a, format('SELECT count(*) FROM public.tags WHERE name = %L', 'Garantia D2')) = 1, 'atendente de D2 ve etiqueta de D2');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, format('SELECT count(*) FROM public.tags WHERE name = %L', 'VIP')) = 1, 'atendente ve etiqueta geral');
+  PERFORM pg_temp.expect_error(agent_a, format('INSERT INTO public.contact_tags (organization_id, contact_id, tag_id) VALUES (%L, (SELECT contact_id FROM public.conversations WHERE id = %L), (SELECT id FROM public.tags WHERE organization_id = %L AND name = %L))',
+    A, 'aaaaaaaa-0000-0000-0004-000000000001', A, 'Garantia D2'), 'atendente de D1 nao usa etiqueta de D2');
+  PERFORM pg_temp.expect(pg_temp.run(agent_a, format('INSERT INTO public.contact_tags (organization_id, contact_id, tag_id) VALUES (%L, (SELECT contact_id FROM public.conversations WHERE id = %L), (SELECT id FROM public.tags WHERE organization_id = %L AND name = %L))',
+    A, 'aaaaaaaa-0000-0000-0004-000000000001', A, 'VIP')) = 'ok:1', 'atendente usa etiqueta geral');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('INSERT INTO public.contact_tags (organization_id, contact_id, tag_id) VALUES (%L, (SELECT contact_id FROM public.conversations WHERE id = %L), (SELECT id FROM public.tags WHERE organization_id = %L AND name = %L))',
+    A, 'aaaaaaaa-0000-0000-0004-000000000001', A, 'Garantia D2')) = 'ok:1', 'dono usa etiqueta de qualquer setor');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, format('SELECT count(*) FROM public.contact_tags ct JOIN public.conversations c ON c.contact_id = ct.contact_id WHERE c.id = %L', 'aaaaaaaa-0000-0000-0004-000000000001')) = 1, 'atendente so ve as etiquetas do seu setor no cliente');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('INSERT INTO public.tag_departments (organization_id, tag_id, department_id) SELECT %L, t.id, d.id FROM public.tags t, public.departments d WHERE t.organization_id = %L AND t.name = %L AND d.organization_id = %L AND d.name = %L',
+    A, A, 'Garantia D2', A, 'D1')) = 'ok:1', 'etiqueta em mais de um setor');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, format('SELECT count(*) FROM public.tags WHERE name = %L', 'Garantia D2')) = 1, 'agora D1 tambem ve');
 
   RAISE NOTICE 'ISOLATION OK';
 END $$;

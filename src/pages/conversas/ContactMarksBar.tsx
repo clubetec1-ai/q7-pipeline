@@ -1,7 +1,6 @@
 import { Lock, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ColorPill } from "@/components/ColorTag";
 import { TagIcon } from "@/components/TagIcon";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
@@ -30,6 +29,17 @@ export function ContactMarksBar({
   };
   const shownTags = tags.filter((t) => myTags.includes(t.id));
   const shownGroups = groups.filter((g) => myGroups.includes(g.id));
+  // Sinal bem visível no topo do atendimento, na cor configurada.
+  const chip = (m: Mark, title: string) => {
+    const c = /^#[0-9a-f]{6}$/i.test(m.color ?? "") ? m.color! : "#94A3B8";
+    return (
+      <span key={m.id} title={title} className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold"
+        style={{ background: `${c}26`, borderColor: c, color: c }}>
+        {m.icon ? <TagIcon icon={m.icon} className="w-3.5 h-3.5" /> : <span className="w-2 h-2 rounded-full" style={{ background: c }} />}
+        {m.name}{m.sensitive && <Lock className="w-3 h-3" />}
+      </span>
+    );
+  };
   const item = (kind: "tag" | "group", m: Mark, on: boolean, enabled: boolean) => (
     <button key={m.id} type="button" disabled={!enabled} onClick={() => toggle(kind, m.id, !on)}
       className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs transition disabled:opacity-50 ${on ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted"}`}>
@@ -40,8 +50,8 @@ export function ContactMarksBar({
 
   return (
     <div className="px-3 py-1.5 border-b flex flex-wrap items-center gap-1.5 text-xs">
-      {shownGroups.map((g) => <ColorPill key={g.id} color={g.color} icon={g.icon} title="Grupo do cliente">{g.name}</ColorPill>)}
-      {shownTags.map((t) => <ColorPill key={t.id} color={t.color} icon={t.icon} title="Etiqueta">{t.name}</ColorPill>)}
+      {shownGroups.map((g) => chip(g, "Grupo do cliente"))}
+      {shownTags.map((t) => chip(t, "Etiqueta"))}
       {!shownGroups.length && !shownTags.length && <span className="text-muted-foreground">Sem etiquetas nem grupos</span>}
       {(canTag || canGroups) && (
         <Popover>

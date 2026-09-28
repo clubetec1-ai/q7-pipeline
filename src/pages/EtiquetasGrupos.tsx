@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { Lock, LogOut, Plus, Tags, Trash2 } from "lucide-react";
+import { Lock, LogOut, Plus, Sparkles, Tags, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/contexts/OrgContext";
@@ -13,7 +13,7 @@ import { TAG_ICONS, TagIcon } from "@/components/TagIcon";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-interface Item { id: string; name: string; color: string | null; icon: string | null; sensitive?: boolean }
+interface Item { id: string; name: string; color: string | null; icon: string | null; sensitive?: boolean; is_default?: boolean }
 type Table = "tags" | "contact_groups";
 
 /** Gestão de etiquetas e grupos de clientes: nome, cor, ícone, juntar duplicados e excluir. */
@@ -28,14 +28,22 @@ export default function EtiquetasGrupos() {
   const [groups, setGroups] = useState<Item[]>([]);
   const [counts, setCounts] = useState<{ tags: Record<string, number>; groups: Record<string, number> }>({ tags: {}, groups: {} });
   const [open, setOpen] = useState<string | null>(null);
+  const [depts, setDepts] = useState<{ id: string; name: string; color: string | null }[]>([]);
+  const [tagDepts, setTagDepts] = useState<Map<string, string[]>>(new Map());
 
   const load = useCallback(async () => {
     if (!org) return;
-    const [t, g, c] = await Promise.all([
-      supabase.from("tags").select("id, name, color, icon").eq("organization_id", org.id).order("name"),
+    const [t, g, c, d, td] = await Promise.all([
+      supabase.from("tags").select("id, name, color, icon, is_default").eq("organization_id", org.id).order("name"),
       supabase.from("contact_groups").select("id, name, color, icon, sensitive").eq("organization_id", org.id).order("name"),
       supabase.rpc("tag_group_counts", { org: org.id } as never),
+      supabase.from("departments").select("id, name, color").eq("organization_id", org.id).order("name"),
+      supabase.from("tag_departments").select("tag_id, department_id").eq("organization_id", org.id),
     ]);
+    setDepts(d.data ?? []);
+    const m = new Map<string, string[]>();
+    for (const r of td.data ?? []) m.set(r.tag_id, [...(m.get(r.tag_id) ?? []), r.department_id]);
+    setTagDepts(m);
     setTags((t.data as Item[]) ?? []);
     setGroups((g.data as Item[]) ?? []);
     setCounts((c.data as never) ?? { tags: {}, groups: {} });
@@ -66,6 +74,20 @@ export default function EtiquetasGrupos() {
     if (error) return fail("Não excluído", error.message);
     await load();
   };
+  // Setores da etiqueta: nenhum marcado = todos os setores.
+  const toggleDept = async (tagId: string, deptId: string, on: boolean) => {
+    const { error } = on
+      ? await supabase.from("tag_departments").insert({ organization_id: org.id, tag_id: tagId, department_id: deptId })
+      : await supabase.from("tag_departments").delete().eq("tag_id", tagId).eq("department_id", deptId);
+    if (error) return fail("Não salvo", error.message);
+    await load();
+  };
+  const addDefaults = async () => {
+    const { data, error } = await supabase.rpc("add_default_tags", { org: org.id });
+    if (error) return fail("Não foi possível", error.message);
+    toast({ title: data ? `${data} etiqueta(s) padrão adicionada(s)` : "As etiquetas padrão já estão todas aqui" });
+    await load();
+  };
   const merge = async (table: Table, source: Item, targetId: string, list: Item[]) => {
     const target = list.find((x) => x.id === targetId);
     if (!target || !window.confirm(`Juntar "${source.name}" em "${target.name}"? Os clientes passam para "${target.name}" e "${source.name}" é apagado.`)) return;
@@ -80,6 +102,7 @@ export default function EtiquetasGrupos() {
       <div className="flex items-center justify-between">
         <p className="font-semibold">{title}</p>
         <div className="flex gap-1">
+          {table === "tags" && <Button size="sm" variant="ghost" onClick={addDefaults} title="Recria as que faltarem (VIP, Urgente, Retornar contato…)"><Sparkles className="w-4 h-4 mr-1" /> Padrão</Button>}
           <Button size="sm" variant="outline" onClick={() => create(table, list)}><Plus className="w-4 h-4 mr-1" /> Novo</Button>
           {table === "contact_groups" && <Button size="sm" variant="ghost" onClick={() => create(table, list, true)} title="Grupo sensível: atendentes não veem (ex.: inadimplentes)"><Lock className="w-4 h-4 mr-1" /> Sensível</Button>}
         </div>
@@ -96,6 +119,7 @@ export default function EtiquetasGrupos() {
                 {i.name}
               </button>
               {i.sensitive && <Lock className="w-3.5 h-3.5 text-muted-foreground" aria-label="Sensível" />}
+              {i.is_default && <span className="text-[10px] rounded border px-1 text-muted-foreground" title="Etiqueta padrão do sistema: pode editar à vontade">padrão</span>}
               <Input className="h-8 w-48" defaultValue={i.name} key={i.name}
                 onBlur={(e) => e.target.value.trim() && e.target.value.trim() !== i.name && save(table, i.id, { name: e.target.value.trim() })} />
               <span className="text-xs text-muted-foreground">{n} cliente(s)</span>
@@ -105,6 +129,22 @@ export default function EtiquetasGrupos() {
               </select>
               <Button size="icon" variant="ghost" title="Excluir" onClick={() => remove(table, i, n)}><Trash2 className="w-4 h-4" /></Button>
             </div>
+            {table === "tags" && depts.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1 text-xs">
+                <span className="text-muted-foreground mr-1">Setores:</span>
+                {depts.map((d) => {
+                  const on = (tagDepts.get(i.id) ?? []).includes(d.id);
+                  return (
+                    <button key={d.id} type="button" onClick={() => toggleDept(i.id, d.id, !on)}
+                      className={`rounded-full border px-2 py-0.5 ${on ? "font-medium" : "text-muted-foreground hover:bg-muted"}`}
+                      style={on ? { background: `${d.color ?? "#94A3B8"}26`, borderColor: d.color ?? "#94A3B8", color: d.color ?? undefined } : undefined}>
+                      {on ? "✓ " : ""}{d.name}
+                    </button>
+                  );
+                })}
+                {!(tagDepts.get(i.id) ?? []).length && <span className="text-muted-foreground">(nenhum marcado = todos os setores)</span>}
+              </div>
+            )}
             {open === i.id && (
               <div className="space-y-2 pl-1">
                 <ColorPicker value={i.color} onChange={(c) => save(table, i.id, { color: c })} />
@@ -140,7 +180,9 @@ export default function EtiquetasGrupos() {
       <main className="flex-1 w-full max-w-4xl mx-auto p-4 sm:p-6 space-y-4">
         <div>
           <h1 className="text-2xl font-semibold flex items-center gap-2"><Tags className="w-6 h-6" /> Etiquetas e grupos</h1>
-          <p className="text-sm text-muted-foreground">Clique no nome colorido para trocar cor e ícone. Excluir só tira a marcação: o cliente continua cadastrado.</p>
+          <p className="text-sm text-muted-foreground">Clique no nome colorido para trocar cor e ícone. Em cada etiqueta, marque os setores que podem usá-la:
+            o atendente só vê as gerais e as do seu setor. As etiquetas <b>padrão</b> são um ponto de partida — edite, troque os setores ou crie outras.
+            Excluir só tira a marcação: o cliente continua cadastrado.</p>
         </div>
         {canTags && section("tags", "Etiquetas", tags, counts.tags ?? {})}
         {canGroups && section("contact_groups", "Grupos de clientes", groups, counts.groups ?? {})}
