@@ -273,6 +273,12 @@ Conector nos fluxos, aplicativo do conector cadastrado pelo operador no painel d
      resposta, conversões, retrabalho) e mostra o resultado de cada melhoria.
   4. Se não funcionou ou a empresa mudou, o feedback volta para o diagnóstico da etapa/setor, que é atualizado, e o
      ciclo recomeça; os agentes passam a seguir a nova forma de trabalhar.
+  5. **Monitorar e avaliar as próprias implementações (pedido em 28/09):** cada fluxo, agente ou automação que o
+     sistema sugeriu e o dono colocou no ar também é avaliado (usado? resolveu? caiu em humano? gerou reclamação?
+     custou quanto?). Se não está funcionando bem, o sistema, junto com o **implementador**, prepara a **correção**
+     (nova versão em rascunho) e explica o porquê; o dono **ou o responsável do setor** aprova antes de ir ao ar.
+     Assim o sistema busca melhorias, implementa, corrige quando precisa e implementa de novo — sempre esperando
+     aprovação. Aprovação delegável: o dono define quem aprova por setor.
   Peças que já existem: diagnóstico em etapas, planejamento, implementador (rascunhos), avaliação automática e
   relatório de melhorias, painel do supervisor. Falta: “melhoria” como item com estado (sugerida → aprovada → no ar →
   medindo → resultado), métricas antes/depois por melhoria e o retorno automático para o diagnóstico.
