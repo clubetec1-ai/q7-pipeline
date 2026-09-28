@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { TagIcon } from "@/components/TagIcon";
 
 interface Campaign {
   id: string; name: string; instance_id: string | null; group_ids: string[]; message: string | null;
@@ -21,7 +22,7 @@ interface Campaign {
   total: number; sent: number; failed: number; skipped: number; created_at: string;
 }
 interface Inst { id: string; name: string; provider: string; status: string }
-interface Group { id: string; name: string; color: string | null }
+interface Group { id: string; name: string; color: string | null; icon?: string | null }
 type Draft = Partial<Campaign> & { name: string };
 
 const STATUS: Record<string, [string, "default" | "secondary" | "outline" | "destructive"]> = {
@@ -48,7 +49,7 @@ export default function Campanhas() {
     const [c, i, g] = await Promise.all([
       supabase.from("campaigns").select("*").eq("organization_id", org.id).order("created_at", { ascending: false }).limit(50),
       supabase.from("whatsapp_instances").select("id, name, provider, status").eq("organization_id", org.id).neq("status", "disabled").order("created_at"),
-      supabase.from("contact_groups").select("id, name, color").eq("organization_id", org.id).order("name"),
+      supabase.from("contact_groups").select("id, name, color, icon").eq("organization_id", org.id).order("name"),
     ]);
     setList((c.data as unknown as Campaign[]) ?? []);
     setInsts((i.data as Inst[]) ?? []);
@@ -176,7 +177,7 @@ export default function Campanhas() {
                     <button key={g.id} type="button"
                       onClick={() => setDraft({ ...draft, group_ids: on ? draft.group_ids!.filter((x) => x !== g.id) : [...(draft.group_ids ?? []), g.id] })}
                       className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs ${on ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted"}`}>
-                      <span className="w-2 h-2 rounded-full" style={{ background: g.color ?? "#94A3B8" }} />{g.name}
+                      {g.icon ? <TagIcon icon={g.icon} color={on ? undefined : g.color} /> : <span className="w-2 h-2 rounded-full" style={{ background: g.color ?? "#94A3B8" }} />}{g.name}
                     </button>
                   );
                 })}

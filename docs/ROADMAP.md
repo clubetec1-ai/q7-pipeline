@@ -165,6 +165,8 @@ Objetivo: a ligação cai na mesma tela do WhatsApp.
   excluir, trocar cor e escolher ícone** de cada etiqueta e grupo, ver quantos clientes há em cada um e juntar
   duplicados. Excluir pede confirmação e só tira a marcação (o cliente continua); grupo sensível continua escondido
   de quem não pode ver. Ícone aparece junto da cor na lista, na ficha, na fila e nas campanhas.
+  *Entregue (29/09): tela Clientes → Etiquetas e grupos (renomear, cor, 18 ícones, contagem, juntar duplicados sem
+  misturar sensível com comum, excluir auditado); ícone aparece na fila, na ficha, em Clientes e em Campanhas.*
 - **Chat interno da equipe** — conversa entre as pessoas da empresa dentro do ClubeCRM, separada das conversas com
   clientes: canais por setor e mensagens diretas, menção com @, anexos, aviso no sino, e “compartilhar
   atendimento” (link para a conversa do cliente sem expor dados a quem não pode ver). Isolado por empresa (RLS),

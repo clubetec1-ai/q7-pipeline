@@ -592,6 +592,7 @@ export type Database = {
           color: string | null
           created_at: string
           description: string | null
+          icon: string | null
           id: string
           name: string
           organization_id: string
@@ -601,6 +602,7 @@ export type Database = {
           color?: string | null
           created_at?: string
           description?: string | null
+          icon?: string | null
           id?: string
           name: string
           organization_id: string
@@ -610,6 +612,7 @@ export type Database = {
           color?: string | null
           created_at?: string
           description?: string | null
+          icon?: string | null
           id?: string
           name?: string
           organization_id?: string
@@ -2575,18 +2578,21 @@ export type Database = {
       tags: {
         Row: {
           color: string | null
+          icon: string | null
           id: string
           name: string
           organization_id: string
         }
         Insert: {
           color?: string | null
+          icon?: string | null
           id?: string
           name: string
           organization_id: string
         }
         Update: {
           color?: string | null
+          icon?: string | null
           id?: string
           name?: string
           organization_id?: string
@@ -3174,6 +3180,11 @@ export type Database = {
         Args: { kind: string; org: string }
         Returns: undefined
       }
+      merge_groups: {
+        Args: { source: string; target: string }
+        Returns: number
+      }
+      merge_tags: { Args: { source: string; target: string }; Returns: number }
       my_invitations: {
         Args: never
         Returns: {
@@ -3453,6 +3464,7 @@ export type Database = {
       }
       start_campaign: { Args: { campaign: string }; Returns: Json }
       supervisor_dashboard: { Args: { org: string }; Returns: Json }
+      tag_group_counts: { Args: { org: string }; Returns: Json }
       take_over_ticket: {
         Args: { ticket: string }
         Returns: {

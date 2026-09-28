@@ -981,6 +981,27 @@ BEGIN
   PERFORM pg_temp.expect(pg_temp.t(owner_a, format($q$SELECT (public.report(%L, 'atendentes', now() - interval '1 day', now() + interval '1 minute') -> 'linhas')::text$q$, A)) LIKE '%' || agent2_a::text || '%',
     'dono ve todos os atendentes');
 
+  -- 52. Etiquetas e grupos: dono gerencia (cor, icone, juntar, excluir); atendente nao; sensivel nao se mistura; outra org nunca.
+  INSERT INTO public.tags (id, organization_id, name) VALUES
+    ('aaaaaaaa-0000-0000-0052-000000000001', A, 'VIP'), ('aaaaaaaa-0000-0000-0052-000000000002', A, 'Vip ');
+  INSERT INTO public.contact_groups (id, organization_id, name, sensitive) VALUES
+    ('aaaaaaaa-0000-0000-0052-000000000011', A, 'Inadimplentes', true), ('aaaaaaaa-0000-0000-0052-000000000012', A, 'Clientes ouro', false);
+  INSERT INTO public.contact_tags (organization_id, contact_id, tag_id)
+  SELECT A, id, 'aaaaaaaa-0000-0000-0052-000000000002' FROM public.contacts WHERE organization_id = A LIMIT 2;
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('UPDATE public.tags SET color = %L, icon = %L WHERE id = %L', '#EF4444', 'crown', 'aaaaaaaa-0000-0000-0052-000000000001')) = 'ok:1', 'dono muda cor e icone');
+  PERFORM pg_temp.expect_error(owner_a, format('UPDATE public.tags SET icon = %L WHERE id = %L', '<script>', 'aaaaaaaa-0000-0000-0052-000000000001'), 'icone invalido recusado');
+  PERFORM pg_temp.expect_denied(agent_a, format('UPDATE public.tags SET name = %L WHERE id = %L', 'x', 'aaaaaaaa-0000-0000-0052-000000000001'), 'atendente nao renomeia etiqueta');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.merge_tags(%L, %L)', 'aaaaaaaa-0000-0000-0052-000000000002', 'aaaaaaaa-0000-0000-0052-000000000001'), 'atendente nao junta');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.merge_tags(%L, %L)', 'aaaaaaaa-0000-0000-0052-000000000002', 'aaaaaaaa-0000-0000-0052-000000000001'), 'outra org nao junta');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('SELECT public.merge_tags(%L, %L)', 'aaaaaaaa-0000-0000-0052-000000000002', 'aaaaaaaa-0000-0000-0052-000000000001')) LIKE 'ok:%', 'dono junta duplicadas');
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.contact_tags WHERE tag_id = 'aaaaaaaa-0000-0000-0052-000000000001') = 2
+    AND NOT EXISTS (SELECT 1 FROM public.tags WHERE id = 'aaaaaaaa-0000-0000-0052-000000000002'), 'marcacoes movidas e duplicada apagada');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.merge_groups(%L, %L)', 'aaaaaaaa-0000-0000-0052-000000000011', 'aaaaaaaa-0000-0000-0052-000000000012'), 'sensivel nao junta com comum');
+  PERFORM pg_temp.expect(pg_temp.t(owner_a, format('SELECT public.tag_group_counts(%L) -> %L ->> %L', A, 'tags', 'aaaaaaaa-0000-0000-0052-000000000001')) = '2', 'contagem por etiqueta');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, format('SELECT count(*) FROM jsonb_object_keys(public.tag_group_counts(%L) -> %L)', A, 'tags')) = 0, 'outra org nao conta');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('DELETE FROM public.contact_groups WHERE id = %L', 'aaaaaaaa-0000-0000-0052-000000000012')) = 'ok:1', 'dono exclui grupo');
+  PERFORM pg_temp.expect(EXISTS (SELECT 1 FROM public.audit_log WHERE organization_id = A AND action = 'group.deleted'), 'exclusao auditada');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 

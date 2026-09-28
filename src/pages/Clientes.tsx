@@ -25,7 +25,7 @@ export default function Clientes() {
   const navigate = useNavigate();
   const [rows, setRows] = useState<Row[]>([]);
   const [q, setQ] = useState("");
-  const [groups, setGroups] = useState<Map<string, { name: string; color: string | null }[]>>(new Map());
+  const [groups, setGroups] = useState<Map<string, { name: string; color: string | null; icon?: string | null }[]>>(new Map());
   const [convOf, setConvOf] = useState<Map<string, string>>(new Map());
   const [open, setOpen] = useState<{ contact: string; conv: string } | null>(null);
 
@@ -42,11 +42,11 @@ export default function Clientes() {
     if (!ids.length) { setGroups(new Map()); setConvOf(new Map()); return; }
     const [gm, g, cv] = await Promise.all([
       supabase.from("contact_group_members").select("contact_id, group_id").in("contact_id", ids),
-      supabase.from("contact_groups").select("id, name, color").eq("organization_id", org.id),
+      supabase.from("contact_groups").select("id, name, color, icon").eq("organization_id", org.id),
       supabase.from("conversations").select("id, contact_id, last_message_at").in("contact_id", ids).order("last_message_at", { ascending: false }),
     ]);
-    const byId = new Map((g.data ?? []).map((x) => [x.id, { name: x.name, color: x.color }]));
-    const m = new Map<string, { name: string; color: string | null }[]>();
+    const byId = new Map((g.data ?? []).map((x) => [x.id, { name: x.name, color: x.color, icon: x.icon }]));
+    const m = new Map<string, { name: string; color: string | null; icon?: string | null }[]>();
     for (const r of gm.data ?? []) {
       const grp = byId.get(r.group_id);
       if (grp) m.set(r.contact_id, [...(m.get(r.contact_id) ?? []), grp]);
@@ -93,7 +93,7 @@ export default function Clientes() {
                   <p className="font-medium truncate">{r.name || r.phone || r.email}</p>
                   <p className="text-xs text-muted-foreground truncate">{[r.phone, r.email].filter(Boolean).join(" · ")}{r.opted_out_at ? " · não recebe mensagens automáticas" : ""}</p>
                 </button>
-                <div className="flex flex-wrap gap-1">{(groups.get(r.id) ?? []).slice(0, 3).map((g) => <ColorPill key={g.name} color={g.color}>{g.name}</ColorPill>)}</div>
+                <div className="flex flex-wrap gap-1">{(groups.get(r.id) ?? []).slice(0, 3).map((g) => <ColorPill key={g.name} color={g.color} icon={g.icon}>{g.name}</ColorPill>)}</div>
                 <Button size="sm" variant="outline" onClick={() => setOpen({ contact: r.id, conv: conv ?? "" })}>Ver ficha</Button>
                 {conv && <Button size="icon" variant="ghost" title="Abrir conversa" onClick={() => navigate(`/?open=${conv}`)}><MessageSquare className="w-4 h-4" /></Button>}
               </div>

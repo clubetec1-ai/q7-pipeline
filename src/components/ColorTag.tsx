@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { TagIcon } from "./TagIcon";
 
 /** Cores para setores, etiquetas e grupos de clientes (legíveis no claro e no escuro). */
 export const PALETTE = ["#3FB8BE", "#6C8EF5", "#F59E0B", "#EF4444", "#10B981", "#8B5CF6", "#EC4899", "#64748B"];
@@ -21,12 +22,12 @@ export function ColorDot({ color, title, onClick }: { color?: string | null; tit
 }
 
 /** Etiqueta colorida pequena (setor na fila, na conversa e no Kanban). */
-export function ColorPill({ color, children, title }: { color?: string | null; children: ReactNode; title?: string }) {
+export function ColorPill({ color, children, title, icon }: { color?: string | null; children: ReactNode; title?: string; icon?: string | null }) {
   const c = safe(color);
   return (
     <span className="inline-flex items-center gap-1 rounded-full px-1.5 text-[10px] font-medium leading-4 shrink-0 max-w-[9rem] truncate"
       style={{ background: `${c}26`, color: c }} title={title}>
-      <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: c }} />{children}
+      {icon ? <TagIcon icon={icon} className="w-2.5 h-2.5" /> : <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: c }} />}{children}
     </span>
   );
 }
