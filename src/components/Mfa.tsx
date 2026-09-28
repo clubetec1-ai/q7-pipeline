@@ -20,7 +20,7 @@ export function useMfa() {
     setState({
       loading: false,
       needsCode: aal?.currentLevel === "aal1" && aal?.nextLevel === "aal2",
-      status: (st as MfaStatus | null) ?? null,
+      status: (st as unknown as MfaStatus | null) ?? null,
     });
   }, [user]);
   useEffect(() => { void reload(); }, [reload]);
