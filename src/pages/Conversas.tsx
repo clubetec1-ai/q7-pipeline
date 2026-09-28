@@ -1,6 +1,6 @@
 import { firstName, memberNames } from "@/lib/memberNames";
 import { NumberHealthBanner } from "@/components/NumberHealthBanner";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { MainNav } from "@/components/MainNav";
 import { PresenceControl } from "@/components/PresenceControl";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { ContactSheet } from "./conversas/ContactSheet";
+import { ContactMarksBar, type Mark } from "./conversas/ContactMarksBar";
 import { QuickReplies } from "./conversas/QuickReplies";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -122,7 +123,7 @@ function formatCountdown(ms: number): string {
 
 export default function Conversas() {
   const { user, signOut } = useAuth();
-  const { org } = useOrg();
+  const { org, can } = useOrg();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { isOperator: isAdmin } = useAdminRole();
@@ -154,7 +155,11 @@ export default function Conversas() {
   const [numbers, setNumbers] = useState<Map<string, { name: string; color: string | null }>>(new Map());
   // Cores: setor (departamento) e grupos de clientes (categoria) — a RLS filtra grupos sensíveis.
   const [depts, setDepts] = useState<Map<string, { name: string; color: string | null }>>(new Map());
-  const [contactGroups, setContactGroups] = useState<Map<string, { name: string; color: string | null; icon?: string | null }[]>>(new Map());
+  // Etiquetas e grupos de clientes: listas da empresa + ids por cliente.
+  const [allTags, setAllTags] = useState<Mark[]>([]);
+  const [allGroups, setAllGroups] = useState<Mark[]>([]);
+  const [tagsOf, setTagsOf] = useState<Map<string, string[]>>(new Map());
+  const [groupsOf, setGroupsOf] = useState<Map<string, string[]>>(new Map());
   const [mailboxes, setMailboxes] = useState<Map<string, string>>(new Map());
   const [numberFilter, setNumberFilter] = useState("");
   const channelKey = (c: Conversation) => (c.channel === "email" ? `e:${c.email_account_id}` : `n:${c.instance_id}`);
@@ -164,6 +169,24 @@ export default function Conversas() {
   useEffect(() => {
     if (org && user) memberNames(org.id, [user.id]).then((m) => setMyName(m.get(user.id)?.name ?? ""));
   }, [org, user]);
+  const loadMarks = useCallback(async () => {
+    if (!org) return;
+    const [t, ct, g, gm] = await Promise.all([
+      supabase.from("tags").select("id, name, color, icon").eq("organization_id", org.id).order("name"),
+      supabase.from("contact_tags").select("contact_id, tag_id").eq("organization_id", org.id),
+      supabase.from("contact_groups").select("id, name, color, icon, sensitive").eq("organization_id", org.id).order("name"),
+      supabase.from("contact_group_members").select("contact_id, group_id").eq("organization_id", org.id),
+    ]);
+    const byContact = (rows: { contact_id: string }[] | null, key: "tag_id" | "group_id") => {
+      const m = new Map<string, string[]>();
+      for (const r of (rows ?? []) as Record<string, string>[]) m.set(r.contact_id, [...(m.get(r.contact_id) ?? []), r[key]]);
+      return m;
+    };
+    setAllTags((t.data as Mark[]) ?? []);
+    setAllGroups((g.data as Mark[]) ?? []);
+    setTagsOf(byContact(ct.data, "tag_id"));
+    setGroupsOf(byContact(gm.data, "group_id"));
+  }, [org]);
   useEffect(() => {
     if (!org) return;
     supabase.from("whatsapp_instances").select("id, name, color").eq("organization_id", org.id).order("created_at")
@@ -172,25 +195,17 @@ export default function Conversas() {
       .then(({ data }) => setMailboxes(new Map((data ?? []).map((m) => [m.id, m.name]))));
     supabase.from("departments").select("id, name, color").eq("organization_id", org.id)
       .then(({ data }) => setDepts(new Map((data ?? []).map((d) => [d.id, { name: d.name, color: d.color }]))));
-    Promise.all([
-      supabase.from("contact_groups").select("id, name, color, icon").eq("organization_id", org.id),
-      supabase.from("contact_group_members").select("contact_id, group_id").eq("organization_id", org.id),
-    ]).then(([g, gm]) => {
-      const groupById = new Map((g.data ?? []).map((x) => [x.id, { name: x.name, color: x.color, icon: x.icon }]));
-      const m = new Map<string, { name: string; color: string | null; icon?: string | null }[]>();
-      for (const r of gm.data ?? []) {
-        const grp = groupById.get(r.group_id);
-        if (grp) m.set(r.contact_id, [...(m.get(r.contact_id) ?? []), grp]);
-      }
-      setContactGroups(m);
-    });
-  }, [org]);
-  // Setor do atendimento aberto + categorias (grupos) do cliente.
+    void loadMarks();
+  }, [org, loadMarks]);
+  const groupById = useMemo(() => new Map(allGroups.map((g) => [g.id, g])), [allGroups]);
+  const tagById = useMemo(() => new Map(allTags.map((t) => [t.id, t])), [allTags]);
+  // Setor do atendimento aberto + grupos e etiquetas do cliente.
   const colorTags = (c: Conversation) => {
     const t = byConversation.get(c.id);
     const d = t?.department_id ? depts.get(t.department_id) : null;
-    const gs = c.contact_id ? contactGroups.get(c.contact_id) ?? [] : [];
-    if (!d && !gs.length) return null;
+    const gs = (c.contact_id ? groupsOf.get(c.contact_id) ?? [] : []).map((id) => groupById.get(id)).filter((g): g is Mark => !!g);
+    const ts = (c.contact_id ? tagsOf.get(c.contact_id) ?? [] : []).map((id) => tagById.get(id)).filter((x): x is Mark => !!x);
+    if (!d && !gs.length && !ts.length) return null;
     return (
       <span className="flex items-center gap-1 min-w-0 overflow-hidden">
         {d && <ColorPill color={d.color} title="Setor">{d.name}</ColorPill>}
@@ -199,6 +214,8 @@ export default function Conversas() {
         )}
         {gs.slice(0, 2).map((g) => <ColorPill key={g.name} color={g.color} icon={g.icon} title="Grupo do cliente">{g.name}</ColorPill>)}
         {gs.length > 2 && <span className="text-[10px] text-muted-foreground">+{gs.length - 2}</span>}
+        {ts.slice(0, 2).map((x) => <ColorPill key={x.id} color={x.color} icon={x.icon} title="Etiqueta">{x.name}</ColorPill>)}
+        {ts.length > 2 && <span className="text-[10px] text-muted-foreground" title={ts.slice(2).map((x) => x.name).join(", ")}>+{ts.length - 2}</span>}
       </span>
     );
   };
@@ -711,6 +728,12 @@ export default function Conversas() {
                 </div>
               </div>
 
+              {active.contact_id && org && (
+                <ContactMarksBar orgId={org.id} contactId={active.contact_id} tags={allTags} groups={allGroups}
+                  myTags={tagsOf.get(active.contact_id) ?? []} myGroups={groupsOf.get(active.contact_id) ?? []}
+                  canTag={can("conversations.attend")} canGroups={can("contacts.groups_manage")} onChanged={loadMarks} />
+              )}
+
               {/* Follow-ups pendentes / agendar */}
               <div className="px-3 py-2 border-b bg-muted/30 space-y-2">
                 {followups.length > 0 && (
@@ -912,7 +935,7 @@ export default function Conversas() {
                 atendente: firstName(myName),
                 empresa: org?.name ?? "",
               }} />
-              <ContactSheet open={fichaOpen} onClose={() => setFichaOpen(false)} contactId={active.contact_id ?? null}
+              <ContactSheet open={fichaOpen} onClose={() => { setFichaOpen(false); void loadMarks(); }} contactId={active.contact_id ?? null}
                 conversationId={active.id} ticketId={byConversation.get(active.id)?.id} />
               {pendingLib && (
                 <div className="px-3 pt-2 flex items-center gap-2 text-xs">

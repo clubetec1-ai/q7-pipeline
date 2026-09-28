@@ -53,7 +53,12 @@ Objetivo: a ligação cai na mesma tela do WhatsApp.
   MicroSIP. No ClubeCRM, cada atendente tem o seu ramal (servidor/domínio, usuário, senha no Vault, número) e escolhe o modo:
   **WebRTC** (telefone dentro do navegador, precisa da central com WSS) ou **só SIP** (continua no MicroSIP ou
   aparelho; o CRM liga pelo link `sip:`/`tel:` ou pela API da central e identifica as chamadas pelos avisos da central).
-  Senha do ramal visível só para o dono do ramal e para quem gerencia a equipe; nunca vai para outra empresa.
+  Senha do ramal só no cofre; volta apenas para o navegador do próprio atendente, e só em WebRTC; nunca vai para outra empresa.
+  *Entregue (29/09), fase 1: Plataforma → Ramais (Clubetec cadastra número, usuário, servidor, wss e senha no cofre);
+  Equipe → Ramais (dono escolhe atendente e modo); telefone flutuante em todas as telas (WebRTC: ligar, atender,
+  mudo, espera, teclado; MicroSIP: disca pelo link sip:, "Quem está ligando?" e registrar); identifica o cliente pelo
+  número; "Enviar olá no WhatsApp" abre/continua a conversa; histórico de ligações imutável. Falta: avisos de
+  chamada da central (identificação automática no MicroSIP), gravações e transcrição — dependem da Handphone.*
 - **Identifica o número** que ligou e abre/associa o contato e a conversa (mesmo atendimento, protocolo).
 - **Transcrição da ligação** em tempo real ou ao final, gravada no histórico do atendimento.
 - **Confirmação do número**: o atendente pede para o cliente repetir/confirmar o número de WhatsApp e, ainda durante
@@ -178,6 +183,9 @@ Objetivo: a ligação cai na mesma tela do WhatsApp.
   aparecem na conversa (lista e topo do atendimento), com cor e ícone, para o atendente ver ao retomar o atendimento
   o que é preciso para aquele cliente. Dá para pôr **mais de uma etiqueta** e escolher **a quais grupos** o cliente
   pertence ali mesmo, sem sair da conversa.
+  *Entregue (29/09): barra no topo do atendimento com grupos e etiquetas (cor e ícone) e botão para marcar várias
+  etiquetas e escolher os grupos; a lista de conversas mostra setor, grupos e etiquetas. Grupos só por supervisor,
+  admin ou dono (grupo sensível continua escondido de quem não pode ver).*
 - **Chat interno da equipe** — conversa entre as pessoas da empresa dentro do ClubeCRM, separada das conversas com
   clientes: canais por setor e mensagens diretas, menção com @, anexos, aviso no sino, e “compartilhar
   atendimento” (link para a conversa do cliente sem expor dados a quem não pode ver). Isolado por empresa (RLS),
