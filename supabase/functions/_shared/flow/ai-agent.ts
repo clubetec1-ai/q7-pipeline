@@ -11,6 +11,7 @@ import { validate } from "./engine.ts";
 import { aiContactContext, contactFieldDefs, setContactField } from "../contact-fields.ts";
 import { companyKnowledge } from "../company.ts";
 import { aiRecordsContext } from "../records.ts";
+import { withMediaText } from "../media-read.ts";
 
 const DEFAULT_PROMPT = "Você é um assistente de atendimento simpático e objetivo.";
 const FIELDS: Record<string, { label: string; kind: string }> = {
@@ -92,7 +93,7 @@ export async function runAiAgent(p: {
     },
   });
 
-  const { data: history } = await org.select("messages", "direction, content")
+  const { data: history } = await org.select("messages", "direction, content, media_text, type")
     .eq("ticket_id", ticket.id).order("created_at", { ascending: false }).limit(30);
   const first = String(conv.contact_name ?? "").trim().split(/\s+/)[0];
   const system = [
@@ -107,7 +108,7 @@ export async function runAiAgent(p: {
   const messages: ChatMsg[] = [
     { role: "system", content: system },
     ...(history ?? []).reverse().map((m: any) => ({
-      role: (m.direction === "inbound" ? "user" : "assistant") as "user" | "assistant", content: String(m.content ?? ""),
+      role: (m.direction === "inbound" ? "user" : "assistant") as "user" | "assistant", content: withMediaText(String(m.content ?? ""), m.media_text, m.type),
     })),
   ];
 

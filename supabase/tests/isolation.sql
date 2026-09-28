@@ -876,6 +876,15 @@ BEGIN
   PERFORM pg_temp.expect(pg_temp.q(agent_a, 'SELECT public.my_recovery_codes_left()') = 2, 'atendente ve so os dele');
   PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT public.my_recovery_codes_left()') = 0, 'outra pessoa nao ve os de ninguem');
 
+  -- 47. Texto lido pela IA (imagem/PDF): navegador nao grava; anonimizacao LGPD apaga.
+  INSERT INTO public.conversations (id, instance_id, contact_phone, contact_name) VALUES
+    ('aaaaaaaa-0000-0000-0047-000000000001', 'aaaaaaaa-0000-0000-0003-000000000001', '5511947000001', 'Davi Comprovante');
+  INSERT INTO public.messages (conversation_id, direction, sender, content, type, media_text) VALUES
+    ('aaaaaaaa-0000-0000-0047-000000000001', 'inbound', 'contact', '[imagem]', 'image', 'Comprovante PIX de Davi Silva, CPF 123.456.789-00, R$ 50,00');
+  PERFORM pg_temp.expect_error(agent_a, format('UPDATE public.messages SET media_text = %L WHERE conversation_id = %L', 'x', 'aaaaaaaa-0000-0000-0047-000000000001'), 'navegador nao grava texto lido');
+  PERFORM public.service_anonymize_contact(A, (SELECT id FROM public.contacts WHERE organization_id = A AND phone = '5511947000001'), owner_a, 'pedido do titular');
+  PERFORM pg_temp.expect((SELECT bool_and(media_text IS NULL) FROM public.messages WHERE conversation_id = 'aaaaaaaa-0000-0000-0047-000000000001'), 'anonimizacao apaga texto lido');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 

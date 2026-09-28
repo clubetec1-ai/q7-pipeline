@@ -90,6 +90,7 @@ type Message = {
   error?: string | null;
   email_subject?: string | null;
   deleted_by?: "contact" | "phone" | null;
+  media_text?: string | null;
 };
 
 type Stage = { id: string; name: string; position: number; color: string | null };
@@ -893,6 +894,12 @@ export default function Conversas() {
                       </div>
                     )}
                     <MessageMedia m={m} />
+                    {m.media_text && (
+                      <details className="text-xs mb-1 opacity-90">
+                        <summary className="cursor-pointer">🔎 Lido pela IA</summary>
+                        <p className="whitespace-pre-wrap mt-1">{m.media_text}</p>
+                      </details>
+                    )}
                     {m.email_subject && <div className="text-xs font-semibold mb-1">{m.email_subject}</div>}
                     {m.content && !(m.type && m.type !== "text" && /^\[.+\]$/.test(m.content)) && (
                       <div className="whitespace-pre-wrap">{m.content}</div>

@@ -133,6 +133,11 @@ Objetivo: a ligação cai na mesma tela do WhatsApp.
 - **“Cérebro” da operação**: agente que coordena agentes por área — administrativo, financeiro, RH, vendas,
   pós-venda, suporte e outras — com as automações de cada área (software completo para a empresa).
 - **IA entender imagens, vídeos e PDFs** que o cliente envia (hoje só áudio é transcrito).
+  *Entregue (29/09): imagens descritas por modelo com visão do provedor padrão (Groq Llama 4, OpenAI, Gemini, Claude;
+  comprovante → valor, data, pagador, recebedor, banco) e PDFs com texto extraído (sem IA); resultado em
+  messages.media_text, entra no histórico da IA de atendimento e do agente dos fluxos, aparece como “Lido pela IA”;
+  liga/desliga em Fluxos → Chaves de IA; anonimização LGPD apaga. Falta: vídeo, PDF digitalizado (OCR), anexos de
+  e-mail.*
 
 ## Disparos (campanhas)
 - Envio em massa para grupos de clientes, escolhendo o número (ex.: um número QR para disparos e o da Meta para

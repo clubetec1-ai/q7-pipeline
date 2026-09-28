@@ -8,6 +8,7 @@ import { transcribeAudio } from "../_shared/transcribe.ts";
 import { LIMITS, storeMedia } from "../_shared/media.ts";
 import { handleOptOut, instForSend, runFlow, runPostClose, withProtocol } from "../_shared/flow/executor.ts";
 import { companyKnowledge } from "../_shared/company.ts";
+import { readMedia, withMediaText } from "../_shared/media-read.ts";
 import { forOrg, type OrgScope } from "../_shared/tenant.ts";
 import { getSecret, hasSecret, hmacSha256Hex, safeEqual, sha256Hex } from "../_shared/secrets.ts";
 
@@ -404,7 +405,7 @@ async function handle(req: Request, ctx: QueueCtx): Promise<Response> {
 
     const { data: orgRow } = await supabase
       .from("organizations")
-      .select("status")
+      .select("status, settings")
       .eq("id", orgId)
       .maybeSingle();
     if (orgRow?.status !== "active") {
@@ -591,6 +592,18 @@ async function handle(req: Request, ctx: QueueCtx): Promise<Response> {
       }
     }
 
+    // Imagem e PDF: a IA lê e o resultado entra no histórico (desligável por empresa).
+    let mediaText: string | null = null;
+    const readOn = (orgRow as any)?.settings?.ai_read_media !== false;
+    if (readOn && mediaBytes && (mediaKind === "image" || mediaKind === "document") && ctx.stage !== "stored") {
+      const { data: allowedRead } = await supabase.rpc("service_ai_take", { org: orgId });
+      if (allowedRead !== false) {
+        mediaText = await readMedia(supabase, orgId, mediaKind, mediaBytes, String((mediaFields as any).media_mime ?? ""),
+          media && text !== media ? String(text ?? "") : "");
+        if (mediaText) console.log("[webhook] midia lida", { kind: mediaKind, chars: mediaText.length });
+      }
+    }
+
     // Reprocessamento não grava a mesma mensagem de novo.
     if (ctx.stage !== "stored") {
       await org.insert("messages", {
@@ -600,6 +613,7 @@ async function handle(req: Request, ctx: QueueCtx): Promise<Response> {
         sender: "contact",
         content: text,
         provider_message_id: providerMsgId ? String(providerMsgId) : null,
+        media_text: mediaText,
         ...mediaFields,
       });
       if (ctx.eventId) await supabase.from("inbound_events").update({ stage: "stored" }).eq("id", ctx.eventId);
@@ -638,7 +652,7 @@ async function handle(req: Request, ctx: QueueCtx): Promise<Response> {
     }
 
     const { data: history } = await org
-      .select("messages", "direction, sender, content")
+      .select("messages", "direction, sender, content, media_text, type")
       .eq("conversation_id", conv.id)
       .order("created_at", { ascending: false })
       .limit(20);
@@ -647,7 +661,7 @@ async function handle(req: Request, ctx: QueueCtx): Promise<Response> {
       { role: "system" as const, content: [withProtocol(profileAI.systemPrompt, ticket.protocol), await companyKnowledge(org)].filter(Boolean).join("\n\n") },
       ...(history || []).reverse().map((m: any) => ({
         role: (m.direction === "inbound" ? "user" : "assistant") as "user" | "assistant",
-        content: m.content,
+        content: withMediaText(String(m.content ?? ""), m.media_text, m.type),
       })),
     ];
 
