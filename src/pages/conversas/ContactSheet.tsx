@@ -149,6 +149,7 @@ export function ContactSheet({
 
   const addNote = async () => {
     if (!note.trim()) return;
+    if (!conversationId) return fail("Este cliente ainda não tem conversa: as notas ficam guardadas na conversa.");
     const { error } = await supabase.from("internal_notes").insert({
       conversation_id: conversationId, ticket_id: ticketId ?? null, content: note.trim(), mentions,
       organization_id: org.id,

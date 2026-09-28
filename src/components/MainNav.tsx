@@ -3,7 +3,7 @@ import { ChevronDown } from "lucide-react";
 import { useOrg } from "@/contexts/OrgContext";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-type Section = "conversas" | "kanban" | "registros" | "cobrancas" | "integracoes" | "equipe" | "numeros" | "fluxos" | "biblioteca" | "diagnostico" | "supervisor" | "avaliacoes" | "campanhas" | "seguranca" | "melhorias" | "conhecimento" | "plataforma";
+type Section = "conversas" | "kanban" | "registros" | "cobrancas" | "integracoes" | "equipe" | "numeros" | "fluxos" | "biblioteca" | "diagnostico" | "supervisor" | "avaliacoes" | "campanhas" | "seguranca" | "melhorias" | "conhecimento" | "clientes" | "plataforma";
 interface Item { key: Section; to: string; label: string; show: boolean }
 
 const base = "px-3 py-1.5 text-sm rounded-md transition inline-flex items-center gap-1";
@@ -21,6 +21,7 @@ export function MainNav({ active }: { active: Section }) {
   const reports = can("reports.view");
   const groups: { label: string; items: Item[] }[] = [
     { label: "Clientes", items: [
+      { key: "clientes", to: "/clientes", label: "Clientes e fichas", show: can("conversations.attend") || manage || reports },
       { key: "registros", to: "/registros", label: "Registros", show: true },
       { key: "cobrancas", to: "/cobrancas", label: "Cobranças", show: manage || reports },
       { key: "campanhas", to: "/campanhas", label: "Campanhas", show: can("campaigns.manage") },

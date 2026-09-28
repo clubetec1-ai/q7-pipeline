@@ -147,6 +147,12 @@ Objetivo: a ligação cai na mesma tela do WhatsApp.
   e segredos (senhas, dados bancários) não entram no contexto da IA; versão e data de cada documento (o agente usa a
   versão atual); apagar o documento remove o texto da base. Relação com o que já existe: Biblioteca (arquivos para
   enviar ao cliente) e leitura de PDF/imagem da IA.
+  *Entregue (29/09): tela Base de conhecimento (Configurar): anexar PDF, Word, Excel, CSV ou texto por setor, com
+  tipo e uso (interno | atendimento | pode ser enviado); texto lido e dividido em trechos; linhas com senha/token e
+  números de cartão removidos; busca em português sem custo de IA; IA de atendimento e agentes dos fluxos usam só
+  atendimento/enviável do setor do atendimento + empresa toda; planejamento e “Ajustar com IA” usam tudo; testar
+  pergunta na tela. Falta: preencher modelos (contrato/orçamento) com dados do cliente, enviar documento “enviável”
+  pelo atendimento, PDF digitalizado (OCR) e escolher setores da base por bloco de IA.*
 - **IA entender imagens, vídeos e PDFs** que o cliente envia (hoje só áudio é transcrito).
   *Entregue (29/09): imagens descritas por modelo com visão do provedor padrão (Groq Llama 4, OpenAI, Gemini, Claude;
   comprovante → valor, data, pagador, recebedor, banco) e PDFs com texto extraído (sem IA); resultado em
@@ -224,6 +230,9 @@ Objetivo: a ligação cai na mesma tela do WhatsApp.
   (CSV sem campos personalizados), auditoria de cada exportação, tentativa negada → auditoria + alerta no sino e
   por e-mail (1 por pessoa a cada 10 min). Falta: limite de volume, marca d’água, exportar outras telas. Limite
   conhecido: leitura em massa pela API com a própria senha não gera alerta (só o que a pessoa já vê).*
+- **Lista de clientes com acesso à ficha (pedido em 29/09)** — no menu Clientes, o atendente vê os clientes que
+  pode atender, busca por nome/telefone/e-mail e abre a ficha (dados, grupos, registros, notas) ou a conversa.
+  *Entregue (29/09): tela Clientes e fichas.*
 - **Cores por setor e por categoria de cliente (pedido em 28/09)** — cada departamento com uma cor (na fila, na
   conversa, no Kanban, nos filtros) e cada categoria/grupo de cliente com cor/etiqueta na lista e na ficha, para
   identificar de relance.
