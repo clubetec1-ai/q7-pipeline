@@ -9,6 +9,7 @@ import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { ColorPill } from "@/components/ColorTag";
 import { toast } from "@/hooks/use-toast";
 import {
   DndContext,
@@ -51,6 +52,8 @@ type Conversation = {
   ai_enabled: boolean;
   last_message_at: string;
   inactivity_followup_at: string | null;
+  department_id?: string | null;
+  dept?: { name: string; color: string | null } | null;
 };
 
 function Card({ c }: { c: Conversation }) {
@@ -72,7 +75,10 @@ function Card({ c }: { c: Conversation }) {
           {c.ai_enabled ? <Bot className="w-3 h-3" /> : <User className="w-3 h-3" />}
         </Badge>
       </div>
-      <div className="text-xs text-muted-foreground truncate">{c.contact_phone ?? c.contact_email}</div>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs text-muted-foreground truncate">{c.contact_phone ?? c.contact_email}</span>
+        {c.dept && <ColorPill color={c.dept.color} title="Setor">{c.dept.name}</ColorPill>}
+      </div>
       {c.inactivity_followup_at && (
         <div className="mt-2 flex items-center gap-1 text-[11px] text-primary">
           <Clock className="w-3 h-3" /> Follow-up agendado
@@ -179,11 +185,15 @@ export default function Kanban() {
     setStages((data as Stage[]) || []);
   };
   const loadConvs = async () => {
-    const { data } = await supabase
-      .from("conversations")
-      .select("id, contact_name, contact_phone, contact_email, stage_id, ai_enabled, last_message_at, inactivity_followup_at")
-      .order("last_message_at", { ascending: false });
-    setConversations((data as Conversation[]) || []);
+    const [{ data }, { data: depts }] = await Promise.all([
+      supabase
+        .from("conversations")
+        .select("id, contact_name, contact_phone, contact_email, stage_id, ai_enabled, last_message_at, inactivity_followup_at, department_id")
+        .order("last_message_at", { ascending: false }),
+      supabase.from("departments").select("id, name, color"),
+    ]);
+    const byId = new Map((depts ?? []).map((d) => [d.id, { name: d.name, color: d.color }]));
+    setConversations(((data as Conversation[]) || []).map((c) => ({ ...c, dept: c.department_id ? byId.get(c.department_id) ?? null : null })));
   };
 
   useEffect(() => {

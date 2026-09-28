@@ -177,6 +177,9 @@ Objetivo: a ligação cai na mesma tela do WhatsApp.
 - **Cores por setor e por categoria de cliente (pedido em 28/09)** — cada departamento com uma cor (na fila, na
   conversa, no Kanban, nos filtros) e cada categoria/grupo de cliente com cor/etiqueta na lista e na ficha, para
   identificar de relance.
+  *Entregue (29/09): cor por departamento (Equipe → Departamentos, escolha na paleta; novo já nasce com cor),
+  etiquetas e grupos de clientes com cor automática (clique na bolinha troca). Setor e grupos aparecem na lista de
+  conversas, no topo da conversa e no card do Kanban. Falta: filtro por setor/grupo e cor nos relatórios.*
 - Botão de anonimizar contato (LGPD) — limpa também `flow_runs.vars` e `tickets.rating_comment`.
 - Gravação de áudio pelo navegador.
 - Modo depuração do bloco HTTP (corpo no log por 1 h, cortado e com retenção curta).

@@ -15,6 +15,7 @@ import { ProtocolHistory } from "./ProtocolHistory";
 import { ContactRecords } from "./ContactRecords";
 import { RecordForm } from "../registros/RecordForm";
 import type { FieldDef, Values } from "../registros/fields";
+import { ColorDot, cycleColor, nextColor } from "@/components/ColorTag";
 
 interface Contact {
   id: string; phone: string; name: string | null; email: string | null; document: string | null; notes: string | null;
@@ -22,7 +23,7 @@ interface Contact {
   custom: Values | null;
 }
 interface Tag { id: string; name: string; color: string | null }
-interface Group { id: string; name: string; sensitive: boolean }
+interface Group { id: string; name: string; sensitive: boolean; color: string | null }
 interface Note { id: string; content: string; author_id: string; created_at: string; mentions: string[] }
 interface Person { id: string; name: string }
 
@@ -55,7 +56,7 @@ export function ContactSheet({
       supabase.from("contacts").select("id, phone, name, email, document, notes, opted_out_at, custom").eq("id", contactId).maybeSingle(),
       supabase.from("tags").select("id, name, color").eq("organization_id", org.id).order("name"),
       supabase.from("contact_tags").select("tag_id").eq("contact_id", contactId),
-      supabase.from("contact_groups").select("id, name, sensitive").eq("organization_id", org.id).order("name"),
+      supabase.from("contact_groups").select("id, name, sensitive, color").eq("organization_id", org.id).order("name"),
       supabase.from("contact_group_members").select("group_id").eq("contact_id", contactId),
       supabase.from("internal_notes").select("id, content, author_id, created_at, mentions")
         .eq("conversation_id", conversationId).order("created_at"),
@@ -102,9 +103,16 @@ export function ContactSheet({
   };
   const createTag = async () => {
     if (!newTag.trim()) return;
-    const { error } = await supabase.from("tags").insert({ organization_id: org.id, name: newTag.trim() });
+    const { error } = await supabase.from("tags").insert({ organization_id: org.id, name: newTag.trim(), color: nextColor(tags.map((t) => t.color)) });
     if (error) return fail(error.code === "23505" ? "Etiqueta já existe" : "Sem permissão para criar etiqueta");
     setNewTag("");
+    load();
+  };
+
+  // Clique na bolinha troca a cor (quem gerencia etiquetas / grupos).
+  const recolor = async (table: "tags" | "contact_groups", id: string, current: string | null) => {
+    const { error } = await supabase.from(table).update({ color: cycleColor(current) }).eq("id", id);
+    if (error) return fail("Sem permissão para trocar a cor");
     load();
   };
 
@@ -119,7 +127,7 @@ export function ContactSheet({
   const createGroup = async () => {
     if (!newGroup.trim()) return;
     const { error } = await supabase.from("contact_groups")
-      .insert({ organization_id: org.id, name: newGroup.trim(), sensitive: newGroupSensitive });
+      .insert({ organization_id: org.id, name: newGroup.trim(), sensitive: newGroupSensitive, color: nextColor(groups.map((g) => g.color)) });
     if (error) return fail(error.code === "23505" ? "Grupo já existe" : "Sem permissão para criar grupo");
     setNewGroup("");
     setNewGroupSensitive(false);
@@ -197,8 +205,8 @@ export function ContactSheet({
                     const on = myTags.includes(t.id);
                     return (
                       <button key={t.id} type="button" onClick={() => toggleTag(t.id, !on)}
-                        className={`rounded-full border px-2.5 py-0.5 text-xs transition ${on ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted"}`}>
-                        {t.name}
+                        className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs transition ${on ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted"}`}>
+                        <span className="w-2 h-2 rounded-full" style={{ background: t.color ?? "#94A3B8" }} />{t.name}
                       </button>
                     );
                   })}
@@ -219,6 +227,7 @@ export function ContactSheet({
                   <label key={g.id} className="flex items-center gap-2 text-sm">
                     <Checkbox checked={myGroups.includes(g.id)} disabled={!canGroups}
                       onCheckedChange={(v) => toggleGroup(g.id, !!v)} />
+                    <ColorDot color={g.color} onClick={canGroups ? () => recolor("contact_groups", g.id, g.color) : undefined} />
                     {g.name}
                     {g.sensitive && <Lock className="w-3.5 h-3.5 text-muted-foreground" aria-label="Grupo sensível" />}
                   </label>
