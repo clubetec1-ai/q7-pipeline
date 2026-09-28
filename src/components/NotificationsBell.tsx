@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { requestCall } from "@/lib/requestCall";
 import { useNavigate } from "react-router-dom";
 import { Bell } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,6 +17,7 @@ const TEXT: Record<string, (r: Record<string, string>) => string> = {
   charge_paid: (r) => `Pagamento recebido: R$ ${Number(r.value ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
   email_health: (r) => `Caixa de e-mail ${r.name ?? ""}: ${r.error ?? "precisa de atenção"}`,
   team_mention: (r) => `Você foi mencionado no chat da equipe: ${r.text ?? ""}`,
+  missed_call: (r) => `📞 Ligação perdida de ${r.phone ?? ""} — clique para retornar`,
   improvement: (r) => `${r.source === "monitor" ? "Correção" : "Melhoria"} para aprovar: ${r.title ?? ""}`,
   security_alert: (r) => `⚠ Segurança: ${r.name ?? "alguém da equipe"} tentou exportar contatos sem permissão (bloqueado)`,
   number_health: (r) => `Número ${r.name ?? ""}: ${r.error ?? (r.status === "disconnected" ? "desconectado" : "precisa de atenção")}`,
@@ -53,6 +55,7 @@ export function NotificationsBell() {
     else if (n.kind === "security_alert") navigate("/supervisor");
     else if (n.kind === "improvement") navigate("/melhorias");
     else if (n.kind === "team_mention") navigate("/chat");
+    else if (n.kind === "missed_call" && n.ref.phone) requestCall(String(n.ref.phone));
   };
 
   return (

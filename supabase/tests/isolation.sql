@@ -1102,6 +1102,22 @@ BEGIN
   PERFORM pg_temp.expect_error(owner_a, format('SELECT * FROM public.operator_org_members(%L)', A), 'dono nao usa a lista da clubetec');
   PERFORM pg_temp.expect_error(owner_b, format('SELECT * FROM public.operator_org_members(%L)', A), 'outra org nao lista a equipe');
 
+  -- 57. Nvoip: credencial so dono/admin, so no cofre; atendente nao ve; ligacao da central so pelo servidor.
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.set_voice_integration(%L, %L, %L)', A, 'cid', 'csecret'), 'atendente nao configura nvoip');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.set_voice_integration(%L, %L, %L)', A, 'cid', 'csecret'), 'outra org nao configura');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('SELECT public.set_voice_integration(%L, %L, %L)', A, 'cid', 'csecret')) = 'ok:1', 'dono configura nvoip');
+  PERFORM pg_temp.expect((SELECT has_credentials FROM public.voice_integrations WHERE organization_id = A), 'credencial marcada');
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT count(*) FROM public.voice_integrations') = 1, 'dono ve a integracao');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, 'SELECT count(*) FROM public.voice_integrations') = 0, 'atendente nao ve a integracao');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.voice_integrations') = 0, 'outra org nao ve a integracao');
+  PERFORM pg_temp.expect(pg_temp.t(agent_a, format('SELECT public.my_extension(%L)->>%L', A, 'click_to_call')) = 'true', 'ramal nvoip liga pela api');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.service_upsert_call(%L, %L, %L, %L, %L, %L, now(), NULL, NULL, 0, NULL)', A, 'x1', 'in', '11900000001', '301', 'missed'), 'navegador nao grava ligacao da central');
+  PERFORM pg_temp.expect(public.service_upsert_call(A, 'nv-1', 'in', '5511900000001', '301', 'missed', now(), NULL, NULL, 0, NULL) IS NOT NULL, 'servidor grava ligacao');
+  PERFORM pg_temp.expect(EXISTS (SELECT 1 FROM public.notifications WHERE kind = 'missed_call' AND user_id = agent_a), 'perdida avisa o atendente do ramal');
+  PERFORM pg_temp.expect(public.service_upsert_call(A, 'nv-1', 'in', '5511900000001', '301', 'missed', now(), NULL, NULL, 0, NULL) IS NOT NULL
+    AND (SELECT count(*) FROM public.notifications WHERE kind = 'missed_call' AND user_id = agent_a) = 1, 'aviso nao repete');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.calls WHERE provider_call_id IS NOT NULL') = 0, 'outra org nao ve ligacoes da central');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 
