@@ -876,6 +876,22 @@ BEGIN
   PERFORM pg_temp.expect(pg_temp.q(agent_a, 'SELECT public.my_recovery_codes_left()') = 2, 'atendente ve so os dele');
   PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT public.my_recovery_codes_left()') = 0, 'outra pessoa nao ve os de ninguem');
 
+  -- 48. Diagnostico: recomecar guarda copia e zera; desfazer restaura; so dono/admin da propria org.
+  UPDATE public.company_profiles SET sections = '{"empresa":"texto antigo"}'::jsonb, stage = 'setores' WHERE organization_id = A;
+  INSERT INTO public.interview_messages (organization_id, role, content) VALUES (A, 'user', 'conversa antiga');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.reset_company_profile(%L)', A), 'atendente nao zera');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.reset_company_profile(%L)', A), 'outra org nao zera');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('SELECT public.reset_company_profile(%L)', A)) LIKE 'ok:%', 'dono zera');
+  PERFORM pg_temp.expect((SELECT sections = '{}'::jsonb AND stage = 'empresa' AND plan = '{}'::jsonb FROM public.company_profiles WHERE organization_id = A), 'retrato zerado');
+  PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM public.interview_messages WHERE organization_id = A), 'conversa zerada');
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, format('SELECT public.company_profile_snapshots_count(%L)', A)) = 1, 'copia guardada');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, format('SELECT public.company_profile_snapshots_count(%L)', A)) = 0, 'outra org nao ve copia');
+  PERFORM pg_temp.expect_error(owner_a, 'SELECT count(*) FROM public.company_profile_snapshots', 'navegador nao le copia');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.restore_company_profile(%L)', A), 'outra org nao restaura');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('SELECT public.restore_company_profile(%L)', A)) LIKE 'ok:%', 'dono desfaz');
+  PERFORM pg_temp.expect((SELECT sections ->> 'empresa' = 'texto antigo' AND stage = 'setores' FROM public.company_profiles WHERE organization_id = A), 'retrato restaurado');
+  PERFORM pg_temp.expect(EXISTS (SELECT 1 FROM public.interview_messages WHERE organization_id = A AND content = 'conversa antiga'), 'conversa restaurada');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 

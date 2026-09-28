@@ -250,3 +250,29 @@ Conector nos fluxos, aplicativo do conector cadastrado pelo operador no painel d
 
 ## Visual
 - Trocar logo e ícone da aba (nome “Clube” junto do logo, em cima).
+- **Menu mais enxuto (pedido em 28/09)** — hoje o menu de cima tem botões demais. Atendente/operador vê só o
+  essencial; para quem gerencia, agrupar em submenus (ou duas linhas), escolhendo o que fica mais limpo.
+- **Diagnóstico em páginas, passo a passo (pedido em 28/09)** — no lugar do chat: uma etapa por página (empresa,
+  cultura, hoje, objetivos, setores, processos de cada setor, planejamento), com área grande para o dono escrever;
+  a IA entende e organiza o texto; o dono revisa e aprova cada etapa antes de seguir (nada é gerado de uma vez) e
+  pode voltar a qualquer página. Nos processos, “como funciona hoje” e “como deveria funcionar”. Depois de aprovar,
+  gera as melhorias e o plano de ação. Botão “Recomeçar diagnóstico” (com desfazer) para quando a empresa mudar o
+  jeito de trabalhar ou os dados estiverem incompletos.
+  **Editar só uma etapa (pedido em 28/09):** além de recomeçar tudo, reabrir e reaprovar só a etapa/setor que mudou
+  (ex.: financeiro adotou outra prática) ou refazer só ela; ao reaprovar, o retrato muda na hora, a IA de atendimento
+  e os agentes passam a usar a nova forma e o planejamento fica marcado como desatualizado.
+  **Depois:** ligar o relatório de melhorias das Avaliações ao diagnóstico — “levar esta melhoria para o diagnóstico”
+  atualiza a etapa/setor com “como vai ser a partir de agora”, e os agentes se adequam à nova metodologia.
+- **Ciclo de melhoria contínua (visão do produto, pedido em 28/09 — grande diferencial)** — o sistema funciona como um
+  ciclo sempre ligado: **diagnóstico → implementação → teste → feedback → ajuste do diagnóstico → nova implementação**.
+  1. Depois do levantamento, cada melhoria identificada (pelas avaliações dos atendimentos, pelos números do
+     supervisor, pelas falhas de processo) já vem **com a implementação pronta** — fluxo, agente de IA, automação,
+     resposta rápida, registro ou ajuste de etapa do diagnóstico — em rascunho.
+  2. O dono **aceita e aprova** (nada entra no ar sozinho) e coloca para rodar.
+  3. O sistema **monitora se funcionou**: compara indicadores antes × depois (satisfação, nota, tempo de fila e de
+     resposta, conversões, retrabalho) e mostra o resultado de cada melhoria.
+  4. Se não funcionou ou a empresa mudou, o feedback volta para o diagnóstico da etapa/setor, que é atualizado, e o
+     ciclo recomeça; os agentes passam a seguir a nova forma de trabalhar.
+  Peças que já existem: diagnóstico em etapas, planejamento, implementador (rascunhos), avaliação automática e
+  relatório de melhorias, painel do supervisor. Falta: “melhoria” como item com estado (sugerida → aprovada → no ar →
+  medindo → resultado), métricas antes/depois por melhoria e o retorno automático para o diagnóstico.

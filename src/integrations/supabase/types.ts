@@ -454,6 +454,41 @@ export type Database = {
           },
         ]
       }
+      company_profile_snapshots: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: number
+          messages: Json
+          organization_id: string
+          profile: Json
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: never
+          messages?: Json
+          organization_id: string
+          profile: Json
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: never
+          messages?: Json
+          organization_id?: string
+          profile?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_profile_snapshots_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_profiles: {
         Row: {
           organization_id: string
@@ -463,6 +498,7 @@ export type Database = {
           public_research: Json
           sections: Json
           stage: string
+          steps: Json
           suggestions: Json
           suggestions_at: string | null
           updated_at: string
@@ -477,6 +513,7 @@ export type Database = {
           public_research?: Json
           sections?: Json
           stage?: string
+          steps?: Json
           suggestions?: Json
           suggestions_at?: string | null
           updated_at?: string
@@ -491,6 +528,7 @@ export type Database = {
           public_research?: Json
           sections?: Json
           stage?: string
+          steps?: Json
           suggestions?: Json
           suggestions_at?: string | null
           updated_at?: string
@@ -1540,6 +1578,7 @@ export type Database = {
           media_name: string | null
           media_path: string | null
           media_size: number | null
+          media_text: string | null
           organization_id: string
           provider_message_id: string | null
           sender: string
@@ -1565,6 +1604,7 @@ export type Database = {
           media_name?: string | null
           media_path?: string | null
           media_size?: number | null
+          media_text?: string | null
           organization_id: string
           provider_message_id?: string | null
           sender: string
@@ -1590,6 +1630,7 @@ export type Database = {
           media_name?: string | null
           media_path?: string | null
           media_size?: number | null
+          media_text?: string | null
           organization_id?: string
           provider_message_id?: string | null
           sender?: string
@@ -2846,6 +2887,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      company_profile_snapshots_count: {
+        Args: { org: string }
+        Returns: number
+      }
       connector_apps_status: { Args: never; Returns: Json }
       delete_http_secret: {
         Args: { org: string; secret_key: string }
@@ -2937,6 +2982,8 @@ export type Database = {
         Returns: undefined
       }
       publish_flow: { Args: { flow: string }; Returns: number }
+      reset_company_profile: { Args: { org: string }; Returns: Json }
+      restore_company_profile: { Args: { org: string }; Returns: Json }
       return_ticket_to_ai: {
         Args: { ticket: string }
         Returns: {
