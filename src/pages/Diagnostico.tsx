@@ -399,7 +399,12 @@ export default function Diagnostico() {
                       : "Escreva aqui do seu jeito ou clique em 🎤 Falar logo abaixo — o que você falar aparece escrito nesta caixa. Depois a IA organiza para você revisar."} />
                   <p className="text-xs text-muted-foreground">
                     ✍️ Você pode <b>escrever</b> ou clicar em <b>🎤 Falar</b>: sua fala vira texto aqui em cima, para você conferir e corrigir.
-                    Também dá para <b>📎 anexar</b> documentos (contratos, planilhas, manuais). Quando terminar, clique em <b>Organizar com IA</b>.
+                    Quando terminar, clique em <b>Organizar com IA</b>.
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    📎 <b>Anexe materiais que ajudam</b> a montar esta etapa: contratos, orçamentos, planilhas, manuais, fluxos de processo,
+                    apresentações da empresa. A IA lê o conteúdo junto com o que você escreveu ou falou, e os arquivos ficam guardados na
+                    base de conhecimento do setor.
                   </p>
                   <div className="flex flex-wrap items-center gap-2">
                     <Button type="button" variant={rec.on ? "destructive" : "outline"} size="sm" disabled={busy === "mic"} onClick={toggleMic}
@@ -408,7 +413,7 @@ export default function Diagnostico() {
                         : <><Mic className="w-4 h-4 mr-1" /> {busy === "mic" ? "Transcrevendo..." : "Falar"}</>}
                     </Button>
                     <Button type="button" variant="outline" size="sm" disabled={busy === "attach"} onClick={() => fileInput.current?.click()} title="Anexar contrato, planilha, manual...">
-                      <Paperclip className="w-4 h-4 mr-1" /> {busy === "attach" ? "Lendo..." : "Anexar"}
+                      <Paperclip className="w-4 h-4 mr-1" /> {busy === "attach" ? "Lendo..." : "Anexar materiais"}
                     </Button>
                     <input ref={fileInput} type="file" className="hidden" accept=".pdf,.docx,.xlsx,.csv,.txt,.md"
                       onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void attach(f); }} />
