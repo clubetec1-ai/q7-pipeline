@@ -13,6 +13,7 @@ const TEXT: Record<string, (r: Record<string, string>) => string> = {
   assigned: (r) => `Atendimento #${r.protocol ?? ""} atribuído a você`,
   transferred: (r) => `Atendimento #${r.protocol ?? ""} transferido para você${r.note ? ` — ${r.note}` : ""}`,
   taken_over: (r) => `Atendimento #${r.protocol ?? ""} foi assumido por outra pessoa`,
+  charge_paid: (r) => `Pagamento recebido: R$ ${Number(r.value ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
   email_health: (r) => `Caixa de e-mail ${r.name ?? ""}: ${r.error ?? "precisa de atenção"}`,
   number_health: (r) => `Número ${r.name ?? ""}: ${r.error ?? (r.status === "disconnected" ? "desconectado" : "precisa de atenção")}`,
 };

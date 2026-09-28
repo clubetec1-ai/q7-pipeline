@@ -31,3 +31,9 @@ verify_jwt = false
 
 [functions.process-inbound]
 verify_jwt = false
+
+[functions.payments-webhook]
+verify_jwt = false
+
+[functions.payments-cron]
+verify_jwt = false

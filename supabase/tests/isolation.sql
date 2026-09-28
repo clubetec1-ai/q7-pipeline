@@ -622,6 +622,19 @@ BEGIN
     '[]', A), 'sugestoes so pelo backend');
   PERFORM pg_temp.expect_denied(owner_b, format('UPDATE public.company_profiles SET use_in_ai = false WHERE organization_id = %L', A), 'outra org nao altera');
 
+  -- 36. Cobrancas: so o backend grava; gestores veem todas; outra org nunca ve.
+  INSERT INTO public.charges (id, organization_id, contact_id, provider_id, value, due_date)
+  SELECT 'aaaaaaaa-0000-0000-0016-000000000001', A, c.contact_id, 'pay_teste_1', 150, current_date + 3
+  FROM public.conversations c WHERE c.id = 'aaaaaaaa-0000-0000-0010-000000000001';
+  PERFORM pg_temp.expect_denied(owner_a, format('INSERT INTO public.charges (organization_id, provider_id, value, due_date) VALUES (%L, %L, 10, current_date)',
+    A, 'x'), 'navegador nao cria cobranca');
+  PERFORM pg_temp.expect_error(owner_a, format('UPDATE public.charges SET status = %L WHERE id = %L', 'paid', 'aaaaaaaa-0000-0000-0016-000000000001'),
+    'navegador nao marca como paga');
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT count(*) FROM public.charges') = 1, 'owner ve cobranca');
+  PERFORM pg_temp.expect(pg_temp.q(sup_a, 'SELECT count(*) FROM public.charges') = 1, 'supervisor ve cobranca');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.charges') = 0, 'outra org nao ve cobranca');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_put_secret(%L, %L)', format('org:%s:asaas_api_key', A), 'x'), 'chave do asaas so pelo backend');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 

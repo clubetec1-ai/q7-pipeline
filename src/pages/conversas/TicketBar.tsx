@@ -16,6 +16,7 @@ import {
 import { STATUS_LABEL, Ticket } from "./useTickets";
 import { callFunction } from "@/lib/callFunction";
 import { DEFAULT_GREETING } from "../equipe/GreetingSetting";
+import { ChargeButton } from "./ChargeButton";
 
 interface Option { id: string; name: string }
 
@@ -135,6 +136,7 @@ export function TicketBar({ ticket, onChanged, greet = true }: { ticket: Ticket 
           <Hash className="w-3.5 h-3.5 mr-1" /> Enviar protocolo
         </Button>
       )}
+      {mine && <ChargeButton conversationId={ticket.conversation_id} />}
       {canAct && (
         <>
           <Button size="sm" variant="ghost" className="h-8" disabled={busy} onClick={() => setDialog("transfer")}>

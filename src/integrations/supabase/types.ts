@@ -202,6 +202,88 @@ export type Database = {
           },
         ]
       }
+      charges: {
+        Row: {
+          contact_id: string | null
+          conversation_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_date: string
+          id: string
+          invoice_url: string | null
+          organization_id: string
+          paid_at: string | null
+          pix_code: string | null
+          provider: string
+          provider_id: string
+          reminded_after: boolean
+          reminded_before: boolean
+          status: string
+          value: number
+        }
+        Insert: {
+          contact_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date: string
+          id?: string
+          invoice_url?: string | null
+          organization_id: string
+          paid_at?: string | null
+          pix_code?: string | null
+          provider?: string
+          provider_id: string
+          reminded_after?: boolean
+          reminded_before?: boolean
+          status?: string
+          value: number
+        }
+        Update: {
+          contact_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string
+          id?: string
+          invoice_url?: string | null
+          organization_id?: string
+          paid_at?: string | null
+          pix_code?: string | null
+          provider?: string
+          provider_id?: string
+          reminded_after?: boolean
+          reminded_before?: boolean
+          status?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "charges_contact_id_organization_id_fkey"
+            columns: ["contact_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "charges_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "charges_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       close_reasons: {
         Row: {
           active: boolean
