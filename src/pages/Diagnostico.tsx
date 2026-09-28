@@ -394,7 +394,13 @@ export default function Diagnostico() {
               ) : (
                 <>
                   <Textarea rows={draft ? 5 : 12} value={raw} onChange={(e) => setRaw(e.target.value)} maxLength={12000}
-                    placeholder={setor ? "Ex.: 1. O cliente pede orçamento no WhatsApp. 2. O vendedor confere o estoque na planilha..." : "Escreva do seu jeito, sem se preocupar com a forma. A IA organiza para você revisar."} />
+                    placeholder={setor
+                      ? "Escreva aqui ou clique em 🎤 Falar logo abaixo — o que você falar aparece escrito nesta caixa.\nEx.: 1. O cliente pede orçamento no WhatsApp. 2. O vendedor confere o estoque na planilha..."
+                      : "Escreva aqui do seu jeito ou clique em 🎤 Falar logo abaixo — o que você falar aparece escrito nesta caixa. Depois a IA organiza para você revisar."} />
+                  <p className="text-xs text-muted-foreground">
+                    ✍️ Você pode <b>escrever</b> ou clicar em <b>🎤 Falar</b>: sua fala vira texto aqui em cima, para você conferir e corrigir.
+                    Também dá para <b>📎 anexar</b> documentos (contratos, planilhas, manuais). Quando terminar, clique em <b>Organizar com IA</b>.
+                  </p>
                   <div className="flex flex-wrap items-center gap-2">
                     <Button type="button" variant={rec.on ? "destructive" : "outline"} size="sm" disabled={busy === "mic"} onClick={toggleMic}
                       title={rec.on ? "Parar" : SpeechRec ? "Ditar: o texto aparece enquanto você fala" : "Falar: grava e transforma em texto"}>
