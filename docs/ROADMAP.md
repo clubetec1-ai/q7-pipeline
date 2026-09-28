@@ -171,6 +171,10 @@ Objetivo: a ligação cai na mesma tela do WhatsApp.
   clientes: canais por setor e mensagens diretas, menção com @, anexos, aviso no sino, e “compartilhar
   atendimento” (link para a conversa do cliente sem expor dados a quem não pode ver). Isolado por empresa (RLS),
   histórico guardado como o resto (não se apaga pela tela; LGPD: anonimização do funcionário quando sair).
+  *Entregue (29/09): menu Equipe (chat) com canal Geral (universal), um canal por setor e conversas diretas;
+  @menção com aviso no sino, anexos em armazenamento privado, compartilhar atendimento, não lidas e tempo real;
+  mensagens não se editam nem se apagam; direta é privada até para o dono. Falta: busca no chat, reações e
+  canais extras criados pelo dono.*
 
 ## Relatórios (pedido em 29/09)
 Aba **Relatórios** com vários tipos, para dar clareza a quem decide e alimentar o ciclo de melhoria. Cada pessoa

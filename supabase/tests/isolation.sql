@@ -1002,6 +1002,30 @@ BEGIN
   PERFORM pg_temp.expect(pg_temp.run(owner_a, format('DELETE FROM public.contact_groups WHERE id = %L', 'aaaaaaaa-0000-0000-0052-000000000012')) = 'ok:1', 'dono exclui grupo');
   PERFORM pg_temp.expect(EXISTS (SELECT 1 FROM public.audit_log WHERE organization_id = A AND action = 'group.deleted'), 'exclusao auditada');
 
+  -- 53. Chat interno: geral para todos; setor so do setor (+dono/admin); direto so dos dois; historico imutavel; outra org nunca.
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('SELECT public.ensure_team_channels(%L)', A)) LIKE 'ok:%', 'cria canais');
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT count(*) FROM public.team_channels') >= 3, 'dono ve geral e setores');
+  PERFORM pg_temp.expect(pg_temp.t(agent_a, 'SELECT string_agg(name, '','' ORDER BY name) FROM public.team_channels') = 'D1,Geral', 'atendente ve geral + seu setor');
+  PERFORM pg_temp.expect(pg_temp.t(agent2_a, 'SELECT string_agg(name, '','' ORDER BY name) FROM public.team_channels') = 'D2,Geral', 'outro atendente ve geral + setor dele');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, format('SELECT count(*) FROM public.team_channels WHERE organization_id = %L', A)) = 0, 'outra org nao ve canais');
+  PERFORM pg_temp.expect(pg_temp.run(agent_a, format('INSERT INTO public.team_messages (organization_id, channel_id, author_id, content, mentions) VALUES (%L, (SELECT id FROM public.team_channels WHERE name = %L AND organization_id = %L), %L, %L, ARRAY[%L, %L]::uuid[])',
+    A, 'D1', A, agent_a, 'Alguem cobre a fila da tarde?', sup_a, agent2_a)) = 'ok:1', 'atendente escreve no seu setor');
+  PERFORM pg_temp.expect(EXISTS (SELECT 1 FROM public.notifications WHERE kind = 'team_mention' AND user_id = sup_a), 'mencao avisa quem ve o canal');
+  PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM public.notifications WHERE kind = 'team_mention' AND user_id = agent2_a), 'mencao nao avisa quem nao ve o canal');
+  PERFORM pg_temp.expect_error(agent_a, format('INSERT INTO public.team_messages (organization_id, channel_id, author_id, content) VALUES (%L, (SELECT id FROM public.team_channels WHERE name = %L AND organization_id = %L), %L, %L)',
+    A, 'D2', A, agent_a, 'x'), 'nao escreve em setor alheio');
+  PERFORM pg_temp.expect_error(agent_a, format('INSERT INTO public.team_messages (organization_id, channel_id, author_id, content) VALUES (%L, (SELECT id FROM public.team_channels WHERE name = %L AND organization_id = %L), %L, %L)',
+    A, 'Geral', A, owner_a, 'x'), 'nao escreve como outra pessoa');
+  PERFORM pg_temp.expect_error(agent_a, format('INSERT INTO public.team_messages (organization_id, channel_id, author_id, conversation_id) VALUES (%L, (SELECT id FROM public.team_channels WHERE name = %L AND organization_id = %L), %L, %L)',
+    A, 'Geral', A, agent_a, 'bbbbbbbb-0000-0000-0004-000000000001'), 'nao compartilha atendimento de outra org');
+  PERFORM pg_temp.expect_error(agent_a, 'UPDATE public.team_messages SET content = ''editado''', 'mensagem nao se edita');
+  PERFORM pg_temp.expect_error(owner_a, 'DELETE FROM public.team_messages', 'mensagem nao se apaga');
+  PERFORM pg_temp.expect(pg_temp.run(agent_a, format('SELECT public.open_direct_chat(%L, %L)', A, agent2_a)) LIKE 'ok:%', 'abre conversa direta');
+  PERFORM pg_temp.expect(pg_temp.q(agent2_a, 'SELECT count(*) FROM public.team_channels WHERE kind = ''direto''') = 1, 'o outro ve a direta');
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT count(*) FROM public.team_channels WHERE kind = ''direto''') = 0, 'direta e privada ate para o dono');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.open_direct_chat(%L, %L)', A, owner_b), 'nao abre direta com outra org');
+  PERFORM pg_temp.expect(pg_temp.q(sup_a, format('SELECT count(*) FROM public.team_unread(%L)', A)) >= 1, 'nao lidas para quem ve');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 
