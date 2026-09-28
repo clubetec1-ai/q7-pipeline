@@ -193,6 +193,9 @@ export default function Conversas() {
     return (
       <span className="flex items-center gap-1 min-w-0 overflow-hidden">
         {d && <ColorPill color={d.color} title="Setor">{d.name}</ColorPill>}
+        {t?.overflow_at && t.status === "queued" && (
+          <span className="text-[10px] font-medium text-amber-600 shrink-0" title="Fila parada: outros setores podem assumir">🤝 pedindo ajuda</span>
+        )}
         {gs.slice(0, 2).map((g) => <ColorPill key={g.name} color={g.color} title="Grupo do cliente">{g.name}</ColorPill>)}
         {gs.length > 2 && <span className="text-[10px] text-muted-foreground">+{gs.length - 2}</span>}
       </span>

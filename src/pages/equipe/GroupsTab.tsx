@@ -172,7 +172,7 @@ export function GroupsTab({
                 <ColorPicker value={departments.find((d) => d.id === it.id)?.color} onChange={(c) => setColor(it.id, c)} />
               )}
               {!isTeams && (
-                <DistributionSettings dept={departments.find((d) => d.id === it.id)} canManage={canManage} onSaved={reload} />
+                <DistributionSettings dept={departments.find((d) => d.id === it.id)} all={departments} canManage={canManage} onSaved={reload} />
               )}
             </div>
           );

@@ -149,6 +149,10 @@ Objetivo: a ligação cai na mesma tela do WhatsApp.
   todos estão ocupados, o atendimento pode ser visto e assumido por outro setor (regra de transbordo por setor:
   quais setores ajudam, depois de quanto tempo de espera), e setores podem interagir na conversa (nota interna,
   pedir ajuda, convidar) — o atendimento ao cliente sempre em primeiro lugar. Respeita permissões e visibilidade.
+  *Entregue (29/09): em Equipe → Departamentos, “Se a fila esperar mais de N min, pedir ajuda de: [setores]”.
+  Fila parada → setores ajudantes veem e assumem só atendimentos sem responsável (fica no setor de origem);
+  distribuição automática passa para ajudante livre; aviso “🤝 pedindo ajuda” na lista; evento na auditoria.
+  Falta: convidar outro setor para uma conversa já atribuída (ajuda sem transferir) e aviso no sino para ajudantes.*
 - **Protocolo em todo atendimento, em todos os canais (pedido em 28/09)** — WhatsApp, e-mail e voz geram o
   protocolo logo no início (hoje já existe no atendimento; estender a e-mail e voz de forma uniforme). Na voz, o
   atendente informa o protocolo ou a própria IA/URA fala o número; nos outros canais vai na mensagem. O protocolo

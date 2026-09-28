@@ -691,6 +691,8 @@ export type Database = {
           max_concurrent: number
           name: string
           organization_id: string
+          overflow_after_minutes: number | null
+          overflow_to: string[]
           queue_alert_minutes: number
           reply_alert_minutes: number
           updated_at: string
@@ -704,6 +706,8 @@ export type Database = {
           max_concurrent?: number
           name: string
           organization_id: string
+          overflow_after_minutes?: number | null
+          overflow_to?: string[]
           queue_alert_minutes?: number
           reply_alert_minutes?: number
           updated_at?: string
@@ -717,6 +721,8 @@ export type Database = {
           max_concurrent?: number
           name?: string
           organization_id?: string
+          overflow_after_minutes?: number | null
+          overflow_to?: string[]
           queue_alert_minutes?: number
           reply_alert_minutes?: number
           updated_at?: string
@@ -2289,6 +2295,7 @@ export type Database = {
           id: string
           opened_at: string | null
           organization_id: string
+          overflow_at: string | null
           protocol: string
           queued_at: string | null
           rating: number | null
@@ -2310,6 +2317,7 @@ export type Database = {
           id?: string
           opened_at?: string | null
           organization_id: string
+          overflow_at?: string | null
           protocol: string
           queued_at?: string | null
           rating?: number | null
@@ -2331,6 +2339,7 @@ export type Database = {
           id?: string
           opened_at?: string | null
           organization_id?: string
+          overflow_at?: string | null
           protocol?: string
           queued_at?: string | null
           rating?: number | null
@@ -2540,6 +2549,7 @@ export type Database = {
           id: string
           opened_at: string | null
           organization_id: string
+          overflow_at: string | null
           protocol: string
           queued_at: string | null
           rating: number | null
@@ -2571,6 +2581,7 @@ export type Database = {
           id: string
           opened_at: string | null
           organization_id: string
+          overflow_at: string | null
           protocol: string
           queued_at: string | null
           rating: number | null
@@ -2690,6 +2701,7 @@ export type Database = {
           id: string
           opened_at: string | null
           organization_id: string
+          overflow_at: string | null
           protocol: string
           queued_at: string | null
           rating: number | null
@@ -2748,6 +2760,7 @@ export type Database = {
           id: string
           opened_at: string | null
           organization_id: string
+          overflow_at: string | null
           protocol: string
           queued_at: string | null
           rating: number | null
@@ -2784,6 +2797,7 @@ export type Database = {
           id: string
           opened_at: string | null
           organization_id: string
+          overflow_at: string | null
           protocol: string
           queued_at: string | null
           rating: number | null
@@ -2847,6 +2861,7 @@ export type Database = {
           id: string
           opened_at: string | null
           organization_id: string
+          overflow_at: string | null
           protocol: string
           queued_at: string | null
           rating: number | null
@@ -2882,6 +2897,7 @@ export type Database = {
           id: string
           opened_at: string | null
           organization_id: string
+          overflow_at: string | null
           protocol: string
           queued_at: string | null
           rating: number | null
