@@ -937,6 +937,32 @@ BEGIN
     AND user_id IN (owner_a, admin_a, sup_a)) = 3, 'dono, admin e supervisor do setor avisados');
   PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM public.notifications WHERE organization_id = A AND kind = 'improvement' AND user_id IN (agent_a, agent2_a)), 'atendentes nao sao avisados');
 
+  -- 50. Base de conhecimento: por setor; trechos so do backend; busca do cliente nunca traz documento interno.
+  INSERT INTO public.knowledge_docs (id, organization_id, department_id, title, visibility, status) VALUES
+    ('aaaaaaaa-0000-0000-0050-000000000001', A, NULL, 'Politica interna de desconto', 'interno', 'ready'),
+    ('aaaaaaaa-0000-0000-0050-000000000002', A, 'aaaaaaaa-0000-0000-0001-000000000001', 'Tabela de precos D1', 'atendimento', 'ready'),
+    ('aaaaaaaa-0000-0000-0050-000000000003', A, 'aaaaaaaa-0000-0000-0001-000000000002', 'Manual D2', 'atendimento', 'ready');
+  INSERT INTO public.knowledge_chunks (organization_id, doc_id, ord, content) VALUES
+    (A, 'aaaaaaaa-0000-0000-0050-000000000001', 0, 'Desconto maximo para ramal: 15 por cento, so com aprovacao do dono.'),
+    (A, 'aaaaaaaa-0000-0000-0050-000000000002', 0, 'Ramal basico custa 49,90 por mes.'),
+    (A, 'aaaaaaaa-0000-0000-0050-000000000003', 0, 'Ramal no setor D2: procedimento de ativacao.');
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT count(*) FROM public.knowledge_docs') = 3, 'dono ve todos');
+  PERFORM pg_temp.expect(pg_temp.q(sup_a, 'SELECT count(*) FROM public.knowledge_docs') = 2, 'supervisor ve empresa toda + seu setor');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, 'SELECT count(*) FROM public.knowledge_docs') = 0, 'atendente nao ve a base');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.knowledge_docs') = 0, 'outra org nao ve');
+  PERFORM pg_temp.expect_error(owner_a, 'SELECT count(*) FROM public.knowledge_chunks', 'trechos so do backend');
+  PERFORM pg_temp.expect_error(owner_a, format('INSERT INTO public.knowledge_docs (organization_id, title) VALUES (%L, %L)', A, 'x'), 'navegador nao cria documento');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT * FROM public.service_search_knowledge(%L, %L, %L)', A, 'ramal', 'interno'), 'navegador nao busca direto');
+  PERFORM pg_temp.expect(pg_temp.t(sup_a, format('SELECT public.can_manage_knowledge(%L, %L)::text', A, 'aaaaaaaa-0000-0000-0001-000000000001')) = 'true', 'supervisor gerencia seu setor');
+  PERFORM pg_temp.expect(pg_temp.t(sup_a, format('SELECT public.can_manage_knowledge(%L, %L)::text', A, 'aaaaaaaa-0000-0000-0001-000000000002')) = 'false', 'supervisor nao gerencia outro setor');
+  PERFORM pg_temp.expect(pg_temp.t(sup_a, format('SELECT public.can_manage_knowledge(%L, NULL)::text', A)) = 'false', 'empresa toda so dono/admin');
+  PERFORM pg_temp.expect(pg_temp.t(agent_a, format('SELECT public.can_manage_knowledge(%L, %L)::text', A, 'aaaaaaaa-0000-0000-0001-000000000001')) = 'false', 'atendente nao gerencia');
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.service_search_knowledge(A, 'desconto ramal', 'cliente')) = 2
+    AND NOT EXISTS (SELECT 1 FROM public.service_search_knowledge(A, 'desconto ramal', 'cliente') WHERE title LIKE 'Politica interna%'), 'busca do cliente sem documento interno');
+  PERFORM pg_temp.expect(EXISTS (SELECT 1 FROM public.service_search_knowledge(A, 'desconto', 'interno') WHERE title LIKE 'Politica interna%'), 'agente interno ve o interno');
+  PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM public.service_search_knowledge(A, 'ramal', 'cliente', ARRAY['aaaaaaaa-0000-0000-0001-000000000001']::uuid[]) WHERE title = 'Manual D2'), 'setor filtra outro setor');
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.service_search_knowledge('bbbbbbbb-0000-0000-0000-000000000001', 'ramal', 'interno')) = 0, 'outra org nao acha nada');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 

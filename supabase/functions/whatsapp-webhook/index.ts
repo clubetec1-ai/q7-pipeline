@@ -9,6 +9,7 @@ import { LIMITS, storeMedia } from "../_shared/media.ts";
 import { handleOptOut, instForSend, runFlow, runPostClose, withProtocol } from "../_shared/flow/executor.ts";
 import { companyKnowledge } from "../_shared/company.ts";
 import { readMedia, withMediaText } from "../_shared/media-read.ts";
+import { knowledgeContext } from "../_shared/knowledge.ts";
 import { forOrg, type OrgScope } from "../_shared/tenant.ts";
 import { getSecret, hasSecret, hmacSha256Hex, safeEqual, sha256Hex } from "../_shared/secrets.ts";
 
@@ -658,7 +659,8 @@ async function handle(req: Request, ctx: QueueCtx): Promise<Response> {
       .limit(20);
 
     const chat = [
-      { role: "system" as const, content: [withProtocol(profileAI.systemPrompt, ticket.protocol), await companyKnowledge(org)].filter(Boolean).join("\n\n") },
+      { role: "system" as const, content: [withProtocol(profileAI.systemPrompt, ticket.protocol), await companyKnowledge(org),
+        await knowledgeContext(supabase, orgId, String(text ?? ""), "cliente", ticket.department_id ? [ticket.department_id] : null)].filter(Boolean).join("\n\n") },
       ...(history || []).reverse().map((m: any) => ({
         role: (m.direction === "inbound" ? "user" : "assistant") as "user" | "assistant",
         content: withMediaText(String(m.content ?? ""), m.media_text, m.type),

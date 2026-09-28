@@ -3,7 +3,7 @@ import { ChevronDown } from "lucide-react";
 import { useOrg } from "@/contexts/OrgContext";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-type Section = "conversas" | "kanban" | "registros" | "cobrancas" | "integracoes" | "equipe" | "numeros" | "fluxos" | "biblioteca" | "diagnostico" | "supervisor" | "avaliacoes" | "campanhas" | "seguranca" | "melhorias" | "plataforma";
+type Section = "conversas" | "kanban" | "registros" | "cobrancas" | "integracoes" | "equipe" | "numeros" | "fluxos" | "biblioteca" | "diagnostico" | "supervisor" | "avaliacoes" | "campanhas" | "seguranca" | "melhorias" | "conhecimento" | "plataforma";
 interface Item { key: Section; to: string; label: string; show: boolean }
 
 const base = "px-3 py-1.5 text-sm rounded-md transition inline-flex items-center gap-1";
@@ -34,6 +34,7 @@ export function MainNav({ active }: { active: Section }) {
     { label: "Configurar", items: [
       { key: "diagnostico", to: "/diagnostico", label: "Diagnóstico", show: manage },
       { key: "fluxos", to: "/fluxos", label: "Fluxos", show: manage },
+      { key: "conhecimento", to: "/conhecimento", label: "Base de conhecimento", show: manage || can("library.manage") },
       { key: "numeros", to: "/numeros", label: "Números e e-mails", show: manage },
       { key: "integracoes", to: "/integracoes", label: "Integrações", show: manage },
       { key: "biblioteca", to: "/biblioteca", label: "Biblioteca", show: can("library.manage") },
