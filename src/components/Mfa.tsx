@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { callFunction } from "@/lib/callFunction";
 
 export interface MfaStatus { enrolled: boolean; required: boolean; aal2: boolean }
 
@@ -33,6 +34,27 @@ export function MfaChallenge({ onDone }: { onDone: () => void }) {
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [recovery, setRecovery] = useState(false);
+  // Perdeu o celular: um código de recuperação remove o autenticador antigo.
+  const redeem = async () => {
+    setBusy(true);
+    setError(null);
+    const r = await callFunction("mfa-recovery", { action: "redeem", code });
+    setBusy(false);
+    if (!r.ok) return setError(r.message);
+    onDone();
+  };
+  if (recovery) {
+    return (
+      <Shell title="Código de recuperação" text="Digite um dos códigos de recuperação que você guardou ao ativar a verificação. Ele remove o aplicativo do celular antigo; depois você cadastra o novo em Segurança.">
+        <Input placeholder="XXXXX-XXXXX" value={code} autoFocus maxLength={11} autoComplete="off"
+          onChange={(e) => setCode(e.target.value.toUpperCase())} onKeyDown={(e) => e.key === "Enter" && code.replace(/[^A-Z0-9]/g, "").length === 10 && redeem()} />
+        {error && <p className="text-sm text-destructive">{error}</p>}
+        <Button className="w-full" disabled={busy || code.replace(/[^A-Z0-9]/g, "").length !== 10} onClick={redeem}>{busy ? "Conferindo..." : "Usar código"}</Button>
+        <Button variant="ghost" className="w-full" onClick={() => { setRecovery(false); setCode(""); setError(null); }}>Voltar</Button>
+      </Shell>
+    );
+  }
   const verify = async () => {
     setBusy(true);
     setError(null);
@@ -50,6 +72,9 @@ export function MfaChallenge({ onDone }: { onDone: () => void }) {
         onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} onKeyDown={(e) => e.key === "Enter" && code.length === 6 && verify()} />
       {error && <p className="text-sm text-destructive">{error}</p>}
       <Button className="w-full" disabled={busy || code.length !== 6} onClick={verify}>{busy ? "Conferindo..." : "Entrar"}</Button>
+      <button type="button" className="text-xs text-muted-foreground underline" onClick={() => { setRecovery(true); setCode(""); setError(null); }}>
+        Perdi o celular — usar código de recuperação
+      </button>
       <Button variant="ghost" className="w-full" onClick={() => signOut()}>Sair</Button>
     </Shell>
   );
