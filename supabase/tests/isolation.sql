@@ -744,6 +744,33 @@ BEGIN
   PERFORM pg_temp.expect(pg_temp.q(agent2_a, format('SELECT count(*) FROM public.conversations WHERE id = %L', 'aaaaaaaa-0000-0000-0040-000000000001')) = 1, 'quem assumiu continua vendo');
   PERFORM pg_temp.expect(pg_temp.q(agent_a, format('SELECT count(*) FROM public.conversations WHERE id = %L', 'aaaaaaaa-0000-0000-0040-000000000001')) = 0, 'atendente de D1 (own_and_queue) deixa de ver apos assumido');
 
+  -- 41. Avaliacao automatica: so com a empresa ligando; atendente ve as proprias; supervisao so do seu setor; ninguem grava pelo navegador.
+  INSERT INTO public.conversations (id, instance_id, contact_phone, department_id) VALUES
+    ('aaaaaaaa-0000-0000-0041-000000000001', 'aaaaaaaa-0000-0000-0003-000000000001', '5511900000041', 'aaaaaaaa-0000-0000-0001-000000000001'),
+    ('aaaaaaaa-0000-0000-0041-000000000002', 'aaaaaaaa-0000-0000-0003-000000000001', '5511900000042', 'aaaaaaaa-0000-0000-0001-000000000002');
+  INSERT INTO public.tickets (id, organization_id, conversation_id, protocol, status, department_id, assigned_to, opened_at) VALUES
+    ('aaaaaaaa-0000-0000-0041-000000000011', A, 'aaaaaaaa-0000-0000-0041-000000000001', 'ISO-41A', 'open', 'aaaaaaaa-0000-0000-0001-000000000001', agent_a, now()),
+    ('aaaaaaaa-0000-0000-0041-000000000012', A, 'aaaaaaaa-0000-0000-0041-000000000002', 'ISO-41B', 'open', 'aaaaaaaa-0000-0000-0001-000000000002', agent2_a, now());
+  UPDATE public.tickets SET status = 'closed', closed_at = now() WHERE id = 'aaaaaaaa-0000-0000-0041-000000000011';
+  PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM public.ticket_reviews WHERE ticket_id = 'aaaaaaaa-0000-0000-0041-000000000011'), 'desligado: nao avalia');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.set_auto_review(%L, true)', A), 'atendente nao liga avaliacao');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.set_auto_review(%L, true)', A), 'outra org nao liga avaliacao');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('SELECT public.set_auto_review(%L, true)', A)) LIKE 'ok:%', 'dono liga avaliacao');
+  UPDATE public.tickets SET status = 'open', closed_at = NULL WHERE id = 'aaaaaaaa-0000-0000-0041-000000000011';
+  UPDATE public.tickets SET status = 'closed', closed_at = now() WHERE id IN ('aaaaaaaa-0000-0000-0041-000000000011', 'aaaaaaaa-0000-0000-0041-000000000012');
+  PERFORM pg_temp.expect((SELECT agent_id = agent_a AND department_id = 'aaaaaaaa-0000-0000-0001-000000000001' AND status = 'pending'
+    FROM public.ticket_reviews WHERE ticket_id = 'aaaaaaaa-0000-0000-0041-000000000011'), 'fila de avaliacao com atendente e setor');
+  UPDATE public.ticket_reviews SET status = 'done', score = 8, satisfied = 'sim' WHERE organization_id = A;
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, 'SELECT count(*) FROM public.ticket_reviews') = 1, 'atendente ve so a propria');
+  PERFORM pg_temp.expect(pg_temp.q(agent2_a, format('SELECT count(*) FROM public.ticket_reviews WHERE agent_id = %L', agent_a)) = 0, 'colega nao ve avaliacao alheia');
+  PERFORM pg_temp.expect(pg_temp.q(sup_a, format('SELECT count(*) FROM public.ticket_reviews WHERE ticket_id = %L', 'aaaaaaaa-0000-0000-0041-000000000011')) = 1, 'supervisor ve do seu setor');
+  PERFORM pg_temp.expect(pg_temp.q(sup_a, format('SELECT count(*) FROM public.ticket_reviews WHERE ticket_id = %L', 'aaaaaaaa-0000-0000-0041-000000000012')) = 0, 'supervisor nao ve de outro setor');
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT count(*) FROM public.ticket_reviews') = 2, 'dono ve todas');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.ticket_reviews') = 0, 'outra org nao ve');
+  PERFORM pg_temp.expect_error(agent_a, 'UPDATE public.ticket_reviews SET score = 10', 'atendente nao altera nota');
+  PERFORM pg_temp.expect_error(owner_a, 'DELETE FROM public.ticket_reviews', 'dono nao apaga avaliacao');
+  PERFORM pg_temp.expect_error(owner_a, format('INSERT INTO public.ticket_reviews (organization_id, ticket_id) VALUES (%L, %L)', A, 'aaaaaaaa-0000-0000-0040-000000000002'), 'navegador nao cria avaliacao');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 

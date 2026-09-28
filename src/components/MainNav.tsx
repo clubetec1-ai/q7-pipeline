@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useOrg } from "@/contexts/OrgContext";
 
-type Section = "conversas" | "kanban" | "registros" | "cobrancas" | "integracoes" | "equipe" | "numeros" | "fluxos" | "biblioteca" | "diagnostico" | "supervisor" | "plataforma";
+type Section = "conversas" | "kanban" | "registros" | "cobrancas" | "integracoes" | "equipe" | "numeros" | "fluxos" | "biblioteca" | "diagnostico" | "supervisor" | "avaliacoes" | "plataforma";
 
 const base = "px-3 py-1.5 text-sm rounded-md transition";
 const activeCls = `${base} bg-muted font-medium`;
@@ -32,6 +32,7 @@ export function MainNav({ active }: { active: Section }) {
       {showNumbers && <Link to="/integracoes" className={active === "integracoes" ? activeCls : idleCls}>Integrações</Link>}
       {showNumbers && <Link to="/diagnostico" className={active === "diagnostico" ? activeCls : idleCls}>Diagnóstico</Link>}
       {showSupervisor && <Link to="/supervisor" className={active === "supervisor" ? activeCls : idleCls}>Supervisor</Link>}
+      {(showSupervisor || can("conversations.attend")) && <Link to="/avaliacoes" className={active === "avaliacoes" ? activeCls : idleCls}>Avaliações</Link>}
       {isOperator && <Link to="/plataforma" className={active === "plataforma" ? activeCls : idleCls}>Plataforma</Link>}
     </nav>
   );

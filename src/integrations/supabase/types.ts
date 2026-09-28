@@ -2280,6 +2280,78 @@ export type Database = {
           },
         ]
       }
+      ticket_reviews: {
+        Row: {
+          agent_feedback: string | null
+          agent_id: string | null
+          attempts: number
+          created_at: string
+          department_id: string | null
+          error: string | null
+          id: string
+          model: string | null
+          organization_id: string
+          process_issues: Json
+          reason: string | null
+          reviewed_at: string | null
+          satisfied: string | null
+          score: number | null
+          status: string
+          ticket_id: string
+        }
+        Insert: {
+          agent_feedback?: string | null
+          agent_id?: string | null
+          attempts?: number
+          created_at?: string
+          department_id?: string | null
+          error?: string | null
+          id?: string
+          model?: string | null
+          organization_id: string
+          process_issues?: Json
+          reason?: string | null
+          reviewed_at?: string | null
+          satisfied?: string | null
+          score?: number | null
+          status?: string
+          ticket_id: string
+        }
+        Update: {
+          agent_feedback?: string | null
+          agent_id?: string | null
+          attempts?: number
+          created_at?: string
+          department_id?: string | null
+          error?: string | null
+          id?: string
+          model?: string | null
+          organization_id?: string
+          process_issues?: Json
+          reason?: string | null
+          reviewed_at?: string | null
+          satisfied?: string | null
+          score?: number | null
+          status?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_reviews_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_reviews_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: true
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tickets: {
         Row: {
           assigned_at: string | null
@@ -2814,6 +2886,10 @@ export type Database = {
       }
       service_update_message_status: {
         Args: { new_status: string; org: string; pmid: string }
+        Returns: undefined
+      }
+      set_auto_review: {
+        Args: { enabled: boolean; org: string }
         Returns: undefined
       }
       set_email_password: {

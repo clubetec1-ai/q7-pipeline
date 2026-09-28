@@ -23,6 +23,7 @@ import Diagnostico from "./pages/Diagnostico";
 import Cobrancas from "./pages/Cobrancas";
 import Integracoes from "./pages/Integracoes";
 import Supervisor from "./pages/Supervisor";
+import Avaliacoes from "./pages/Avaliacoes";
 import Fluxos from "./pages/Fluxos";
 import FlowEditor from "./pages/FlowEditor";
 
@@ -50,6 +51,7 @@ const App = () => (
             <Route path="/cobrancas" element={<ProtectedRoute><Cobrancas /></ProtectedRoute>} />
             <Route path="/integracoes" element={<ProtectedRoute><Integracoes /></ProtectedRoute>} />
             <Route path="/supervisor" element={<ProtectedRoute><Supervisor /></ProtectedRoute>} />
+            <Route path="/avaliacoes" element={<ProtectedRoute><Avaliacoes /></ProtectedRoute>} />
             <Route path="/fluxos" element={<ProtectedRoute><Fluxos /></ProtectedRoute>} />
             <Route path="/fluxos/:id" element={<ProtectedRoute><FlowEditor /></ProtectedRoute>} />
             <Route path="/convite" element={<ProtectedRoute allowWithoutOrg><Convite /></ProtectedRoute>} />
