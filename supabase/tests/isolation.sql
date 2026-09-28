@@ -963,6 +963,24 @@ BEGIN
   PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM public.service_search_knowledge(A, 'ramal', 'cliente', ARRAY['aaaaaaaa-0000-0000-0001-000000000001']::uuid[]) WHERE title = 'Manual D2'), 'setor filtra outro setor');
   PERFORM pg_temp.expect((SELECT count(*) FROM public.service_search_knowledge('bbbbbbbb-0000-0000-0000-000000000001', 'ramal', 'interno')) = 0, 'outra org nao acha nada');
 
+  -- 51. Relatorios: escopo pelo papel (dono tudo, supervisor setores dele, atendente so os proprios); outra org nunca.
+  INSERT INTO public.tickets (id, organization_id, conversation_id, protocol, status, department_id, assigned_to, opened_at, first_response_at, closed_at) VALUES
+    ('aaaaaaaa-0000-0000-0051-000000000001', A, 'aaaaaaaa-0000-0000-0004-000000000003', 'ISO-51A', 'closed', 'aaaaaaaa-0000-0000-0001-000000000001', agent_a, now(), now(), now()),
+    ('aaaaaaaa-0000-0000-0051-000000000002', A, 'aaaaaaaa-0000-0000-0004-000000000003', 'ISO-51B', 'closed', 'aaaaaaaa-0000-0000-0001-000000000002', agent2_a, now(), now(), now());
+  PERFORM pg_temp.expect(pg_temp.t(agent_a, format($q$SELECT string_agg(l ->> 'user_id', ',') FROM jsonb_array_elements(public.report(%L, 'atendentes', now() - interval '1 day', now() + interval '1 minute') -> 'linhas') l$q$, A))
+    = agent_a::text, 'atendente ve so a propria linha');
+  PERFORM pg_temp.expect_error(agent_a, format($q$SELECT public.report(%L, 'operacao', now() - interval '1 day', now())$q$, A), 'atendente nao ve operacao');
+  PERFORM pg_temp.expect(pg_temp.t(sup_a, format($q$SELECT public.report(%L, 'operacao', now() - interval '1 day', now() + interval '1 minute', %L) -> 'por_setor' ->> 0$q$,
+    A, 'aaaaaaaa-0000-0000-0001-000000000002')) NOT LIKE '%D2%', 'supervisor nao escolhe setor alheio');
+  PERFORM pg_temp.expect(pg_temp.t(sup_a, format($q$SELECT public.report(%L, 'atendentes', now() - interval '1 day', now() + interval '1 minute') ->> 'linhas'$q$, A)) NOT LIKE '%' || agent2_a::text || '%',
+    'supervisor nao ve atendente de outro setor');
+  PERFORM pg_temp.expect_error(owner_b, format($q$SELECT public.report(%L, 'atendentes', now() - interval '1 day', now())$q$, A), 'outra org nao ve relatorio');
+  PERFORM pg_temp.expect_error(outsider, format($q$SELECT public.log_report_export(%L, 'x')$q$, A), 'estranho nao registra exportacao');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format($q$SELECT public.report(%L, k, now() - interval '30 days', now() + interval '1 minute') FROM unnest(ARRAY['atendentes','operacao','qualidade','melhorias','comercial','ia']) k$q$, A)) LIKE 'ok:%',
+    'dono roda os seis relatorios');
+  PERFORM pg_temp.expect(pg_temp.t(owner_a, format($q$SELECT (public.report(%L, 'atendentes', now() - interval '1 day', now() + interval '1 minute') -> 'linhas')::text$q$, A)) LIKE '%' || agent2_a::text || '%',
+    'dono ve todos os atendentes');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 
