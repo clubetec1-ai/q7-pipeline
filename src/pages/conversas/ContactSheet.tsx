@@ -16,6 +16,7 @@ import { ContactRecords } from "./ContactRecords";
 import { RecordForm } from "../registros/RecordForm";
 import type { FieldDef, Values } from "../registros/fields";
 import { ColorDot, cycleColor, nextColor } from "@/components/ColorTag";
+import { callFunction } from "@/lib/callFunction";
 
 interface Contact {
   id: string; phone: string; name: string | null; email: string | null; document: string | null; notes: string | null;
@@ -49,6 +50,7 @@ export function ContactSheet({
   const [newGroupSensitive, setNewGroupSensitive] = useState(false);
   const [note, setNote] = useState("");
   const [mentions, setMentions] = useState<string[]>([]);
+  const [anon, setAnon] = useState<{ open: boolean; reason: string; confirm: string; busy: boolean }>({ open: false, reason: "", confirm: "", busy: false });
 
   const load = useCallback(async () => {
     if (!org || !contactId) return;
@@ -84,6 +86,17 @@ export function ContactSheet({
   if (!org) return null;
   const fail = (title: string) => { toast({ variant: "destructive", title }); };
   const nameOf = (id: string) => people.find((p) => p.id === id)?.name ?? "Alguém";
+
+  // LGPD: anonimizar a pedido do titular (dono/admin). Confirmação digitada + motivo.
+  const anonymize = async () => {
+    if (!contactId) return;
+    setAnon((a) => ({ ...a, busy: true }));
+    const r = await callFunction<{ conversations: number; files: number }>("anonymize-contact", { contact_id: contactId, reason: anon.reason });
+    setAnon({ open: false, reason: "", confirm: "", busy: false });
+    if (!r.ok) return fail(r.message);
+    toast({ title: "Contato anonimizado", description: `${r.data.conversations} conversa(s) e ${r.data.files} arquivo(s) sem dados pessoais. Registrado na auditoria.` });
+    load();
+  };
 
   const saveContact = async () => {
     if (!c) return;
@@ -192,6 +205,32 @@ export function ContactSheet({
                   <div className="space-y-1.5"><Label>Observações</Label>
                     <Textarea rows={3} value={c.notes ?? ""} onChange={(e) => setC({ ...c, notes: e.target.value })} /></div>
                   <Button size="sm" onClick={saveContact}>Salvar</Button>
+                  {can("org.settings") && !c.name?.startsWith("Anonimizado") && (
+                    <div className="mt-6 rounded-md border border-destructive/40 p-3 space-y-2">
+                      {!anon.open ? (
+                        <button type="button" className="text-xs text-destructive underline" onClick={() => setAnon({ ...anon, open: true })}>
+                          Excluir dados pessoais deste cliente (LGPD)
+                        </button>
+                      ) : (
+                        <>
+                          <p className="text-xs">
+                            Use só a pedido do próprio cliente. Nome, telefone, e-mail, documento, anotações, texto e arquivos das
+                            conversas são apagados para sempre; protocolos e números dos relatórios continuam. Não dá para desfazer.
+                          </p>
+                          <Input className="h-8" placeholder="Motivo (ex.: pedido do titular por WhatsApp em 29/09)" value={anon.reason}
+                            onChange={(e) => setAnon({ ...anon, reason: e.target.value })} />
+                          <Input className="h-8" placeholder="Digite ANONIMIZAR para confirmar" value={anon.confirm}
+                            onChange={(e) => setAnon({ ...anon, confirm: e.target.value })} />
+                          <div className="flex gap-2">
+                            <Button size="sm" variant="destructive" disabled={anon.busy || anon.confirm !== "ANONIMIZAR" || anon.reason.trim().length < 5} onClick={anonymize}>
+                              {anon.busy ? "Anonimizando..." : "Anonimizar agora"}
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => setAnon({ open: false, reason: "", confirm: "", busy: false })}>Cancelar</Button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </>
               )}
             </TabsContent>
