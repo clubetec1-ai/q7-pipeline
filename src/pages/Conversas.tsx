@@ -576,11 +576,6 @@ export default function Conversas() {
           <PresenceControl />
           <NotificationsBell />
           <ThemeToggle />
-          {isAdmin && (
-            <Button variant="ghost" size="sm" onClick={() => navigate("/admin/uazapi")}>
-              Admin
-            </Button>
-          )}
           <Button
             variant={needsSetup ? "default" : "ghost"}
             size="sm"
