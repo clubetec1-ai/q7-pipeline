@@ -39,9 +39,9 @@ export function NvoipCard({ orgId }: { orgId: string }) {
   };
   const runTest = async () => {
     setBusy(true); setTest(null);
-    const r = await callFunction<{ calls_today: number; item_fields: string[] }>("voice", { action: "nvoip_test", org_id: orgId });
+    const r = await callFunction<{ calls_today: number; item_fields: string[]; format?: string }>("voice", { action: "nvoip_test", org_id: orgId });
     setBusy(false);
-    setTest(r.ok ? `✓ Conectado. ${r.data.calls_today} ligação(ões) hoje.${r.data.item_fields?.length ? ` Campos: ${r.data.item_fields.join(", ")}` : ""}` : `✗ ${r.message}`);
+    setTest(r.ok ? `✓ Conectado. ${r.data.calls_today} ligação(ões) hoje${r.data.format ? ` (${r.data.format})` : ""}.${r.data.item_fields?.length ? ` Campos: ${r.data.item_fields.join(", ")}` : ""}` : `✗ ${r.message}`);
     void load();
   };
 

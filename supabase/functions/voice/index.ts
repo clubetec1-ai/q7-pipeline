@@ -3,7 +3,7 @@ import { HttpError, permissionsIn, requireUser } from "../_shared/auth.ts";
 import { forOrg } from "../_shared/tenant.ts";
 import * as providers from "../_shared/providers/index.ts";
 import { instForSend } from "../_shared/flow/executor.ts";
-import { brDate, historyItems, nationalNumber, NvoipError, nvoipFetch, nvoipToken } from "../_shared/nvoip.ts";
+import { brDate, fetchHistory, nationalNumber, NvoipError, nvoipFetch, nvoipToken } from "../_shared/nvoip.ts";
 
 /**
  * Ramal — ações do atendente durante a ligação.
@@ -50,12 +50,10 @@ Deno.serve(async (req) => {
     if (action === "nvoip_test") {
       if (!perms.includes("org.settings")) throw new HttpError(403, "Só dono ou admin");
       const token = await nvoipToken(admin, orgId);
-      const body = await nvoipFetch(token, `/calls/history?date=${brDate(0)}&type=all`);
-      const items = historyItems(body);
+      const { items, format } = await fetchHistory(token, brDate(0));
       await admin.from("voice_integrations").update({ last_error: null }).eq("organization_id", orgId);
-      return json({ ok: true, calls_today: items.length,
-        top_fields: body && typeof body === "object" && !Array.isArray(body) ? Object.keys(body).slice(0, 20) : [],
-        item_fields: items[0] ? Object.keys(items[0]).slice(0, 40) : [] });
+      return json({ ok: true, calls_today: items.length, format,
+        item_fields: items[0] ? Object.keys(items[0]).filter((k) => k !== "__dir").slice(0, 40) : [] });
     }
 
     if (action === "click_to_call") {

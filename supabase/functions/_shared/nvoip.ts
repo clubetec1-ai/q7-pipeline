@@ -122,3 +122,17 @@ export function brDate(daysAgo = 0) {
   const d = new Date(Date.now() - 3 * 3600_000 - daysAgo * 86400_000);
   return d.toISOString().slice(0, 10);
 }
+
+/** Histórico de um dia (AAAA-MM-DD), no formato da documentação (date + type=all). */
+export async function fetchHistory(token: string, date: string): Promise<{ items: Any[]; format: string }> {
+  try {
+    const body = await nvoipFetch(token, `/calls/history?date=${date}&type=all`);
+    return { items: historyItems(body), format: "date=AAAA-MM-DD, type=all" };
+  } catch (e) {
+    // A Nvoip responde 403 "incorrect date or type" quando a conta/credencial não tem acesso ao histórico.
+    if (e instanceof NvoipError && /incorrect date or type/i.test(e.message)) {
+      throw new NvoipError("Nvoip negou o histórico (403) — pedir liberação do histórico de ligações para esta credencial");
+    }
+    throw e;
+  }
+}
