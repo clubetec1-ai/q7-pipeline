@@ -1026,6 +1026,42 @@ BEGIN
   PERFORM pg_temp.expect_error(agent_a, format('SELECT public.open_direct_chat(%L, %L)', A, owner_b), 'nao abre direta com outra org');
   PERFORM pg_temp.expect(pg_temp.q(sup_a, format('SELECT count(*) FROM public.team_unread(%L)', A)) >= 1, 'nao lidas para quem ve');
 
+  -- 54. Ramal: so a Clubetec cadastra; dono escolhe o atendente; senha so para o dono do ramal em WebRTC;
+  --     ligacoes imutaveis, cada um ve as suas; outra org nunca.
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.operator_save_extension(%L, NULL, %L, %L, %L, %L, %L, %L, %L)',
+    A, '201', '201', 'pbx.exemplo.com', 'wss://pbx.exemplo.com:8089/ws', 'handphone', 'Recepcao', 'segredo123'), 'dono nao cadastra ramal');
+  PERFORM pg_temp.expect(pg_temp.run(operator, format('SELECT public.operator_save_extension(%L, NULL, %L, %L, %L, %L, %L, %L, %L)',
+    A, '201', '201', 'pbx.exemplo.com', 'wss://pbx.exemplo.com:8089/ws', 'handphone', 'Recepcao', 'segredo123')) = 'ok:1', 'clubetec cadastra ramal');
+  PERFORM pg_temp.expect_error(operator, format('SELECT public.operator_save_extension(%L, NULL, %L, %L, %L, %L, %L, %L, %L)',
+    A, '202', '202', 'pbx.exemplo.com', 'https://malicioso.com', 'handphone', '', ''), 'servidor so wss');
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT count(*) FROM public.pbx_extensions') = 1, 'dono ve os ramais');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.pbx_extensions') = 0, 'outra org nao ve ramais');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, 'SELECT count(*) FROM public.pbx_extensions') = 0, 'atendente sem ramal nao ve ramais');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.assign_extension((SELECT id FROM public.pbx_extensions WHERE number = %L), %L)', '201', owner_b), 'outra org nao atribui');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.assign_extension((SELECT id FROM public.pbx_extensions WHERE number = %L), %L)', '201', owner_b), 'nao atribui a pessoa de outra org');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('SELECT public.assign_extension((SELECT id FROM public.pbx_extensions WHERE number = %L), %L)', '201', agent_a)) = 'ok:1', 'dono atribui ao atendente');
+  PERFORM pg_temp.expect(pg_temp.t(agent_a, format('SELECT public.my_extension(%L)->>%L', A, 'password')) = 'segredo123', 'atendente recebe a senha em webrtc');
+  PERFORM pg_temp.expect(pg_temp.t(agent2_a, format('SELECT coalesce(public.my_extension(%L)::text, %L)', A, 'nada')) = 'nada', 'outro atendente nao recebe ramal');
+  PERFORM pg_temp.expect(pg_temp.t(owner_b, format('SELECT coalesce(public.my_extension(%L)::text, %L)', A, 'nada')) = 'nada', 'outra org nao recebe ramal');
+  PERFORM pg_temp.expect_error(agent2_a, format('SELECT public.set_extension_mode((SELECT id FROM public.pbx_extensions WHERE organization_id = %L AND number = %L), %L)', A, '201', 'off'), 'outro atendente nao muda o modo');
+  PERFORM pg_temp.expect(pg_temp.run(agent_a, format('SELECT public.set_extension_mode((SELECT id FROM public.pbx_extensions WHERE number = %L), %L)', '201', 'sip')) = 'ok:1', 'atendente muda para sip');
+  PERFORM pg_temp.expect(pg_temp.t(agent_a, format('SELECT coalesce(public.my_extension(%L)->>%L, %L)', A, 'password', 'sem')) = 'sem', 'em sip a senha nao vai ao navegador');
+  PERFORM pg_temp.expect_error(agent_a, format('UPDATE public.pbx_extensions SET wss_url = %L', 'wss://outro.com'), 'atendente nao altera ramal direto');
+  PERFORM pg_temp.expect(pg_temp.run(agent_a, format('SELECT public.log_call(%L, NULL, %L, %L, %L, %L)', A, 'in', '(11) 90000-0001', 'ringing', 'sip')) = 'ok:1', 'atendente registra ligacao');
+  PERFORM pg_temp.expect((SELECT contact_id IS NOT NULL FROM public.calls WHERE phone = '11900000001'), 'ligacao liga ao cliente pelo numero');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, 'SELECT count(*) FROM public.calls') = 1, 'atendente ve a sua ligacao');
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT count(*) FROM public.calls') = 1, 'dono ve as ligacoes');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.calls') = 0, 'outra org nao ve ligacoes');
+  PERFORM pg_temp.expect_error(agent2_a, format('SELECT public.log_call(%L, (SELECT id FROM public.calls LIMIT 1), %L, %L, %L, %L)', A, 'in', '1', 'ended', 'sip'), 'nao altera ligacao de outro');
+  PERFORM pg_temp.expect_error(agent_a, format('INSERT INTO public.calls (organization_id, direction, phone, source) VALUES (%L, %L, %L, %L)', A, 'out', '11999', 'sip'), 'ligacao so pela funcao');
+  PERFORM pg_temp.expect_error(owner_a, 'DELETE FROM public.calls', 'ligacao nao se apaga');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, format('SELECT count(*) FROM public.lookup_caller(%L, %L)', A, '11900000001')) = 1, 'identifica cliente visivel');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, format('SELECT count(*) FROM public.lookup_caller(%L, %L)', A, '11900000003')) = 0, 'nao identifica cliente de outro setor');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, format('SELECT count(*) FROM public.lookup_caller(%L, %L)', A, '11900000001')) = 0, 'outra org nao identifica');
+  PERFORM pg_temp.expect(pg_temp.run(operator, format('SELECT public.operator_delete_extension((SELECT id FROM public.pbx_extensions WHERE number = %L))', '201')) = 'ok:1', 'clubetec exclui ramal');
+  PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM vault.secrets WHERE name LIKE 'ext:%'), 'senha sai do cofre');
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.calls) = 1, 'historico fica apos excluir o ramal');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 

@@ -12,6 +12,7 @@ import { useEquipeData } from "./equipe/useEquipeData";
 import { MembersTab } from "./equipe/MembersTab";
 import { GroupsTab } from "./equipe/GroupsTab";
 import { GreetingSetting } from "./equipe/GreetingSetting";
+import { RamaisTab } from "./equipe/RamaisTab";
 
 /** Equipe: membros, departamentos e grupos da organização ativa (spec §9). */
 export default function Equipe() {
@@ -60,6 +61,7 @@ export default function Equipe() {
               <TabsTrigger value="membros">Membros</TabsTrigger>
               <TabsTrigger value="departamentos">Departamentos</TabsTrigger>
               <TabsTrigger value="grupos">Grupos</TabsTrigger>
+              {canMembers && <TabsTrigger value="ramais">Ramais</TabsTrigger>}
             </TabsList>
             <TabsContent value="membros" className="pt-4">
               <MembersTab orgId={org.id} data={data} canManage={canMembers} myRole={org.role} />
@@ -70,6 +72,11 @@ export default function Equipe() {
             <TabsContent value="grupos" className="pt-4">
               <GroupsTab kind="teams" orgId={org.id} data={data} canManage={canDepts} />
             </TabsContent>
+            {canMembers && (
+              <TabsContent value="ramais" className="pt-4">
+                <RamaisTab orgId={org.id} data={data} />
+              </TabsContent>
+            )}
           </Tabs>
         )}
       </main>

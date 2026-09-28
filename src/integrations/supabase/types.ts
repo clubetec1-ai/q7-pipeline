@@ -202,6 +202,89 @@ export type Database = {
           },
         ]
       }
+      calls: {
+        Row: {
+          answered_at: string | null
+          contact_id: string | null
+          conversation_id: string | null
+          created_at: string
+          direction: string
+          duration_s: number | null
+          ended_at: string | null
+          extension_id: string | null
+          id: string
+          organization_id: string
+          phone: string
+          source: string
+          started_at: string
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          answered_at?: string | null
+          contact_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          direction: string
+          duration_s?: number | null
+          ended_at?: string | null
+          extension_id?: string | null
+          id?: string
+          organization_id: string
+          phone: string
+          source: string
+          started_at?: string
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          answered_at?: string | null
+          contact_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          direction?: string
+          duration_s?: number | null
+          ended_at?: string | null
+          extension_id?: string | null
+          id?: string
+          organization_id?: string
+          phone?: string
+          source?: string
+          started_at?: string
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calls_contact_id_organization_id_fkey"
+            columns: ["contact_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "calls_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calls_extension_id_organization_id_fkey"
+            columns: ["extension_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "pbx_extensions"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "calls_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_recipients: {
         Row: {
           campaign_id: string
@@ -2233,6 +2316,62 @@ export type Database = {
           },
         ]
       }
+      pbx_extensions: {
+        Row: {
+          created_at: string
+          has_password: boolean
+          id: string
+          label: string | null
+          mode: string
+          number: string
+          organization_id: string
+          provider: string
+          sip_domain: string
+          sip_user: string
+          updated_at: string
+          user_id: string | null
+          wss_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          has_password?: boolean
+          id?: string
+          label?: string | null
+          mode?: string
+          number: string
+          organization_id: string
+          provider?: string
+          sip_domain: string
+          sip_user: string
+          updated_at?: string
+          user_id?: string | null
+          wss_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          has_password?: boolean
+          id?: string
+          label?: string | null
+          mode?: string
+          number?: string
+          organization_id?: string
+          provider?: string
+          sip_domain?: string
+          sip_user?: string
+          updated_at?: string
+          user_id?: string | null
+          wss_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pbx_extensions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pipeline_stages: {
         Row: {
           color: string | null
@@ -3179,6 +3318,10 @@ export type Database = {
       accept_invitation: { Args: { org: string }; Returns: boolean }
       ai_keys_status: { Args: { org: string }; Returns: Json }
       approve_improvement: { Args: { improvement: string }; Returns: undefined }
+      assign_extension: {
+        Args: { ext: string; member: string }
+        Returns: undefined
+      }
       campaign_audience: {
         Args: { groups: string[]; org: string }
         Returns: Json
@@ -3331,15 +3474,39 @@ export type Database = {
           updated_at: string
         }[]
       }
+      log_call: {
+        Args: {
+          call: string
+          org: string
+          p_answered_at?: string
+          p_direction: string
+          p_ended_at?: string
+          p_phone: string
+          p_source: string
+          p_status: string
+        }
+        Returns: string
+      }
       log_report_export: {
         Args: { kind: string; org: string }
         Returns: undefined
+      }
+      lookup_caller: {
+        Args: { org: string; p_phone: string }
+        Returns: {
+          channel: string
+          contact_id: string
+          conversation_id: string
+          name: string
+          phone: string
+        }[]
       }
       merge_groups: {
         Args: { source: string; target: string }
         Returns: number
       }
       merge_tags: { Args: { source: string; target: string }; Returns: number }
+      my_extension: { Args: { org: string }; Returns: Json }
       my_invitations: {
         Args: never
         Returns: {
@@ -3368,6 +3535,21 @@ export type Database = {
       }
       open_direct_chat: {
         Args: { org: string; other: string }
+        Returns: string
+      }
+      operator_delete_extension: { Args: { ext: string }; Returns: undefined }
+      operator_save_extension: {
+        Args: {
+          ext: string
+          org: string
+          p_label: string
+          p_number: string
+          p_password: string
+          p_provider: string
+          p_sip_domain: string
+          p_sip_user: string
+          p_wss_url: string
+        }
         Returns: string
       }
       org_setup_status: { Args: { org: string }; Returns: Json }
@@ -3587,6 +3769,10 @@ export type Database = {
       }
       set_email_password: {
         Args: { account: string; secret_value: string }
+        Returns: undefined
+      }
+      set_extension_mode: {
+        Args: { ext: string; p_mode: string }
         Returns: undefined
       }
       set_http_secret: {

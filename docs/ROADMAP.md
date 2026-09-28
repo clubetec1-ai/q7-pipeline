@@ -47,6 +47,13 @@ Objetivo: enviar e receber e-mail pelo ClubeCRM, no mesmo lugar do WhatsApp.
 Objetivo: a ligação cai na mesma tela do WhatsApp.
 - **Ramal SIP de PBX em nuvem dentro do navegador** (WebRTC/SIP.js), por atendente; integração com a central
   (ou via API de voz, como alternativa) — credenciais SIP no Vault, por organização.
+- **Multiplataforma (29/09)**: qualquer central com SIP (Handphone primeiro, Nvoip, 3CX, Asterisk…), com um
+  adaptador por central para avisos de chamada, gravações e clique-para-ligar; funciona em qualquer navegador (PC e celular).
+- **Softphone embutido no cadastro do atendente, estilo MicroSIP (29/09)**: hoje o dono configura os ramais no
+  MicroSIP. No ClubeCRM, cada atendente tem o seu ramal (servidor/domínio, usuário, senha no Vault, número) e escolhe o modo:
+  **WebRTC** (telefone dentro do navegador, precisa da central com WSS) ou **só SIP** (continua no MicroSIP ou
+  aparelho; o CRM liga pelo link `sip:`/`tel:` ou pela API da central e identifica as chamadas pelos avisos da central).
+  Senha do ramal visível só para o dono do ramal e para quem gerencia a equipe; nunca vai para outra empresa.
 - **Identifica o número** que ligou e abre/associa o contato e a conversa (mesmo atendimento, protocolo).
 - **Transcrição da ligação** em tempo real ou ao final, gravada no histórico do atendimento.
 - **Confirmação do número**: o atendente pede para o cliente repetir/confirmar o número de WhatsApp e, ainda durante
@@ -167,6 +174,10 @@ Objetivo: a ligação cai na mesma tela do WhatsApp.
   de quem não pode ver. Ícone aparece junto da cor na lista, na ficha, na fila e nas campanhas.
   *Entregue (29/09): tela Clientes → Etiquetas e grupos (renomear, cor, 18 ícones, contagem, juntar duplicados sem
   misturar sensível com comum, excluir auditado); ícone aparece na fila, na ficha, em Clientes e em Campanhas.*
+- **Etiquetas e grupos visíveis em Conversas (pedido em 29/09)** — as etiquetas e os grupos definidos no cliente
+  aparecem na conversa (lista e topo do atendimento), com cor e ícone, para o atendente ver ao retomar o atendimento
+  o que é preciso para aquele cliente. Dá para pôr **mais de uma etiqueta** e escolher **a quais grupos** o cliente
+  pertence ali mesmo, sem sair da conversa.
 - **Chat interno da equipe** — conversa entre as pessoas da empresa dentro do ClubeCRM, separada das conversas com
   clientes: canais por setor e mensagens diretas, menção com @, anexos, aviso no sino, e “compartilhar
   atendimento” (link para a conversa do cliente sem expor dados a quem não pode ver). Isolado por empresa (RLS),
