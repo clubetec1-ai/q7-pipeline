@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { NEW_GRAPH } from "./fluxos/blocks";
 import { FlowSecrets } from "./fluxos/FlowSecrets";
+import { ReadyTemplates } from "./fluxos/ReadyTemplates";
 
 interface FlowRow { id: string; name: string; published: number | null }
 interface NumberRow { id: string; name: string; flow_id: string | null }
@@ -165,6 +166,8 @@ export default function Fluxos() {
             ))}
           </div>
         </section>
+
+        <ReadyTemplates orgId={org.id} />
 
         <section className="space-y-3">
           <h2 className="font-semibold">Qual fluxo cada número usa</h2>
