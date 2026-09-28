@@ -319,8 +319,12 @@ export type Database = {
       company_profiles: {
         Row: {
           organization_id: string
+          plan: Json
+          plan_at: string | null
           processes: Json
+          public_research: Json
           sections: Json
+          stage: string
           suggestions: Json
           suggestions_at: string | null
           updated_at: string
@@ -329,8 +333,12 @@ export type Database = {
         }
         Insert: {
           organization_id: string
+          plan?: Json
+          plan_at?: string | null
           processes?: Json
+          public_research?: Json
           sections?: Json
+          stage?: string
           suggestions?: Json
           suggestions_at?: string | null
           updated_at?: string
@@ -339,8 +347,12 @@ export type Database = {
         }
         Update: {
           organization_id?: string
+          plan?: Json
+          plan_at?: string | null
           processes?: Json
+          public_research?: Json
           sections?: Json
+          stage?: string
           suggestions?: Json
           suggestions_at?: string | null
           updated_at?: string

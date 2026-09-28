@@ -2,13 +2,16 @@ import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { HttpError, requirePermission, requireUser, resolveOrg } from "../_shared/auth.ts";
 import { forOrg } from "../_shared/tenant.ts";
 import { chat, type ChatMsg, resolveAI } from "../_shared/ai-chat.ts";
-import { SECTIONS } from "../_shared/company.ts";
+import { SECTIONS, STAGES } from "../_shared/company.ts";
+import { fetchSiteText, lookupCnpj, monthlyCost, USD_BRL } from "../_shared/consulting.ts";
 
 /**
- * Agente entrevistador (org.settings): conversa com o dono como um consultor e
- * vai salvando o retrato da empresa (seções + processos repetidos). "suggest"
- * transforma o retrato em sugestões de automação (prontas × com integração).
- * Nada daqui vai para clientes; a IA de atendimento só lê as seções públicas.
+ * Agente entrevistador 2.0 (org.settings): consultoria em etapas com o dono
+ * (empresa → cultura → situação → objetivos → setores → processos por setor) e,
+ * no fim, o planejamento estratégico com plano de ação e custo estimado da IA.
+ * "research" lê só fontes abertas (site e CNPJ). "suggest" continua para o
+ * implementador. Nada daqui vai para clientes; a IA de atendimento só lê as
+ * seções públicas.
  */
 
 const corsHeaders = {
@@ -34,13 +37,17 @@ const READY = {
 
 const clip = (s: unknown, n: number) => String(s ?? "").trim().slice(0, n);
 const oneOf = <T extends string>(v: unknown, list: readonly T[], d: T): T => (list.includes(v as T) ? (v as T) : d);
+const parseJson = (reply: string): Record<string, unknown> => {
+  try { return JSON.parse(reply.match(/\{[\s\S]*\}/)?.[0] ?? "{}"); } catch { return {}; }
+};
+const PROC_KEYS = ["nome", "setor", "quem_faz", "frequencia", "tempo", "dificuldade", "passo_a_passo"] as const;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
     const body = await req.json().catch(() => ({}));
     const action = String(body?.action ?? "");
-    if (!["message", "suggest"].includes(action)) throw new HttpError(400, "Ação inválida");
+    if (!["message", "suggest", "research", "plan"].includes(action)) throw new HttpError(400, "Ação inválida");
     const ctx = await requireUser(req);
     const orgId = await resolveOrg(ctx, body?.organization_id);
     await requirePermission(ctx, orgId, "org.settings");
@@ -52,12 +59,17 @@ Deno.serve(async (req) => {
 
     const { data: orgRow } = await admin.from("organizations").select("name, settings").eq("id", orgId).maybeSingle();
     const settings = (orgRow?.settings ?? {}) as Record<string, any>;
-    // Provedor padrão da empresa (Fluxos → Chaves de IA); entrevista pede raciocínio,
+    // Provedor padrão da empresa (Fluxos → Chaves de IA); consultoria pede raciocínio,
     // então na Groq usa o modelo maior quando nenhum foi escolhido (o "auto" começa pelo 8b).
     const ai = await resolveAI(admin, orgId, { provider: settings.interviewer_provider ?? null, model: settings.interviewer_model ?? null });
     if (!ai) throw new HttpError(409, "Configure a chave do provedor de IA (Fluxos → Chaves de IA) para usar o entrevistador.");
     const { provider, apiKey } = ai;
     const model = provider === "groq" && (!ai.model || ai.model === "auto") ? "llama-3.3-70b-versatile" : ai.model;
+    const ask = async (system: string, user: string) => {
+      const r = await chat(apiKey, provider, model, [{ role: "system", content: system }, { role: "user", content: user }]);
+      if (!r.ok || !r.reply) throw new HttpError(502, r.status === 429 ? "A IA está no limite de uso agora. Tente de novo em 1 minuto." : "A IA não respondeu. Tente de novo.");
+      return parseJson(r.reply);
+    };
 
     // Retrato atual + o que já está no CRM (para não perguntar de novo).
     let { data: profile } = await org.select("company_profiles").maybeSingle();
@@ -78,8 +90,41 @@ Deno.serve(async (req) => {
       `Arquivos na biblioteca: ${names(lib)}`,
       `Horário de atendimento cadastrado: ${settings.business_hours ? JSON.stringify(settings.business_hours) : "não cadastrado"}`,
     ].join("\n");
-    const retrato = JSON.stringify({ secoes: profile.sections ?? {}, processos: profile.processes ?? [] }).slice(0, 20_000);
+    const sections = { ...(profile.sections ?? {}) } as Record<string, string>;
+    const processes = [...(profile.processes ?? [])] as Record<string, string>[];
+    const retrato = (max: number, stepChars = 400) => JSON.stringify({
+      secoes: sections,
+      processos: processes.map((p) => ({ ...p, passo_a_passo: clip(p.passo_a_passo, stepChars) })),
+    }).slice(0, max);
 
+    // ---------------------------------------------------------------- research
+    if (action === "research") {
+      const site = clip(body?.site, 300);
+      const cnpj = clip(body?.cnpj, 30);
+      if (!site && !cnpj) throw new HttpError(400, "Informe o site e/ou o CNPJ.");
+      const [s, c] = await Promise.all([site ? fetchSiteText(site) : null, cnpj ? lookupCnpj(cnpj) : null]);
+      const found = [s?.text ? `SITE (${s.url}):\n${s.text}` : "", c?.text ? `CNPJ:\n${c.text}` : ""].filter(Boolean).join("\n\n");
+      const problems = [s?.error ? `site: ${s.error}` : "", c?.error ? `CNPJ: ${c.error}` : ""].filter(Boolean);
+      if (!found) throw new HttpError(422, `Não consegui ler os dados públicos (${problems.join("; ")}).`);
+      const out = await ask(
+        "Você resume dados PÚBLICOS de uma empresa para um consultor. Use só o que está no texto; não invente. " +
+        'Responda SOMENTE com JSON: {"empresa":"texto consolidado em tópicos: o que faz, para quem, onde, desde quando, diferenciais","produtos":"produtos/serviços citados (ou vazio)","atendimento":"canais, horários e contatos comerciais citados (ou vazio)","resumo":"2 a 3 frases para o dono confirmar"}. ' +
+        "Nunca inclua nomes de pessoas, CPF ou dados de sócios.",
+        `Já anotado sobre a empresa:\n${sections.empresa ?? "(nada)"}\n\nDados públicos encontrados:\n${found}`,
+      );
+      for (const k of ["empresa", "produtos", "atendimento"]) {
+        const v = clip(out[k], 8000);
+        if (v && !clip(sections[k], 10)) sections[k] = v; // não sobrescreve o que o dono já escreveu
+        else if (v && k === "empresa") sections[k] = clip(`${sections[k]}\n\n(Dados públicos) ${v}`, 8000);
+      }
+      const public_research = { site: s?.url ?? site ?? null, cnpj: cnpj || null, resumo: clip(out.resumo, 800), problemas: problems, at: new Date().toISOString() };
+      await org.update("company_profiles", { sections, public_research, updated_by: ctx.user.id }).eq("organization_id", orgId);
+      const note = `Encontrei estes dados públicos da empresa: ${public_research.resumo || "veja o retrato ao lado"}\n\nEstá certo? Me corrija ou complete o que faltar.`;
+      await org.insert("interview_messages", { role: "assistant", content: note });
+      return json({ ok: true, research: public_research });
+    }
+
+    // ------------------------------------------------------------------ suggest
     if (action === "suggest") {
       const prompt = [
         "Você é consultor de automação do ClubeCRM (atendimento por WhatsApp e e-mail com IA, fluxos, registros, biblioteca).",
@@ -89,15 +134,9 @@ Deno.serve(async (req) => {
         'O próprio ClubeCRM nunca é "sistema" de integração: tudo que o CRM já faz (horário de atendimento, fluxos, IA, registros, biblioteca, pesquisa, follow-up, e-mail) é tipo "pronta". Não repita sugestões.',
         'Responda SOMENTE com JSON: {"sugestoes":[{"titulo":"","area":"","tipo":"pronta|integracao","impacto":"alto|medio|baixo","esforco":"baixo|medio|alto","descricao":"","modelo":"","sistema":"","passos":[""]}]}',
       ].join("\n");
-      const r = await chat(apiKey, provider, model, [
-        { role: "system", content: prompt },
-        { role: "user", content: `O que já existe no CRM:\n${crm}\n\nRetrato da empresa:\n${retrato}` },
-      ]);
-      if (!r.ok || !r.reply) throw new HttpError(502, "A IA não respondeu. Tente de novo.");
-      const match = r.reply.match(/\{[\s\S]*\}/);
-      let list: unknown[] = [];
-      try { list = JSON.parse(match?.[0] ?? "{}")?.sugestoes ?? []; } catch { /* resposta fora do formato */ }
-      const suggestions = (Array.isArray(list) ? list : []).slice(0, 12).map((s: any) => ({
+      const out = await ask(prompt, `O que já existe no CRM:\n${crm}\n\nRetrato da empresa:\n${retrato(20_000)}`);
+      const list = Array.isArray(out.sugestoes) ? out.sugestoes : [];
+      const suggestions = list.slice(0, 12).map((s: any) => ({
         titulo: clip(s?.titulo, 120), area: clip(s?.area, 60), descricao: clip(s?.descricao, 600),
         tipo: oneOf(s?.tipo, ["pronta", "integracao"] as const, "integracao"),
         impacto: oneOf(s?.impacto, ["alto", "medio", "baixo"] as const, "medio"),
@@ -111,21 +150,91 @@ Deno.serve(async (req) => {
       return json({ ok: true, suggestions });
     }
 
-    // Conversa: UMA chamada por mensagem, resposta em JSON com o que salvar e o
-    // que dizer (menos consumo que ferramentas + 2ª chamada e igual em todo provedor).
+    // --------------------------------------------------------------------- plan
+    if (action === "plan") {
+      const filled = Object.values(sections).filter((v) => clip(v, 10)).length;
+      if (filled < 3 && processes.length < 2) throw new HttpError(422, "Complete mais etapas da consultoria antes de gerar o planejamento.");
+      const prompt = [
+        "Você é consultor de gestão e automação. Com o retrato da empresa (cultura, situação, objetivos, setores e processos descritos passo a passo),",
+        "faça o PLANEJAMENTO ESTRATÉGICO e o PLANO DE AÇÃO. Separe o que é MELHORIA DE PROCESSO (organização, regra, treinamento) do que é AUTOMAÇÃO.",
+        "Prioridade de custo: toda automação possível SEM IA (fluxo, regra, resposta rápida, registro, lembrete, conector) vem PRIMEIRO; use IA só onde precisa entender texto livre ou conversar.",
+        `Automações prontas no ClubeCRM (use a chave em "modelo" quando servir): ${JSON.stringify(READY)}.`,
+        "Missão, visão e valores: use o que o dono definiu; se faltar, proponha e comece o texto com \"Proposta:\". Nunca invente números; se estimar volume, diga que é estimativa.",
+        'Responda SOMENTE com JSON: {"diagnostico":"onde a empresa está (3 a 6 frases)","missao":"","visao":"","valores":[""],',
+        '"objetivos":[{"objetivo":"","indicador":"","prazo":""}],',
+        '"melhorias":[{"titulo":"","setor":"","problema":"","como":"passo a passo curto","impacto":"alto|medio|baixo"}],',
+        '"automacoes":[{"titulo":"","setor":"","tipo":"sem_ia|ia|integracao","modelo":"","sistema":"","descricao":"","impacto":"alto|medio|baixo","esforco":"baixo|medio|alto","volume_mes":0,"complexidade":"simples|complexa"}],',
+        '"plano_acao":[{"acao":"","responsavel":"cargo ou setor","prazo":"ex.: semana 1, mês 2"}]}',
+        '"volume_mes" = quantas respostas de IA por mês a automação daria (só para tipo "ia"; use os volumes do retrato). "complexidade": simples = triagem, FAQ, classificação; complexa = análise, negociação, textos longos.',
+      ].join(" ");
+      const out = await ask(prompt, `O que já existe no CRM:\n${crm}\n\nRetrato da empresa:\n${retrato(24_000, 800)}`);
+      const autos = (Array.isArray(out.automacoes) ? out.automacoes : []).slice(0, 20).map((a: any) => {
+        const tipo = oneOf(a?.tipo, ["sem_ia", "ia", "integracao"] as const, "sem_ia");
+        const complexidade = oneOf(a?.complexidade, ["simples", "complexa"] as const, "simples");
+        return {
+          titulo: clip(a?.titulo, 120), setor: clip(a?.setor, 60), tipo, descricao: clip(a?.descricao, 600),
+          modelo: Object.keys(READY).includes(a?.modelo) ? a.modelo : null, sistema: clip(a?.sistema, 80) || null,
+          impacto: oneOf(a?.impacto, ["alto", "medio", "baixo"] as const, "medio"),
+          esforco: oneOf(a?.esforco, ["baixo", "medio", "alto"] as const, "medio"),
+          complexidade, custo: tipo === "ia" ? monthlyCost(Number(a?.volume_mes), complexidade) : null,
+        };
+      }).filter((a) => a.titulo);
+      const rank = { sem_ia: 0, ia: 1, integracao: 2 } as const;
+      const imp = { alto: 0, medio: 1, baixo: 2 } as const;
+      autos.sort((x, y) => rank[x.tipo] - rank[y.tipo] || imp[x.impacto] - imp[y.impacto]);
+      const sum = (k: "groq" | "claude") => Math.round(autos.reduce((t, a) => t + (a.custo?.[k] ?? 0), 0) * 100) / 100;
+      const list = (v: unknown, n: number) => (Array.isArray(v) ? v : []).slice(0, n);
+      const plan = {
+        diagnostico: clip(out.diagnostico, 2000), missao: clip(out.missao, 600), visao: clip(out.visao, 600),
+        valores: list(out.valores, 10).map((v) => clip(v, 200)).filter(Boolean),
+        objetivos: list(out.objetivos, 10).map((o: any) => ({ objetivo: clip(o?.objetivo, 300), indicador: clip(o?.indicador, 200), prazo: clip(o?.prazo, 80) })).filter((o) => o.objetivo),
+        melhorias: list(out.melhorias, 15).map((m: any) => ({ titulo: clip(m?.titulo, 120), setor: clip(m?.setor, 60), problema: clip(m?.problema, 400), como: clip(m?.como, 800), impacto: oneOf(m?.impacto, ["alto", "medio", "baixo"] as const, "medio") })).filter((m) => m.titulo),
+        automacoes: autos,
+        plano_acao: list(out.plano_acao, 25).map((p: any) => ({ acao: clip(p?.acao, 300), responsavel: clip(p?.responsavel, 80), prazo: clip(p?.prazo, 60) })).filter((p) => p.acao),
+        custo: { groq_mes: sum("groq"), claude_mes: sum("claude"), dolar: USD_BRL,
+          premissas: "Estimativa por resposta de IA: simples ≈ 1.500 tokens de entrada e 200 de saída; complexa ≈ 4.000 e 600. Automações sem IA não têm custo de IA." },
+        modelo: `${provider}:${model}`,
+      };
+      if (!plan.diagnostico && !autos.length) throw new HttpError(502, "Não consegui montar o planejamento. Tente de novo.");
+      // Compatível com o implementador: automações viram sugestões instaláveis.
+      const suggestions = autos.slice(0, 12).map((a) => ({
+        titulo: a.titulo, area: a.setor, descricao: a.descricao, tipo: a.tipo === "integracao" ? "integracao" : "pronta",
+        impacto: a.impacto, esforco: a.esforco, modelo: a.modelo, sistema: a.sistema, passos: [],
+      }));
+      await org.update("company_profiles", {
+        plan, plan_at: new Date().toISOString(), suggestions, suggestions_at: new Date().toISOString(), stage: "plano",
+      }).eq("organization_id", orgId);
+      await admin.from("audit_log").insert({ organization_id: orgId, actor_id: ctx.user.id, action: "interviewer.plan", meta: { automacoes: autos.length } });
+      return json({ ok: true, plan, suggestions });
+    }
+
+    // ------------------------------------------------------------------ message
+    // UMA chamada por mensagem, resposta em JSON com o que salvar e o que dizer.
+    const stageIdx = Math.max(0, STAGES.findIndex((s) => s.key === profile.stage));
+    const inPlan = profile.stage === "plano";
+    const stage = STAGES[inPlan ? STAGES.length - 1 : stageIdx];
+    const next = STAGES[stageIdx + 1];
     const text = clip(body?.text, 4000);
     if (text) await org.insert("interview_messages", { role: "user", content: text, created_by: ctx.user.id });
     const { data: hist } = await org.select("interview_messages", "role, content").order("id", { ascending: false }).limit(20);
+    const bySector = processes.reduce((m: Record<string, string[]>, p) => {
+      const k = p.setor || p.area || "Sem setor";
+      (m[k] ??= []).push(p.nome);
+      return m;
+    }, {});
     const system = [
-      `Você é um consultor de processos conduzindo uma entrevista com o dono da empresa "${orgRow?.name ?? ""}" para entender como ela funciona e depois sugerir automações no ClubeCRM.`,
-      "Regras: português do Brasil, simples e amigável; no máximo 2 perguntas por vez; confirme o que entendeu;",
-      "não pergunte o que já está no retrato ou no CRM; siga as seções ainda vazias nesta ordem:",
-      `${Object.entries(SECTIONS).map(([k, s]) => `${k} (${s.label})`).join(", ")}, e processos repetidos do dia a dia (o que é feito, quem faz, frequência, tempo, onde trava).`,
-      "Nunca invente. Não peça senhas, tokens nem dados pessoais de clientes. Quando o retrato estiver razoavelmente completo, diga que ele pode clicar em “Gerar sugestões”.",
-      'Responda SOMENTE com um JSON válido neste formato: {"secoes":{"<secao>":"texto COMPLETO consolidado da seção, em tópicos, somando ao que já havia"},"processos":[{"nome":"","area":"","quem_faz":"","frequencia":"","tempo":"","dificuldade":""}],"resposta":"sua mensagem ao dono"}.',
-      `Em "secoes" inclua só as seções que mudaram (chaves possíveis: ${Object.keys(SECTIONS).join(", ")}). Em "processos" inclua TODOS os processos NOVOS citados agora (um item para cada). Se nada mudou, use {} e [].`,
-      `\nO que já existe no CRM:\n${crm}\n\nRetrato atual:\n${retrato.slice(0, 12_000)}`,
-    ].join(" ");
+      `Você é um consultor de gestão conduzindo uma consultoria com o dono da empresa "${orgRow?.name ?? ""}" para depois montar o planejamento estratégico e as automações no ClubeCRM.`,
+      "Regras: português do Brasil, simples e amigável; no máximo 2 perguntas por vez; confirme o que entendeu; não pergunte o que já está no retrato ou no CRM.",
+      "Nunca invente. Não peça senhas, tokens nem dados pessoais de clientes.",
+      inPlan
+        ? "A consultoria já passou por todas as etapas: ajude a ajustar qualquer seção ou processo e lembre que ele pode clicar em “Gerar planejamento” de novo."
+        : `ETAPA ATUAL (${stageIdx + 1} de ${STAGES.length}): ${stage.label}. ${stage.guide}`,
+      stage.key === "processos" ? `Setores mapeados: ${sections.setores || "(nenhum ainda — peça o mapa antes)"}. Processos já descritos por setor: ${JSON.stringify(bySector)}.` : "",
+      !inPlan ? `Quando esta etapa estiver completa e o dono confirmar, marque "etapa_concluida": true e diga que a próxima etapa é: ${next ? next.label : "o planejamento (botão “Gerar planejamento”)"}.` : "",
+      'Responda SOMENTE com um JSON válido: {"secoes":{"<secao>":"texto COMPLETO consolidado da seção, em tópicos, somando ao que já havia"},"processos":[{"nome":"","setor":"","quem_faz":"","frequencia":"","tempo":"","dificuldade":"","passo_a_passo":"1. ... 2. ..."}],"etapa_concluida":false,"resposta":"sua mensagem ao dono"}.',
+      `Em "secoes" inclua só as que mudaram (chaves possíveis: ${Object.keys(SECTIONS).join(", ")}; desta etapa: ${stage.sections.join(", ") || "processos"}). Em "processos" inclua os processos citados agora (novos ou com passo a passo mais completo). Se nada mudou, use {} e [].`,
+      `\nO que já existe no CRM:\n${crm}\n\nRetrato atual:\n${retrato(12_000)}`,
+    ].filter(Boolean).join(" ");
     const messages: ChatMsg[] = [
       { role: "system", content: system },
       ...(hist ?? []).reverse().map((m: { role: "assistant" | "user"; content: string }) => ({ role: m.role, content: m.content })),
@@ -134,29 +243,33 @@ Deno.serve(async (req) => {
 
     const r = await chat(apiKey, provider, model, messages);
     if (!r.ok || !r.reply) throw new HttpError(502, r.status === 429 ? "A IA está no limite de uso agora. Tente de novo em 1 minuto." : "A IA não respondeu. Tente de novo.");
-    let out: { secoes?: Record<string, unknown>; processos?: unknown[]; resposta?: unknown } = {};
-    try { out = JSON.parse(r.reply.match(/\{[\s\S]*\}/)?.[0] ?? "{}"); } catch { /* respondeu em texto livre */ }
+    const out = parseJson(r.reply) as { secoes?: Record<string, unknown>; processos?: unknown[]; resposta?: unknown; etapa_concluida?: unknown };
 
-    const sections = { ...(profile.sections ?? {}) } as Record<string, string>;
-    const processes = [...(profile.processes ?? [])] as Record<string, string>[];
     let saved = 0;
     for (const [k, v] of Object.entries(out.secoes ?? {})) {
       if (SECTIONS[k] && clip(v, 8000)) { sections[k] = clip(v, 8000); saved++; }
     }
-    const known = new Set(processes.map((p) => String(p.nome ?? "").toLowerCase()));
-    for (const p of Array.isArray(out.processos) ? out.processos.slice(0, 20) : []) {
-      const item = Object.fromEntries(["nome", "area", "quem_faz", "frequencia", "tempo", "dificuldade"]
-        .map((k) => [k, clip((p as Record<string, unknown>)?.[k], 300)])) as Record<string, string>;
-      if (item.nome && !known.has(item.nome.toLowerCase()) && processes.length < 100) {
-        processes.push(item); known.add(item.nome.toLowerCase()); saved++;
-      }
+    const keyOf = (p: Record<string, string>) => `${(p.setor || p.area || "").toLowerCase()}|${String(p.nome ?? "").toLowerCase()}`;
+    for (const raw of Array.isArray(out.processos) ? out.processos.slice(0, 20) : []) {
+      const item = Object.fromEntries(PROC_KEYS.map((k) => [k, clip((raw as Record<string, unknown>)?.[k], k === "passo_a_passo" ? 3000 : 300)])) as Record<string, string>;
+      if (!item.nome) continue;
+      item.area = item.setor;
+      const at = processes.findIndex((p) => keyOf(p) === keyOf(item) || (!item.setor && String(p.nome).toLowerCase() === item.nome.toLowerCase()));
+      if (at >= 0) {
+        const merged = { ...processes[at] };
+        for (const k of PROC_KEYS) if (item[k] && item[k].length >= clip(merged[k], 3000).length) merged[k] = item[k];
+        processes[at] = merged; saved++;
+      } else if (processes.length < 100) { processes.push(item); saved++; }
     }
-    if (saved) await org.update("company_profiles", { sections, processes, updated_by: ctx.user.id }).eq("organization_id", orgId);
+    const advance = !inPlan && out.etapa_concluida === true && !!next;
+    const patch: Record<string, unknown> = { sections, processes, updated_by: ctx.user.id };
+    if (advance) patch.stage = next.key;
+    if (saved || advance) await org.update("company_profiles", patch).eq("organization_id", orgId);
 
     const reply = clip(typeof out.resposta === "string" && out.resposta.trim() ? out.resposta : (Object.keys(out).length ? "" : r.reply), 8000)
       || "Anotado! Quer me contar mais algum detalhe, ou seguimos para o próximo assunto?";
     await org.insert("interview_messages", { role: "assistant", content: reply });
-    return json({ ok: true, reply, saved });
+    return json({ ok: true, reply, saved, stage: advance ? next.key : profile.stage });
   } catch (e) {
     if (e instanceof HttpError) return json({ ok: false, error: e.message }, e.status);
     console.error("[interviewer]", e instanceof Error ? e.message : e);

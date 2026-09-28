@@ -771,6 +771,16 @@ BEGIN
   PERFORM pg_temp.expect_error(owner_a, 'DELETE FROM public.ticket_reviews', 'dono nao apaga avaliacao');
   PERFORM pg_temp.expect_error(owner_a, format('INSERT INTO public.ticket_reviews (organization_id, ticket_id) VALUES (%L, %L)', A, 'aaaaaaaa-0000-0000-0040-000000000002'), 'navegador nao cria avaliacao');
 
+  -- 42. Entrevistador 2.0: etapa so dono/admin; plano e pesquisa so pelo backend; secoes novas internas validadas.
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('UPDATE public.company_profiles SET stage = %L, sections = sections || %L::jsonb WHERE organization_id = %L',
+    'cultura', '{"cultura":"Missao: atender bem"}', A)) = 'ok:1', 'dono muda etapa e grava cultura');
+  PERFORM pg_temp.expect_error(owner_a, format('UPDATE public.company_profiles SET stage = %L WHERE organization_id = %L', 'invalida', A), 'etapa invalida recusada');
+  PERFORM pg_temp.expect_error(owner_a, format('UPDATE public.company_profiles SET plan = %L::jsonb WHERE organization_id = %L', '{"x":1}', A), 'plano so pelo backend');
+  PERFORM pg_temp.expect_error(owner_a, format('UPDATE public.company_profiles SET public_research = %L::jsonb WHERE organization_id = %L', '{"x":1}', A), 'pesquisa so pelo backend');
+  PERFORM pg_temp.expect_denied(agent_a, format('UPDATE public.company_profiles SET stage = %L WHERE organization_id = %L', 'setores', A), 'atendente nao muda etapa');
+  PERFORM pg_temp.expect_denied(owner_b, format('UPDATE public.company_profiles SET stage = %L WHERE organization_id = %L', 'setores', A), 'outra org nao muda etapa');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, format('SELECT count(*) FROM public.company_profiles WHERE organization_id = %L', A)) = 0, 'outra org nao ve o plano');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 
