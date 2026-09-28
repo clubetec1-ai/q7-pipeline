@@ -23,9 +23,10 @@ Deno.serve(async (req) => {
   if (!/^[0-9a-f-]{36}$/i.test(String(notification_id ?? ""))) return ok({ ok: false }, 400);
   const { data: n } = await admin.from("notifications")
     .select("id, organization_id, user_id, kind, ref, emailed_at").eq("id", notification_id).maybeSingle();
-  if (!n || n.emailed_at || !["number_health", "email_health"].includes(n.kind)) return ok({ ok: true, skipped: "nada a enviar" });
-  const what = n.kind === "email_health" ? "A caixa de e-mail" : "O número";
-  const page = n.kind === "email_health" ? "Números → E-mails" : "Números";
+  if (!n || n.emailed_at || !["number_health", "email_health", "security_alert"].includes(n.kind)) return ok({ ok: true, skipped: "nada a enviar" });
+  const security = n.kind === "security_alert";
+  const what = security ? "Alerta de segurança:" : n.kind === "email_health" ? "A caixa de e-mail" : "O número";
+  const page = security ? "Painel do supervisor" : n.kind === "email_health" ? "Números → E-mails" : "Números";
 
   const [{ data: p }, { data: o }, { data: appUrl }] = await Promise.all([
     admin.from("profiles").select("email").eq("user_id", n.user_id).maybeSingle(),
@@ -33,8 +34,9 @@ Deno.serve(async (req) => {
     admin.from("app_settings").select("value").eq("key", "app_url").maybeSingle(),
   ]);
   const r = (n.ref ?? {}) as Record<string, string>;
-  const problem = r.error || STATUS[r.status] || "precisa de atenção";
-  const link = appUrl?.value ? `${String(appUrl.value).replace(/\/$/, "")}/numeros` : "";
+  const problem = security ? "tentou exportar os contatos sem permissão (bloqueado)"
+    : r.error || STATUS[r.status] || "precisa de atenção";
+  const link = appUrl?.value ? `${String(appUrl.value).replace(/\/$/, "")}/${security ? "supervisor" : "numeros"}` : "";
   const subject = `[ClubeCRM] ${what} ${r.name ?? ""}: ${problem}`;
   const text = `Olá!\n\n${what} "${r.name ?? ""}" da empresa ${o?.name ?? ""}: ${problem}\n` +
     `Veja os detalhes em ${page}${link ? `: ${link}` : " no ClubeCRM"}.\n\nClubeCRM`;

@@ -88,6 +88,7 @@ type Message = {
   status?: string | null;
   error?: string | null;
   email_subject?: string | null;
+  deleted_by?: "contact" | "phone" | null;
 };
 
 type Stage = { id: string; name: string; position: number; color: string | null };
@@ -182,14 +183,20 @@ export default function Conversas() {
     ) : null;
   };
   const [protocolHits, setProtocolHits] = useState<Set<string> | null>(null);
-  // Busca por nome/telefone na lista e por protocolo (inclui atendimentos já finalizados).
+  // Busca por nome/telefone na lista, por protocolo (inclui atendimentos já
+  // finalizados) e pelo texto das mensagens (só o que a pessoa pode ver).
   useEffect(() => {
     const q = search.trim();
-    if (!org || !/^[\d-]{4,}$/.test(q)) { setProtocolHits(null); return; }
+    if (!org || q.length < 3) { setProtocolHits(null); return; }
     const h = window.setTimeout(async () => {
-      const { data } = await supabase.from("tickets").select("conversation_id")
-        .eq("organization_id", org.id).ilike("protocol", `%${q}%`).limit(50);
-      setProtocolHits(new Set((data ?? []).map((r) => r.conversation_id)));
+      const [byProtocol, byText] = await Promise.all([
+        /^[\d-]{4,}$/.test(q)
+          ? supabase.from("tickets").select("conversation_id").eq("organization_id", org.id).ilike("protocol", `%${q}%`).limit(50)
+          : Promise.resolve({ data: [] as { conversation_id: string }[] }),
+        supabase.rpc("search_messages", { org: org.id, q }),
+      ]);
+      setProtocolHits(new Set([...(byProtocol.data ?? []), ...((byText.data as { conversation_id: string }[] | null) ?? [])]
+        .map((r) => r.conversation_id)));
     }, 300);
     return () => window.clearTimeout(h);
   }, [search, org]);
@@ -584,7 +591,7 @@ export default function Conversas() {
             )}
             <div className="p-2 border-b">
               <Input value={search} onChange={(e) => setSearch(e.target.value)} className="h-8 text-sm"
-                placeholder="Buscar nome, telefone ou protocolo" />
+                placeholder="Buscar nome, telefone, protocolo ou mensagem" />
             </div>
             {multiChannel && (
               <div className="px-2 pt-2">
@@ -841,6 +848,11 @@ export default function Conversas() {
                     {m.direction === "outbound" && (
                       <div className="text-[10px] opacity-70 mb-0.5">
                         {m.sender === "ai" ? "IA" : "Você"}
+                      </div>
+                    )}
+                    {m.deleted_by && (
+                      <div className="text-[10px] italic opacity-70 mb-0.5">
+                        {m.deleted_by === "contact" ? "🗑 Apagada pelo cliente — guardada no histórico" : "🗑 Apagada no celular — guardada no histórico"}
                       </div>
                     )}
                     <MessageMedia m={m} />

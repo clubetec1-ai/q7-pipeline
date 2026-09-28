@@ -1372,6 +1372,8 @@ export type Database = {
           content: string
           conversation_id: string
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
           direction: string
           email_in_reply_to: string | null
           email_message_id: string | null
@@ -1395,6 +1397,8 @@ export type Database = {
           content: string
           conversation_id: string
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           direction: string
           email_in_reply_to?: string | null
           email_message_id?: string | null
@@ -1418,6 +1422,8 @@ export type Database = {
           content?: string
           conversation_id?: string
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
           direction?: string
           email_in_reply_to?: string | null
           email_message_id?: string | null
@@ -2584,6 +2590,7 @@ export type Database = {
         Args: { org: string; secret_key: string }
         Returns: undefined
       }
+      export_contacts: { Args: { org: string }; Returns: Json }
       flow_stats: {
         Args: { flow: string; period?: number }
         Returns: {
@@ -2697,6 +2704,12 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      search_messages: {
+        Args: { org: string; q: string }
+        Returns: {
+          conversation_id: string
+        }[]
+      }
       seed_pipeline_stages: { Args: { _user_id: string }; Returns: undefined }
       service_ai_take: { Args: { org: string }; Returns: boolean }
       service_can_add_number: { Args: { org: string }; Returns: boolean }
@@ -2711,6 +2724,10 @@ export type Database = {
       service_get_secret: { Args: { secret_name: string }; Returns: string }
       service_has_secret: { Args: { secret_name: string }; Returns: boolean }
       service_http_take: { Args: { org: string }; Returns: boolean }
+      service_mark_message_deleted: {
+        Args: { org: string; pmid: string; who: string }
+        Returns: number
+      }
       service_put_secret: {
         Args: { secret_name: string; secret_value: string }
         Returns: undefined

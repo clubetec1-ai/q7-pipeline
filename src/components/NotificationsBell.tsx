@@ -15,6 +15,7 @@ const TEXT: Record<string, (r: Record<string, string>) => string> = {
   taken_over: (r) => `Atendimento #${r.protocol ?? ""} foi assumido por outra pessoa`,
   charge_paid: (r) => `Pagamento recebido: R$ ${Number(r.value ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
   email_health: (r) => `Caixa de e-mail ${r.name ?? ""}: ${r.error ?? "precisa de atenção"}`,
+  security_alert: (r) => `⚠ Segurança: ${r.name ?? "alguém da equipe"} tentou exportar contatos sem permissão (bloqueado)`,
   number_health: (r) => `Número ${r.name ?? ""}: ${r.error ?? (r.status === "disconnected" ? "desconectado" : "precisa de atenção")}`,
 };
 
@@ -47,6 +48,7 @@ export function NotificationsBell() {
     load();
     if (n.ref.conversation_id) navigate(`/?open=${n.ref.conversation_id}`);
     else if (n.kind === "number_health" || n.kind === "email_health") navigate("/numeros");
+    else if (n.kind === "security_alert") navigate("/supervisor");
   };
 
   return (
