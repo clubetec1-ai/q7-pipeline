@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import {
   Activity, BarChart3, BookOpen, Bot, Building2, ChevronDown, ClipboardCheck, ClipboardList, Contact, Library, Megaphone, Menu,
-  MessageSquare, MessagesSquare, Phone, Tags, Plug, RefreshCw, Server, Settings2, ShieldCheck, Target, Trello, UserCog, UsersRound, Wallet, Workflow,
+  MessageSquare, MessagesSquare, Phone, PhoneCall, Tags, Plug, RefreshCw, Server, Settings2, ShieldCheck, Target, Trello, UserCog, UsersRound, Wallet, Workflow,
   type LucideIcon,
 } from "lucide-react";
 import { useOrg } from "@/contexts/OrgContext";
@@ -9,7 +9,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-type Section = "conversas" | "kanban" | "registros" | "cobrancas" | "integracoes" | "equipe" | "numeros" | "fluxos" | "biblioteca" | "diagnostico" | "supervisor" | "avaliacoes" | "campanhas" | "seguranca" | "melhorias" | "conhecimento" | "clientes" | "agente" | "relatorios" | "etiquetas" | "chat" | "plataforma";
+type Section = "conversas" | "kanban" | "registros" | "cobrancas" | "integracoes" | "equipe" | "numeros" | "fluxos" | "biblioteca" | "diagnostico" | "supervisor" | "avaliacoes" | "campanhas" | "seguranca" | "melhorias" | "conhecimento" | "clientes" | "agente" | "relatorios" | "etiquetas" | "chat" | "ramais" | "plataforma";
 interface Item { key: Section; to: string; label: string; icon: LucideIcon; show: boolean }
 
 const base = "px-3 py-1.5 text-sm rounded-md transition inline-flex items-center gap-1.5";
@@ -28,7 +28,7 @@ export function MainNav({ active }: { active: Section }) {
   const top: Item[] = [
     { key: "conversas", to: "/", label: "Conversas", icon: MessageSquare, show: true },
     { key: "kanban", to: "/kanban", label: "Kanban", icon: Trello, show: true },
-    { key: "chat", to: "/chat", label: "Equipe", icon: MessagesSquare, show: true },
+    { key: "chat", to: "/chat", label: "Chat equipe", icon: MessagesSquare, show: true },
   ];
   const groups: { label: string; icon: LucideIcon; items: Item[] }[] = [
     { label: "Clientes", icon: Contact, items: [
@@ -51,6 +51,7 @@ export function MainNav({ active }: { active: Section }) {
       { key: "fluxos", to: "/fluxos", label: "Fluxos", icon: Workflow, show: manage },
       { key: "conhecimento", to: "/conhecimento", label: "Base de conhecimento", icon: BookOpen, show: manage || can("library.manage") },
       { key: "numeros", to: "/numeros", label: "Números e e-mails", icon: Phone, show: manage },
+      { key: "ramais", to: "/equipe?tab=ramais", label: "Ramais (telefone)", icon: PhoneCall, show: can("members.manage") },
       { key: "integracoes", to: "/integracoes", label: "Integrações", icon: Plug, show: manage },
       { key: "biblioteca", to: "/biblioteca", label: "Biblioteca", icon: Library, show: can("library.manage") },
     ] },

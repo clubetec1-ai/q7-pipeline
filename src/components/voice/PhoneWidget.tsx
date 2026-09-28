@@ -106,10 +106,19 @@ export function PhoneWidget() {
     if (!ext || ext.mode !== "webrtc" || !ext.wss_url || !ext.password) return;
     let alive = true;
     let sp: Softphone | null = null;
+    // Status para a Clubetec/dono (online/erro), com sinal a cada 2 min enquanto registrado.
+    let current: PhoneState = "off";
+    const report = (state: "online" | "offline" | "error", detail?: string) =>
+      void supabase.rpc("report_extension_status", { ext: ext.id, p_state: state, p_detail: (detail ?? null) as string });
+    const beat = window.setInterval(() => { if (current === "ready") report("online"); }, 120_000);
     void import("@/lib/softphone").then(({ Softphone: SP }) => {
       if (!alive) return;
       sp = new SP({ wss: ext.wss_url!, domain: ext.sip_domain, user: ext.sip_user, password: ext.password! }, {
-        onPhone: (s, d) => { setPhoneState(s); setPhoneMsg(d); },
+        onPhone: (s, d) => {
+          setPhoneState(s); setPhoneMsg(d);
+          if (s !== current) { if (s === "ready") report("online"); if (s === "error") report("error", d); }
+          current = s;
+        },
         onCall: (s, info) => {
           setCallState(s);
           if (s === "ringing" || s === "calling") {
@@ -133,7 +142,10 @@ export function PhoneWidget() {
       phone.current = sp;
       void sp.start();
     });
-    return () => { alive = false; ring.stop(); void sp?.stop(); phone.current = null; setPhoneState("off"); };
+    return () => {
+      alive = false; window.clearInterval(beat); ring.stop(); void sp?.stop(); phone.current = null; setPhoneState("off");
+      if (current === "ready") report("offline");
+    };
   }, [ext, identify, log, ring]);
 
   // Cronômetro da ligação.

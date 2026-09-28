@@ -1,5 +1,5 @@
 import { NumberHealthBanner } from "@/components/NumberHealthBanner";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/contexts/OrgContext";
@@ -19,6 +19,7 @@ export default function Equipe() {
   const { signOut } = useAuth();
   const { org, can } = useOrg();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const data = useEquipeData(org?.id);
   const canMembers = can("members.manage");
   const canDepts = can("departments.manage");
@@ -56,7 +57,7 @@ export default function Equipe() {
             <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           </div>
         ) : (
-          <Tabs defaultValue={canMembers ? "membros" : "departamentos"}>
+          <Tabs key={params.get("tab") ?? ""} defaultValue={params.get("tab") === "ramais" && canMembers ? "ramais" : canMembers ? "membros" : "departamentos"}>
             <TabsList>
               <TabsTrigger value="membros">Membros</TabsTrigger>
               <TabsTrigger value="departamentos">Departamentos</TabsTrigger>
