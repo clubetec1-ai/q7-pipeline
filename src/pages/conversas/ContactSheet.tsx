@@ -14,6 +14,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProtocolHistory } from "./ProtocolHistory";
 import { ContactRecords } from "./ContactRecords";
+import { ContactCalls } from "./ContactCalls";
 import { RecordForm } from "../registros/RecordForm";
 import type { FieldDef, Values } from "../registros/fields";
 import { ColorDot, cycleColor, nextColor } from "@/components/ColorTag";
@@ -329,6 +330,7 @@ export function ContactSheet({
             </TabsContent>
             <TabsContent value="protocolos" className="pt-3">
               {org && contactId && <ProtocolHistory orgId={org.id} contactId={contactId} nameOf={nameOf} />}
+              {contactId && <ContactCalls contactId={contactId} nameOf={nameOf} />}
             </TabsContent>
           </Tabs>
         )}

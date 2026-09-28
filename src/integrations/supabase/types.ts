@@ -215,6 +215,8 @@ export type Database = {
           id: string
           organization_id: string
           phone: string
+          provider_call_id: string | null
+          recording_url: string | null
           source: string
           started_at: string
           status: string
@@ -232,6 +234,8 @@ export type Database = {
           id?: string
           organization_id: string
           phone: string
+          provider_call_id?: string | null
+          recording_url?: string | null
           source: string
           started_at?: string
           status?: string
@@ -249,6 +253,8 @@ export type Database = {
           id?: string
           organization_id?: string
           phone?: string
+          provider_call_id?: string | null
+          recording_url?: string | null
           source?: string
           started_at?: string
           status?: string
@@ -3256,6 +3262,47 @@ export type Database = {
         }
         Relationships: []
       }
+      voice_integrations: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          has_credentials: boolean
+          last_error: string | null
+          last_sync_at: string | null
+          organization_id: string
+          provider: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          has_credentials?: boolean
+          last_error?: string | null
+          last_sync_at?: string | null
+          organization_id: string
+          provider?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          has_credentials?: boolean
+          last_error?: string | null
+          last_sync_at?: string | null
+          organization_id?: string
+          provider?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_integrations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_instances: {
         Row: {
           color: string | null
@@ -3818,6 +3865,23 @@ export type Database = {
         Args: { new_status: string; org: string; pmid: string }
         Returns: undefined
       }
+      service_upsert_call: {
+        Args: {
+          org: string
+          p_answered_at: string
+          p_direction: string
+          p_duration: number
+          p_ended_at: string
+          p_ext_number: string
+          p_phone: string
+          p_provider_call_id: string
+          p_recording_url: string
+          p_started_at: string
+          p_status: string
+          p_user?: string
+        }
+        Returns: string
+      }
       set_auto_review: {
         Args: { enabled: boolean; org: string }
         Returns: undefined
@@ -3864,6 +3928,15 @@ export type Database = {
       }
       set_require_mfa: {
         Args: { org: string; required: boolean }
+        Returns: undefined
+      }
+      set_voice_integration: {
+        Args: {
+          org: string
+          p_client_id: string
+          p_client_secret: string
+          p_enabled?: boolean
+        }
         Returns: undefined
       }
       start_campaign: { Args: { campaign: string }; Returns: Json }

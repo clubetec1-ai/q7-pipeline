@@ -4,6 +4,8 @@ import { useToast } from "@/hooks/use-toast";
 import { extStatus } from "@/lib/extStatus";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { EquipeData } from "./useEquipeData";
+import { useOrg } from "@/contexts/OrgContext";
+import { NvoipCard } from "./NvoipCard";
 
 interface Ext { id: string; number: string; label: string | null; wss_url: string | null; has_password: boolean; user_id: string | null; mode: string; reg_state: string | null; reg_detail: string | null; reg_at: string | null }
 const MODES: [string, string][] = [["webrtc", "Navegador (WebRTC)"], ["sip", "MicroSIP / aparelho"], ["off", "Desligado"]];
@@ -14,6 +16,7 @@ const MODES: [string, string][] = [["webrtc", "Navegador (WebRTC)"], ["sip", "Mi
  */
 export function RamaisTab({ orgId, data }: { orgId: string; data: EquipeData }) {
   const { toast } = useToast();
+  const { can } = useOrg();
   const [rows, setRows] = useState<Ext[]>([]);
   const load = useCallback(async () => {
     const { data: r } = await supabase.from("pbx_extensions")
@@ -31,11 +34,13 @@ export function RamaisTab({ orgId, data }: { orgId: string; data: EquipeData }) 
   };
   const active = data.members.filter((m) => m.status === "active");
 
+  const card = can("org.settings") ? <NvoipCard orgId={orgId} /> : null;
   if (!rows.length) {
-    return <p className="text-sm text-muted-foreground">Nenhum ramal ainda. Ao contratar o PBX com a Clubetec, os ramais chegam aqui prontos e já associados à equipe; você pode trocar o atendente quando quiser.</p>;
+    return <>{card}<p className="text-sm text-muted-foreground">Nenhum ramal ainda. Ao contratar o PBX com a Clubetec, os ramais chegam aqui prontos e já associados à equipe; você pode trocar o atendente quando quiser.</p></>;
   }
   return (
     <div className="overflow-x-auto">
+      {card}
       <Table>
         <TableHeader><TableRow><TableHead>Ramal</TableHead><TableHead>Atendente</TableHead><TableHead>Como usa</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
         <TableBody>

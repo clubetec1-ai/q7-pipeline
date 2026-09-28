@@ -67,6 +67,14 @@ Objetivo: a ligação cai na mesma tela do WhatsApp.
   com a senha digitada, sem salvar); atendente escolhido já no cadastro; modelo de planilha com os e-mails da equipe +
   importação (colar do Excel ou .csv); "Associar automaticamente" (ramais livres → pessoas sem ramal); sem wss o modo
   vira MicroSIP; menu: "Ramais (telefone)" em Configurar e o chat interno renomeado para "Chat equipe".*
+- **Telefonia Nvoip, fase 2 (pedido em 29/09)** — usar a API v3 da Nvoip (Postman "nvoip-api"): clique-para-ligar
+  (toca o MicroSIP do atendente e depois o cliente), histórico de ligações com perdidas e "retornar", gravações.
+  *Entregue (29/09): Configurar → Ramais → Integração Nvoip (Client ID e segredo OAuth no cofre, testar conexão,
+  ligar/desligar); botão Ligar usa o clique-para-ligar da Nvoip (sem ela, abre o MicroSIP pelo link sip:); histórico
+  puxado a cada 5 min (hoje, e ontem na 1ª hora) ligado ao cliente e ao ramal; perdida avisa o atendente no sino
+  ("clique para retornar"); ligações na ficha do cliente (aba Protocolos). Pendências com a Nvoip: endereço WSS
+  (WebRTC), aviso em tempo real (webhook) para identificar na hora que toca, e formato/URL das gravações para
+  transcrever. Os nomes dos campos do histórico são confirmados no "Testar conexão" com a credencial real.*
 - **Identifica o número** que ligou e abre/associa o contato e a conversa (mesmo atendimento, protocolo).
 - **Transcrição da ligação** em tempo real ou ao final, gravada no histórico do atendimento.
 - **Confirmação do número**: o atendente pede para o cliente repetir/confirmar o número de WhatsApp e, ainda durante

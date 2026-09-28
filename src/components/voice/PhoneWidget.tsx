@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { CallState, PhoneState, Softphone } from "@/lib/softphone";
 
-interface MyExt { id: string; number: string; sip_user: string; sip_domain: string; wss_url: string | null; mode: "webrtc" | "sip" | "off"; has_password: boolean; password: string | null }
+interface MyExt { id: string; number: string; sip_user: string; sip_domain: string; wss_url: string | null; mode: "webrtc" | "sip" | "off"; has_password: boolean; password: string | null; click_to_call?: boolean }
 interface Caller { contact_id: string; name: string | null; phone: string; conversation_id: string | null; channel: string | null }
 type CallInfo = { direction: "in" | "out"; number: string; name?: string } | null;
 
@@ -163,13 +163,23 @@ export function PhoneWidget() {
       try { await phone.current.call(digits); } catch (e) { toast({ variant: "destructive", title: "Não ligou", description: String((e as Error).message) }); }
       return;
     }
-    // MicroSIP/aparelho: o link sip: abre o programa padrão já discando.
-    window.location.href = `sip:${digits}@${ext.sip_domain}`;
     answeredAt.current = null;
     setCall({ direction: "out", number: digits });
     void identify(digits);
+    // Central com API (Nvoip): toca o MicroSIP do atendente e depois o cliente.
+    if (ext.click_to_call && orgId) {
+      const r = await callFunction<{ call_id: string | null }>("voice", { action: "click_to_call", org_id: orgId, phone: digits });
+      if (r.ok) {
+        if (r.data.call_id) callId.current = r.data.call_id;
+        toast({ title: "Atenda o MicroSIP", description: "Seu ramal vai tocar; ao atender, a central liga para o cliente." });
+        return;
+      }
+      toast({ variant: "destructive", title: "A central não ligou", description: `${r.message} — abrindo o MicroSIP.` });
+    }
+    // MicroSIP/aparelho: o link sip: abre o programa padrão já discando.
+    window.location.href = `sip:${digits}@${ext.sip_domain}`;
     void log({ direction: "out", number: digits, status: "ended", source: "sip" });
-  }, [ext, phoneState, identify, log, toast]);
+  }, [ext, orgId, phoneState, identify, log, toast]);
 
   // Botão "Ligar" da ficha/conversa.
   useEffect(() => {

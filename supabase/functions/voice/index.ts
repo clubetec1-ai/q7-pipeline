@@ -3,6 +3,7 @@ import { HttpError, permissionsIn, requireUser } from "../_shared/auth.ts";
 import { forOrg } from "../_shared/tenant.ts";
 import * as providers from "../_shared/providers/index.ts";
 import { instForSend } from "../_shared/flow/executor.ts";
+import { brDate, historyItems, nationalNumber, NvoipError, nvoipFetch, nvoipToken } from "../_shared/nvoip.ts";
 
 /**
  * Ramal — ações do atendente durante a ligação.
@@ -11,6 +12,10 @@ import { instForSend } from "../_shared/flow/executor.ts";
  *    vê-la) ou abre uma nova já com o atendente; liga a conversa à ligação.
  * Cliente de outro setor não é tocado (pede transferência); quem pediu para não
  * receber mensagens e ficha anonimizada são respeitados (LGPD).
+ *  - click_to_call: pela API da Nvoip, toca o ramal do atendente (MicroSIP) e,
+ *    quando ele atende, liga para o cliente. Registra a ligação.
+ *  - nvoip_test (dono/admin): confere a credencial e devolve só os NOMES dos
+ *    campos do histórico (para ajustar a leitura), nunca números ou valores.
  */
 
 const corsHeaders = {
@@ -41,6 +46,35 @@ Deno.serve(async (req) => {
     if (!perms.includes("conversations.attend")) throw new HttpError(403, "Sem permissão para atender");
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const org = forOrg(admin, orgId);
+
+    if (action === "nvoip_test") {
+      if (!perms.includes("org.settings")) throw new HttpError(403, "Só dono ou admin");
+      const token = await nvoipToken(admin, orgId);
+      const body = await nvoipFetch(token, `/calls/history?date=${brDate(0)}&type=all`);
+      const items = historyItems(body);
+      await admin.from("voice_integrations").update({ last_error: null }).eq("organization_id", orgId);
+      return json({ ok: true, calls_today: items.length,
+        top_fields: body && typeof body === "object" && !Array.isArray(body) ? Object.keys(body).slice(0, 20) : [],
+        item_fields: items[0] ? Object.keys(items[0]).slice(0, 40) : [] });
+    }
+
+    if (action === "click_to_call") {
+      const { data: ext } = await org.select("pbx_extensions", "id, number, sip_user, provider").eq("user_id", ctx.user.id).maybeSingle();
+      if (!ext) throw new HttpError(409, "Você não tem ramal");
+      if (ext.provider !== "nvoip") throw new HttpError(409, "Clique-para-ligar disponível só para ramal Nvoip");
+      const called = nationalNumber(String(body?.phone ?? ""));
+      if (called.length < 8 || called.length > 13) throw new HttpError(400, "Número inválido");
+      const token = await nvoipToken(admin, orgId);
+      const res = await nvoipFetch(token, "/calls/click-to-call", {
+        method: "POST", body: JSON.stringify({ caller: ext.sip_user || ext.number, called }),
+      });
+      const providerId = res?.callId ?? res?.call_id ?? res?.id ?? res?.data?.callId ?? null;
+      const { data: callId } = await ctx.userClient.rpc("log_call", {
+        org: orgId, call: null, p_direction: "out", p_phone: called, p_status: "ringing", p_source: "sip",
+      });
+      if (callId && providerId) await org.update("calls", { provider_call_id: `nvoip:${providerId}`, source: "pbx" }).eq("id", callId);
+      return json({ ok: true, call_id: callId ?? null });
+    }
 
     if (action !== "whatsapp_hello") throw new HttpError(400, "Ação inválida");
     const phone = waNumber(String(body?.phone ?? ""));
@@ -105,6 +139,7 @@ Deno.serve(async (req) => {
     if (!res.ok) throw new HttpError(502, `WhatsApp recusou: ${String(res.error ?? "falha").slice(0, 120)}`);
     return json({ ok: true, conversation_id: conv?.id ?? null });
   } catch (e) {
+    if (e instanceof NvoipError) return json({ ok: false, error: e.message }, 502);
     const status = e instanceof HttpError ? e.status : 500;
     if (status === 500) console.error("voice:", e);
     return json({ ok: false, error: e instanceof HttpError ? e.message : "Erro interno" }, status);
