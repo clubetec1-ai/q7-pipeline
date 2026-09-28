@@ -13,6 +13,7 @@ import { runAiAgent } from "./ai-agent.ts";
 import { sendLibraryFile } from "../library.ts";
 import { setContactField } from "../contact-fields.ts";
 import { runRecord } from "../records.ts";
+import { runConnectorAction } from "../connectors.ts";
 
 /** A IA sabe o protocolo e informa se o cliente pedir. */
 export function withProtocol(prompt: string, protocol?: string | null) {
@@ -231,12 +232,26 @@ export async function runFlow(p: {
 
     await apply(actions);
     // Bloco HTTP: o executor chama e o motor segue por success/error.
-    for (let hops = 0; (result.state === "http" || result.state === "record") && !routed; hops++) {
+    for (let hops = 0; (result.state === "http" || result.state === "record" || result.state === "connector") && !routed; hops++) {
       const node = graph.nodes.find((n) => n.id === result.currentNodeId);
       if (!node || hops >= 10) {
         result = { ...result, state: "error", currentNodeId: null, error: "muitas etapas automáticas seguidas" };
         await route({ action: "queue" });
         break;
+      }
+      if (result.state === "connector") {
+        // Conector pronto (ex.: Bling): sempre com o telefone do próprio cliente da conversa.
+        const d = node.data ?? {};
+        const out = await runConnectorAction(admin, orgId, String(d.connector ?? ""), String(d.connector_action ?? ""),
+          { phone: conv.contact_phone ?? "", vars: result.vars });
+        if (!out.ok) console.log("[flow/conector]", { node: node.id, error: out.error });
+        result = advance(graph, node.id, null, {
+          ...ctx, timerFired: false, attempts: result.attempts, aiTurns: result.aiTurns,
+          vars: { ...result.vars, ...(out.vars ?? {}) }, connectorResult: out.ok ? "success" : "error",
+        });
+        steps.push(...result.steps);
+        await apply(result.actions as FlowAction[]);
+        continue;
       }
       if (result.state === "record") {
         // Bloco Registro: só da organização e do próprio contato da conversa.

@@ -1502,6 +1502,76 @@ export type Database = {
           },
         ]
       }
+      oauth_states: {
+        Row: {
+          connector: string
+          expires_at: string
+          organization_id: string
+          state: string
+          user_id: string
+        }
+        Insert: {
+          connector: string
+          expires_at?: string
+          organization_id: string
+          state: string
+          user_id: string
+        }
+        Update: {
+          connector?: string
+          expires_at?: string
+          organization_id?: string
+          state?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oauth_states_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_connections: {
+        Row: {
+          connected_at: string
+          connected_by: string | null
+          connector: string
+          error: string | null
+          organization_id: string
+          status: string
+          token_expires_at: string | null
+        }
+        Insert: {
+          connected_at?: string
+          connected_by?: string | null
+          connector: string
+          error?: string | null
+          organization_id: string
+          status?: string
+          token_expires_at?: string | null
+        }
+        Update: {
+          connected_at?: string
+          connected_by?: string | null
+          connector?: string
+          error?: string | null
+          organization_id?: string
+          status?: string
+          token_expires_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_connections_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_rate_usage: {
         Row: {
           bucket: string
@@ -2509,6 +2579,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      connector_apps_status: { Args: never; Returns: Json }
       delete_http_secret: {
         Args: { org: string; secret_key: string }
         Returns: undefined
@@ -2582,6 +2653,10 @@ export type Database = {
           support_until: string
           template_key: string
         }[]
+      }
+      platform_set_connector_app: {
+        Args: { client_id: string; client_secret: string; connector: string }
+        Returns: undefined
       }
       platform_set_org_status: {
         Args: { new_status: string; org: string }

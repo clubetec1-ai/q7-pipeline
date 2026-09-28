@@ -17,6 +17,8 @@ export interface Lookups {
   contactFields: Option[];
   /** Tipos de registro (sem o "contato") com os campos, para o bloco Registro. */
   recordTypes: (Option & { fields: { key: string; label: string; sensitive?: boolean }[]; link_contact: boolean })[];
+  /** Conectores prontos conectados (ex.: Bling) com as ações e variáveis de saída. */
+  connectors: { key: string; name: string; actions: { key: string; label: string; outputs: Record<string, string> }[] }[];
 }
 
 const selectCls = "w-full h-9 rounded-md border bg-background px-2 text-sm";
@@ -288,6 +290,30 @@ export function NodeProperties({ type, data, onChange, onDelete, lookups }: {
           </p>
         </>
       )}
+      {type === "connector" && (() => {
+        const c = lookups.connectors.find((x) => x.key === s("connector"));
+        const a = c?.actions.find((x) => x.key === s("connector_action"));
+        return (
+          <>
+            {lookups.connectors.length === 0 && <p className="text-xs text-destructive">Nenhum conector conectado. Conecte em Integrações → Conectores prontos.</p>}
+            <Field label="Sistema">
+              <Pick value={s("connector")} onChange={(v) => set({ connector: v, connector_action: "" })} empty="Escolha"
+                options={lookups.connectors.map((x) => ({ id: x.key, name: x.name }))} />
+            </Field>
+            {c && (
+              <Field label="O que consultar">
+                <Pick value={s("connector_action")} onChange={(v) => set({ connector_action: v })} empty="Escolha"
+                  options={c.actions.map((x) => ({ id: x.key, name: x.label }))} />
+              </Field>
+            )}
+            {a && (
+              <p className="text-xs text-muted-foreground">
+                Usa o telefone do cliente da conversa. Resultado: {Object.entries(a.outputs).map(([k, v]) => `{var.${k}} (${v})`).join(", ")}. Se não achar, segue por “Não deu”.
+              </p>
+            )}
+          </>
+        );
+      })()}
       {type === "record" && (() => {
         const rt = lookups.recordTypes.find((t) => t.id === s("type_id"));
         const mode = s("mode") || "create";

@@ -37,3 +37,6 @@ verify_jwt = false
 
 [functions.payments-cron]
 verify_jwt = false
+
+[functions.connectors-callback]
+verify_jwt = false
