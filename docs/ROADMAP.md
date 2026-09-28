@@ -57,6 +57,36 @@ Objetivo: a ligação cai na mesma tela do WhatsApp.
   fluxos, agentes de IA com prompt e permissões fechadas, respostas rápidas, blocos “Consultar sistema”, horários e
   departamentos. Tudo fica **em rascunho para o dono revisar e publicar** (nada entra no ar sozinho), com registro na
   auditoria e simulador para testar antes.
+- **Entrevistador 2.0: consultoria completa e planejamento estratégico (pedido em 28/09)** — evoluir o entrevistador
+  de “levantamento” para uma consultoria completa, em etapas, que retoma de onde parou:
+  1. **Dados públicos primeiro**: antes de perguntar, busca o que é público (site, redes sociais, Google Meu Negócio,
+     CNPJ/atividade) para já chegar entendendo a empresa e perguntar menos; o dono confirma ou corrige.
+  2. **Cultura da empresa**: se já tem cultura definida e como ela funciona no dia a dia; pede ao dono **missão,
+     visão e valores** (se não tiver, ajuda a escrever).
+  3. **Onde a empresa está agora**: situação atual, números, dores, o que já funciona bem.
+  4. **Resultados que quer buscar**: metas e objetivos (faturamento, atendimento, tempo, custo, crescimento).
+  5. **Mapa de setores**: o dono descreve todos os setores (vendas, financeiro, RH, suporte, operação...), com
+     responsáveis.
+  6. **Processos de cada setor, um a um**: depois de todos os setores mapeados, entra em cada um e pede para
+     descrever cada processo **“como se estivesse ensinando para outra pessoa”** — passo a passo, quem faz, com
+     que ferramenta, quanto tempo, onde trava, exceções. O agente explica esse jeito de descrever e dá exemplo.
+     Pode convidar o responsável do setor para responder a parte dele.
+  7. **Análise**: com todos os setores e processos descritos, separa o que pode ter **melhoria de processo** e o que
+     pode ser **automatizado**.
+  8. **Planejamento estratégico + plano de ação**: documento final com diagnóstico, missão/visão/valores, objetivos,
+     prioridades, plano de ação (o quê, quem, quando) e as sugestões — deixando **os agentes e fluxos configurados em
+     rascunho** pelo implementador, para o dono revisar e publicar.
+  - **Prioridade de custo**: toda automação que dá para fazer **sem IA** (fluxo, regra, resposta rápida, registro,
+    conector) entra **primeiro**; agentes de IA só onde realmente precisam — menos custo e impacto financeiro para a
+    empresa cliente, mais valor entregue.
+  - **Claude nos agentes**: adicionar Anthropic como provedor; **Haiku** para respostas simples (triagem, FAQ,
+    classificação) e **Sonnet** para as complexas (consultoria, planejamento, análise de processos). O entrevistador
+    em si usa Sonnet. Escolha automática por tipo de tarefa, com o dono podendo trocar.
+  - **Estimativa de custo**: com base nos processos mapeados (volume de mensagens/atendimentos por mês, qual agente
+    e modelo cada automação usa), estimar quanto a empresa gastaria por mês com os agentes funcionando (tokens ×
+    preço do modelo, em R$), comparando com o que já faz sem IA — por automação e total, para decidir o que ativar.
+  - Cuidados: dados de cultura/estratégia são sensíveis (só `org.settings`, fora do contexto da IA de atendimento
+    salvo o que o dono liberar); busca pública só de fontes abertas; tudo editável pelo dono; relatório exportável.
 - **Agentes e fluxos prontos + guia de integração (pedido em 28/09)** — separar as automações em dois grupos:
   - **Prontas com o que o CRM já tem** → modelos instaláveis com um clique (em rascunho, para revisar e publicar):
     recepção e triagem por departamento; horário de atendimento com mensagem fora do expediente; FAQ com IA e
