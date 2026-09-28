@@ -12,6 +12,7 @@ import { aiContactContext, contactFieldDefs, setContactField } from "../contact-
 import { companyKnowledge } from "../company.ts";
 import { aiRecordsContext } from "../records.ts";
 import { withMediaText } from "../media-read.ts";
+import { knowledgeContext } from "../knowledge.ts";
 
 const DEFAULT_PROMPT = "Você é um assistente de atendimento simpático e objetivo.";
 const FIELDS: Record<string, { label: string; kind: string }> = {
@@ -96,12 +97,16 @@ export async function runAiAgent(p: {
   const { data: history } = await org.select("messages", "direction, content, media_text, type")
     .eq("ticket_id", ticket.id).order("created_at", { ascending: false }).limit(30);
   const first = String(conv.contact_name ?? "").trim().split(/\s+/)[0];
+  // Base de conhecimento: só documentos liberados para atendimento, do setor do atendimento + empresa toda.
+  const lastIn = String((history ?? []).find((m: { direction: string }) => m.direction === "inbound")?.content ?? "");
+  const docs = await knowledgeContext(admin, orgId, lastIn, "cliente", ticket?.department_id ? [ticket.department_id] : null);
   const system = [
     String(d.prompt || agent.systemPrompt || DEFAULT_PROMPT),
     ticket.protocol ? `Protocolo deste atendimento: ${ticket.protocol}. Informe ao cliente se ele pedir.` : "",
     first ? `Primeiro nome do cliente: ${first}.` : "",
     aiContactContext(defs, contactRow?.custom as Record<string, unknown> | null),
     knowledge,
+    docs,
     recordsCtx,
     tools.length ? "Use as ferramentas só quando o cliente pedir ou quando for claramente necessário. Nunca invente dados." : "",
   ].filter(Boolean).join("\n\n");

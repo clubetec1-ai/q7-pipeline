@@ -2,6 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { HttpError, permissionsIn, requireUser, resolveOrg } from "../_shared/auth.ts";
 import { forOrg } from "../_shared/tenant.ts";
 import { chat, resolveAI } from "../_shared/ai-chat.ts";
+import { knowledgeContext } from "../_shared/knowledge.ts";
 
 /**
  * Ciclo de melhoria contínua — partes com IA:
@@ -87,6 +88,7 @@ Deno.serve(async (req) => {
         `Melhoria: ${parent?.title ?? i.title}`, `Descrição: ${parent?.description ?? i.description ?? ""}`,
         `Como foi implantada: ${parent?.how ?? i.how ?? ""}`,
         `Antes: ${JSON.stringify(parent?.metrics_before ?? {})}`, `Depois: ${JSON.stringify(parent?.metrics_after ?? {})}`,
+        await knowledgeContext(admin, orgId, `${parent?.title ?? i.title} ${i.description ?? ""}`, "interno", i.department_id ? [i.department_id] : null, 2500),
         "Avaliações recentes:", ...(recent ?? []).map((r: { reason: string | null; process_issues: { falha: string }[] }) =>
           `- ${r.reason ?? ""} ${(r.process_issues ?? []).map((p) => p.falha).join("; ")}`),
       ].join("\n").slice(0, 12_000),

@@ -4,6 +4,7 @@ import { forOrg } from "../_shared/tenant.ts";
 import { chat, type ChatMsg, resolveAI } from "../_shared/ai-chat.ts";
 import { SECTIONS, STAGES } from "../_shared/company.ts";
 import { fetchSiteText, lookupCnpj, monthlyCost, USD_BRL } from "../_shared/consulting.ts";
+import { knowledgeContext } from "../_shared/knowledge.ts";
 
 /**
  * Agente entrevistador 2.0 (org.settings): consultoria em etapas com o dono
@@ -171,7 +172,8 @@ Deno.serve(async (req) => {
         '"plano_acao":[{"acao":"","responsavel":"cargo ou setor","prazo":"ex.: semana 1, mês 2"}]}',
         '"volume_mes" = quantas respostas de IA por mês a automação daria (só para tipo "ia"; use os volumes do retrato). "complexidade": simples = triagem, FAQ, classificação; complexa = análise, negociação, textos longos.',
       ].join(" ");
-      const out = await ask(prompt, `O que já existe no CRM:\n${crm}\n\nRetrato da empresa:\n${retrato(24_000, 800)}`, true);
+      const docs = await knowledgeContext(admin, orgId, [sections.setores, sections.objetivos, sections.situacao].filter(Boolean).join(" "), "interno", null, 4000);
+      const out = await ask(prompt, `O que já existe no CRM:\n${crm}\n\nRetrato da empresa:\n${retrato(24_000, 800)}${docs ? `\n\n${docs}` : ""}`, true);
       const autos = (Array.isArray(out.automacoes) ? out.automacoes : []).slice(0, 20).map((a: any) => {
         const tipo = oneOf(a?.tipo, ["sem_ia", "ia", "integracao"] as const, "sem_ia");
         const complexidade = oneOf(a?.complexidade, ["simples", "complexa"] as const, "simples");

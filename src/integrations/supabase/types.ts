@@ -1632,6 +1632,113 @@ export type Database = {
           },
         ]
       }
+      knowledge_chunks: {
+        Row: {
+          content: string
+          doc_id: string
+          id: number
+          ord: number
+          organization_id: string
+          tsv: unknown
+        }
+        Insert: {
+          content: string
+          doc_id: string
+          id?: never
+          ord: number
+          organization_id: string
+          tsv?: unknown
+        }
+        Update: {
+          content?: string
+          doc_id?: string
+          id?: never
+          ord?: number
+          organization_id?: string
+          tsv?: unknown
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_chunks_doc_id_organization_id_fkey"
+            columns: ["doc_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_docs"
+            referencedColumns: ["id", "organization_id"]
+          },
+        ]
+      }
+      knowledge_docs: {
+        Row: {
+          chunks: number
+          created_at: string
+          created_by: string | null
+          department_id: string | null
+          error: string | null
+          file_name: string | null
+          file_path: string | null
+          id: string
+          kind: string
+          mime: string | null
+          organization_id: string
+          size: number | null
+          status: string
+          title: string
+          updated_at: string
+          visibility: string
+        }
+        Insert: {
+          chunks?: number
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          error?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          id?: string
+          kind?: string
+          mime?: string | null
+          organization_id: string
+          size?: number | null
+          status?: string
+          title: string
+          updated_at?: string
+          visibility?: string
+        }
+        Update: {
+          chunks?: number
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          error?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          id?: string
+          kind?: string
+          mime?: string | null
+          organization_id?: string
+          size?: number | null
+          status?: string
+          title?: string
+          updated_at?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_docs_department_fk"
+            columns: ["department_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "knowledge_docs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       library_files: {
         Row: {
           created_at: string
@@ -2916,6 +3023,10 @@ export type Database = {
         Args: { groups: string[]; org: string }
         Returns: Json
       }
+      can_manage_knowledge: {
+        Args: { dept: string; org: string }
+        Returns: boolean
+      }
       claim_inbound_events: {
         Args: { max_rows?: number }
         Returns: {
@@ -3194,6 +3305,21 @@ export type Database = {
       service_put_secret: {
         Args: { secret_name: string; secret_value: string }
         Returns: undefined
+      }
+      service_search_knowledge: {
+        Args: {
+          depts?: string[]
+          lim?: number
+          org: string
+          q: string
+          scope: string
+        }
+        Returns: {
+          content: string
+          kind: string
+          rank: number
+          title: string
+        }[]
       }
       service_ticket_for_inbound: {
         Args: { conv: string; from_me: boolean }
