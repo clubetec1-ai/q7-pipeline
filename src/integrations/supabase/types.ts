@@ -3170,6 +3170,10 @@ export type Database = {
           updated_at: string
         }[]
       }
+      log_report_export: {
+        Args: { kind: string; org: string }
+        Returns: undefined
+      }
       my_invitations: {
         Args: never
         Returns: {
@@ -3232,6 +3236,16 @@ export type Database = {
         Returns: undefined
       }
       publish_flow: { Args: { flow: string }; Returns: number }
+      report: {
+        Args: {
+          dept?: string
+          kind: string
+          org: string
+          since: string
+          until: string
+        }
+        Returns: Json
+      }
       reset_company_profile: { Args: { org: string }; Returns: Json }
       restore_company_profile: { Args: { org: string }; Returns: Json }
       return_ticket_to_ai: {

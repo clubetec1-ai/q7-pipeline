@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import {
-  Activity, BookOpen, Bot, Building2, ChevronDown, ClipboardCheck, ClipboardList, Contact, Library, Megaphone, Menu,
+  Activity, BarChart3, BookOpen, Bot, Building2, ChevronDown, ClipboardCheck, ClipboardList, Contact, Library, Megaphone, Menu,
   MessageSquare, Phone, Plug, RefreshCw, Server, Settings2, ShieldCheck, Target, Trello, UserCog, UsersRound, Wallet, Workflow,
   type LucideIcon,
 } from "lucide-react";
@@ -9,7 +9,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-type Section = "conversas" | "kanban" | "registros" | "cobrancas" | "integracoes" | "equipe" | "numeros" | "fluxos" | "biblioteca" | "diagnostico" | "supervisor" | "avaliacoes" | "campanhas" | "seguranca" | "melhorias" | "conhecimento" | "clientes" | "agente" | "plataforma";
+type Section = "conversas" | "kanban" | "registros" | "cobrancas" | "integracoes" | "equipe" | "numeros" | "fluxos" | "biblioteca" | "diagnostico" | "supervisor" | "avaliacoes" | "campanhas" | "seguranca" | "melhorias" | "conhecimento" | "clientes" | "agente" | "relatorios" | "plataforma";
 interface Item { key: Section; to: string; label: string; icon: LucideIcon; show: boolean }
 
 const base = "px-3 py-1.5 text-sm rounded-md transition inline-flex items-center gap-1.5";
@@ -37,6 +37,7 @@ export function MainNav({ active }: { active: Section }) {
       { key: "campanhas", to: "/campanhas", label: "Campanhas", icon: Megaphone, show: can("campaigns.manage") },
     ] },
     { label: "Gestão", icon: Activity, items: [
+      { key: "relatorios", to: "/relatorios", label: "Relatórios", icon: BarChart3, show: manage || reports || can("conversations.attend") },
       { key: "supervisor", to: "/supervisor", label: "Supervisor", icon: Activity, show: reports },
       { key: "melhorias", to: "/melhorias", label: "Melhorias", icon: RefreshCw, show: manage || reports },
       { key: "avaliacoes", to: "/avaliacoes", label: "Avaliações", icon: ClipboardCheck, show: reports || can("conversations.attend") },

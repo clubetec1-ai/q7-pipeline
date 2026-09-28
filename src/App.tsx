@@ -30,6 +30,7 @@ import Melhorias from "./pages/Melhorias";
 import Conhecimento from "./pages/Conhecimento";
 import Clientes from "./pages/Clientes";
 import Agente from "./pages/Agente";
+import Relatorios from "./pages/Relatorios";
 import Fluxos from "./pages/Fluxos";
 import FlowEditor from "./pages/FlowEditor";
 
@@ -70,6 +71,7 @@ const App = () => (
             <Route path="/conversas" element={<Navigate to="/" replace />} />
             <Route path="/dashboard" element={<Navigate to="/" replace />} />
             <Route path="/agente" element={<ProtectedRoute><Agente /></ProtectedRoute>} />
+            <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
             <Route path="/conectar" element={<Navigate to="/" replace />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

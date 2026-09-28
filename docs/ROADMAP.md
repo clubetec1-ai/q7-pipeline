@@ -160,6 +160,16 @@ Objetivo: a ligação cai na mesma tela do WhatsApp.
   liga/desliga em Fluxos → Chaves de IA; anonimização LGPD apaga. Falta: vídeo, PDF digitalizado (OCR), anexos de
   e-mail.*
 
+## Equipe e organização (pedidos em 29/09)
+- **Gerenciar etiquetas e grupos de clientes** — tela para o dono/admin (e quem tem permissão de grupos) **renomear,
+  excluir, trocar cor e escolher ícone** de cada etiqueta e grupo, ver quantos clientes há em cada um e juntar
+  duplicados. Excluir pede confirmação e só tira a marcação (o cliente continua); grupo sensível continua escondido
+  de quem não pode ver. Ícone aparece junto da cor na lista, na ficha, na fila e nas campanhas.
+- **Chat interno da equipe** — conversa entre as pessoas da empresa dentro do ClubeCRM, separada das conversas com
+  clientes: canais por setor e mensagens diretas, menção com @, anexos, aviso no sino, e “compartilhar
+  atendimento” (link para a conversa do cliente sem expor dados a quem não pode ver). Isolado por empresa (RLS),
+  histórico guardado como o resto (não se apaga pela tela; LGPD: anonimização do funcionário quando sair).
+
 ## Relatórios (pedido em 29/09)
 Aba **Relatórios** com vários tipos, para dar clareza a quem decide e alimentar o ciclo de melhoria. Cada pessoa
 vê só o que o papel permite (atendente: os próprios; supervisor: o setor; dono/admin: tudo). Filtros por
@@ -176,6 +186,10 @@ período, setor, atendente, canal e número; comparação com o período anterio
   opt-out), cobranças (emitidas, pagas, atraso, recebido no mês).
 - **IA e automação:** conversas resolvidas pela IA × passadas para humano, uso e custo estimado da IA, fluxos
   (execuções, onde param), leitura de mídia, base de conhecimento mais consultada.
+
+*Entregue (29/09): aba Relatórios (Gestão) com Atendentes, Qualidade, Operação, Melhorias, Comercial e IA;
+escopo pelo papel no banco; período 7/30/90 dias e setor; comparação com o período anterior; gráficos por hora e dia;
+exportar CSV com auditoria. Falta: PDF, período personalizado, envio automático por e-mail (semanal/mensal).*
 
 ## Disparos (campanhas)
 - Envio em massa para grupos de clientes, escolhendo o número (ex.: um número QR para disparos e o da Meta para
