@@ -285,5 +285,13 @@ Conector nos fluxos, aplicativo do conector cadastrado pelo operador no painel d
      Assim o sistema busca melhorias, implementa, corrige quando precisa e implementa de novo — sempre esperando
      aprovação. Aprovação delegável: o dono define quem aprova por setor.
   Peças que já existem: diagnóstico em etapas, planejamento, implementador (rascunhos), avaliação automática e
-  relatório de melhorias, painel do supervisor. Falta: “melhoria” como item com estado (sugerida → aprovada → no ar →
+  relatório de melhorias, painel do supervisor.
+  *Entregue (29/09): tela Melhorias (Gestão) com colunas Para aprovar → Aprovadas → No ar (medindo) → Resultados;
+  origens: planejamento do diagnóstico (automático ao gerar), avaliações (“Buscar melhorias nas avaliações”, IA
+  agrupa as falhas), correção do monitor e manual; aprova o dono/admin ou o supervisor do setor; “Aprovar e
+  instalar” usa o implementador (rascunho ligado à melhoria); fluxo precisa estar publicado para ir ao ar; métricas
+  antes × depois (atendimentos, fila, 1ª resposta, satisfação, nota, execuções do fluxo); monitor diário dá o
+  resultado e, se não funcionou, cria a correção v2 e avisa no sino; “Ajustar com IA” reescreve o passo a passo com
+  os números e as avaliações. Falta: levar o resultado de volta à etapa do diagnóstico com um clique, escolher
+  aprovador por setor além do supervisor, e métricas próprias por tipo (ex.: taxa de pagamento de cobranças).* Falta: “melhoria” como item com estado (sugerida → aprovada → no ar →
   medindo → resultado), métricas antes/depois por melhoria e o retorno automático para o diagnóstico.

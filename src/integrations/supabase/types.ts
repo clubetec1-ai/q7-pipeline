@@ -1308,6 +1308,121 @@ export type Database = {
           },
         ]
       }
+      improvements: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          artifact_id: string | null
+          artifact_kind: string | null
+          closed_at: string | null
+          created_at: string
+          created_by: string | null
+          department_id: string | null
+          description: string | null
+          discard_reason: string | null
+          how: string | null
+          id: string
+          kind: string
+          live_at: string | null
+          measure_days: number
+          metrics_after: Json | null
+          metrics_before: Json | null
+          modelo: string | null
+          organization_id: string
+          parent_id: string | null
+          result: string | null
+          result_note: string | null
+          sistema: string | null
+          source: string
+          status: string
+          title: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          artifact_id?: string | null
+          artifact_kind?: string | null
+          closed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          description?: string | null
+          discard_reason?: string | null
+          how?: string | null
+          id?: string
+          kind?: string
+          live_at?: string | null
+          measure_days?: number
+          metrics_after?: Json | null
+          metrics_before?: Json | null
+          modelo?: string | null
+          organization_id: string
+          parent_id?: string | null
+          result?: string | null
+          result_note?: string | null
+          sistema?: string | null
+          source?: string
+          status?: string
+          title: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          artifact_id?: string | null
+          artifact_kind?: string | null
+          closed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          description?: string | null
+          discard_reason?: string | null
+          how?: string | null
+          id?: string
+          kind?: string
+          live_at?: string | null
+          measure_days?: number
+          metrics_after?: Json | null
+          metrics_before?: Json | null
+          modelo?: string | null
+          organization_id?: string
+          parent_id?: string | null
+          result?: string | null
+          result_note?: string | null
+          sistema?: string | null
+          source?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "improvements_department_fk"
+            columns: ["department_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "improvements_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "improvements_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "improvements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inbound_events: {
         Row: {
           attempts: number
@@ -2796,6 +2911,7 @@ export type Database = {
     Functions: {
       accept_invitation: { Args: { org: string }; Returns: boolean }
       ai_keys_status: { Args: { org: string }; Returns: Json }
+      approve_improvement: { Args: { improvement: string }; Returns: undefined }
       campaign_audience: {
         Args: { groups: string[]; org: string }
         Returns: Json
@@ -2856,6 +2972,10 @@ export type Database = {
         }
       }
       clear_opt_out: { Args: { contact: string }; Returns: undefined }
+      close_improvement_now: {
+        Args: { improvement: string }
+        Returns: undefined
+      }
       close_ticket: {
         Args: { note?: string; reason: string; ticket: string }
         Returns: {
@@ -2892,8 +3012,23 @@ export type Database = {
         Returns: number
       }
       connector_apps_status: { Args: never; Returns: Json }
+      create_improvement: {
+        Args: {
+          department: string
+          description: string
+          how: string
+          kind: string
+          org: string
+          title: string
+        }
+        Returns: string
+      }
       delete_http_secret: {
         Args: { org: string; secret_key: string }
+        Returns: undefined
+      }
+      discard_improvement: {
+        Args: { improvement: string; reason: string }
         Returns: undefined
       }
       export_contacts: { Args: { org: string }; Returns: Json }
@@ -2913,6 +3048,10 @@ export type Database = {
         Returns: boolean
       }
       heartbeat: { Args: { org: string }; Returns: undefined }
+      link_improvement_artifact: {
+        Args: { aid: string; akind: string; improvement: string }
+        Returns: undefined
+      }
       list_http_secrets: {
         Args: { org: string }
         Returns: {
@@ -3022,6 +3161,15 @@ export type Database = {
         }[]
       }
       seed_pipeline_stages: { Args: { _user_id: string }; Returns: undefined }
+      service_add_improvements: {
+        Args: {
+          items: Json
+          org: string
+          replace_suggested?: boolean
+          src: string
+        }
+        Returns: number
+      }
       service_ai_take: { Args: { org: string }; Returns: boolean }
       service_anonymize_contact: {
         Args: { actor: string; contact: string; org: string; reason: string }
@@ -3133,6 +3281,10 @@ export type Database = {
       }
       set_http_secret: {
         Args: { org: string; secret_key: string; secret_value: string }
+        Returns: undefined
+      }
+      set_improvement_live: {
+        Args: { days?: number; improvement: string }
         Returns: undefined
       }
       set_instance_secret: {

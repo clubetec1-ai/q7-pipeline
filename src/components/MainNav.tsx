@@ -3,7 +3,7 @@ import { ChevronDown } from "lucide-react";
 import { useOrg } from "@/contexts/OrgContext";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-type Section = "conversas" | "kanban" | "registros" | "cobrancas" | "integracoes" | "equipe" | "numeros" | "fluxos" | "biblioteca" | "diagnostico" | "supervisor" | "avaliacoes" | "campanhas" | "seguranca" | "plataforma";
+type Section = "conversas" | "kanban" | "registros" | "cobrancas" | "integracoes" | "equipe" | "numeros" | "fluxos" | "biblioteca" | "diagnostico" | "supervisor" | "avaliacoes" | "campanhas" | "seguranca" | "melhorias" | "plataforma";
 interface Item { key: Section; to: string; label: string; show: boolean }
 
 const base = "px-3 py-1.5 text-sm rounded-md transition inline-flex items-center gap-1";
@@ -27,6 +27,7 @@ export function MainNav({ active }: { active: Section }) {
     ] },
     { label: "Gestão", items: [
       { key: "supervisor", to: "/supervisor", label: "Supervisor", show: reports },
+      { key: "melhorias", to: "/melhorias", label: "Melhorias", show: manage || reports },
       { key: "avaliacoes", to: "/avaliacoes", label: "Avaliações", show: reports || can("conversations.attend") },
       { key: "equipe", to: "/equipe", label: "Equipe", show: can("members.manage") || can("departments.manage") },
     ] },

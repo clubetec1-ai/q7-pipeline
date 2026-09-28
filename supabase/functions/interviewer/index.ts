@@ -209,6 +209,16 @@ Deno.serve(async (req) => {
         plan, plan_at: new Date().toISOString(), suggestions, suggestions_at: new Date().toISOString(), stage: "plano",
       }).eq("organization_id", orgId);
       await admin.from("audit_log").insert({ organization_id: orgId, actor_id: ctx.user.id, action: "interviewer.plan", meta: { automacoes: autos.length } });
+      // Ciclo de melhoria: melhorias e automações do plano entram como sugeridas (as antigas não aprovadas saem).
+      const kindOf = { sem_ia: "automacao", ia: "agente", integracao: "integracao" } as const;
+      await admin.rpc("service_add_improvements", {
+        org: orgId, src: "plano", replace_suggested: true,
+        items: [
+          ...autos.map((a) => ({ title: a.titulo, description: a.descricao, setor: a.setor, kind: kindOf[a.tipo], modelo: a.modelo, sistema: a.sistema,
+            how: a.custo ? `Custo estimado de IA: Groq R$ ${a.custo.groq}/mês · ${a.custo.claude_model} R$ ${a.custo.claude}/mês.` : null })),
+          ...plan.melhorias.map((m) => ({ title: m.titulo, description: m.problema, how: m.como, setor: m.setor, kind: "processo" })),
+        ],
+      });
       return json({ ok: true, plan, suggestions });
     }
 
