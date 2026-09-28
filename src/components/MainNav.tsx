@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import {
   Activity, BarChart3, BookOpen, Bot, Building2, ChevronDown, ClipboardCheck, ClipboardList, Contact, Library, Megaphone, Menu,
-  MessageSquare, Phone, Plug, RefreshCw, Server, Settings2, ShieldCheck, Target, Trello, UserCog, UsersRound, Wallet, Workflow,
+  MessageSquare, Phone, Tags, Plug, RefreshCw, Server, Settings2, ShieldCheck, Target, Trello, UserCog, UsersRound, Wallet, Workflow,
   type LucideIcon,
 } from "lucide-react";
 import { useOrg } from "@/contexts/OrgContext";
@@ -9,7 +9,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-type Section = "conversas" | "kanban" | "registros" | "cobrancas" | "integracoes" | "equipe" | "numeros" | "fluxos" | "biblioteca" | "diagnostico" | "supervisor" | "avaliacoes" | "campanhas" | "seguranca" | "melhorias" | "conhecimento" | "clientes" | "agente" | "relatorios" | "plataforma";
+type Section = "conversas" | "kanban" | "registros" | "cobrancas" | "integracoes" | "equipe" | "numeros" | "fluxos" | "biblioteca" | "diagnostico" | "supervisor" | "avaliacoes" | "campanhas" | "seguranca" | "melhorias" | "conhecimento" | "clientes" | "agente" | "relatorios" | "etiquetas" | "plataforma";
 interface Item { key: Section; to: string; label: string; icon: LucideIcon; show: boolean }
 
 const base = "px-3 py-1.5 text-sm rounded-md transition inline-flex items-center gap-1.5";
@@ -35,6 +35,7 @@ export function MainNav({ active }: { active: Section }) {
       { key: "registros", to: "/registros", label: "Registros", icon: ClipboardList, show: true },
       { key: "cobrancas", to: "/cobrancas", label: "Cobranças", icon: Wallet, show: manage || reports || can("conversations.attend") },
       { key: "campanhas", to: "/campanhas", label: "Campanhas", icon: Megaphone, show: can("campaigns.manage") },
+      { key: "etiquetas", to: "/etiquetas", label: "Etiquetas e grupos", icon: Tags, show: can("library.manage") || can("contacts.groups_manage") },
     ] },
     { label: "Gestão", icon: Activity, items: [
       { key: "relatorios", to: "/relatorios", label: "Relatórios", icon: BarChart3, show: manage || reports || can("conversations.attend") },

@@ -16,6 +16,7 @@ import { ContactRecords } from "./ContactRecords";
 import { RecordForm } from "../registros/RecordForm";
 import type { FieldDef, Values } from "../registros/fields";
 import { ColorDot, cycleColor, nextColor } from "@/components/ColorTag";
+import { TagIcon } from "@/components/TagIcon";
 import { callFunction } from "@/lib/callFunction";
 
 interface Contact {
@@ -23,8 +24,8 @@ interface Contact {
   opted_out_at: string | null;
   custom: Values | null;
 }
-interface Tag { id: string; name: string; color: string | null }
-interface Group { id: string; name: string; sensitive: boolean; color: string | null }
+interface Tag { id: string; name: string; color: string | null; icon?: string | null }
+interface Group { id: string; name: string; sensitive: boolean; color: string | null; icon?: string | null }
 interface Note { id: string; content: string; author_id: string; created_at: string; mentions: string[] }
 interface Person { id: string; name: string }
 
@@ -56,9 +57,9 @@ export function ContactSheet({
     if (!org || !contactId) return;
     const [ct, t, tg, g, gm, n, m] = await Promise.all([
       supabase.from("contacts").select("id, phone, name, email, document, notes, opted_out_at, custom").eq("id", contactId).maybeSingle(),
-      supabase.from("tags").select("id, name, color").eq("organization_id", org.id).order("name"),
+      supabase.from("tags").select("id, name, color, icon").eq("organization_id", org.id).order("name"),
       supabase.from("contact_tags").select("tag_id").eq("contact_id", contactId),
-      supabase.from("contact_groups").select("id, name, sensitive, color").eq("organization_id", org.id).order("name"),
+      supabase.from("contact_groups").select("id, name, sensitive, color, icon").eq("organization_id", org.id).order("name"),
       supabase.from("contact_group_members").select("group_id").eq("contact_id", contactId),
       supabase.from("internal_notes").select("id, content, author_id, created_at, mentions")
         .eq("conversation_id", conversationId).order("created_at"),
@@ -246,7 +247,7 @@ export function ContactSheet({
                     return (
                       <button key={t.id} type="button" onClick={() => toggleTag(t.id, !on)}
                         className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs transition ${on ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted"}`}>
-                        <span className="w-2 h-2 rounded-full" style={{ background: t.color ?? "#94A3B8" }} />{t.name}
+                        {t.icon ? <TagIcon icon={t.icon} color={on ? undefined : t.color} /> : <span className="w-2 h-2 rounded-full" style={{ background: t.color ?? "#94A3B8" }} />}{t.name}
                       </button>
                     );
                   })}
@@ -268,6 +269,7 @@ export function ContactSheet({
                     <Checkbox checked={myGroups.includes(g.id)} disabled={!canGroups}
                       onCheckedChange={(v) => toggleGroup(g.id, !!v)} />
                     <ColorDot color={g.color} onClick={canGroups ? () => recolor("contact_groups", g.id, g.color) : undefined} />
+                    <TagIcon icon={g.icon} color={g.color} />
                     {g.name}
                     {g.sensitive && <Lock className="w-3.5 h-3.5 text-muted-foreground" aria-label="Grupo sensível" />}
                   </label>

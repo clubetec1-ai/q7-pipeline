@@ -154,7 +154,7 @@ export default function Conversas() {
   const [numbers, setNumbers] = useState<Map<string, { name: string; color: string | null }>>(new Map());
   // Cores: setor (departamento) e grupos de clientes (categoria) — a RLS filtra grupos sensíveis.
   const [depts, setDepts] = useState<Map<string, { name: string; color: string | null }>>(new Map());
-  const [contactGroups, setContactGroups] = useState<Map<string, { name: string; color: string | null }[]>>(new Map());
+  const [contactGroups, setContactGroups] = useState<Map<string, { name: string; color: string | null; icon?: string | null }[]>>(new Map());
   const [mailboxes, setMailboxes] = useState<Map<string, string>>(new Map());
   const [numberFilter, setNumberFilter] = useState("");
   const channelKey = (c: Conversation) => (c.channel === "email" ? `e:${c.email_account_id}` : `n:${c.instance_id}`);
@@ -173,11 +173,11 @@ export default function Conversas() {
     supabase.from("departments").select("id, name, color").eq("organization_id", org.id)
       .then(({ data }) => setDepts(new Map((data ?? []).map((d) => [d.id, { name: d.name, color: d.color }]))));
     Promise.all([
-      supabase.from("contact_groups").select("id, name, color").eq("organization_id", org.id),
+      supabase.from("contact_groups").select("id, name, color, icon").eq("organization_id", org.id),
       supabase.from("contact_group_members").select("contact_id, group_id").eq("organization_id", org.id),
     ]).then(([g, gm]) => {
-      const groupById = new Map((g.data ?? []).map((x) => [x.id, { name: x.name, color: x.color }]));
-      const m = new Map<string, { name: string; color: string | null }[]>();
+      const groupById = new Map((g.data ?? []).map((x) => [x.id, { name: x.name, color: x.color, icon: x.icon }]));
+      const m = new Map<string, { name: string; color: string | null; icon?: string | null }[]>();
       for (const r of gm.data ?? []) {
         const grp = groupById.get(r.group_id);
         if (grp) m.set(r.contact_id, [...(m.get(r.contact_id) ?? []), grp]);
@@ -197,7 +197,7 @@ export default function Conversas() {
         {t?.overflow_at && t.status === "queued" && (
           <span className="text-[10px] font-medium text-amber-600 shrink-0" title="Fila parada: outros setores podem assumir">🤝 pedindo ajuda</span>
         )}
-        {gs.slice(0, 2).map((g) => <ColorPill key={g.name} color={g.color} title="Grupo do cliente">{g.name}</ColorPill>)}
+        {gs.slice(0, 2).map((g) => <ColorPill key={g.name} color={g.color} icon={g.icon} title="Grupo do cliente">{g.name}</ColorPill>)}
         {gs.length > 2 && <span className="text-[10px] text-muted-foreground">+{gs.length - 2}</span>}
       </span>
     );
