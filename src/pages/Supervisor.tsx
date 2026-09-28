@@ -65,7 +65,8 @@ export default function Supervisor() {
     const a = Object.assign(document.createElement("a"), { href: url, download: `contatos-${new Date().toISOString().slice(0, 10)}.csv` });
     a.click();
     URL.revokeObjectURL(url);
-    toast({ title: `${res.count ?? 0} contatos exportados`, description: "A exportação ficou registrada na auditoria." });
+    const n = res.count ?? 0;
+    toast({ title: n === 1 ? "1 contato exportado" : `${n} contatos exportados`, description: "A exportação ficou registrada na auditoria." });
   };
 
   const load = useCallback(async () => {
