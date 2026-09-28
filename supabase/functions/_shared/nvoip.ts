@@ -7,6 +7,10 @@ import { getSecret } from "./secrets.ts";
  * comuns e a ação "testar" devolve só os NOMES dos campos (nunca valores).
  */
 export const NVOIP_BASE = "https://api.nvoip.com.br/v3";
+/** Servidor OAuth (o mesmo "Endpoint de token" do painel Nvoip → Desenvolvedor). */
+export const NVOIP_TOKEN_URL = "https://api.nvoip.com.br/auth/oauth2/token";
+/** Escopos marcados na credencial: Ligações – criar e consultar. */
+const SCOPES = "call:make call:query";
 const tokens = new Map<string, { token: string; until: number }>();
 
 export class NvoipError extends Error {}
@@ -20,15 +24,18 @@ export async function nvoipToken(admin: any, orgId: string): Promise<string> {
     getSecret(admin, `org:${orgId}:nvoip_client_secret`),
   ]);
   if (!id || !secret) throw new NvoipError("Credencial da Nvoip não configurada");
-  const res = await fetch(`${NVOIP_BASE}/oauth2/token`, {
+  const res = await fetch(NVOIP_TOKEN_URL, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded", Authorization: `Basic ${btoa(`${id}:${secret}`)}` },
-    body: new URLSearchParams({ grant_type: "client_credentials", client_id: id }).toString(),
+    body: new URLSearchParams({ grant_type: "client_credentials", client_id: id, scope: SCOPES }).toString(),
     signal: AbortSignal.timeout(15_000),
   });
   const body = await res.json().catch(() => ({}));
   const token = body?.access_token;
-  if (!res.ok || !token) throw new NvoipError(`Nvoip recusou a credencial (${res.status})`);
+  if (!res.ok || !token) {
+    const why = body?.error_description ?? body?.error ?? res.status;
+    throw new NvoipError(`Nvoip recusou a credencial (${String(why).slice(0, 80)})`);
+  }
   const ttl = Math.max(60, Number(body?.expires_in) || 3000) - 60;
   tokens.set(orgId, { token, until: Date.now() + ttl * 1000 });
   return token;
