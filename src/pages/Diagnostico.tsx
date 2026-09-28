@@ -210,6 +210,13 @@ export default function Diagnostico() {
                     }}>{installing === `s${i}` ? "Instalando..." : "Instalar (rascunho)"}</Button>
                   )
                 )}
+                {s.tipo === "integracao" && (
+                  <Button size="sm" variant="outline" disabled={!!installing} onClick={async () => {
+                    const r = await callFunction<{ guide_id: string }>("integrations", { action: "draft", organization_id: org.id, suggestion_index: i, system: s.sistema ?? "Sistema", goal: s.titulo });
+                    if (!r.ok) return toast({ variant: "destructive", title: r.message });
+                    navigate(`/integracoes?guia=${r.data.guide_id}`);
+                  }}>Abrir guia de integração</Button>
+                )}
                 {s.passos.length > 0 && (
                   <ol className="list-decimal pl-5 text-xs space-y-0.5">{s.passos.map((p, j) => <li key={j}>{p}</li>)}</ol>
                 )}

@@ -23,6 +23,8 @@ interface OrgRow {
   members: number; numbers: number; mailboxes: number; conversations_30d: number;
   last_activity: string | null; support_until: string | null;
 }
+interface HelpRequest { id: string; organization_id: string; topic: string; message: string; status: string; created_at: string }
+const REQ_STATUS: Record<string, string> = { open: "Novo", in_progress: "Em andamento", done: "Concluído", canceled: "Cancelado" };
 const when = (d: string | null) => (d ? new Date(d).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—");
 
 /** Painel da plataforma (equipe Clubetec): empresas clientes, suporte e suspensão. Só contagens; nada de conversa. */
@@ -37,12 +39,15 @@ export default function Plataforma() {
   const [support, setSupport] = useState<{ org: OrgRow; reason: string; minutes: number } | null>(null);
   const [confirm, setConfirm] = useState<OrgRow | null>(null);
   const [busy, setBusy] = useState(false);
+  const [requests, setRequests] = useState<HelpRequest[]>([]);
 
   const load = useCallback(async () => {
-    const [o, t] = await Promise.all([
+    const [o, t, rq] = await Promise.all([
       supabase.rpc("platform_org_overview"),
       supabase.from("org_templates").select("key, name").eq("active", true).order("name"),
+      supabase.from("service_requests").select("id, organization_id, topic, message, status, created_at").order("created_at", { ascending: false }).limit(100),
     ]);
+    setRequests((rq.data as HelpRequest[]) ?? []);
     setRows((o.data as OrgRow[]) ?? []);
     setTemplates(t.data ?? []);
   }, []);
@@ -150,6 +155,27 @@ export default function Plataforma() {
             </TableBody>
           </Table>
         </div>
+        <section className="space-y-2">
+          <h2 className="font-semibold">Pedidos de ajuda (serviço Clubetec)</h2>
+          {requests.length === 0 && <p className="text-sm text-muted-foreground">Nenhum pedido.</p>}
+          {requests.map((r) => (
+            <div key={r.id} className="rounded-md border p-3 text-sm space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-medium">{rows.find((o) => o.id === r.organization_id)?.name ?? "Empresa"}</span>
+                <span className="text-muted-foreground">· {r.topic} · {when(r.created_at)}</span>
+                <select className="ml-auto h-8 rounded-md border bg-background px-2 text-xs" value={r.status}
+                  onChange={async (e) => {
+                    const { error } = await supabase.rpc("platform_set_request_status", { request: r.id, new_status: e.target.value });
+                    if (error) return toast({ variant: "destructive", title: "Não alterado" });
+                    void load();
+                  }}>
+                  {Object.entries(REQ_STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </div>
+              <p className="whitespace-pre-wrap text-muted-foreground">{r.message}</p>
+            </div>
+          ))}
+        </section>
       </main>
 
       <Dialog open={!!creating} onOpenChange={(o) => !o && setCreating(null)}>

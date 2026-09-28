@@ -1177,6 +1177,62 @@ export type Database = {
           },
         ]
       }
+      integration_guides: {
+        Row: {
+          config: Json
+          created_at: string
+          created_by: string | null
+          flow_id: string | null
+          goal: string
+          guide: Json
+          id: string
+          organization_id: string
+          sample: Json | null
+          status: string
+          system: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          flow_id?: string | null
+          goal: string
+          guide?: Json
+          id?: string
+          organization_id: string
+          sample?: Json | null
+          status?: string
+          system: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          flow_id?: string | null
+          goal?: string
+          guide?: Json
+          id?: string
+          organization_id?: string
+          sample?: Json | null
+          status?: string
+          system?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_guides_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       internal_notes: {
         Row: {
           author_id: string
@@ -1907,6 +1963,54 @@ export type Database = {
           },
         ]
       }
+      service_requests: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          guide_id: string | null
+          id: string
+          message: string
+          organization_id: string
+          status: string
+          topic: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          guide_id?: string | null
+          id?: string
+          message: string
+          organization_id: string
+          status?: string
+          topic: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          guide_id?: string | null
+          id?: string
+          message?: string
+          organization_id?: string
+          status?: string
+          topic?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_requests_guide_id_organization_id_fkey"
+            columns: ["guide_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "integration_guides"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "service_requests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       support_access: {
         Row: {
           created_at: string
@@ -2481,6 +2585,10 @@ export type Database = {
       }
       platform_set_org_status: {
         Args: { new_status: string; org: string }
+        Returns: undefined
+      }
+      platform_set_request_status: {
+        Args: { new_status: string; request: string }
         Returns: undefined
       }
       publish_flow: { Args: { flow: string }; Returns: number }
