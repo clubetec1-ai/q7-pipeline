@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { ArrowLeft, Check, Eraser, Globe, LogOut, Pencil, RotateCcw, Sparkles, Target, Undo2 } from "lucide-react";
+import { ArrowLeft, Check, Eraser, Globe, LogOut, Mic, Paperclip, Pencil, RotateCcw, Sparkles, Square, Target, Undo2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/contexts/OrgContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -46,7 +46,7 @@ const PROC_ASK = [
 ];
 
 interface Proc { nome: string; setor?: string; area?: string; quem_faz?: string; frequencia?: string; tempo?: string; dificuldade?: string; passo_a_passo?: string; como_deveria?: string }
-interface StepState { raw?: string; approved_at?: string; setores?: string[] }
+interface StepState { raw?: string; approved_at?: string; setores?: string[]; attachments?: { id: string; name: string }[] }
 interface Suggestion { titulo: string; tipo: "pronta" | "integracao"; modelo: string | null; sistema: string | null; instalado?: { kind: "flow" | "record_type"; id: string } }
 interface Auto { titulo: string; setor: string; tipo: "sem_ia" | "ia" | "integracao"; descricao: string; impacto: string; esforco: string; custo: { volume: number; groq: number; claude: number; claude_model: string } | null }
 interface Plan {
@@ -79,6 +79,11 @@ export default function Diagnostico() {
   const [busy, setBusy] = useState<string | null>(null);
   const [research, setResearch] = useState({ site: "", cnpj: "" });
   const [copies, setCopies] = useState(0);
+  const [atts, setAtts] = useState<{ id: string; name: string }[]>([]);
+  const [depts, setDepts] = useState<{ id: string; name: string }[]>([]);
+  const [rec, setRec] = useState<{ on: boolean; secs: number }>({ on: false, secs: 0 });
+  const recorder = useRef<MediaRecorder | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
   const { install, busy: installing } = useInstall(org?.id ?? "");
 
   const load = useCallback(async (goTo?: string) => {
@@ -87,7 +92,11 @@ export default function Diagnostico() {
       .select("sections, processes, suggestions, use_in_ai, stage, steps, public_research, plan, plan_at").eq("organization_id", org.id).maybeSingle();
     const p = data ? { ...EMPTY, ...(data as unknown as Profile) } : EMPTY;
     setProfile(p);
-    const { data: n } = await supabase.rpc("company_profile_snapshots_count", { org: org.id });
+    const [{ data: n }, { data: dp }] = await Promise.all([
+      supabase.rpc("company_profile_snapshots_count", { org: org.id }),
+      supabase.from("departments").select("id, name").eq("organization_id", org.id),
+    ]);
+    setDepts(dp ?? []);
     setCopies((n as number | null) ?? 0);
     if (goTo !== undefined) setPage(goTo);
     return p;
@@ -105,7 +114,13 @@ export default function Diagnostico() {
   const outdated = !!profile.plan_at && Object.values(profile.steps).some((s) => s.approved_at && s.approved_at > profile.plan_at!);
 
   // Ao trocar de página: carrega o texto que o dono escreveu (se houver) e limpa a prévia.
-  useEffect(() => { setRaw(profile.steps[page]?.raw ?? ""); setDraft(null); }, [page]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setRaw(profile.steps[page]?.raw ?? ""); setAtts(profile.steps[page]?.attachments ?? []); setDraft(null); }, [page]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Contador enquanto grava.
+  useEffect(() => {
+    if (!rec.on) return;
+    const t = window.setInterval(() => setRec((r) => ({ ...r, secs: r.secs + 1 })), 1000);
+    return () => window.clearInterval(t);
+  }, [rec.on]);
 
   if (!org) return null;
   if (!can("org.settings")) return <Navigate to="/" replace />;
@@ -121,10 +136,55 @@ export default function Diagnostico() {
     if (!data) await supabase.from("company_profiles").insert({ organization_id: org.id });
   };
 
+  const toBase64 = (b: Blob) => new Promise<string>((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(String(r.result).split(",")[1] ?? "");
+    r.onerror = rej;
+    r.readAsDataURL(b);
+  });
+  // Microfone: grava no navegador; ao parar, vira texto (Groq Whisper) e entra na caixa para revisar.
+  const toggleMic = async () => {
+    if (rec.on) { recorder.current?.stop(); return; }
+    let stream: MediaStream;
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+    catch { return toast({ variant: "destructive", title: "Microfone bloqueado", description: "Permita o microfone no navegador para falar." }); }
+    const mr = new MediaRecorder(stream);
+    const chunks: Blob[] = [];
+    mr.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+    mr.onstop = async () => {
+      stream.getTracks().forEach((t) => t.stop());
+      setRec({ on: false, secs: 0 });
+      const blob = new Blob(chunks, { type: mr.mimeType || "audio/webm" });
+      if (blob.size < 2000) return;
+      setBusy("mic");
+      const r = await callFunction<{ text: string }>("interviewer", { action: "transcribe", organization_id: org.id, audio: await toBase64(blob), mime: blob.type });
+      setBusy(null);
+      if (!r.ok) return toast({ variant: "destructive", title: r.message });
+      setRaw((t) => (t.trim() ? `${t.trim()}\n${r.data.text}` : r.data.text));
+    };
+    recorder.current = mr;
+    mr.start();
+    setRec({ on: true, secs: 0 });
+  };
+  // Anexo: vai para a base de conhecimento (setor da página, interno) e é lido ao organizar.
+  const attach = async (file: File) => {
+    if (file.size > 10 * 1024 * 1024) return toast({ variant: "destructive", title: "Arquivo acima de 10 MB" });
+    setBusy("attach");
+    const dept = setor ? depts.find((d) => d.name.toLowerCase() === setor.toLowerCase())?.id ?? null : null;
+    const r = await callFunction<{ id: string; status: string; error?: string }>("knowledge", {
+      action: "upload", organization_id: org.id, title: `${pageLabel(page)} — ${file.name}`, kind: "outro", visibility: "interno",
+      department_id: dept, file_name: file.name, mime: file.type, data: await toBase64(file),
+    });
+    setBusy(null);
+    if (!r.ok) return toast({ variant: "destructive", title: r.message });
+    if (r.data.status === "failed") toast({ variant: "destructive", title: "Guardei, mas não consegui ler o texto", description: r.data.error });
+    setAtts((a) => [...a, { id: r.data.id, name: file.name }]);
+  };
+
   const organize = async () => {
     setBusy("format");
     const r = await callFunction<{ secoes?: Record<string, string>; processos?: Proc[]; setores?: string[]; faltando: string[] }>(
-      "interviewer", { action: "format", organization_id: org.id, step: setor ? "processos" : page, setor, text: raw });
+      "interviewer", { action: "format", organization_id: org.id, step: setor ? "processos" : page, setor, text: raw, docs: atts.map((a) => a.id) });
     setBusy(null);
     if (!r.ok) return toast({ variant: "destructive", title: r.message });
     setDraft(r.data);
@@ -135,7 +195,7 @@ export default function Diagnostico() {
     if (!draft) return;
     setBusy("approve");
     await ensureRow();
-    const steps = { ...profile.steps, [page]: { raw, approved_at: new Date().toISOString(), ...(draft.setores ? { setores: draft.setores } : {}) } };
+    const steps = { ...profile.steps, [page]: { raw, attachments: atts, approved_at: new Date().toISOString(), ...(draft.setores ? { setores: draft.setores } : {}) } };
     const patch: Record<string, unknown> = { steps, stage: next.startsWith("proc:") ? "processos" : next === "plano" ? "plano" : next };
     if (draft.secoes) patch.sections = { ...profile.sections, ...Object.fromEntries(Object.entries(draft.secoes).filter(([, v]) => v.trim())) };
     if (setor && draft.processos) {
@@ -294,9 +354,27 @@ export default function Diagnostico() {
                 <>
                   <Textarea rows={draft ? 5 : 12} value={raw} onChange={(e) => setRaw(e.target.value)} maxLength={12000}
                     placeholder={setor ? "Ex.: 1. O cliente pede orçamento no WhatsApp. 2. O vendedor confere o estoque na planilha..." : "Escreva do seu jeito, sem se preocupar com a forma. A IA organiza para você revisar."} />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button type="button" variant={rec.on ? "destructive" : "outline"} size="sm" disabled={busy === "mic"} onClick={toggleMic}
+                      title={rec.on ? "Parar e transformar em texto" : "Falar em vez de escrever"}>
+                      {rec.on ? <><Square className="w-4 h-4 mr-1" /> Parar ({Math.floor(rec.secs / 60)}:{String(rec.secs % 60).padStart(2, "0")})</>
+                        : <><Mic className="w-4 h-4 mr-1" /> {busy === "mic" ? "Transcrevendo..." : "Falar"}</>}
+                    </Button>
+                    <Button type="button" variant="outline" size="sm" disabled={busy === "attach"} onClick={() => fileInput.current?.click()} title="Anexar contrato, planilha, manual...">
+                      <Paperclip className="w-4 h-4 mr-1" /> {busy === "attach" ? "Lendo..." : "Anexar"}
+                    </Button>
+                    <input ref={fileInput} type="file" className="hidden" accept=".pdf,.docx,.xlsx,.csv,.txt,.md"
+                      onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void attach(f); }} />
+                    {atts.map((a) => (
+                      <span key={a.id} className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs">
+                        <Paperclip className="w-3 h-3" />{a.name}
+                        <button type="button" title="Tirar desta etapa (continua na base de conhecimento)" onClick={() => setAtts((x) => x.filter((y) => y.id !== a.id))}><X className="w-3 h-3" /></button>
+                      </span>
+                    ))}
+                  </div>
                   <div className="flex flex-wrap gap-2">
                     {prev && <Button variant="ghost" onClick={() => setPage(prev)}><ArrowLeft className="w-4 h-4 mr-1" /> Voltar</Button>}
-                    <Button variant={draft ? "outline" : "default"} disabled={busy === "format" || raw.trim().length < 10} onClick={organize}>
+                    <Button variant={draft ? "outline" : "default"} disabled={busy === "format" || (raw.trim().length < 10 && !atts.length)} onClick={organize}>
                       <Sparkles className="w-4 h-4 mr-1" /> {busy === "format" ? "Organizando..." : draft ? "Organizar de novo" : "Organizar com IA"}
                     </Button>
                   </div>

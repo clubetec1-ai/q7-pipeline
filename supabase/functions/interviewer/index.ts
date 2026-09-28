@@ -1,10 +1,11 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { HttpError, requirePermission, requireUser, resolveOrg } from "../_shared/auth.ts";
 import { forOrg } from "../_shared/tenant.ts";
-import { chat, type ChatMsg, resolveAI } from "../_shared/ai-chat.ts";
+import { chat, type ChatMsg, providerKey, resolveAI } from "../_shared/ai-chat.ts";
 import { SECTIONS, STAGES } from "../_shared/company.ts";
 import { fetchSiteText, lookupCnpj, monthlyCost, USD_BRL } from "../_shared/consulting.ts";
 import { knowledgeContext } from "../_shared/knowledge.ts";
+import { transcribeAudio } from "../_shared/transcribe.ts";
 
 /**
  * Agente entrevistador 2.0 (org.settings): consultoria em etapas com o dono
@@ -48,7 +49,7 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const action = String(body?.action ?? "");
-    if (!["message", "suggest", "research", "plan", "format"].includes(action)) throw new HttpError(400, "Ação inválida");
+    if (!["message", "suggest", "research", "plan", "format", "transcribe"].includes(action)) throw new HttpError(400, "Ação inválida");
     const ctx = await requireUser(req);
     const orgId = await resolveOrg(ctx, body?.organization_id);
     await requirePermission(ctx, orgId, "org.settings");
@@ -57,6 +58,20 @@ Deno.serve(async (req) => {
 
     const { data: allowed } = await admin.rpc("service_ai_take", { org: orgId });
     if (allowed === false) throw new HttpError(429, "Muitas chamadas de IA agora. Tente em um minuto.");
+
+    // Falar em vez de escrever: áudio gravado no navegador → texto (Whisper da Groq). Nada é guardado.
+    if (action === "transcribe") {
+      const b64 = String(body?.audio ?? "");
+      if (!b64 || b64.length > 14_000_000) throw new HttpError(413, "Áudio vazio ou longo demais (até uns 10 minutos).");
+      const key = await providerKey(admin, orgId, "groq");
+      if (!key) throw new HttpError(409, "Para usar o microfone, cadastre a chave da Groq em Fluxos → Chaves de IA.");
+      let bytes: Uint8Array;
+      try { bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)); } catch { throw new HttpError(400, "Áudio inválido"); }
+      const ext = /mp4|m4a/.test(String(body?.mime ?? "")) ? "m4a" : /ogg/.test(String(body?.mime ?? "")) ? "ogg" : "webm";
+      const text = await transcribeAudio(key, bytes, `fala.${ext}`);
+      if (!text) throw new HttpError(502, "Não consegui entender o áudio. Tente falar de novo, mais perto do microfone.");
+      return json({ ok: true, text });
+    }
 
     const { data: orgRow } = await admin.from("organizations").select("name, settings").eq("id", orgId).maybeSingle();
     const settings = (orgRow?.settings ?? {}) as Record<string, any>;
@@ -230,7 +245,16 @@ Deno.serve(async (req) => {
     if (action === "format") {
       const stepKey = String(body?.step ?? "");
       const raw = clip(body?.text, 12_000);
-      if (raw.length < 10) throw new HttpError(400, "Escreva um pouco mais antes de organizar.");
+      // Anexos da etapa (documentos da base desta empresa): o texto entra na organização.
+      const docIds = (Array.isArray(body?.docs) ? body.docs : []).map(String).filter((x: string) => /^[0-9a-f-]{36}$/i.test(x)).slice(0, 10);
+      let anexos = "";
+      if (docIds.length) {
+        const { data: ch } = await admin.from("knowledge_chunks").select("content, doc_id, ord").eq("organization_id", orgId)
+          .in("doc_id", docIds).order("ord").limit(40);
+        anexos = (ch ?? []).map((c: { content: string }) => c.content).join("\n\n").slice(0, 8000);
+      }
+      const extra = anexos ? `\n\nDocumentos anexados pelo dono nesta etapa (use como fonte; não copie dados pessoais):\n${anexos}` : "";
+      if (raw.length < 10 && !docIds.length) throw new HttpError(400, "Escreva, fale ou anexe algo antes de organizar.");
       if (stepKey === "processos") {
         const setor = clip(body?.setor, 80);
         if (!setor) throw new HttpError(400, "Setor não informado");
@@ -239,7 +263,7 @@ Deno.serve(async (req) => {
           "Separe cada processo e escreva o passo a passo numerado, claro e fiel ao que ele disse (não invente passos). " +
           "Se ele contou como DEVERIA funcionar, registre em como_deveria. Em faltando, até 3 perguntas curtas sobre o que ficou vago (quem faz, tempo, ferramenta, onde trava). " +
           'Responda SOMENTE com JSON: {"processos":[{"nome":"","quem_faz":"","frequencia":"","tempo":"","dificuldade":"onde trava","passo_a_passo":"1. ...\n2. ...","como_deveria":""}],"faltando":[""]}',
-          `Empresa: ${orgRow?.name ?? ""}\nSetores: ${sections.setores ?? ""}\n\nO que o dono escreveu sobre o setor ${setor}:\n${raw}`,
+          `Empresa: ${orgRow?.name ?? ""}\nSetores: ${sections.setores ?? ""}\n\nO que o dono escreveu sobre o setor ${setor}:\n${raw}${extra}`,
         );
         const processos = (Array.isArray(out.processos) ? out.processos : []).slice(0, 20).map((p: any) => {
           const item = Object.fromEntries(PROC_KEYS.map((k) => [k, clip(p?.[k], k === "passo_a_passo" || k === "como_deveria" ? 3000 : 300)])) as Record<string, string>;
@@ -259,7 +283,7 @@ Deno.serve(async (req) => {
         "Em faltando, até 3 perguntas curtas sobre o que ficou vago ou faltou para esta etapa. " +
         (stepKey === "setores" ? 'Em "setores_lista", liste só os nomes dos setores citados. ' : "") +
         `Responda SOMENTE com JSON: {"secoes":{${keys.map((k) => `"${k}":""`).join(",")}},${stepKey === "setores" ? '"setores_lista":[""],' : ""}"faltando":[""]}`,
-        `Empresa: ${orgRow?.name ?? ""}\n${stepKey === "empresa" && profile.public_research?.resumo ? `Dados públicos encontrados: ${profile.public_research.resumo}\n` : ""}\nO que o dono escreveu:\n${raw}`,
+        `Empresa: ${orgRow?.name ?? ""}\n${stepKey === "empresa" && profile.public_research?.resumo ? `Dados públicos encontrados: ${profile.public_research.resumo}\n` : ""}\nO que o dono escreveu:\n${raw}${extra}`,
       );
       const secoes: Record<string, string> = {};
       for (const k of keys) secoes[k] = clip((out.secoes as Record<string, unknown> | undefined)?.[k], 8000);

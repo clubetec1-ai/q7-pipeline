@@ -318,6 +318,9 @@ Conector nos fluxos, aplicativo do conector cadastrado pelo operador no painel d
   pode voltar a qualquer página. Nos processos, “como funciona hoje” e “como deveria funcionar”. Depois de aprovar,
   gera as melhorias e o plano de ação. Botão “Recomeçar diagnóstico” (com desfazer) para quando a empresa mudar o
   jeito de trabalhar ou os dados estiverem incompletos.
+  **Falar e anexar no diagnóstico (pedido em 29/09):** em cada etapa e em cada setor, o dono pode clicar no
+  microfone e falar (vira texto para revisar) e anexar documentos (contratos, planilhas, manuais, processos), que
+  entram na base de conhecimento do setor como internos e são lidos ao organizar a etapa.
   **Editar só uma etapa (pedido em 28/09):** além de recomeçar tudo, reabrir e reaprovar só a etapa/setor que mudou
   (ex.: financeiro adotou outra prática) ou refazer só ela; ao reaprovar, o retrato muda na hora, a IA de atendimento
   e os agentes passam a usar a nova forma e o planejamento fica marcado como desatualizado.
