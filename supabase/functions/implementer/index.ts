@@ -141,7 +141,9 @@ Deno.serve(async (req) => {
         g.link(bh, "closed", closed);
       } else if (key === "faq_ia") {
         const agent = g.add("ai_agent", {
-          prompt: s(t.prompt, "Você é o assistente virtual da empresa. Responda dúvidas com base nas informações da empresa. Se não souber ou o cliente pedir, passe para um atendente."),
+          // {nome} só é trocado em mensagens; no prompt a IA já recebe o primeiro nome do cliente.
+          prompt: s(t.prompt, "Você é o assistente virtual da empresa. Responda dúvidas com base nas informações da empresa. Se não souber ou o cliente pedir, passe para um atendente.")
+            .replaceAll("{nome}", "o primeiro nome do cliente"),
           intro: s(t.apresentacao, "Olá! Sou o assistente virtual. Posso ajudar com suas dúvidas."),
           max_turns: 10, handoff_words: ["atendente", "humano", "pessoa"], allow_departments: deptList.map((d) => d.id),
         });
