@@ -88,6 +88,12 @@ export const BLOCKS: BlockDef[] = [
     },
   },
   {
+    type: "record", label: "Registro", color: "#0F766E",
+    outputs: () => [{ id: "success", label: "Deu certo" }, { id: "error", label: "Não deu" }],
+    defaults: () => ({ mode: "create", type_id: "", values: {} }),
+    summary: (d) => ({ create: "Cria registro", update: "Atualiza o último registro", read: "Consulta o último registro" } as Record<string, string>)[str(d.mode) || "create"],
+  },
+  {
     type: "tag", label: "Etiqueta", color: "#64748B",
     outputs: () => [{ id: "next", label: "Depois" }],
     defaults: () => ({ tag_id: "", remove: false }),

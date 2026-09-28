@@ -134,6 +134,21 @@ Deno.test("pesquisa: nota, comentario e resposta invalida", () => {
   assertEquals(advance(g, "p", "6", { ...ctx, vars: ask.vars }).passthrough, true);
 });
 
+Deno.test("registro: para para o executor gravar e segue por success/error", () => {
+  const g: FlowGraph = {
+    nodes: [
+      { id: "r", type: "record", data: { type_id: "T", mode: "read" } },
+      { id: "ok", type: "message", data: { text: "Pedido {var.reg_situacao}" } },
+      { id: "no", type: "message", data: { text: "Não achei" } },
+    ],
+    edges: [{ source: "r", sourceHandle: "success", target: "ok" }, { source: "r", sourceHandle: "error", target: "no" }],
+  };
+  assertEquals(advance(g, "r", null, ctx).state, "record");
+  assertEquals(advance(g, "r", null, { ...ctx, vars: { reg_situacao: "enviado" }, recordResult: "success" }).actions[0],
+    { type: "send", text: "Pedido enviado" });
+  assertEquals(advance(g, "r", null, { ...ctx, recordResult: "error" }).actions[0], { type: "send", text: "Não achei" });
+});
+
 Deno.test("http: para para o executor chamar e segue por success/error", () => {
   const g: FlowGraph = {
     nodes: [

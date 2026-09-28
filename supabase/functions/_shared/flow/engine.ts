@@ -23,6 +23,8 @@ export interface FlowCtx {
   timerFired?: boolean;
   /** Resultado da chamada do bloco HTTP em que o run parou (o executor chamou). */
   httpResult?: "success" | "error";
+  /** Resultado do bloco Registro em que o run parou (o executor gravou/leu). */
+  recordResult?: "success" | "error";
   businessHours?: Record<string, { start: string; end: string }[]>; // "0".."6"
 }
 
@@ -41,7 +43,7 @@ export interface FlowResult {
   actions: FlowAction[];
   steps: { nodeId: string; outcome: string }[];
   currentNodeId: string | null;
-  state: "waiting_input" | "waiting_timer" | "ai" | "http" | "done" | "error";
+  state: "waiting_input" | "waiting_timer" | "ai" | "http" | "record" | "done" | "error";
   vars: Record<string, string>;
   attempts: number;
   aiTurns: number;
@@ -154,10 +156,13 @@ export function advance(graph: FlowGraph, nodeId: string, input: string | null, 
   let pending = input;
   let fired = !!ctx0.timerFired; // vale só para o bloco em que o run parou
   let http = ctx0.httpResult;
+  let rec = ctx0.recordResult;
   for (let i = 0; i < MAX_STEPS; i++) {
     const node = current ? byId.get(current) : undefined;
     const timer = fired;
     const httpDone = http;
+    const recDone = rec;
+    rec = undefined;
     fired = false;
     http = undefined;
     if (!node) {
@@ -229,6 +234,10 @@ export function advance(graph: FlowGraph, nodeId: string, input: string | null, 
         if (httpDone) { handle = httpDone; break; }
         steps.push({ nodeId: node.id, outcome: "call" });
         return finish("http", node.id);
+      case "record":
+        if (recDone) { handle = recDone; break; }
+        steps.push({ nodeId: node.id, outcome: "call" });
+        return finish("record", node.id);
       case "survey": {
         const [min, max] = d.kind === "nps" ? [0, 10] : [1, 5];
         const stage = ctx.vars.__sv;

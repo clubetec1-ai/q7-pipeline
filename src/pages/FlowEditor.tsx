@@ -45,7 +45,7 @@ export default function FlowEditor() {
   const [selected, setSelected] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [lookups, setLookups] = useState<Lookups>({ departments: [], tags: [], groups: [], closeReasons: [], stages: [], secrets: [], files: [], contactFields: [] });
+  const [lookups, setLookups] = useState<Lookups>({ departments: [], tags: [], groups: [], closeReasons: [], stages: [], secrets: [], files: [], contactFields: [], recordTypes: [] });
   const [simOpen, setSimOpen] = useState(false);
   const [active, setActive] = useState<string | null>(null);
   const [period, setPeriod] = useState(0);
@@ -67,7 +67,7 @@ export default function FlowEditor() {
 
   const load = useCallback(async () => {
     if (!id || !org) return;
-    const [{ data: flow }, { data: versions }, d, t, g, cr, st, sc, lf, cf] = await Promise.all([
+    const [{ data: flow }, { data: versions }, d, t, g, cr, st, sc, lf, cf, rts] = await Promise.all([
       supabase.from("flows").select("name").eq("id", id).eq("organization_id", org.id).maybeSingle(),
       supabase.from("flow_versions").select("id, status, version, graph").eq("flow_id", id).in("status", ["draft", "published"]),
       supabase.from("departments").select("id, name").eq("organization_id", org.id).order("name"),
@@ -78,6 +78,7 @@ export default function FlowEditor() {
       supabase.rpc("list_http_secrets", { org: org.id }),
       supabase.from("library_files").select("id, name").eq("organization_id", org.id).order("name"),
       supabase.from("record_types").select("fields").eq("organization_id", org.id).eq("key", "contato").maybeSingle(),
+      supabase.from("record_types").select("id, name, fields, link_contact").eq("organization_id", org.id).neq("key", "contato").order("name"),
     ]);
     if (!flow) return;
     setName(flow.name);
@@ -86,6 +87,7 @@ export default function FlowEditor() {
       closeReasons: cr.data ?? [], stages: st.data ?? [], secrets: (sc.data ?? []).map((x) => x.name), files: lf.data ?? [],
       contactFields: ((cf.data?.fields ?? []) as unknown as { key: string; label: string; sensitive?: boolean }[])
         .filter((f) => !f.sensitive).map((f) => ({ id: `custom:${f.key}`, name: `${f.label} (campo do contato)` })),
+      recordTypes: ((rts.data ?? []) as unknown as Lookups["recordTypes"]),
     });
     const draft = versions?.find((v) => v.status === "draft");
     const pub = versions?.find((v) => v.status === "published");

@@ -9,8 +9,7 @@ botão “testar” e mensagens claras. Só integrações complexas ficam com o 
 Mais receita, menos suporte.
 
 ## Próximos (a combinar)
-Sugestão: bloco “Registro” nos fluxos (criar/atualizar pedidos e contas) → integrações com várias chamadas e
-OAuth (ex.: Bling v3) como conectores prontos → cobrança: Mercado Pago/Efí, IA gerando cobrança (com permissão), cobrança
+Sugestão: integrações com várias chamadas e OAuth (ex.: Bling v3) como conectores prontos → cobrança: Mercado Pago/Efí, IA gerando cobrança (com permissão), cobrança
 recorrente e ligação com “Conta a receber”.
 Registros: falta criar/atualizar registro a partir do fluxo e da IA (bloco próprio) — entra com o implementador. Pendências técnicas: revisão de grants por coluna nas tabelas antigas (tarefa separada);
 login com segundo fator (MFA) para dono/admin/operador.
@@ -121,7 +120,8 @@ escritos pela IA a partir do Diagnóstico; nunca publica sozinho), cobrança pel
 tela com webhook automático, botão Cobrar na conversa com link + PIX copia e cola, status automático, aviso de
 pagamento, lembretes antes/depois do vencimento, tela Cobranças), guia de integração (tela Integrações: a IA
 monta o passo a passo, chave no cofre, teste real obrigatório, escolha dos campos, fluxo em rascunho; detecta
-integração complexa e oferece “Pedir ajuda ao time Clubetec”, que aparece no painel da Plataforma).
+integração complexa e oferece “Pedir ajuda ao time Clubetec”, que aparece no painel da Plataforma), bloco Registro nos fluxos (criar / atualizar o último / consultar o último
+registro do cliente, com saídas Deu certo × Não deu) e IA vendo os registros liberados do cliente (só “IA pode ler”).
 
 ## Visual
 - Trocar logo e ícone da aba (nome “Clube” junto do logo, em cima).

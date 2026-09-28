@@ -53,7 +53,14 @@ export function Simulator({ graph, lookups, onActive }: {
     let r: FlowResult = advance(graph, node, input, ctx);
     const out = r.actions.map(describe);
     // Bloco HTTP: no simulador usa a resposta de exemplo (nunca chama o sistema de verdade).
-    for (let hops = 0; r.state === "http" && hops < 10; hops++) {
+    for (let hops = 0; (r.state === "http" || r.state === "record") && hops < 10; hops++) {
+      if (r.state === "record") {
+        // No simulador nada é gravado: segue por "Deu certo" (consulta sem dados reais).
+        out.push({ from: "sys", text: "Registro: simulado (nada é gravado; consulta não traz dados reais)." });
+        r = advance(graph, r.currentNodeId!, null, { ...ctx, timerFired: false, attempts: r.attempts, aiTurns: r.aiTurns, vars: r.vars, recordResult: "success" });
+        out.push(...r.actions.map(describe));
+        continue;
+      }
       const n = graph.nodes.find((x) => x.id === r.currentNodeId);
       let body: unknown = null;
       let ok = true;

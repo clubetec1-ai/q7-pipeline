@@ -15,6 +15,8 @@ export interface Lookups {
   closeReasons: Option[]; stages: Option[]; secrets: string[]; files: Option[];
   /** Campos personalizados do contato: id = "custom:<chave>" (sensíveis já fora). */
   contactFields: Option[];
+  /** Tipos de registro (sem o "contato") com os campos, para o bloco Registro. */
+  recordTypes: (Option & { fields: { key: string; label: string; sensitive?: boolean }[]; link_contact: boolean })[];
 }
 
 const selectCls = "w-full h-9 rounded-md border bg-background px-2 text-sm";
@@ -223,6 +225,7 @@ export function NodeProperties({ type, data, onChange, onDelete, lookups }: {
           <Field label="Finalizar com o motivo"><Checks options={lookups.closeReasons} value={list(data.allow_close_reasons)} onChange={(v) => set({ allow_close_reasons: v })} /></Field>
           <Field label="Mover no funil para"><Checks options={lookups.stages} value={list(data.allow_stages)} onChange={(v) => set({ allow_stages: v })} /></Field>
           <Field label="Enviar arquivos da biblioteca"><Checks options={lookups.files} value={list(data.allow_files)} onChange={(v) => set({ allow_files: v })} /></Field>
+          <Field label="Registros que a IA pode ver do cliente"><Checks options={lookups.recordTypes.filter((t) => t.link_contact)} value={list(data.allow_record_types)} onChange={(v) => set({ allow_record_types: v })} /></Field>
           <Field label="Guardar na ficha"><Checks options={[...FIELD_OPTIONS, ...lookups.contactFields]} value={list(data.allow_fields)} onChange={(v) => set({ allow_fields: v })} /></Field>
           <p className="text-xs text-muted-foreground">Nada marcado = a IA só conversa. Cada ação é conferida pelo sistema e fica registrada.</p>
         </>
@@ -285,6 +288,39 @@ export function NodeProperties({ type, data, onChange, onDelete, lookups }: {
           </p>
         </>
       )}
+      {type === "record" && (() => {
+        const rt = lookups.recordTypes.find((t) => t.id === s("type_id"));
+        const mode = s("mode") || "create";
+        const values = (data.values as Record<string, string> | undefined) ?? {};
+        return (
+          <>
+            <Field label="Tipo de registro">
+              <Pick value={s("type_id")} onChange={(v) => set({ type_id: v, values: {} })} empty="Escolha" options={lookups.recordTypes} />
+            </Field>
+            <Field label="O que fazer">
+              <Pick value={mode} onChange={(v) => set({ mode: v })} options={[
+                { id: "create", name: "Criar um registro" }, { id: "update", name: "Atualizar o último registro do cliente" },
+                { id: "read", name: "Consultar o último registro do cliente" },
+              ]} />
+            </Field>
+            {rt && mode !== "read" && rt.fields.map((f) => (
+              <Field key={f.key} label={f.label}>
+                <Input value={values[f.key] ?? ""} maxLength={500} placeholder={mode === "update" ? "vazio = não mexe" : "ex.: {var.pedido}"}
+                  onChange={(e) => set({ values: { ...values, [f.key]: e.target.value } })} />
+              </Field>
+            ))}
+            {rt && mode === "read" && (
+              <p className="text-xs text-muted-foreground">
+                Os campos viram variáveis: {rt.fields.filter((f) => !f.sensitive).map((f) => `{var.reg_${f.key}}`).join(", ")}. Campos sensíveis não viram variável.
+              </p>
+            )}
+            {rt && !rt.link_contact && mode !== "create" && (
+              <p className="text-xs text-destructive">Este tipo não é ligado a contato: só dá para criar.</p>
+            )}
+            <p className="text-xs text-muted-foreground">Use {"{nome}"}, {"{protocolo}"} e {"{var.nome}"} (respostas de perguntas e consultas). Valor inválido segue por “Não deu”.</p>
+          </>
+        );
+      })()}
       {type === "tag" && (
         <>
           <Field label="Etiqueta"><Pick value={s("tag_id")} onChange={(v) => set({ tag_id: v })} empty="Escolha" options={lookups.tags} /></Field>
