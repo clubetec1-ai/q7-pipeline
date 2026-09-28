@@ -2,6 +2,11 @@
 
 Lista viva. Cada item vira spec/plano em `docs/superpowers/` quando começar.
 Regra de sempre: isolamento entre organizações, segredos no Vault, testes em `supabase/tests/isolation.sql`.
+**LGPD e segurança em tudo (reforçado em 28/09):** nenhuma informação de uma empresa pode vazar para outra nem
+para fora — dados mínimos no contexto da IA, dados sensíveis marcados, gravações/transcrições/análises com acesso por
+papel, retenção definida, aviso ao cliente final quando houver gravação ou análise, e direito de exclusão/anonimização.
+**Interface simples e funcional:** cada tela nova com o mínimo de cliques, visual claro (cores, etiquetas) e
+sem opções escondidas que exijam suporte.
 
 **Princípio do produto:** o dono da empresa cliente faz praticamente tudo sozinho pela tela (conectar números e
 e-mails, montar fluxos e agentes, instalar automações prontas, seguir guias de integração) — com modelos, presets,
@@ -38,6 +43,11 @@ Objetivo: a ligação cai na mesma tela do WhatsApp.
 - **Transcrição da ligação** em tempo real ou ao final, gravada no histórico do atendimento.
 - **Confirmação do número**: o atendente pede para o cliente repetir/confirmar o número de WhatsApp e, ainda durante
   a ligação, o CRM envia um “olá” pelo WhatsApp para continuar o atendimento por lá.
+- **Agentes de voz (pedido em 28/09)**: agente de IA que atende a ligação e faz a triagem (entende o motivo,
+  encaminha ao setor certo, resolve o simples), ou só uma automação sem IA (menu/URA), para custar menos.
+- **Fluxos dentro da ligação**: o mesmo editor de fluxos vale para voz — menu por tecla ou fala, horário, fila,
+  transferir para setor/pessoa, recado, consultar sistema, mandar WhatsApp durante a ligação.
+- **Gravações e transcrições** com melhoria de texto (pontuação, quem falou), no histórico do atendimento.
 - Cuidados: aviso de gravação/transcrição (LGPD), retenção do áudio, permissão por papel, custo por minuto.
 
 ## IA
@@ -124,6 +134,39 @@ Objetivo: a ligação cai na mesma tela do WhatsApp.
 - Nova conversa iniciada pelo atendente com modelo aprovado (spec números §10).
 
 ## Contatos e atendimento
+- **Avaliação automática do atendimento em todos os canais (pedido em 28/09)** — no lugar da pesquisa de
+  satisfação (que continua opcional), ao finalizar o atendimento a IA lê o histórico (conversa, e-mail, transcrição
+  da ligação, tempos de espera e resposta, transferências) e:
+  - conclui se o cliente saiu **satisfeito ou não** e gera uma **nota para o atendente** (com o motivo);
+  - gera **feedback de melhoria para o atendente** (o que fez bem, o que melhorar);
+  - aponta **falhas de processo** (ex.: demora por falta de informação, transferência errada, política confusa) e
+    sugere a melhoria;
+  - o **supervisor** gera um relatório com as melhorias acumuladas e **como implementá-las** (ligado ao
+    planejamento do entrevistador 2.0 e ao implementador) — a empresa evoluindo sempre.
+  - Cuidados: nota visível só ao próprio atendente e à supervisão; o atendente pode ver o motivo; modelo barato
+    (Haiku) e só em atendimentos finalizados; nada de dado sensível no relatório.
+- **Outros setores ajudando no atendimento (pedido em 28/09)** — quando o setor não tem ninguém disponível ou
+  todos estão ocupados, o atendimento pode ser visto e assumido por outro setor (regra de transbordo por setor:
+  quais setores ajudam, depois de quanto tempo de espera), e setores podem interagir na conversa (nota interna,
+  pedir ajuda, convidar) — o atendimento ao cliente sempre em primeiro lugar. Respeita permissões e visibilidade.
+- **Protocolo em todo atendimento, em todos os canais (pedido em 28/09)** — WhatsApp, e-mail e voz geram o
+  protocolo logo no início (hoje já existe no atendimento; estender a e-mail e voz de forma uniforme). Na voz, o
+  atendente informa o protocolo ou a própria IA/URA fala o número; nos outros canais vai na mensagem. O protocolo
+  fica **anexado ao cliente** (ficha → histórico de protocolos de todos os canais) para buscas futuras.
+- **Busca de conversas** — por protocolo, cliente, telefone/e-mail, texto da mensagem/transcrição, canal, setor,
+  atendente e período, respeitando o que cada papel pode ver.
+- **Conversas não podem ser apagadas (segurança)** — nenhum usuário apaga mensagem ou atendimento; se o cliente
+  apagar do lado dele (WhatsApp “mensagem apagada”, e-mail excluído), o registro continua guardado e marcado
+  “apagada pelo cliente”. Remoção só pelo fluxo formal de LGPD (anonimização pedida pelo titular, feita por
+  dono/admin, com auditoria e prazo legal de guarda respeitado).
+- **Exportação bloqueada e com alerta (segurança/LGPD)** — só papéis com permissão própria (ex.: `contacts.export`)
+  exportam dados de clientes, carteira ou dados sensíveis; atendente sem essa permissão não exporta nem em massa
+  (lista, CSV, cópia em lote, API). **Toda tentativa sem permissão gera alerta** para dono/admin (sino + e-mail) e
+  registro na auditoria; exportações permitidas também ficam registradas (quem, quando, quantos). Limite de volume
+  e marca d’água/identificação de quem exportou.
+- **Cores por setor e por categoria de cliente (pedido em 28/09)** — cada departamento com uma cor (na fila, na
+  conversa, no Kanban, nos filtros) e cada categoria/grupo de cliente com cor/etiqueta na lista e na ficha, para
+  identificar de relance.
 - Botão de anonimizar contato (LGPD) — limpa também `flow_runs.vars` e `tickets.rating_comment`.
 - Gravação de áudio pelo navegador.
 - Modo depuração do bloco HTTP (corpo no log por 1 h, cortado e com retenção curta).
