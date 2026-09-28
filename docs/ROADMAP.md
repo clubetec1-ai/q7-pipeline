@@ -9,8 +9,9 @@ botão “testar” e mensagens claras. Só integrações complexas ficam com o 
 Mais receita, menos suporte.
 
 ## Próximos (a combinar)
-Sugestão: cobrança pelo WhatsApp (gateway PIX/boleto) → guia de integração passo a passo como tela própria
-(hoje vem nas sugestões) → implementador criar registros/bloco “Registro” nos fluxos.
+Sugestão: guia de integração passo a passo como tela própria (hoje vem nas sugestões) → implementador criar
+registros/bloco “Registro” nos fluxos → cobrança: Mercado Pago/Efí, IA gerando cobrança (com permissão), cobrança
+recorrente e ligação com “Conta a receber”.
 Registros: falta criar/atualizar registro a partir do fluxo e da IA (bloco próprio) — entra com o implementador. Pendências técnicas: revisão de grants por coluna nas tabelas antigas (tarefa separada);
 login com segundo fator (MFA) para dono/admin/operador.
 
@@ -116,7 +117,9 @@ e IA com “IA pode ler” / “sensível”), agente entrevistador (tela Diagn�
 seção, processos repetidos, sugestões prontas × integração com passo a passo; seções públicas alimentam a IA de
 atendimento, internas nunca), provedor de IA padrão da empresa para todos os agentes (Fluxos → Chaves de IA),
 agente implementador (instala as sugestões prontas e os “Modelos prontos” de Fluxos como RASCUNHO, com textos
-escritos pela IA a partir do Diagnóstico; nunca publica sozinho).
+escritos pela IA a partir do Diagnóstico; nunca publica sozinho), cobrança pelo WhatsApp com Asaas (conectar pela
+tela com webhook automático, botão Cobrar na conversa com link + PIX copia e cola, status automático, aviso de
+pagamento, lembretes antes/depois do vencimento, tela Cobranças).
 
 ## Visual
 - Trocar logo e ícone da aba (nome “Clube” junto do logo, em cima).
