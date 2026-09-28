@@ -12,6 +12,7 @@ import {
 import { EquipeData } from "./useEquipeData";
 import { MembersPicker } from "./MembersPicker";
 import { DistributionSettings } from "./DistributionSettings";
+import { ColorDot, ColorPicker, nextColor } from "@/components/ColorTag";
 
 type Kind = "departments" | "teams";
 
@@ -55,7 +56,7 @@ export function GroupsTab({
     if (!name) return;
     const { error } = isTeams
       ? await supabase.from("teams").insert({ organization_id: orgId, department_id: deptId, name })
-      : await supabase.from("departments").insert({ organization_id: orgId, name });
+      : await supabase.from("departments").insert({ organization_id: orgId, name, color: nextColor(departments.map((d) => d.color)) });
     if (error) return fail(error.code === "23505" ? `Já existe um ${label} com esse nome` : `Não foi possível criar o ${label}`);
     setNewName("");
     await reload();
@@ -66,6 +67,12 @@ export function GroupsTab({
     const { error } = await supabase.from(kind).update({ name: renaming.name.trim() }).eq("id", renaming.id);
     if (error) return fail(`Não foi possível renomear o ${label}`);
     setRenaming(null);
+    await reload();
+  };
+
+  const setColor = async (id: string, color: string) => {
+    const { error } = await supabase.from("departments").update({ color }).eq("id", id);
+    if (error) return fail("Não foi possível trocar a cor");
     await reload();
   };
 
@@ -138,7 +145,9 @@ export function GroupsTab({
                 </div>
               ) : (
                 <div className="flex items-center justify-between gap-2">
-                  <p className="font-medium truncate">{it.name}</p>
+                  <p className="font-medium truncate flex items-center gap-2">
+                    {!isTeams && <ColorDot color={departments.find((d) => d.id === it.id)?.color} />}{it.name}
+                  </p>
                   {canManage && (
                     <div className="flex gap-1">
                       <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Renomear"
@@ -159,6 +168,9 @@ export function GroupsTab({
                   </Button>
                 )}
               </div>
+              {!isTeams && canManage && (
+                <ColorPicker value={departments.find((d) => d.id === it.id)?.color} onChange={(c) => setColor(it.id, c)} />
+              )}
               {!isTeams && (
                 <DistributionSettings dept={departments.find((d) => d.id === it.id)} canManage={canManage} onSaved={reload} />
               )}

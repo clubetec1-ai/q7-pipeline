@@ -56,6 +56,7 @@ import { TicketBar } from "./conversas/TicketBar";
 import { DeliveryStatus, MessageMedia } from "./conversas/MessageMedia";
 import { callFunction } from "@/lib/callFunction";
 import { useOrg } from "@/contexts/OrgContext";
+import { ColorPill } from "@/components/ColorTag";
 
 type Conversation = {
   id: string;
@@ -150,6 +151,9 @@ export default function Conversas() {
   const [search, setSearch] = useState("");
   // Números da organização: etiqueta (nome + cor) e filtro quando há mais de um.
   const [numbers, setNumbers] = useState<Map<string, { name: string; color: string | null }>>(new Map());
+  // Cores: setor (departamento) e grupos de clientes (categoria) — a RLS filtra grupos sensíveis.
+  const [depts, setDepts] = useState<Map<string, { name: string; color: string | null }>>(new Map());
+  const [contactGroups, setContactGroups] = useState<Map<string, { name: string; color: string | null }[]>>(new Map());
   const [mailboxes, setMailboxes] = useState<Map<string, string>>(new Map());
   const [numberFilter, setNumberFilter] = useState("");
   const channelKey = (c: Conversation) => (c.channel === "email" ? `e:${c.email_account_id}` : `n:${c.instance_id}`);
@@ -165,7 +169,35 @@ export default function Conversas() {
       .then(({ data }) => setNumbers(new Map((data ?? []).map((n) => [n.id, { name: n.name, color: n.color }]))));
     supabase.from("email_accounts").select("id, name").eq("organization_id", org.id).order("created_at")
       .then(({ data }) => setMailboxes(new Map((data ?? []).map((m) => [m.id, m.name]))));
+    supabase.from("departments").select("id, name, color").eq("organization_id", org.id)
+      .then(({ data }) => setDepts(new Map((data ?? []).map((d) => [d.id, { name: d.name, color: d.color }]))));
+    Promise.all([
+      supabase.from("contact_groups").select("id, name, color").eq("organization_id", org.id),
+      supabase.from("contact_group_members").select("contact_id, group_id").eq("organization_id", org.id),
+    ]).then(([g, gm]) => {
+      const groupById = new Map((g.data ?? []).map((x) => [x.id, { name: x.name, color: x.color }]));
+      const m = new Map<string, { name: string; color: string | null }[]>();
+      for (const r of gm.data ?? []) {
+        const grp = groupById.get(r.group_id);
+        if (grp) m.set(r.contact_id, [...(m.get(r.contact_id) ?? []), grp]);
+      }
+      setContactGroups(m);
+    });
   }, [org]);
+  // Setor do atendimento aberto + categorias (grupos) do cliente.
+  const colorTags = (c: Conversation) => {
+    const t = byConversation.get(c.id);
+    const d = t?.department_id ? depts.get(t.department_id) : null;
+    const gs = c.contact_id ? contactGroups.get(c.contact_id) ?? [] : [];
+    if (!d && !gs.length) return null;
+    return (
+      <span className="flex items-center gap-1 min-w-0 overflow-hidden">
+        {d && <ColorPill color={d.color} title="Setor">{d.name}</ColorPill>}
+        {gs.slice(0, 2).map((g) => <ColorPill key={g.name} color={g.color} title="Grupo do cliente">{g.name}</ColorPill>)}
+        {gs.length > 2 && <span className="text-[10px] text-muted-foreground">+{gs.length - 2}</span>}
+      </span>
+    );
+  };
   const numberTag = (c: Conversation) => {
     if (c.channel === "email") {
       const box = c.email_account_id ? mailboxes.get(c.email_account_id) : null;
@@ -637,6 +669,7 @@ export default function Conversas() {
                   <span className="text-xs text-muted-foreground truncate">{c.contact_phone ?? c.contact_email}</span>
                   {numberTag(c)}
                 </div>
+                {colorTags(c) && <div className="mt-1">{colorTags(c)}</div>}
               </button>
             ))}
           </div>
@@ -658,6 +691,7 @@ export default function Conversas() {
                   <div className="text-xs text-muted-foreground flex items-center gap-2">
                     {active.contact_phone ?? active.contact_email}
                     {numberTag(active)}
+                    {colorTags(active)}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
