@@ -2859,6 +2859,7 @@ export type Database = {
           role: Database["public"]["Enums"]["org_role"]
         }[]
       }
+      my_mfa_status: { Args: never; Returns: Json }
       my_permissions: { Args: { org: string }; Returns: string[] }
       my_support_access: {
         Args: never
@@ -2950,6 +2951,10 @@ export type Database = {
       }
       seed_pipeline_stages: { Args: { _user_id: string }; Returns: undefined }
       service_ai_take: { Args: { org: string }; Returns: boolean }
+      service_anonymize_contact: {
+        Args: { actor: string; contact: string; org: string; reason: string }
+        Returns: Json
+      }
       service_can_add_number: { Args: { org: string }; Returns: boolean }
       service_create_org: {
         Args: { creator: string; org_name: string; template: string }
@@ -3076,6 +3081,10 @@ export type Database = {
       }
       set_presence: {
         Args: { new_status: string; org: string; reason?: string }
+        Returns: undefined
+      }
+      set_require_mfa: {
+        Args: { org: string; required: boolean }
         Returns: undefined
       }
       start_campaign: { Args: { campaign: string }; Returns: Json }

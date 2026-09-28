@@ -19,6 +19,13 @@ na mesma estrutura de receitas → cobrança: Mercado Pago/Efí, IA gerando cobr
 recorrente e ligação com “Conta a receber”.
 Registros: falta criar/atualizar registro a partir do fluxo e da IA (bloco próprio) — entra com o implementador. Pendências técnicas: revisão de grants por coluna nas tabelas antigas (tarefa separada);
 login com segundo fator (MFA) para dono/admin/operador.
+*MFA entregue (29/09): tela Segurança (ativar com QR code no app autenticador, desativar), código pedido depois da
+senha; no banco, quem tem MFA e entrou só com senha fica sem permissões; empresa pode exigir de donos/admins (só
+liga quem já tem MFA; auditado); operador da plataforma só com código. Falta: códigos de recuperação e aviso por
+e-mail quando o MFA for desativado.*
+**Ramal SIP (29/09): central principal = Handphone (XHAND).** Perguntas enviadas ao fornecedor: SIP sobre WSS para
+webphone, credenciais por ramal, webhook de eventos de chamada, API de gravações, clique-para-ligar, áudio em tempo
+real para agente de voz e documentação. Nvoip fica como alternativa (API de chamadas).
 
 ## Canal de e-mail (pedido em 28/09) — IMAP/SMTP e alertas entregues; falta o que segue
 - Pendente: Microsoft 365 por OAuth; Google direto (com demanda); cópia das respostas na pasta “Enviados” da caixa;

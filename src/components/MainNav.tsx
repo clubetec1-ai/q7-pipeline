@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useOrg } from "@/contexts/OrgContext";
 
-type Section = "conversas" | "kanban" | "registros" | "cobrancas" | "integracoes" | "equipe" | "numeros" | "fluxos" | "biblioteca" | "diagnostico" | "supervisor" | "avaliacoes" | "campanhas" | "plataforma";
+type Section = "conversas" | "kanban" | "registros" | "cobrancas" | "integracoes" | "equipe" | "numeros" | "fluxos" | "biblioteca" | "diagnostico" | "supervisor" | "avaliacoes" | "campanhas" | "seguranca" | "plataforma";
 
 const base = "px-3 py-1.5 text-sm rounded-md transition";
 const activeCls = `${base} bg-muted font-medium`;
@@ -34,6 +34,7 @@ export function MainNav({ active }: { active: Section }) {
       {showSupervisor && <Link to="/supervisor" className={active === "supervisor" ? activeCls : idleCls}>Supervisor</Link>}
       {can("campaigns.manage") && <Link to="/campanhas" className={active === "campanhas" ? activeCls : idleCls}>Campanhas</Link>}
       {(showSupervisor || can("conversations.attend")) && <Link to="/avaliacoes" className={active === "avaliacoes" ? activeCls : idleCls}>Avaliações</Link>}
+      <Link to="/seguranca" className={active === "seguranca" ? activeCls : idleCls}>Segurança</Link>
       {isOperator && <Link to="/plataforma" className={active === "plataforma" ? activeCls : idleCls}>Plataforma</Link>}
     </nav>
   );
