@@ -65,10 +65,13 @@ Deno.serve(async (req) => {
     if (!ai) throw new HttpError(409, "Configure a chave do provedor de IA (Fluxos → Chaves de IA) para usar o entrevistador.");
     const { provider, apiKey } = ai;
     const model = provider === "groq" && (!ai.model || ai.model === "auto") ? "llama-3.3-70b-versatile" : ai.model;
-    const ask = async (system: string, user: string) => {
-      const r = await chat(apiKey, provider, model, [{ role: "system", content: system }, { role: "user", content: user }]);
+    const ask = async (system: string, user: string, long = false) => {
+      const r = await chat(apiKey, provider, model, [{ role: "system", content: system }, { role: "user", content: user }], undefined,
+        { json: true, ...(long ? { timeoutMs: 90_000, maxTokens: 8000 } : {}) });
       if (!r.ok || !r.reply) throw new HttpError(502, r.status === 429 ? "A IA está no limite de uso agora. Tente de novo em 1 minuto." : "A IA não respondeu. Tente de novo.");
-      return parseJson(r.reply);
+      const out = parseJson(r.reply);
+      if (!Object.keys(out).length) console.warn("[interviewer] resposta fora do JSON", { chars: r.reply.length });
+      return out;
     };
 
     // Retrato atual + o que já está no CRM (para não perguntar de novo).
@@ -159,6 +162,7 @@ Deno.serve(async (req) => {
         "faça o PLANEJAMENTO ESTRATÉGICO e o PLANO DE AÇÃO. Separe o que é MELHORIA DE PROCESSO (organização, regra, treinamento) do que é AUTOMAÇÃO.",
         "Prioridade de custo: toda automação possível SEM IA (fluxo, regra, resposta rápida, registro, lembrete, conector) vem PRIMEIRO; use IA só onde precisa entender texto livre ou conversar.",
         `Automações prontas no ClubeCRM (use a chave em "modelo" quando servir): ${JSON.stringify(READY)}.`,
+        'Tipo "integracao" só quando depende de OUTRO sistema (ERP, banco, agenda externa). Tudo que o ClubeCRM já faz (registros personalizados para chamados, pedidos e contas; fluxos; e-mail; biblioteca; follow-up) é "sem_ia" ou "ia", nunca integração.',
         "Missão, visão e valores: use o que o dono definiu; se faltar, proponha e comece o texto com \"Proposta:\". Nunca invente números; se estimar volume, diga que é estimativa.",
         'Responda SOMENTE com JSON: {"diagnostico":"onde a empresa está (3 a 6 frases)","missao":"","visao":"","valores":[""],',
         '"objetivos":[{"objetivo":"","indicador":"","prazo":""}],',
@@ -167,7 +171,7 @@ Deno.serve(async (req) => {
         '"plano_acao":[{"acao":"","responsavel":"cargo ou setor","prazo":"ex.: semana 1, mês 2"}]}',
         '"volume_mes" = quantas respostas de IA por mês a automação daria (só para tipo "ia"; use os volumes do retrato). "complexidade": simples = triagem, FAQ, classificação; complexa = análise, negociação, textos longos.',
       ].join(" ");
-      const out = await ask(prompt, `O que já existe no CRM:\n${crm}\n\nRetrato da empresa:\n${retrato(24_000, 800)}`);
+      const out = await ask(prompt, `O que já existe no CRM:\n${crm}\n\nRetrato da empresa:\n${retrato(24_000, 800)}`, true);
       const autos = (Array.isArray(out.automacoes) ? out.automacoes : []).slice(0, 20).map((a: any) => {
         const tipo = oneOf(a?.tipo, ["sem_ia", "ia", "integracao"] as const, "sem_ia");
         const complexidade = oneOf(a?.complexidade, ["simples", "complexa"] as const, "simples");
@@ -241,7 +245,7 @@ Deno.serve(async (req) => {
     ];
     if (!hist?.length) messages.push({ role: "user", content: "Olá! Vamos começar." });
 
-    const r = await chat(apiKey, provider, model, messages);
+    const r = await chat(apiKey, provider, model, messages, undefined, { json: true });
     if (!r.ok || !r.reply) throw new HttpError(502, r.status === 429 ? "A IA está no limite de uso agora. Tente de novo em 1 minuto." : "A IA não respondeu. Tente de novo.");
     const out = parseJson(r.reply) as { secoes?: Record<string, unknown>; processos?: unknown[]; resposta?: unknown; etapa_concluida?: unknown };
 

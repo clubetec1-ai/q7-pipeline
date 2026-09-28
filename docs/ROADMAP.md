@@ -97,6 +97,12 @@ Objetivo: a ligação cai na mesma tela do WhatsApp.
     preço do modelo, em R$), comparando com o que já faz sem IA — por automação e total, para decidir o que ativar.
   - Cuidados: dados de cultura/estratégia são sensíveis (só `org.settings`, fora do contexto da IA de atendimento
     salvo o que o dono liberar); busca pública só de fontes abertas; tudo editável pelo dono; relatório exportável.
+  *Entregue (29/09): etapas clicáveis na tela Diagnóstico (empresa → cultura → hoje → objetivos → setores →
+  processos por setor com passo a passo → planejamento); busca de dados públicos por site e CNPJ (sem sócios);
+  planejamento com diagnóstico, missão/visão/valores (proposta quando faltar), objetivos, melhorias, automações sem
+  IA primeiro, plano de ação e custo mensal estimado (Groq × Claude Haiku/Sonnet); automações do plano instaláveis
+  em rascunho. Falta: escolha automática Haiku/Sonnet por tarefa (o provedor Anthropic já existe em Chaves de IA),
+  Google Meu Negócio/redes sociais, convidar responsável de setor para responder, exportar o planejamento (PDF).*
 - **Agentes e fluxos prontos + guia de integração (pedido em 28/09)** — separar as automações em dois grupos:
   - **Prontas com o que o CRM já tem** → modelos instaláveis com um clique (em rascunho, para revisar e publicar):
     recepção e triagem por departamento; horário de atendimento com mensagem fora do expediente; FAQ com IA e
