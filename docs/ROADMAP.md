@@ -203,6 +203,12 @@ Objetivo: a ligação cai na mesma tela do WhatsApp.
   etiquetas e grupos de clientes com cor automática (clique na bolinha troca). Setor e grupos aparecem na lista de
   conversas, no topo da conversa e no card do Kanban. Falta: filtro por setor/grupo e cor nos relatórios.*
 - Botão de anonimizar contato (LGPD) — limpa também `flow_runs.vars` e `tickets.rating_comment`.
+  *Entregue (29/09): ficha do cliente → “Excluir dados pessoais deste cliente (LGPD)”, só dono/admin, com motivo e
+  confirmação digitada. Remove nome, telefone, e-mail, documento, anotações, campos personalizados, texto e arquivos
+  das conversas (apagados do armazenamento), notas internas, comentário da pesquisa, variáveis de fluxo, fila bruta
+  de entrada, listas de campanha, etiquetas e grupos; mantém protocolos e números dos relatórios; cobranças e
+  registros ficam (obrigação legal). Auditado. Falta: pedido do titular pelo próprio WhatsApp (fluxo) e prazo de
+  retenção automático por empresa.*
 - Gravação de áudio pelo navegador.
 - Modo depuração do bloco HTTP (corpo no log por 1 h, cortado e com retenção curta).
 

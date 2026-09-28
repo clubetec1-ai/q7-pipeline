@@ -816,6 +816,34 @@ BEGIN
   PERFORM pg_temp.expect(pg_temp.run(owner_a, format('SELECT public.set_campaign_status(%L, %L)', 'aaaaaaaa-0000-0000-0043-000000000021', 'paused')) LIKE 'ok:%', 'dono pausa');
   PERFORM pg_temp.expect_error(owner_a, format('SELECT public.set_campaign_status(%L, %L)', 'aaaaaaaa-0000-0000-0043-000000000021', 'done'), 'status invalido recusado');
 
+  -- 44. LGPD: anonimizar troca os dados pessoais e mantem a estrutura; so o backend; so a propria org.
+  INSERT INTO public.conversations (id, instance_id, contact_phone, contact_name) VALUES
+    ('aaaaaaaa-0000-0000-0044-000000000001', 'aaaaaaaa-0000-0000-0003-000000000001', '5511944000001', 'Carla Titular');
+  UPDATE public.contacts SET email = 'carla@exemplo.test', document = '12345678900', notes = 'cliente vip'
+  WHERE organization_id = A AND phone = '5511944000001';
+  INSERT INTO public.messages (conversation_id, direction, sender, content, media_path) VALUES
+    ('aaaaaaaa-0000-0000-0044-000000000001', 'inbound', 'contact', 'meu CPF e 123.456.789-00', A::text || '/x/foto.jpg');
+  INSERT INTO public.internal_notes (organization_id, conversation_id, content, author_id) VALUES
+    (A, 'aaaaaaaa-0000-0000-0044-000000000001', 'ligar para Carla depois', owner_a);
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_anonymize_contact(%L, (SELECT id FROM public.contacts WHERE phone = %L), %L, %L)',
+    A, '5511944000001', owner_a, 'teste'), 'navegador nao chama anonimizacao');
+  PERFORM pg_temp.expect(pg_temp.run(NULL, format('SELECT public.service_anonymize_contact(%L, (SELECT id FROM public.contacts WHERE organization_id = %L AND phone = %L), %L, %L)',
+    'bbbbbbbb-0000-0000-0000-000000000001', A, '5511944000001', owner_b, 'x')) LIKE 'err:%', 'outra org nao anonimiza contato de A');
+  PERFORM pg_temp.expect((public.service_anonymize_contact(A, (SELECT id FROM public.contacts WHERE organization_id = A AND phone = '5511944000001'),
+    owner_a, 'pedido do titular') ->> 'media') LIKE '%foto.jpg%', 'devolve arquivos para apagar');
+  PERFORM pg_temp.expect((SELECT name = 'Anonimizado' AND phone IS NULL AND email IS NULL AND document IS NULL AND notes IS NULL
+    AND anonymized_at IS NOT NULL AND opted_out_at IS NOT NULL FROM public.contacts c
+    JOIN public.conversations v ON v.contact_id = c.id WHERE v.id = 'aaaaaaaa-0000-0000-0044-000000000001'), 'contato sem dados pessoais');
+  PERFORM pg_temp.expect((SELECT contact_name = 'Anonimizado' AND contact_phone LIKE 'anon-%' FROM public.conversations
+    WHERE id = 'aaaaaaaa-0000-0000-0044-000000000001'), 'conversa sem nome e telefone');
+  PERFORM pg_temp.expect((SELECT bool_and(content LIKE '[conteúdo removido%' AND media_path IS NULL) FROM public.messages
+    WHERE conversation_id = 'aaaaaaaa-0000-0000-0044-000000000001'), 'mensagens sem conteudo e arquivo');
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.messages WHERE conversation_id = 'aaaaaaaa-0000-0000-0044-000000000001') = 1, 'historico continua (estrutura)');
+  PERFORM pg_temp.expect((SELECT bool_and(content LIKE '[nota removida%') FROM public.internal_notes
+    WHERE conversation_id = 'aaaaaaaa-0000-0000-0044-000000000001'), 'notas sem dado pessoal');
+  PERFORM pg_temp.expect(EXISTS (SELECT 1 FROM public.audit_log WHERE organization_id = A AND action = 'contact.anonymize'
+    AND meta ->> 'motivo' = 'pedido do titular'), 'auditado com motivo');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 
