@@ -66,6 +66,26 @@ function mediaLabel(m: any): string | null {
   return null;
 }
 
+/**
+ * Mensagem apagada ("apagar para todos") chega como mensagem de protocolo do tipo
+ * REVOKE apontando para o id da original. Devolve esse id ou null. Formatos
+ * aceitos: Baileys (protocolMessage) e Uazapi (messageType + content JSON).
+ */
+function revokedTarget(m: any): string | null {
+  const t = String(m?.messageType || m?.type || "").toLowerCase();
+  const pm = m?.message?.protocolMessage ?? m?.protocolMessage ?? null;
+  let c: any = m?.content;
+  if (typeof c === "string" && c.trim().startsWith("{")) {
+    try { c = JSON.parse(c); } catch { c = null; }
+  }
+  const isRevokeType = (x: any) => x === 0 || x === "REVOKE" || x === "revoke";
+  const isRevoke = (pm && isRevokeType(pm.type)) || t.includes("revoke")
+    || (t.includes("protocol") && c && typeof c === "object" && (isRevokeType(c.type) || isRevokeType(c.Type)));
+  if (!isRevoke) return null;
+  const id = pm?.key?.id ?? c?.key?.id ?? c?.key?.ID ?? c?.Key?.ID ?? m?.revokedMessageId ?? null;
+  return id ? String(id) : null;
+}
+
 function extractText(body: any) {
   // Uazapi atual: { EventType, message: {campos planos}, chat: {...}, owner, token }
   // Legado/Baileys: { data: { message: { conversation }, key: { remoteJid, fromMe } } }
@@ -303,6 +323,7 @@ async function handle(req: Request, ctx: QueueCtx): Promise<Response> {
     let phoneNumberId: string | null = null;
     let mediaId: string | null = null;
     let mediaKind: string | null = null;
+    let revoked: string | null = null;
     const isConnection = providerId === "uazapi" && (event === "connection" || event === "connection.update");
 
     if (providerId === "cloud") {
@@ -336,6 +357,7 @@ async function handle(req: Request, ctx: QueueCtx): Promise<Response> {
       instanceToken = parsed.instanceToken;
       instanceOwner = parsed.instanceOwner;
       mediaId = (parsed.message as any)?.messageid ?? null;
+      revoked = revokedTarget(parsed.message);
       mediaKind = ({
         "[áudio]": "audio", "[imagem]": "image", "[vídeo]": "video", "[documento]": "document", "[figurinha]": "sticker",
       } as Record<string, string>)[parsed.media ?? ""] ?? null;
@@ -352,7 +374,7 @@ async function handle(req: Request, ctx: QueueCtx): Promise<Response> {
       authed_url: url.searchParams.has("i"),
     });
 
-    if (!isConnection && (isGroup || !text || !phone)) {
+    if (!isConnection && !(revoked && !isGroup) && (isGroup || !text || !phone)) {
       console.log("[webhook] ignorado", {
         reason: isGroup ? "grupo" : !text ? "sem_texto" : "sem_telefone",
       });
@@ -398,6 +420,15 @@ async function handle(req: Request, ctx: QueueCtx): Promise<Response> {
     }
 
     if (isConnection) return await handleConnection(org, instRow, body);
+
+    // Apagada pelo cliente (ou no celular): o histórico fica; só marca.
+    if (revoked) {
+      const { data: marked } = await supabase.rpc("service_mark_message_deleted", {
+        org: orgId, pmid: revoked, who: fromMe ? "phone" : "contact",
+      });
+      console.log("[webhook] mensagem apagada marcada", { marked: marked ?? 0 });
+      return ok();
+    }
 
     // Fila: grava o evento antes de processar. Repetido (reenvio do provedor) →
     // já foi tratado. Falhou no meio → process-inbound refaz.
@@ -493,6 +524,7 @@ async function handle(req: Request, ctx: QueueCtx): Promise<Response> {
         loadInst: () => instForSend(supabase, instRow),
         storeInbound: (ticketId) => org.insert("messages", {
           conversation_id: conv.id, ticket_id: ticketId, direction: "inbound", sender: "contact", content: text,
+          provider_message_id: providerMsgId ? String(providerMsgId) : null,
         }),
       });
       if (consumed) return ok();
@@ -521,6 +553,7 @@ async function handle(req: Request, ctx: QueueCtx): Promise<Response> {
         direction: "outbound",
         sender: "human",
         content: text,
+        provider_message_id: providerMsgId ? String(providerMsgId) : null,
       });
       return ok();
     }
@@ -566,6 +599,7 @@ async function handle(req: Request, ctx: QueueCtx): Promise<Response> {
         direction: "inbound",
         sender: "contact",
         content: text,
+        provider_message_id: providerMsgId ? String(providerMsgId) : null,
         ...mediaFields,
       });
       if (ctx.eventId) await supabase.from("inbound_events").update({ stage: "stored" }).eq("id", ctx.eventId);

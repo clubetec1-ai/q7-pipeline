@@ -153,17 +153,27 @@ Objetivo: a ligação cai na mesma tela do WhatsApp.
   protocolo logo no início (hoje já existe no atendimento; estender a e-mail e voz de forma uniforme). Na voz, o
   atendente informa o protocolo ou a própria IA/URA fala o número; nos outros canais vai na mensagem. O protocolo
   fica **anexado ao cliente** (ficha → histórico de protocolos de todos os canais) para buscas futuras.
+  *Entregue para WhatsApp e e-mail (protocolo + histórico na ficha); voz entra junto com o ramal.*
 - **Busca de conversas** — por protocolo, cliente, telefone/e-mail, texto da mensagem/transcrição, canal, setor,
   atendente e período, respeitando o que cada papel pode ver.
+  *Entregue: nome, telefone, e-mail, protocolo e texto das mensagens. Falta: filtros de canal, setor, atendente e
+  período; transcrição entra com a voz.*
 - **Conversas não podem ser apagadas (segurança)** — nenhum usuário apaga mensagem ou atendimento; se o cliente
   apagar do lado dele (WhatsApp “mensagem apagada”, e-mail excluído), o registro continua guardado e marcado
   “apagada pelo cliente”. Remoção só pelo fluxo formal de LGPD (anonimização pedida pelo titular, feita por
   dono/admin, com auditoria e prazo legal de guarda respeitado).
+  *Entregue (29/09): ninguém apaga/edita pelo navegador (permissão + gatilho no banco); remover número, caixa de
+  e-mail ou usuário mantém as conversas; WhatsApp QR marca “apagada pelo cliente/no celular” (formato a confirmar
+  com teste real). Falta: e-mail excluído na caixa, WhatsApp oficial (Meta) e o fluxo formal de anonimização.*
 - **Exportação bloqueada e com alerta (segurança/LGPD)** — só papéis com permissão própria (ex.: `contacts.export`)
   exportam dados de clientes, carteira ou dados sensíveis; atendente sem essa permissão não exporta nem em massa
   (lista, CSV, cópia em lote, API). **Toda tentativa sem permissão gera alerta** para dono/admin (sino + e-mail) e
   registro na auditoria; exportações permitidas também ficam registradas (quem, quando, quantos). Limite de volume
   e marca d’água/identificação de quem exportou.
+  *Entregue (29/09): permissão `contacts.export` (dono/admin), botão “Exportar contatos” no Painel do supervisor
+  (CSV sem campos personalizados), auditoria de cada exportação, tentativa negada → auditoria + alerta no sino e
+  por e-mail (1 por pessoa a cada 10 min). Falta: limite de volume, marca d’água, exportar outras telas. Limite
+  conhecido: leitura em massa pela API com a própria senha não gera alerta (só o que a pessoa já vê).*
 - **Cores por setor e por categoria de cliente (pedido em 28/09)** — cada departamento com uma cor (na fila, na
   conversa, no Kanban, nos filtros) e cada categoria/grupo de cliente com cor/etiqueta na lista e na ficha, para
   identificar de relance.

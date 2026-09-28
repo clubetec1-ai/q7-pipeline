@@ -668,6 +668,52 @@ BEGIN
   PERFORM pg_temp.expect_error(owner_a, format('SELECT public.platform_set_connector_app(%L, %L, %L)', 'bling', 'clienteid123', 'segredo123'), 'dono nao cadastra aplicativo');
   PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_put_secret(%L, %L)', format('conn:%s:bling:access', A), 'x'), 'token do conector so pelo backend');
 
+  -- 39. Historico nao se apaga; exportacao so com permissao (tentativa = alerta); busca respeita visibilidade.
+  PERFORM pg_temp.expect((SELECT organization_id = A AND email_account_id IS NULL FROM public.conversations
+    WHERE id = 'aaaaaaaa-0000-0000-0010-000000000032'), 'caixa apagada mantem a conversa');
+  PERFORM pg_temp.expect_error(owner_a, format('DELETE FROM public.conversations WHERE id = %L', 'aaaaaaaa-0000-0000-0004-000000000001'), 'dono nao apaga conversa');
+  PERFORM pg_temp.expect_error(owner_a, format('DELETE FROM public.messages WHERE conversation_id = %L', 'aaaaaaaa-0000-0000-0004-000000000001'), 'dono nao apaga mensagem');
+  PERFORM pg_temp.expect_error(agent_a, format('UPDATE public.messages SET content = %L WHERE conversation_id = %L', 'x', 'aaaaaaaa-0000-0000-0004-000000000001'), 'atendente nao edita mensagem');
+  PERFORM pg_temp.expect_error(owner_a, 'DELETE FROM public.tickets', 'dono nao apaga atendimento');
+  PERFORM pg_temp.expect_error(owner_a, 'DELETE FROM public.ticket_events', 'dono nao apaga evento');
+  PERFORM pg_temp.expect_error(owner_a, 'DELETE FROM public.internal_notes', 'dono nao apaga nota');
+  -- Segunda barreira: permissao devolvida por engano continua bloqueada pelo gatilho.
+  CREATE POLICY iso_tmp_delete ON public.messages FOR DELETE TO authenticated USING (true);
+  GRANT DELETE ON public.messages TO authenticated;
+  PERFORM pg_temp.expect_error(owner_a, format('DELETE FROM public.messages WHERE conversation_id = %L', 'aaaaaaaa-0000-0000-0004-000000000001'), 'gatilho barra apagar mensagem');
+  REVOKE DELETE ON public.messages FROM authenticated;
+  DROP POLICY iso_tmp_delete ON public.messages;
+  -- Apagada pelo cliente: so marca.
+  UPDATE public.messages SET provider_message_id = 'iso-del-1' WHERE conversation_id = 'aaaaaaaa-0000-0000-0004-000000000001';
+  PERFORM pg_temp.expect(public.service_mark_message_deleted(A, 'iso-del-1', 'contact') = 1, 'marca apagada pelo cliente');
+  PERFORM pg_temp.expect((SELECT deleted_by = 'contact' AND content = 'oi' FROM public.messages WHERE provider_message_id = 'iso-del-1'), 'mensagem continua guardada');
+  PERFORM pg_temp.expect(public.service_mark_message_deleted('bbbbbbbb-0000-0000-0000-000000000001', 'iso-del-1', 'contact') = 0, 'outra org nao marca');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_mark_message_deleted(%L, %L, %L)', A, 'iso-del-1', 'phone'), 'navegador nao marca apagada');
+  -- Exportacao.
+  PERFORM pg_temp.expect(pg_temp.t(owner_a, format('SELECT public.export_contacts(%L) ->> %L', A, 'ok')) = 'true', 'dono exporta');
+  PERFORM pg_temp.expect(pg_temp.t(owner_a, format('SELECT public.export_contacts(%L) ->> %L', A, 'count'))
+    = (SELECT count(*)::text FROM public.contacts WHERE organization_id = A), 'exporta so os contatos da org');
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.audit_log WHERE organization_id = A AND action = 'contacts.export') = 2, 'exportacao auditada');
+  PERFORM pg_temp.expect(pg_temp.t(agent_a, format('SELECT public.export_contacts(%L) ->> %L', A, 'ok')) = 'false', 'atendente nao exporta');
+  PERFORM pg_temp.expect(pg_temp.t(sup_a, format('SELECT public.export_contacts(%L) ->> %L', A, 'ok')) = 'false', 'supervisor nao exporta');
+  PERFORM pg_temp.expect(pg_temp.t(agent_a, format('SELECT public.export_contacts(%L) ->> %L', A, 'ok')) = 'false', 'atendente tenta de novo');
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.audit_log WHERE organization_id = A AND action = 'security.export_denied') = 3, 'tentativas auditadas');
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.notifications WHERE organization_id = A AND kind = 'security_alert'
+    AND ref ->> 'by' = agent_a::text) = 2, 'dono e admin avisados uma vez');
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.notifications WHERE organization_id = A AND kind = 'security_alert'
+    AND user_id NOT IN (owner_a, admin_a)) = 0, 'so dono e admin recebem alerta');
+  PERFORM pg_temp.expect(pg_temp.t(owner_b, format('SELECT public.export_contacts(%L) ->> %L', A, 'ok')) = 'false', 'outra org nao exporta');
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.audit_log WHERE organization_id = A AND actor_id = owner_b) = 0, 'outra org nao gera registro em A');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT private.security_alert(%L, %L, %L)', A, 'x', '{}'), 'alerta so interno');
+  -- Busca no texto.
+  INSERT INTO public.messages (conversation_id, direction, sender, content) VALUES
+    ('aaaaaaaa-0000-0000-0004-000000000001', 'inbound', 'contact', 'meu pedido esta atrasado'),
+    ('aaaaaaaa-0000-0000-0004-000000000003', 'inbound', 'contact', 'pedido atrasado de novo');
+  PERFORM pg_temp.expect(pg_temp.t(agent_a, format('SELECT string_agg(right(conversation_id::text, 1), %L) FROM public.search_messages(%L, %L)', '', A, 'atrasado')) = '1', 'atendente acha so o que ve');
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, format('SELECT count(*) FROM public.search_messages(%L, %L)', A, 'ATRASADO')) = 2, 'dono acha todas');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, format('SELECT count(*) FROM public.search_messages(%L, %L)', A, 'atrasado')) = 0, 'outra org nao acha');
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, format('SELECT count(*) FROM public.search_messages(%L, %L)', A, '%')) = 0, 'curinga nao lista tudo');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 
