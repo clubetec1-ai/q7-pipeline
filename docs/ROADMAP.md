@@ -145,6 +145,12 @@ Objetivo: a ligação cai na mesma tela do WhatsApp.
     planejamento do entrevistador 2.0 e ao implementador) — a empresa evoluindo sempre.
   - Cuidados: nota visível só ao próprio atendente e à supervisão; o atendente pode ver o motivo; modelo barato
     (Haiku) e só em atendimentos finalizados; nada de dado sensível no relatório.
+  *Entregue (29/09): tela Avaliações (menu), liga/desliga por empresa (padrão desligado; avisar a equipe),
+  avaliação ao finalizar atendimento com pessoa (satisfeito/nota/motivo/feedback/falhas de processo) pela IA da
+  empresa (Groq 70b por enquanto; Claude Haiku quando entrar o provedor), e-mail/telefone/documento mascarados
+  antes da IA, só a análise é guardada. Supervisão: resumo por atendente e “Relatório de melhorias (30 dias)”
+  com como implementar. Falta: avaliação de ligações (com a voz), exportar o relatório e ligar ao plano de ação
+  do entrevistador 2.0.*
 - **Outros setores ajudando no atendimento (pedido em 28/09)** — quando o setor não tem ninguém disponível ou
   todos estão ocupados, o atendimento pode ser visto e assumido por outro setor (regra de transbordo por setor:
   quais setores ajudam, depois de quanto tempo de espera), e setores podem interagir na conversa (nota interna,
