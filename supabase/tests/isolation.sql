@@ -781,6 +781,41 @@ BEGIN
   PERFORM pg_temp.expect_denied(owner_b, format('UPDATE public.company_profiles SET stage = %L WHERE organization_id = %L', 'setores', A), 'outra org nao muda etapa');
   PERFORM pg_temp.expect(pg_temp.q(owner_b, format('SELECT count(*) FROM public.company_profiles WHERE organization_id = %L', A)) = 0, 'outra org nao ve o plano');
 
+  -- 43. Campanhas: so dono/admin; numero e grupos da propria org; lista montada no banco sem opt-out; iniciada nao se edita.
+  INSERT INTO public.contact_groups (id, organization_id, name) VALUES
+    ('aaaaaaaa-0000-0000-0043-000000000001', A, 'ISO clientes'),
+    ('bbbbbbbb-0000-0000-0043-000000000001', 'bbbbbbbb-0000-0000-0000-000000000001', 'ISO B');
+  INSERT INTO public.contacts (id, organization_id, phone, name, opted_out_at) VALUES
+    ('aaaaaaaa-0000-0000-0043-000000000011', A, '5511943000001', 'Ana Cliente', NULL),
+    ('aaaaaaaa-0000-0000-0043-000000000012', A, '5511943000002', 'Bruno Saiu', now());
+  INSERT INTO public.contact_group_members (organization_id, group_id, contact_id) VALUES
+    (A, 'aaaaaaaa-0000-0000-0043-000000000001', 'aaaaaaaa-0000-0000-0043-000000000011'),
+    (A, 'aaaaaaaa-0000-0000-0043-000000000001', 'aaaaaaaa-0000-0000-0043-000000000012');
+  PERFORM pg_temp.expect_error(agent_a, format('INSERT INTO public.campaigns (organization_id, name) VALUES (%L, %L)', A, 'x'), 'atendente nao cria campanha');
+  PERFORM pg_temp.expect_denied(sup_a, format('INSERT INTO public.campaigns (organization_id, name) VALUES (%L, %L)', A, 'x'), 'supervisor nao cria campanha');
+  PERFORM pg_temp.expect_error(owner_a, format('INSERT INTO public.campaigns (organization_id, name, group_ids) VALUES (%L, %L, ARRAY[%L]::uuid[])',
+    A, 'x', 'bbbbbbbb-0000-0000-0043-000000000001'), 'grupo de outra org recusado');
+  PERFORM pg_temp.expect_error(owner_a, format('INSERT INTO public.campaigns (organization_id, name, instance_id) VALUES (%L, %L, %L)',
+    A, 'x', 'bbbbbbbb-0000-0000-0003-000000000001'), 'numero de outra org recusado');
+  PERFORM pg_temp.expect_error(owner_a, format('INSERT INTO public.campaigns (organization_id, name, status) VALUES (%L, %L, %L)', A, 'x', 'running'), 'nao nasce em andamento');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format(
+    'INSERT INTO public.campaigns (id, organization_id, name, instance_id, group_ids, message) VALUES (%L, %L, %L, %L, ARRAY[%L]::uuid[], %L)',
+    'aaaaaaaa-0000-0000-0043-000000000021', A, 'Promo', 'aaaaaaaa-0000-0000-0003-000000000001', 'aaaaaaaa-0000-0000-0043-000000000001', 'Oi {nome}!')) = 'ok:1', 'dono cria rascunho');
+  PERFORM pg_temp.expect(pg_temp.t(owner_a, format('SELECT public.campaign_audience(%L, ARRAY[%L]::uuid[]) ->> %L', A, 'aaaaaaaa-0000-0000-0043-000000000001', 'recebem')) = '1', 'previa desconta opt-out');
+  PERFORM pg_temp.expect(pg_temp.t(agent_a, format('SELECT coalesce(public.campaign_audience(%L, ARRAY[%L]::uuid[])::text, %L)', A, 'aaaaaaaa-0000-0000-0043-000000000001', 'nulo')) = 'nulo', 'atendente nao ve previa');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.start_campaign(%L)', 'aaaaaaaa-0000-0000-0043-000000000021'), 'atendente nao inicia');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.start_campaign(%L)', 'aaaaaaaa-0000-0000-0043-000000000021'), 'outra org nao inicia');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('SELECT public.start_campaign(%L)', 'aaaaaaaa-0000-0000-0043-000000000021')) LIKE 'ok:%', 'dono inicia');
+  PERFORM pg_temp.expect((SELECT status = 'running' AND total = 2 AND skipped = 1 FROM public.campaigns WHERE id = 'aaaaaaaa-0000-0000-0043-000000000021'), 'lista congelada com opt-out pulado');
+  PERFORM pg_temp.expect((SELECT status FROM public.campaign_recipients WHERE contact_id = 'aaaaaaaa-0000-0000-0043-000000000012') = 'skipped', 'quem saiu nao recebe');
+  PERFORM pg_temp.expect_denied(owner_a, format('UPDATE public.campaigns SET message = %L WHERE id = %L', 'mudei', 'aaaaaaaa-0000-0000-0043-000000000021'), 'iniciada nao se edita');
+  PERFORM pg_temp.expect_denied(owner_a, format('DELETE FROM public.campaigns WHERE id = %L', 'aaaaaaaa-0000-0000-0043-000000000021'), 'iniciada nao se apaga');
+  PERFORM pg_temp.expect_error(owner_a, 'INSERT INTO public.campaign_recipients (organization_id, campaign_id, contact_id, phone) SELECT organization_id, campaign_id, contact_id, phone FROM public.campaign_recipients LIMIT 1', 'navegador nao insere destinatario');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, 'SELECT count(*) FROM public.campaign_recipients') = 0, 'atendente nao ve destinatarios');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.campaigns') = 0, 'outra org nao ve campanha');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('SELECT public.set_campaign_status(%L, %L)', 'aaaaaaaa-0000-0000-0043-000000000021', 'paused')) LIKE 'ok:%', 'dono pausa');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.set_campaign_status(%L, %L)', 'aaaaaaaa-0000-0000-0043-000000000021', 'done'), 'status invalido recusado');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 

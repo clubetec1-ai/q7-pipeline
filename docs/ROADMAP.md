@@ -130,6 +130,12 @@ Objetivo: a ligação cai na mesma tela do WhatsApp.
 - Envio em massa para grupos de clientes, escolhendo o número (ex.: um número QR para disparos e o da Meta para
   receber clientes, como pedido). Respeita opt-out, horário e limite por minuto; modelos aprovados no número da Meta.
 - Aviso: disparo por número não oficial tem risco de bloqueio — o monitor de saúde já avisa se cair.
+- *Entregue (29/09): tela Campanhas (dono/admin, permissão `campaigns.manage`): rascunho com número, grupos de
+  clientes, mensagem com {nome} (QR) ou modelo aprovado + idioma (Meta), velocidade (1–60/min), horário e
+  agendamento; prévia de quantos recebem; lista congelada no banco ao iniciar (opt-out e anonimizados ficam de
+  fora, conferido de novo na hora do envio); envio pelo cron com pausa entre mensagens; pausar/retomar/cancelar;
+  mensagem registrada na conversa (resposta cai no atendimento); auditoria. Falta: mídia/arquivo da biblioteca na
+  campanha, lista de modelos da Meta puxada da conta, relatório de respostas por campanha, teste A/B.*
 
 ## SaaS (venda para clientes)
 - **Planos e cobrança** por organização (`org.billing`), com limites por plano (números, pessoas, IA/min).

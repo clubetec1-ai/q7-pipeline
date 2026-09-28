@@ -202,6 +202,144 @@ export type Database = {
           },
         ]
       }
+      campaign_recipients: {
+        Row: {
+          campaign_id: string
+          contact_id: string
+          error: string | null
+          id: number
+          name: string | null
+          organization_id: string
+          phone: string
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          campaign_id: string
+          contact_id: string
+          error?: string | null
+          id?: never
+          name?: string | null
+          organization_id: string
+          phone: string
+          sent_at?: string | null
+          status?: string
+        }
+        Update: {
+          campaign_id?: string
+          contact_id?: string
+          error?: string | null
+          id?: never
+          name?: string | null
+          organization_id?: string
+          phone?: string
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_recipients_campaign_id_organization_id_fkey"
+            columns: ["campaign_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "campaign_recipients_contact_id_organization_id_fkey"
+            columns: ["contact_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id", "organization_id"]
+          },
+        ]
+      }
+      campaigns: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          failed: number
+          finished_at: string | null
+          group_ids: string[]
+          id: string
+          instance_id: string | null
+          message: string | null
+          name: string
+          organization_id: string
+          rate_per_min: number
+          scheduled_at: string | null
+          sent: number
+          skipped: number
+          started_at: string | null
+          status: string
+          template_lang: string | null
+          template_name: string | null
+          total: number
+          window_end: number
+          window_start: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          failed?: number
+          finished_at?: string | null
+          group_ids?: string[]
+          id?: string
+          instance_id?: string | null
+          message?: string | null
+          name: string
+          organization_id: string
+          rate_per_min?: number
+          scheduled_at?: string | null
+          sent?: number
+          skipped?: number
+          started_at?: string | null
+          status?: string
+          template_lang?: string | null
+          template_name?: string | null
+          total?: number
+          window_end?: number
+          window_start?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          failed?: number
+          finished_at?: string | null
+          group_ids?: string[]
+          id?: string
+          instance_id?: string | null
+          message?: string | null
+          name?: string
+          organization_id?: string
+          rate_per_min?: number
+          scheduled_at?: string | null
+          sent?: number
+          skipped?: number
+          started_at?: string | null
+          status?: string
+          template_lang?: string | null
+          template_name?: string | null
+          total?: number
+          window_end?: number
+          window_start?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_instance_fk"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaigns_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       charges: {
         Row: {
           contact_id: string | null
@@ -2593,6 +2731,10 @@ export type Database = {
     Functions: {
       accept_invitation: { Args: { org: string }; Returns: boolean }
       ai_keys_status: { Args: { org: string }; Returns: Json }
+      campaign_audience: {
+        Args: { groups: string[]; org: string }
+        Returns: Json
+      }
       claim_inbound_events: {
         Args: { max_rows?: number }
         Returns: {
@@ -2904,6 +3046,10 @@ export type Database = {
         Args: { enabled: boolean; org: string }
         Returns: undefined
       }
+      set_campaign_status: {
+        Args: { campaign: string; new_status: string }
+        Returns: undefined
+      }
       set_email_password: {
         Args: { account: string; secret_value: string }
         Returns: undefined
@@ -2932,6 +3078,7 @@ export type Database = {
         Args: { new_status: string; org: string; reason?: string }
         Returns: undefined
       }
+      start_campaign: { Args: { campaign: string }; Returns: Json }
       supervisor_dashboard: { Args: { org: string }; Returns: Json }
       take_over_ticket: {
         Args: { ticket: string }
