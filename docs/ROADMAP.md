@@ -191,7 +191,7 @@ Objetivo: a ligação cai na mesma tela do WhatsApp.
   setores**. Atendente só vê e usa as gerais e as dos setores a que pertence. As etiquetas aparecem na tela do
   atendimento, na cor configurada, sinalizando o cliente que está sendo atendido.
   *Entregue (29/09): 9 etiquetas padrão (VIP, Novo cliente, Retornar contato, Urgente, Reclamação, Orçamento enviado,
-  Aguardando pagamento, Pedido em andamento, Não incomodar) em toda empresa nova e nas atuais, botão "Padrão" recria
+  Aguardando pagamento, Pedido em andamento, Suporte — trocada de "Não incomodar" a pedido) em toda empresa nova e nas atuais, botão "Padrão" recria
   as que faltarem; setores por etiqueta em Etiquetas e grupos (nenhum = todos); regra no banco (RLS): atendente não vê
   nem marca etiqueta de outro setor; barra do atendimento com as etiquetas em destaque na cor configurada.*
 - **Chat interno da equipe** — conversa entre as pessoas da empresa dentro do ClubeCRM, separada das conversas com
