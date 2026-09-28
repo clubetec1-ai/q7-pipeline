@@ -43,3 +43,6 @@ verify_jwt = false
 
 [functions.review-tickets]
 verify_jwt = false
+
+[functions.send-campaigns]
+verify_jwt = false
