@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ChargeButton } from "./conversas/ChargeButton";
 
 interface Charge {
   id: string; contact_id: string | null; value: number; due_date: string; description: string | null;
@@ -42,6 +43,9 @@ export default function Cobrancas() {
   const [rows, setRows] = useState<Charge[]>([]);
   const [names, setNames] = useState<Map<string, string>>(new Map());
   const [filter, setFilter] = useState("");
+  const [who, setWho] = useState("");
+  const [found, setFound] = useState<{ id: string; contact_name: string | null; contact_phone: string | null }[]>([]);
+  const [chosen, setChosen] = useState<{ id: string; label: string } | null>(null);
 
   const load = useCallback(async () => {
     if (!org) return;
@@ -64,8 +68,21 @@ export default function Cobrancas() {
   useEffect(() => { void load(); }, [load]);
 
   if (!org) return null;
-  if (!manage && !can("reports.view")) return <Navigate to="/" replace />;
+  if (!manage && !can("reports.view") && !can("conversations.attend")) return <Navigate to="/" replace />;
   const connected = pay.provider === "asaas";
+  // Quem pode gerar cobrança: gestores ou, se a empresa liberar, quem atende.
+  const canCharge = connected && (manage || can("reports.view") || (pay.allow_agents === true && can("conversations.attend")));
+  const findClient = async (text: string) => {
+    setWho(text);
+    const s = text.trim().replace(/[%,()]/g, "");
+    if (s.length < 2) return setFound([]);
+    const digits = s.replace(/\D/g, "");
+    const { data } = await supabase.from("conversations").select("id, contact_name, contact_phone")
+      .eq("organization_id", org.id).eq("channel", "whatsapp")
+      .or(digits.length >= 4 ? `contact_phone.ilike.%${digits}%,contact_name.ilike.%${s}%` : `contact_name.ilike.%${s}%`)
+      .order("last_message_at", { ascending: false }).limit(8);
+    setFound(data ?? []);
+  };
 
   const connect = async () => {
     setBusy(true);
@@ -120,6 +137,36 @@ export default function Cobrancas() {
           <p className="text-sm text-muted-foreground">Cobre pelo WhatsApp com PIX, boleto ou cartão. O pagamento é atualizado sozinho.</p>
         </div>
 
+        {canCharge && (
+          <section className="rounded-lg border p-4 space-y-2">
+            <p className="font-semibold">Nova cobrança</p>
+            <p className="text-xs text-muted-foreground">Busque o cliente; a cobrança vai pelo WhatsApp da conversa dele. O CPF/CNPJ precisa estar na ficha.</p>
+            <Input className="max-w-sm" placeholder="Nome ou telefone do cliente" value={who} onChange={(e) => void findClient(e.target.value)} />
+            {!chosen && found.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {found.map((f) => (
+                  <Button key={f.id} size="sm" variant="outline" onClick={() => setChosen({ id: f.id, label: f.contact_name || f.contact_phone || "Cliente" })}>
+                    {f.contact_name || f.contact_phone}{f.contact_name && f.contact_phone ? ` · ${f.contact_phone}` : ""}
+                  </Button>
+                ))}
+              </div>
+            )}
+            {chosen && (
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <span>Cliente: <b>{chosen.label}</b></span>
+                <ChargeButton conversationId={chosen.id} />
+                <Button size="sm" variant="ghost" onClick={() => { setChosen(null); setWho(""); setFound([]); void load(); }}>Trocar / atualizar lista</Button>
+              </div>
+            )}
+          </section>
+        )}
+        {!canCharge && !manage && (
+          <p className="text-sm rounded-md bg-muted p-3">
+            {connected ? "Sua empresa ainda não liberou cobranças para atendentes. Peça ao gestor (Cobranças → “Atendentes também podem cobrar”)."
+              : "A empresa ainda não conectou o Asaas."}
+          </p>
+        )}
+
         {manage && (
           <section className="rounded-lg border p-4 space-y-3">
             <div className="flex items-center justify-between">
@@ -142,7 +189,7 @@ export default function Cobrancas() {
             </div>
             {connected && (
               <div className="space-y-2 text-sm pt-2">
-                <label className="flex items-center gap-2"><Switch checked={pay.allow_agents === true} onCheckedChange={(v) => setRule("allow_agents", v)} /> Atendentes também podem cobrar</label>
+                <label className="flex items-center gap-2"><Switch checked={pay.allow_agents === true} onCheckedChange={(v) => setRule("allow_agents", v)} /> Atendentes também podem cobrar (na conversa e aqui em Cobranças)</label>
                 <label className="flex items-center gap-2"><Switch checked={pay.notify_paid !== false} onCheckedChange={(v) => setRule("notify_paid", v)} /> Avisar o cliente quando o pagamento cair</label>
                 <label className="flex items-center gap-2"><Switch checked={pay.reminders !== false} onCheckedChange={(v) => setRule("reminders", v)} /> Lembrete um dia antes e um dia depois do vencimento</label>
               </div>

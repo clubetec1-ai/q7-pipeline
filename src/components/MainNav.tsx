@@ -33,7 +33,7 @@ export function MainNav({ active }: { active: Section }) {
     { label: "Clientes", icon: Contact, items: [
       { key: "clientes", to: "/clientes", label: "Clientes e fichas", icon: Contact, show: can("conversations.attend") || manage || reports },
       { key: "registros", to: "/registros", label: "Registros", icon: ClipboardList, show: true },
-      { key: "cobrancas", to: "/cobrancas", label: "Cobranças", icon: Wallet, show: manage || reports },
+      { key: "cobrancas", to: "/cobrancas", label: "Cobranças", icon: Wallet, show: manage || reports || can("conversations.attend") },
       { key: "campanhas", to: "/campanhas", label: "Campanhas", icon: Megaphone, show: can("campaigns.manage") },
     ] },
     { label: "Gestão", icon: Activity, items: [
