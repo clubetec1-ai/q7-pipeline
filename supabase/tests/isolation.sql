@@ -900,6 +900,43 @@ BEGIN
   PERFORM pg_temp.expect((SELECT sections ->> 'empresa' = 'texto antigo' AND stage = 'setores' FROM public.company_profiles WHERE organization_id = A), 'retrato restaurado');
   PERFORM pg_temp.expect(EXISTS (SELECT 1 FROM public.interview_messages WHERE organization_id = A AND content = 'conversa antiga'), 'conversa restaurada');
 
+  -- 49. Ciclo de melhoria: aprova quem pode (dono/admin ou supervisor do setor); no ar guarda o antes; monitor avalia e cria correcao.
+  PERFORM pg_temp.expect(pg_temp.run(sup_a, format('SELECT public.create_improvement(%L, %L, %L, %L, %L, %L)',
+    A, 'Lembrete de pagamento', 'Clientes esquecem o vencimento', '1. Criar fluxo', 'automacao', 'aaaaaaaa-0000-0000-0001-000000000001')) LIKE 'ok:%', 'supervisor cria melhoria do setor');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('SELECT public.create_improvement(%L, %L, %L, %L, %L, %L)',
+    A, 'Treinar equipe D2', '', '', 'processo', 'aaaaaaaa-0000-0000-0001-000000000002')) LIKE 'ok:%', 'dono cria melhoria de outro setor');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.create_improvement(%L, %L, %L, %L, %L, NULL)', A, 'x', '', '', 'processo'), 'atendente nao cria melhoria');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.improvements') = 0, 'outra org nao ve melhorias');
+  PERFORM pg_temp.expect(pg_temp.q(sup_a, format('SELECT count(*) FROM public.improvements WHERE title = %L', 'Treinar equipe D2')) = 0, 'supervisor nao ve melhoria de outro setor');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.approve_improvement((SELECT id FROM public.improvements WHERE title = %L))', 'Lembrete de pagamento'), 'atendente nao aprova');
+  PERFORM pg_temp.expect_error(sup_a, format('SELECT public.approve_improvement(%L)', (SELECT id FROM public.improvements WHERE title = 'Treinar equipe D2')), 'supervisor nao aprova de outro setor');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.set_improvement_live(%L, 7)', (SELECT id FROM public.improvements WHERE title = 'Lembrete de pagamento')), 'nao vai ao ar sem aprovar');
+  PERFORM pg_temp.expect(pg_temp.run(sup_a, format('SELECT public.approve_improvement(%L)', (SELECT id FROM public.improvements WHERE title = 'Lembrete de pagamento'))) LIKE 'ok:%', 'supervisor do setor aprova');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.link_improvement_artifact(%L, %L, %L)', (SELECT id FROM public.improvements WHERE title = 'Lembrete de pagamento'),
+    'flow', (SELECT id FROM public.flows WHERE organization_id = 'bbbbbbbb-0000-0000-0000-000000000001' LIMIT 1)), 'nao liga fluxo de outra org');
+  PERFORM pg_temp.expect(pg_temp.run(sup_a, format('SELECT public.set_improvement_live(%L, 7)', (SELECT id FROM public.improvements WHERE title = 'Lembrete de pagamento'))) LIKE 'ok:%', 'supervisor coloca no ar');
+  PERFORM pg_temp.expect((SELECT status = 'no_ar' AND metrics_before IS NOT NULL FROM public.improvements WHERE title = 'Lembrete de pagamento'), 'no ar com metricas de antes');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.discard_improvement(%L, %L)', (SELECT id FROM public.improvements WHERE title = 'Lembrete de pagamento'), 'x'), 'no ar nao se descarta');
+  PERFORM pg_temp.expect_error(owner_a, format('UPDATE public.improvements SET result = %L', 'funcionou'), 'navegador nao grava resultado');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_add_improvements(%L, %L, %L::jsonb)', A, 'plano', '[]'), 'navegador nao grava pelo backend');
+  -- Simula piora: antes 90% satisfeitos / nota 9; depois 12 atendimentos avaliados insatisfeitos.
+  UPDATE public.improvements SET metrics_before = '{"satisfeitos_pct": 90, "nota_media": 9}'::jsonb, live_at = now() - interval '1 minute'
+  WHERE title = 'Lembrete de pagamento';
+  INSERT INTO public.tickets (id, organization_id, conversation_id, protocol, status, department_id, closed_at)
+  SELECT ('aaaaaaaa-0000-0000-0049-0000000000' || lpad(g::text, 2, '0'))::uuid, A, 'aaaaaaaa-0000-0000-0004-000000000002',
+         'ISO-49-' || g, 'closed', 'aaaaaaaa-0000-0000-0001-000000000001', now()
+  FROM generate_series(1, 12) g;
+  INSERT INTO public.ticket_reviews (organization_id, ticket_id, department_id, status, satisfied, score, reviewed_at)
+  SELECT A, ('aaaaaaaa-0000-0000-0049-0000000000' || lpad(g::text, 2, '0'))::uuid, 'aaaaaaaa-0000-0000-0001-000000000001', 'done', 'nao', 2, now()
+  FROM generate_series(1, 12) g;
+  PERFORM private.evaluate_improvement((SELECT id FROM public.improvements WHERE title = 'Lembrete de pagamento'));
+  PERFORM pg_temp.expect((SELECT status = 'resultado' AND result = 'nao_funcionou' FROM public.improvements WHERE title = 'Lembrete de pagamento'), 'monitor: nao funcionou');
+  PERFORM pg_temp.expect((SELECT source = 'monitor' AND version = 2 AND status = 'sugerida' AND parent_id IS NOT NULL
+    FROM public.improvements WHERE title = 'Ajustar: Lembrete de pagamento'), 'correcao v2 sugerida');
+  PERFORM pg_temp.expect((SELECT count(DISTINCT user_id) FROM public.notifications WHERE organization_id = A AND kind = 'improvement'
+    AND user_id IN (owner_a, admin_a, sup_a)) = 3, 'dono, admin e supervisor do setor avisados');
+  PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM public.notifications WHERE organization_id = A AND kind = 'improvement' AND user_id IN (agent_a, agent2_a)), 'atendentes nao sao avisados');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 
