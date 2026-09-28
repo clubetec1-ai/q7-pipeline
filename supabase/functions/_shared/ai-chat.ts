@@ -73,3 +73,27 @@ export async function chat(apiKey: string, provider: string, model: string, mess
   }
   return last;
 }
+
+export interface ResolvedAI { provider: string; apiKey: string; model: string }
+
+/**
+ * Provedor/modelo para um agente: o do bloco (se escolhido) → o PADRÃO DA
+ * EMPRESA (settings.ai_provider / ai_model, em Fluxos → Chaves de IA) → Groq.
+ * null = a empresa não tem chave para esse provedor.
+ */
+// deno-lint-ignore no-explicit-any
+export async function resolveAI(admin: any, orgId: string, override?: { provider?: string | null; model?: string | null }): Promise<ResolvedAI | null> {
+  const { data: o } = await admin.from("organizations").select("settings").eq("id", orgId).maybeSingle();
+  const s = (o?.settings ?? {}) as Record<string, unknown>;
+  const own = override?.provider && AI_PROVIDERS[override.provider] ? override.provider : null;
+  const provider = own ?? (typeof s.ai_provider === "string" && AI_PROVIDERS[s.ai_provider] ? s.ai_provider : "groq");
+  const apiKey = await providerKey(admin, orgId, provider);
+  if (!apiKey) return null;
+  let model = String(override?.model ?? "").trim();
+  if (!model && !own) model = String(s.ai_model ?? "").trim();
+  if (!model && provider === "groq") {
+    const { data: a } = await admin.from("agent_configs").select("groq_model").eq("organization_id", orgId).maybeSingle();
+    model = a?.groq_model || "auto";
+  }
+  return { provider, apiKey, model };
+}

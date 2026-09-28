@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { useInstall } from "./fluxos/ReadyTemplates";
 
 /** Mesmas seções do servidor (_shared/company.ts); públicas podem ir para a IA de atendimento. */
 const SECTIONS: [string, string, boolean][] = [
@@ -30,6 +31,7 @@ const rich = (t: string) => t.split(/\*\*(.+?)\*\*/g).map((part, i) => (i % 2 ? 
 interface Suggestion {
   titulo: string; area: string; tipo: "pronta" | "integracao"; impacto: string; esforco: string;
   descricao: string; modelo: string | null; sistema: string | null; passos: string[];
+  instalado?: { kind: "flow" | "record_type"; id: string };
 }
 interface Profile { sections: Record<string, string>; processes: Record<string, string>[]; suggestions: Suggestion[]; use_in_ai: boolean }
 
@@ -46,6 +48,7 @@ export default function Diagnostico() {
   const [dirty, setDirty] = useState(false);
   const [suggesting, setSuggesting] = useState(false);
   const end = useRef<HTMLDivElement>(null);
+  const { install, busy: installing } = useInstall(org?.id ?? "");
 
   const load = useCallback(async () => {
     if (!org) return;
@@ -195,8 +198,17 @@ export default function Diagnostico() {
                   {s.area && <span className="text-xs text-muted-foreground">{s.area}</span>}
                 </div>
                 <p className="text-muted-foreground">{s.descricao}</p>
-                {s.tipo === "pronta" && (
-                  <p className="text-xs text-muted-foreground">Instalação com um clique chega com o agente implementador. Enquanto isso, dá para montar em Fluxos.</p>
+                {s.tipo === "pronta" && s.modelo && (
+                  s.instalado ? (
+                    <Button size="sm" variant="ghost" onClick={() => navigate(s.instalado!.kind === "flow" ? `/fluxos/${s.instalado!.id}` : "/registros")}>
+                      Instalado — abrir rascunho
+                    </Button>
+                  ) : (
+                    <Button size="sm" variant="outline" disabled={!!installing} onClick={async () => {
+                      const r = await install({ suggestion_index: i }, `s${i}`);
+                      if (r?.id) void load();
+                    }}>{installing === `s${i}` ? "Instalando..." : "Instalar (rascunho)"}</Button>
+                  )
                 )}
                 {s.passos.length > 0 && (
                   <ol className="list-decimal pl-5 text-xs space-y-0.5">{s.passos.map((p, j) => <li key={j}>{p}</li>)}</ol>

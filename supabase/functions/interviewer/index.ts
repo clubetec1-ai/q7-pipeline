@@ -1,8 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { HttpError, requirePermission, requireUser, resolveOrg } from "../_shared/auth.ts";
 import { forOrg } from "../_shared/tenant.ts";
-import { getAgentConfig } from "../_shared/get-ai-config.ts";
-import { chat, type ChatMsg, providerKey } from "../_shared/ai-chat.ts";
+import { chat, type ChatMsg, resolveAI } from "../_shared/ai-chat.ts";
 import { SECTIONS } from "../_shared/company.ts";
 
 /**
@@ -53,11 +52,12 @@ Deno.serve(async (req) => {
 
     const { data: orgRow } = await admin.from("organizations").select("name, settings").eq("id", orgId).maybeSingle();
     const settings = (orgRow?.settings ?? {}) as Record<string, any>;
-    const provider = typeof settings.interviewer_provider === "string" ? settings.interviewer_provider : "groq";
-    const [apiKey, agent] = await Promise.all([providerKey(admin, orgId, provider), getAgentConfig(orgId)]);
-    if (!apiKey) throw new HttpError(409, "Configure a chave da IA (Fluxos → Chaves de IA) para usar o entrevistador.");
-    // Entrevista pede raciocínio e ferramentas: modelo maior por padrão (o "auto" começa pelo 8b).
-    const model = String(settings.interviewer_model || (provider === "groq" ? "llama-3.3-70b-versatile" : ""));
+    // Provedor padrão da empresa (Fluxos → Chaves de IA); entrevista pede raciocínio,
+    // então na Groq usa o modelo maior quando nenhum foi escolhido (o "auto" começa pelo 8b).
+    const ai = await resolveAI(admin, orgId, { provider: settings.interviewer_provider ?? null, model: settings.interviewer_model ?? null });
+    if (!ai) throw new HttpError(409, "Configure a chave do provedor de IA (Fluxos → Chaves de IA) para usar o entrevistador.");
+    const { provider, apiKey } = ai;
+    const model = provider === "groq" && (!ai.model || ai.model === "auto") ? "llama-3.3-70b-versatile" : ai.model;
 
     // Retrato atual + o que já está no CRM (para não perguntar de novo).
     let { data: profile } = await org.select("company_profiles").maybeSingle();

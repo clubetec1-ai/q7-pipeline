@@ -5,8 +5,8 @@
  * (mesma organização, ativo). Chamada inválida é descartada e registrada.
  */
 import { forOrg } from "../tenant.ts";
-import { getAgentConfig } from "../get-ai-config.ts";
-import { chat, type ChatMsg, providerKey, type ToolDef } from "../ai-chat.ts";
+import { getAgentProfile } from "../get-ai-config.ts";
+import { chat, type ChatMsg, resolveAI, type ToolDef } from "../ai-chat.ts";
 import { validate } from "./engine.ts";
 import { aiContactContext, contactFieldDefs, setContactField } from "../contact-fields.ts";
 import { companyKnowledge } from "../company.ts";
@@ -40,9 +40,13 @@ export async function runAiAgent(p: {
   const { admin, orgId, node, ticket, conv, send, sendFile, route } = p;
   const d = node.data ?? {};
   const org = forOrg(admin, orgId);
-  const provider = typeof d.provider === "string" && d.provider ? d.provider : "groq";
-  const [apiKey, agent] = await Promise.all([providerKey(admin, orgId, provider), getAgentConfig(orgId)]);
-  if (!apiKey) { await route({ action: "queue" }); return { ended: true }; }
+  // Provedor do bloco, senão o padrão da empresa (Fluxos → Chaves de IA), senão Groq.
+  const [ai, agent] = await Promise.all([
+    resolveAI(admin, orgId, { provider: typeof d.provider === "string" ? d.provider : null, model: typeof d.model === "string" ? d.model : null }),
+    getAgentProfile(admin, orgId),
+  ]);
+  if (!ai) { await route({ action: "queue" }); return { ended: true }; }
+  const { provider, apiKey, model } = ai;
 
   const [depts, reasons, stages, files] = await Promise.all([
     allowed(org, "departments", ids(d.allow_departments)),
@@ -90,7 +94,7 @@ export async function runAiAgent(p: {
     .eq("ticket_id", ticket.id).order("created_at", { ascending: false }).limit(30);
   const first = String(conv.contact_name ?? "").trim().split(/\s+/)[0];
   const system = [
-    String(d.prompt || agent?.systemPrompt || DEFAULT_PROMPT),
+    String(d.prompt || agent.systemPrompt || DEFAULT_PROMPT),
     ticket.protocol ? `Protocolo deste atendimento: ${ticket.protocol}. Informe ao cliente se ele pedir.` : "",
     first ? `Primeiro nome do cliente: ${first}.` : "",
     aiContactContext(defs, contactRow?.custom as Record<string, unknown> | null),
@@ -103,7 +107,6 @@ export async function runAiAgent(p: {
       role: (m.direction === "inbound" ? "user" : "assistant") as "user" | "assistant", content: String(m.content ?? ""),
     })),
   ];
-  const model = String(d.model || (provider === "groq" ? agent?.model ?? "" : ""));
 
   const r = await chat(apiKey, provider, model, messages, tools);
   if (!r.ok) {

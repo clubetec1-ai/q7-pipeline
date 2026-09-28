@@ -207,3 +207,13 @@ export function translateAIError(text: string, status: number): string {
   }
   return `A Groq retornou erro ${status}: ${t}`;
 }
+
+export const DEFAULT_SYSTEM_PROMPT =
+  "Você é um assistente de atendimento simpático e objetivo. Quando receber [áudio], [imagem], [vídeo] ou [documento], diga que ainda não consegue ouvir ou ver o conteúdo e peça para o cliente resumir por texto.";
+
+/** Prompt e liga/desliga da IA da empresa, sem depender da chave da Groq. */
+// deno-lint-ignore no-explicit-any
+export async function getAgentProfile(admin: any, orgId: string): Promise<{ systemPrompt: string; enabled: boolean }> {
+  const { data } = await forOrg(admin, orgId).select("agent_configs", "system_prompt, enabled").maybeSingle();
+  return { systemPrompt: data?.system_prompt || DEFAULT_SYSTEM_PROMPT, enabled: !!data?.enabled };
+}

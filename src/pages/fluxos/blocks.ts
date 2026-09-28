@@ -65,7 +65,7 @@ export const BLOCKS: BlockDef[] = [
     type: "ai_agent", label: "Agente de IA", color: "#E8618C",
     outputs: () => [{ id: "transferred", label: "Pediu humano" }, { id: "fallback", label: "Limite de respostas" }],
     defaults: () => ({ prompt: "", max_turns: 10, handoff_words: ["atendente", "humano", "pessoa"] }),
-    summary: (d) => `${PROVIDER_LABEL[str(d.provider) || "groq"] ?? "Groq"} · ${cut(str(d.prompt) || "Usa o prompt do agente da empresa", 45)}`,
+    summary: (d) => `${str(d.provider) ? PROVIDER_LABEL[str(d.provider)] ?? "IA" : "IA padrão"} · ${cut(str(d.prompt) || "Usa o prompt do agente da empresa", 45)}`,
   },
   {
     type: "wait", label: "Aguardar", color: "#94A3B8",

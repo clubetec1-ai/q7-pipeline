@@ -19,12 +19,18 @@ export function FlowSecrets({ orgId }: { orgId: string }) {
   const [secrets, setSecrets] = useState<string[]>([]);
   const [name, setName] = useState("");
   const [value, setValue] = useState("");
+  const [defProvider, setDefProvider] = useState("groq");
+  const [defModel, setDefModel] = useState("");
 
   const load = useCallback(async () => {
-    const [k, s] = await Promise.all([
+    const [k, s, o] = await Promise.all([
       supabase.rpc("ai_keys_status", { org: orgId }),
       supabase.rpc("list_http_secrets", { org: orgId }),
+      supabase.from("organizations").select("settings").eq("id", orgId).maybeSingle(),
     ]);
+    const st = (o.data?.settings ?? {}) as Record<string, unknown>;
+    setDefProvider(typeof st.ai_provider === "string" ? st.ai_provider : "groq");
+    setDefModel(typeof st.ai_model === "string" ? st.ai_model : "");
     setKeys((k.data as Record<string, boolean> | null) ?? {});
     setSecrets((s.data ?? []).map((x) => x.name));
   }, [orgId]);
@@ -38,6 +44,16 @@ export function FlowSecrets({ orgId }: { orgId: string }) {
     setKeyInput((x) => ({ ...x, [provider]: "" }));
     toast({ title: `Chave ${PROVIDER_LABEL[provider]} salva` });
     void load();
+  };
+
+  /** Provedor padrão: vale para todos os agentes que não escolherem outro. */
+  const saveDefault = async () => {
+    if (!keys[defProvider]) return toast({ variant: "destructive", title: `Cadastre antes a chave ${PROVIDER_LABEL[defProvider]}` });
+    const { data } = await supabase.from("organizations").select("settings").eq("id", orgId).maybeSingle();
+    const next = { ...((data?.settings ?? {}) as Record<string, unknown>), ai_provider: defProvider, ai_model: defModel.trim() || null };
+    const { error } = await supabase.from("organizations").update({ settings: next as never }).eq("id", orgId);
+    if (error) return toast({ variant: "destructive", title: "Sem permissão" });
+    toast({ title: `Padrão: ${PROVIDER_LABEL[defProvider]}`, description: "Atendimento, fluxos, follow-ups e entrevistador passam a usar este provedor." });
   };
 
   const saveSecret = async () => {
@@ -65,6 +81,23 @@ export function FlowSecrets({ orgId }: { orgId: string }) {
         <p className="text-xs text-muted-foreground">
           Cada bloco “Agente de IA” escolhe o provedor. A chave fica guardada no cofre e não aparece de novo; para trocar, cole outra.
         </p>
+        <div className="rounded-md border p-3 space-y-2">
+          <p className="text-sm font-medium">Provedor padrão da empresa</p>
+          <p className="text-xs text-muted-foreground">
+            Usado por todos os agentes (IA do atendimento, blocos de IA sem provedor escolhido, follow-ups e Diagnóstico).
+            A transcrição de áudio continua pela Groq.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <select className="h-8 rounded-md border bg-background px-2 text-sm" value={defProvider} onChange={(e) => setDefProvider(e.target.value)}>
+              {Object.entries(PROVIDER_LABEL).map(([id, label]) => (
+                <option key={id} value={id}>{label}{keys[id] ? "" : " (sem chave)"}</option>
+              ))}
+            </select>
+            <Input className="h-8 w-56" placeholder="Modelo (vazio = padrão do provedor)" value={defModel} maxLength={80}
+              onChange={(e) => setDefModel(e.target.value)} />
+            <Button size="sm" variant="outline" onClick={saveDefault}>Salvar padrão</Button>
+          </div>
+        </div>
         {Object.entries(PROVIDER_LABEL).map(([id, label]) => (
           <div key={id} className="flex items-center gap-2">
             <span className="w-40 text-sm shrink-0">{label}</span>
