@@ -1623,6 +1623,30 @@ export type Database = {
           },
         ]
       }
+      mfa_recovery_codes: {
+        Row: {
+          code_hash: string
+          created_at: string
+          id: number
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          code_hash: string
+          created_at?: string
+          id?: never
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          code_hash?: string
+          created_at?: string
+          id?: never
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
@@ -2861,6 +2885,7 @@ export type Database = {
       }
       my_mfa_status: { Args: never; Returns: Json }
       my_permissions: { Args: { org: string }; Returns: string[] }
+      my_recovery_codes_left: { Args: never; Returns: number }
       my_support_access: {
         Args: never
         Returns: {

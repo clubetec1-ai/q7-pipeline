@@ -21,8 +21,9 @@ Registros: falta criar/atualizar registro a partir do fluxo e da IA (bloco próp
 login com segundo fator (MFA) para dono/admin/operador.
 *MFA entregue (29/09): tela Segurança (ativar com QR code no app autenticador, desativar), código pedido depois da
 senha; no banco, quem tem MFA e entrou só com senha fica sem permissões; empresa pode exigir de donos/admins (só
-liga quem já tem MFA; auditado); operador da plataforma só com código. Falta: códigos de recuperação e aviso por
-e-mail quando o MFA for desativado.*
+liga quem já tem MFA; auditado); operador da plataforma só com código. Códigos de recuperação (29/09): 10 de uso
+único, só o hash guardado, gerados em Segurança (só com código digitado); “Perdi o celular” na tela do código remove
+o autenticador antigo (5 erros/15 min); e-mail para a pessoa ao usar código ou desativar o MFA; auditoria.*
 **Ramal SIP (29/09): central principal = Handphone (XHAND).** Perguntas enviadas ao fornecedor: SIP sobre WSS para
 webphone, credenciais por ramal, webhook de eventos de chamada, API de gravações, clique-para-ligar, áudio em tempo
 real para agente de voz e documentação. Nvoip fica como alternativa (API de chamadas).

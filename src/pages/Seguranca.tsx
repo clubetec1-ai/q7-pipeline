@@ -12,6 +12,7 @@ import { MfaEnroll, useMfa } from "@/components/Mfa";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { callFunction } from "@/lib/callFunction";
 
 /** Segurança da conta: verificação em duas etapas e exigência para donos/admins. */
 export default function Seguranca() {
@@ -22,6 +23,9 @@ export default function Seguranca() {
   const mfa = useMfa();
   const [enrolling, setEnrolling] = useState(false);
   const [required, setRequired] = useState<boolean | null>(null);
+  const [left, setLeft] = useState<number | null>(null);
+  const [codes, setCodes] = useState<string[] | null>(null);
+  useEffect(() => { void supabase.rpc("my_recovery_codes_left").then(({ data }) => setLeft((data as number | null) ?? 0)); }, [codes]);
 
   const loadOrg = useCallback(async () => {
     if (!org) return;
@@ -39,6 +43,7 @@ export default function Seguranca() {
       const { error } = await supabase.auth.mfa.unenroll({ factorId: f.id });
       if (error) return toast({ variant: "destructive", title: "Não foi possível desativar", description: "Entre de novo com o código e tente outra vez." });
     }
+    await callFunction("mfa-recovery", { action: "notify_disabled" });
     toast({ title: "Verificação em duas etapas desativada" });
     window.location.reload();
   };
@@ -48,6 +53,19 @@ export default function Seguranca() {
     if (error) return toast({ variant: "destructive", title: "Não foi possível", description: error.message });
     setRequired(v);
     toast({ title: v ? "Agora donos e administradores precisam do código no login" : "Exigência desligada" });
+  };
+
+  const generate = async () => {
+    if (left && !window.confirm("Gerar códigos novos? Os anteriores param de funcionar.")) return;
+    const r = await callFunction<{ codes: string[] }>("mfa-recovery", { action: "generate" });
+    if (!r.ok) return toast({ variant: "destructive", title: r.message });
+    setCodes(r.data.codes);
+  };
+  const download = () => {
+    const txt = `ClubeCRM — códigos de recuperação (cada um funciona uma vez)\n\n${codes!.join("\n")}\n\nGuarde em lugar seguro, longe do celular.\n`;
+    const url = URL.createObjectURL(new Blob([txt], { type: "text/plain" }));
+    Object.assign(document.createElement("a"), { href: url, download: "clubecrm-codigos-recuperacao.txt" }).click();
+    URL.revokeObjectURL(url);
   };
 
   const on = !!mfa.status?.enrolled;
@@ -82,6 +100,33 @@ export default function Seguranca() {
             <Button onClick={() => setEnrolling(true)}>Ativar agora</Button>
           )}
         </section>
+
+        {on && (
+          <section className="rounded-lg border p-4 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="font-medium">Códigos de recuperação</p>
+              {left !== null && <Badge variant={left ? "secondary" : "destructive"}>{left} disponíveis</Badge>}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Se perder o celular, um destes códigos deixa você entrar e cadastrar o celular novo. Cada código funciona uma vez.
+            </p>
+            {codes ? (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-amber-700 dark:text-amber-400">Guarde agora: eles não aparecem de novo.</p>
+                <div className="grid grid-cols-2 gap-1 font-mono text-sm rounded-md bg-muted p-3 select-all">
+                  {codes.map((c) => <span key={c}>{c}</span>)}
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={download}>Baixar .txt</Button>
+                  <Button size="sm" variant="outline" onClick={() => { void navigator.clipboard.writeText(codes.join("\n")); toast({ title: "Códigos copiados" }); }}>Copiar</Button>
+                  <Button size="sm" onClick={() => setCodes(null)}>Já guardei</Button>
+                </div>
+              </div>
+            ) : (
+              <Button variant="outline" onClick={generate}>{left ? "Gerar novos códigos" : "Gerar códigos"}</Button>
+            )}
+          </section>
+        )}
 
         {can("org.settings") && required !== null && (
           <section className="rounded-lg border p-4 space-y-2">

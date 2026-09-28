@@ -868,6 +868,14 @@ BEGIN
   PERFORM pg_temp.expect(pg_temp.run(operator, 'SELECT public.platform_org_overview()') LIKE 'ok:%', 'operador com codigo ve a plataforma');
   DELETE FROM auth.mfa_factors WHERE user_id = agent_a;
 
+  -- 46. Codigos de recuperacao: so o backend le/grava; cada pessoa ve so quantos restam dela.
+  INSERT INTO public.mfa_recovery_codes (user_id, code_hash) VALUES
+    (agent_a, repeat('a', 64)), (agent_a, repeat('b', 64)), (owner_a, repeat('c', 64));
+  PERFORM pg_temp.expect_error(agent_a, 'SELECT count(*) FROM public.mfa_recovery_codes', 'navegador nao le codigos');
+  PERFORM pg_temp.expect_error(agent_a, format('INSERT INTO public.mfa_recovery_codes (user_id, code_hash) VALUES (%L, %L)', agent_a, repeat('d', 64)), 'navegador nao grava codigo');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, 'SELECT public.my_recovery_codes_left()') = 2, 'atendente ve so os dele');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT public.my_recovery_codes_left()') = 0, 'outra pessoa nao ve os de ninguem');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 
