@@ -21,6 +21,7 @@ export function FlowSecrets({ orgId }: { orgId: string }) {
   const [value, setValue] = useState("");
   const [defProvider, setDefProvider] = useState("groq");
   const [defModel, setDefModel] = useState("");
+  const [readMedia, setReadMedia] = useState(true);
 
   const load = useCallback(async () => {
     const [k, s, o] = await Promise.all([
@@ -31,6 +32,7 @@ export function FlowSecrets({ orgId }: { orgId: string }) {
     const st = (o.data?.settings ?? {}) as Record<string, unknown>;
     setDefProvider(typeof st.ai_provider === "string" ? st.ai_provider : "groq");
     setDefModel(typeof st.ai_model === "string" ? st.ai_model : "");
+    setReadMedia(st.ai_read_media !== false);
     setKeys((k.data as Record<string, boolean> | null) ?? {});
     setSecrets((s.data ?? []).map((x) => x.name));
   }, [orgId]);
@@ -54,6 +56,16 @@ export function FlowSecrets({ orgId }: { orgId: string }) {
     const { error } = await supabase.from("organizations").update({ settings: next as never }).eq("id", orgId);
     if (error) return toast({ variant: "destructive", title: "Sem permissão" });
     toast({ title: `Padrão: ${PROVIDER_LABEL[defProvider]}`, description: "Atendimento, fluxos, follow-ups e entrevistador passam a usar este provedor." });
+  };
+
+  /** IA lê imagens (com visão) e PDFs (texto) que o cliente envia. */
+  const toggleReadMedia = async (v: boolean) => {
+    const { data } = await supabase.from("organizations").select("settings").eq("id", orgId).maybeSingle();
+    const next = { ...((data?.settings ?? {}) as Record<string, unknown>), ai_read_media: v };
+    const { error } = await supabase.from("organizations").update({ settings: next as never }).eq("id", orgId);
+    if (error) return toast({ variant: "destructive", title: "Sem permissão" });
+    setReadMedia(v);
+    toast({ title: v ? "IA vai ler imagens e PDFs" : "IA não lê mais imagens e PDFs" });
   };
 
   const saveSecret = async () => {
@@ -81,6 +93,14 @@ export function FlowSecrets({ orgId }: { orgId: string }) {
         <p className="text-xs text-muted-foreground">
           Cada bloco “Agente de IA” escolhe o provedor. A chave fica guardada no cofre e não aparece de novo; para trocar, cole outra.
         </p>
+        <label className="flex items-start gap-2 rounded-md border p-3 text-sm">
+          <input type="checkbox" className="mt-1" checked={readMedia} onChange={(e) => toggleReadMedia(e.target.checked)} />
+          <span>
+            <b>IA lê imagens e PDFs que o cliente envia</b> (comprovante, boleto, foto do produto). O que ela ler entra no atendimento
+            e aparece como “Lido pela IA”. Imagens usam o provedor padrão (precisa de modelo com visão: Groq, OpenAI, Gemini ou
+            Claude); PDFs têm o texto extraído sem IA. Desligue se a empresa não quiser enviar documentos à IA.
+          </span>
+        </label>
         <div className="rounded-md border p-3 space-y-2">
           <p className="text-sm font-medium">Provedor padrão da empresa</p>
           <p className="text-xs text-muted-foreground">

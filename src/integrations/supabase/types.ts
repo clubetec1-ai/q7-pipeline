@@ -1540,6 +1540,7 @@ export type Database = {
           media_name: string | null
           media_path: string | null
           media_size: number | null
+          media_text: string | null
           organization_id: string
           provider_message_id: string | null
           sender: string
@@ -1565,6 +1566,7 @@ export type Database = {
           media_name?: string | null
           media_path?: string | null
           media_size?: number | null
+          media_text?: string | null
           organization_id: string
           provider_message_id?: string | null
           sender: string
@@ -1590,6 +1592,7 @@ export type Database = {
           media_name?: string | null
           media_path?: string | null
           media_size?: number | null
+          media_text?: string | null
           organization_id?: string
           provider_message_id?: string | null
           sender?: string
