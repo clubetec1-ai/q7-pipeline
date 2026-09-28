@@ -83,6 +83,10 @@ export default function Diagnostico() {
   const [depts, setDepts] = useState<{ id: string; name: string }[]>([]);
   const [rec, setRec] = useState<{ on: boolean; secs: number }>({ on: false, secs: 0 });
   const recorder = useRef<MediaRecorder | null>(null);
+  // Ditado ao vivo (reconhecimento de voz do navegador): o texto aparece enquanto a pessoa fala.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const speech = useRef<any>(null);
+  const dictating = useRef(false);
   const fileInput = useRef<HTMLInputElement>(null);
   const { install, busy: installing } = useInstall(org?.id ?? "");
 
@@ -114,7 +118,10 @@ export default function Diagnostico() {
   const outdated = !!profile.plan_at && Object.values(profile.steps).some((s) => s.approved_at && s.approved_at > profile.plan_at!);
 
   // Ao trocar de página: carrega o texto que o dono escreveu (se houver) e limpa a prévia.
-  useEffect(() => { setRaw(profile.steps[page]?.raw ?? ""); setAtts(profile.steps[page]?.attachments ?? []); setDraft(null); }, [page]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (dictating.current) { dictating.current = false; speech.current?.stop(); setRec({ on: false, secs: 0 }); }
+    setRaw(profile.steps[page]?.raw ?? ""); setAtts(profile.steps[page]?.attachments ?? []); setDraft(null);
+  }, [page]); // eslint-disable-line react-hooks/exhaustive-deps
   // Contador enquanto grava.
   useEffect(() => {
     if (!rec.on) return;
@@ -143,7 +150,41 @@ export default function Diagnostico() {
     r.readAsDataURL(b);
   });
   // Microfone: grava no navegador; ao parar, vira texto (Groq Whisper) e entra na caixa para revisar.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const SpeechRec: any = typeof window !== "undefined" ? (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition : null;
   const toggleMic = async () => {
+    if (SpeechRec) return toggleDictation();
+    return recordAndTranscribe();
+  };
+  const toggleDictation = () => {
+    if (dictating.current) { dictating.current = false; speech.current?.stop(); setRec({ on: false, secs: 0 }); return; }
+    const base = raw.trim() ? `${raw.trim()} ` : "";
+    let finals = "";
+    const sr = new SpeechRec();
+    sr.lang = "pt-BR"; sr.continuous = true; sr.interimResults = true;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    sr.onresult = (e: any) => {
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript;
+        if (e.results[i].isFinal) finals += `${t.trim()} `; else interim += t;
+      }
+      setRaw(`${base}${finals}${interim}`.replace(/\s+$/, interim ? "" : " "));
+    };
+    // O navegador para sozinho depois de um silêncio: continua enquanto a pessoa não clicar em Parar.
+    sr.onend = () => { if (dictating.current) { try { sr.start(); } catch { /* já reiniciando */ } } };
+    sr.onerror = (e: { error?: string }) => {
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+        dictating.current = false; setRec({ on: false, secs: 0 });
+        toast({ variant: "destructive", title: "Microfone bloqueado", description: "Permita o microfone no navegador para ditar." });
+      }
+    };
+    speech.current = sr;
+    dictating.current = true;
+    sr.start();
+    setRec({ on: true, secs: 0 });
+  };
+  const recordAndTranscribe = async () => {
     if (rec.on) { recorder.current?.stop(); return; }
     let stream: MediaStream;
     try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
@@ -356,8 +397,8 @@ export default function Diagnostico() {
                     placeholder={setor ? "Ex.: 1. O cliente pede orçamento no WhatsApp. 2. O vendedor confere o estoque na planilha..." : "Escreva do seu jeito, sem se preocupar com a forma. A IA organiza para você revisar."} />
                   <div className="flex flex-wrap items-center gap-2">
                     <Button type="button" variant={rec.on ? "destructive" : "outline"} size="sm" disabled={busy === "mic"} onClick={toggleMic}
-                      title={rec.on ? "Parar e transformar em texto" : "Falar em vez de escrever"}>
-                      {rec.on ? <><Square className="w-4 h-4 mr-1" /> Parar ({Math.floor(rec.secs / 60)}:{String(rec.secs % 60).padStart(2, "0")})</>
+                      title={rec.on ? "Parar" : SpeechRec ? "Ditar: o texto aparece enquanto você fala" : "Falar: grava e transforma em texto"}>
+                      {rec.on ? <><Square className="w-4 h-4 mr-1" /> {SpeechRec ? "Parar ditado" : "Parar"} ({Math.floor(rec.secs / 60)}:{String(rec.secs % 60).padStart(2, "0")})</>
                         : <><Mic className="w-4 h-4 mr-1" /> {busy === "mic" ? "Transcrevendo..." : "Falar"}</>}
                     </Button>
                     <Button type="button" variant="outline" size="sm" disabled={busy === "attach"} onClick={() => fileInput.current?.click()} title="Anexar contrato, planilha, manual...">
