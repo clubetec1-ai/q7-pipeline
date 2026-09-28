@@ -9,6 +9,7 @@ export interface Ticket {
   assigned_to: string | null;
   department_id: string | null;
   external_reply: boolean;
+  overflow_at?: string | null;
 }
 
 export type TicketTab = "meus" | "fila" | "ia" | "todos";
@@ -28,7 +29,7 @@ export function useTickets(orgId: string | undefined, userId: string | undefined
     if (!orgId) return;
     const { data } = await supabase
       .from("tickets")
-      .select("id, conversation_id, protocol, status, assigned_to, department_id, external_reply")
+      .select("id, conversation_id, protocol, status, assigned_to, department_id, external_reply, overflow_at")
       .eq("organization_id", orgId)
       .neq("status", "closed");
     setTickets((data as Ticket[]) ?? []);

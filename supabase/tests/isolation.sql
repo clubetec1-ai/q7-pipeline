@@ -714,6 +714,36 @@ BEGIN
   PERFORM pg_temp.expect(pg_temp.q(owner_b, format('SELECT count(*) FROM public.search_messages(%L, %L)', A, 'atrasado')) = 0, 'outra org nao acha');
   PERFORM pg_temp.expect(pg_temp.q(owner_a, format('SELECT count(*) FROM public.search_messages(%L, %L)', A, '%')) = 0, 'curinga nao lista tudo');
 
+  -- 40. Transbordo: setor ajudante ve e assume so a fila parada (sem responsavel); nunca outra org.
+  INSERT INTO public.conversations (id, instance_id, contact_phone, department_id) VALUES
+    ('aaaaaaaa-0000-0000-0040-000000000001', 'aaaaaaaa-0000-0000-0003-000000000001', '5511900000040', 'aaaaaaaa-0000-0000-0001-000000000001');
+  INSERT INTO public.tickets (id, organization_id, conversation_id, protocol, status, department_id, queued_at) VALUES
+    ('aaaaaaaa-0000-0000-0040-000000000002', A, 'aaaaaaaa-0000-0000-0040-000000000001', 'ISO-40', 'queued',
+     'aaaaaaaa-0000-0000-0001-000000000001', now());
+  PERFORM pg_temp.expect(pg_temp.q(agent2_a, format('SELECT count(*) FROM public.conversations WHERE id = %L', 'aaaaaaaa-0000-0000-0040-000000000001')) = 0, 'sem transbordo: D2 nao ve fila de D1');
+  PERFORM pg_temp.expect_denied(agent2_a, format('UPDATE public.departments SET overflow_to = ARRAY[%L]::uuid[], overflow_after_minutes = 5 WHERE id = %L',
+    'aaaaaaaa-0000-0000-0001-000000000002', 'aaaaaaaa-0000-0000-0001-000000000001'), 'atendente nao configura transbordo');
+  PERFORM pg_temp.expect_error(owner_a, format('UPDATE public.departments SET overflow_to = ARRAY[%L]::uuid[] WHERE id = %L',
+    'bbbbbbbb-0000-0000-0001-000000000001', 'aaaaaaaa-0000-0000-0001-000000000001'), 'setor de outra org recusado');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('UPDATE public.departments SET overflow_to = ARRAY[%L, %L]::uuid[], overflow_after_minutes = 5 WHERE id = %L',
+    'aaaaaaaa-0000-0000-0001-000000000002', 'aaaaaaaa-0000-0000-0001-000000000001', 'aaaaaaaa-0000-0000-0001-000000000001')) = 'ok:1', 'dono configura transbordo');
+  PERFORM pg_temp.expect((SELECT overflow_to = ARRAY['aaaaaaaa-0000-0000-0001-000000000002']::uuid[] FROM public.departments
+    WHERE id = 'aaaaaaaa-0000-0000-0001-000000000001'), 'proprio setor tirado da lista');
+  PERFORM pg_temp.expect(pg_temp.q(agent2_a, format('SELECT count(*) FROM public.conversations WHERE id = %L', 'aaaaaaaa-0000-0000-0040-000000000001')) = 0, 'fila recente: ainda nao ve');
+  UPDATE public.tickets SET queued_at = now() - interval '10 minutes' WHERE id = 'aaaaaaaa-0000-0000-0040-000000000002';
+  PERFORM pg_temp.expect(pg_temp.q(agent2_a, format('SELECT count(*) FROM public.conversations WHERE id = %L', 'aaaaaaaa-0000-0000-0040-000000000001')) = 1, 'fila parada: ajudante ve');
+  PERFORM pg_temp.expect(pg_temp.q(agent2_a, format('SELECT count(*) FROM public.conversations WHERE id IN (%L, %L)',
+    'aaaaaaaa-0000-0000-0004-000000000001', 'aaaaaaaa-0000-0000-0004-000000000005')) = 0, 'ajudante nao ve atribuidas');
+  PERFORM pg_temp.expect(pg_temp.q(agent_b, format('SELECT count(*) FROM public.conversations WHERE organization_id = %L', A)) = 0, 'outra org continua sem ver');
+  PERFORM private.drain_all();
+  PERFORM pg_temp.expect((SELECT overflow_at IS NOT NULL FROM public.tickets WHERE id = 'aaaaaaaa-0000-0000-0040-000000000002'), 'marcado como transbordo');
+  PERFORM pg_temp.expect(EXISTS (SELECT 1 FROM public.ticket_events WHERE ticket_id = 'aaaaaaaa-0000-0000-0040-000000000002' AND type = 'overflow'), 'evento de transbordo');
+  PERFORM pg_temp.expect(pg_temp.run(agent2_a, format('SELECT public.claim_ticket(%L)', 'aaaaaaaa-0000-0000-0040-000000000002')) LIKE 'ok:%', 'ajudante assume');
+  PERFORM pg_temp.expect((SELECT assigned_to = agent2_a AND overflow_at IS NULL AND department_id = 'aaaaaaaa-0000-0000-0001-000000000001'
+    FROM public.tickets WHERE id = 'aaaaaaaa-0000-0000-0040-000000000002'), 'assumido fica no setor de origem, marca limpa');
+  PERFORM pg_temp.expect(pg_temp.q(agent2_a, format('SELECT count(*) FROM public.conversations WHERE id = %L', 'aaaaaaaa-0000-0000-0040-000000000001')) = 1, 'quem assumiu continua vendo');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, format('SELECT count(*) FROM public.conversations WHERE id = %L', 'aaaaaaaa-0000-0000-0040-000000000001')) = 0, 'atendente de D1 (own_and_queue) deixa de ver apos assumido');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 
