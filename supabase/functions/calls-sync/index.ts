@@ -1,7 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { getSecret, safeEqual } from "../_shared/secrets.ts";
 import { forOrg } from "../_shared/tenant.ts";
-import { brDate, historyItems, normalizeCall, NvoipError, nvoipFetch, nvoipToken } from "../_shared/nvoip.ts";
+import { brDate, fetchHistory, normalizeCall, NvoipError, nvoipToken } from "../_shared/nvoip.ts";
 
 /**
  * Histórico de ligações da Nvoip → tabela calls (cron a cada 5 min, x-cron-secret).
@@ -29,8 +29,8 @@ Deno.serve(async (req) => {
       const extNumbers = new Set<string>((exts ?? []).flatMap((e: { number: string; sip_user: string }) => [e.number, e.sip_user.replace(/\D/g, "")]));
       const days = hourBr < 1 ? [brDate(1), brDate(0)] : [brDate(0)];
       for (const day of days) {
-        const body = await nvoipFetch(token, `/calls/history?date=${day}&type=all`);
-        for (const it of historyItems(body)) {
+        const { items } = await fetchHistory(token, day);
+        for (const it of items) {
           const c = normalizeCall(it, extNumbers);
           if (!c) continue;
           const { error } = await admin.rpc("service_upsert_call", {
