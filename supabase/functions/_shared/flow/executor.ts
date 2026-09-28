@@ -89,7 +89,7 @@ export async function handleOptOut(p: {
 
 /** Chamada do bloco HTTP: limite por organização e segredos só do bloco. */
 // deno-lint-ignore no-explicit-any
-async function runHttp(admin: any, orgId: string, d: Record<string, any>, v: HttpVars): Promise<HttpOutcome> {
+export async function runHttp(admin: any, orgId: string, d: Record<string, any>, v: HttpVars): Promise<HttpOutcome> {
   const { data: allowed } = await admin.rpc("service_http_take", { org: orgId });
   if (allowed !== true) return { ok: false, ms: 0, error: "limite de 60 chamadas por minuto" };
   const secrets: Record<string, string> = {};

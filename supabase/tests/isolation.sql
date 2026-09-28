@@ -635,6 +635,28 @@ BEGIN
   PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.charges') = 0, 'outra org nao ve cobranca');
   PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_put_secret(%L, %L)', format('org:%s:asaas_api_key', A), 'x'), 'chave do asaas so pelo backend');
 
+  -- 37. Guias de integracao e pedidos de ajuda: config so pelo backend; pedidos visiveis so a quem pode.
+  INSERT INTO public.integration_guides (id, organization_id, system, goal, config)
+  VALUES ('aaaaaaaa-0000-0000-0017-000000000001', A, 'ERP', 'status do pedido', '{"url":"https://api.exemplo.com"}');
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT count(*) FROM public.integration_guides') = 1, 'owner ve guia');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, 'SELECT count(*) FROM public.integration_guides') = 0, 'atendente nao ve guia');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.integration_guides') = 0, 'outra org nao ve guia');
+  PERFORM pg_temp.expect_error(owner_a, format('UPDATE public.integration_guides SET config = %L', '{"url":"https://evil"}'), 'config so pelo backend');
+  PERFORM pg_temp.expect_error(owner_a, format('INSERT INTO public.integration_guides (organization_id, system, goal) VALUES (%L, %L, %L)', A, 'x', 'y'), 'guia so pelo backend');
+
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('INSERT INTO public.service_requests (organization_id, topic, message, created_by) VALUES (%L, %L, %L, %L)',
+    A, 'Integração', 'ajuda', owner_a)) = 'ok:1', 'owner pede ajuda');
+  PERFORM pg_temp.expect_denied(owner_a, format('INSERT INTO public.service_requests (organization_id, topic, message, created_by) VALUES (%L, %L, %L, %L)',
+    A, 'x', 'y', agent_a), 'nao pede em nome de outro');
+  PERFORM pg_temp.expect_denied(agent_a, format('INSERT INTO public.service_requests (organization_id, topic, message, created_by) VALUES (%L, %L, %L, %L)',
+    A, 'x', 'y', agent_a), 'atendente nao pede');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.service_requests') = 0, 'outra org nao ve pedido');
+  PERFORM pg_temp.expect(pg_temp.q(operator, 'SELECT count(*) FROM public.service_requests') >= 1, 'operador ve pedidos');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.platform_set_request_status((SELECT id FROM public.service_requests WHERE organization_id = %L LIMIT 1), %L)', A, 'done'),
+    'dono nao muda situacao do pedido');
+  PERFORM pg_temp.expect(pg_temp.run(operator, format('SELECT public.platform_set_request_status((SELECT id FROM public.service_requests WHERE organization_id = %L LIMIT 1), %L)', A, 'in_progress')) LIKE 'ok:%',
+    'operador muda situacao');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 

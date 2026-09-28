@@ -21,6 +21,7 @@ import Plataforma from "./pages/Plataforma";
 import Registros from "./pages/Registros";
 import Diagnostico from "./pages/Diagnostico";
 import Cobrancas from "./pages/Cobrancas";
+import Integracoes from "./pages/Integracoes";
 import Supervisor from "./pages/Supervisor";
 import Fluxos from "./pages/Fluxos";
 import FlowEditor from "./pages/FlowEditor";
@@ -47,6 +48,7 @@ const App = () => (
             <Route path="/registros" element={<ProtectedRoute><Registros /></ProtectedRoute>} />
             <Route path="/diagnostico" element={<ProtectedRoute><Diagnostico /></ProtectedRoute>} />
             <Route path="/cobrancas" element={<ProtectedRoute><Cobrancas /></ProtectedRoute>} />
+            <Route path="/integracoes" element={<ProtectedRoute><Integracoes /></ProtectedRoute>} />
             <Route path="/supervisor" element={<ProtectedRoute><Supervisor /></ProtectedRoute>} />
             <Route path="/fluxos" element={<ProtectedRoute><Fluxos /></ProtectedRoute>} />
             <Route path="/fluxos/:id" element={<ProtectedRoute><FlowEditor /></ProtectedRoute>} />
