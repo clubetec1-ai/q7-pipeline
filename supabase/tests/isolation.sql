@@ -884,6 +884,21 @@ BEGIN
   PERFORM pg_temp.expect_error(agent_a, format('UPDATE public.messages SET media_text = %L WHERE conversation_id = %L', 'x', 'aaaaaaaa-0000-0000-0047-000000000001'), 'navegador nao grava texto lido');
   PERFORM public.service_anonymize_contact(A, (SELECT id FROM public.contacts WHERE organization_id = A AND phone = '5511947000001'), owner_a, 'pedido do titular');
   PERFORM pg_temp.expect((SELECT bool_and(media_text IS NULL) FROM public.messages WHERE conversation_id = 'aaaaaaaa-0000-0000-0047-000000000001'), 'anonimizacao apaga texto lido');
+  -- 48. Diagnostico: recomecar guarda copia e zera; desfazer restaura; so dono/admin da propria org.
+  UPDATE public.company_profiles SET sections = '{"empresa":"texto antigo"}'::jsonb, stage = 'setores' WHERE organization_id = A;
+  INSERT INTO public.interview_messages (organization_id, role, content) VALUES (A, 'user', 'conversa antiga');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.reset_company_profile(%L)', A), 'atendente nao zera');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.reset_company_profile(%L)', A), 'outra org nao zera');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('SELECT public.reset_company_profile(%L)', A)) LIKE 'ok:%', 'dono zera');
+  PERFORM pg_temp.expect((SELECT sections = '{}'::jsonb AND stage = 'empresa' AND plan = '{}'::jsonb FROM public.company_profiles WHERE organization_id = A), 'retrato zerado');
+  PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM public.interview_messages WHERE organization_id = A), 'conversa zerada');
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, format('SELECT public.company_profile_snapshots_count(%L)', A)) = 1, 'copia guardada');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, format('SELECT public.company_profile_snapshots_count(%L)', A)) = 0, 'outra org nao ve copia');
+  PERFORM pg_temp.expect_error(owner_a, 'SELECT count(*) FROM public.company_profile_snapshots', 'navegador nao le copia');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.restore_company_profile(%L)', A), 'outra org nao restaura');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('SELECT public.restore_company_profile(%L)', A)) LIKE 'ok:%', 'dono desfaz');
+  PERFORM pg_temp.expect((SELECT sections ->> 'empresa' = 'texto antigo' AND stage = 'setores' FROM public.company_profiles WHERE organization_id = A), 'retrato restaurado');
+  PERFORM pg_temp.expect(EXISTS (SELECT 1 FROM public.interview_messages WHERE organization_id = A AND content = 'conversa antiga'), 'conversa restaurada');
 
   RAISE NOTICE 'ISOLATION OK';
 END $$;

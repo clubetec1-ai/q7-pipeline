@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { Check, Globe, LogOut, RotateCcw, Send, Sparkles, Target } from "lucide-react";
+import { ArrowLeft, Check, Eraser, Globe, LogOut, Pencil, RotateCcw, Sparkles, Target, Undo2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/contexts/OrgContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,144 +17,201 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useInstall } from "./fluxos/ReadyTemplates";
 
-/** Mesmas seções do servidor (_shared/company.ts); públicas podem ir para a IA de atendimento. */
-const SECTIONS: [string, string, boolean][] = [
-  ["empresa", "Sobre a empresa", true], ["atendimento", "Atendimento (canais, horários, prazos)", true],
-  ["produtos", "Produtos, serviços e preços", true], ["politicas", "Políticas (troca, cancelamento, pagamento, garantia)", true],
-  ["faq", "Perguntas frequentes", true], ["cultura", "Cultura: missão, visão, valores", false],
-  ["situacao", "Onde a empresa está hoje", false], ["objetivos", "Resultados que quer alcançar", false],
-  ["setores", "Setores e responsáveis", false], ["areas", "Áreas, pessoas e responsáveis", false],
-  ["sistemas", "Sistemas usados", false], ["metas", "Volumes, metas e maiores dores", false],
+/** Rótulo das seções (as mesmas do servidor, _shared/company.ts); 🌐 = pode ir para a IA de atendimento. */
+const SECTION_LABEL: Record<string, [string, boolean]> = {
+  empresa: ["Sobre a empresa", true], atendimento: ["Atendimento (canais, horários, prazos)", true],
+  produtos: ["Produtos, serviços e preços", true], politicas: ["Políticas (troca, cancelamento, pagamento, garantia)", true],
+  faq: ["Perguntas frequentes", true], cultura: ["Cultura: missão, visão, valores", false],
+  situacao: ["Onde a empresa está hoje", false], metas: ["Volumes, metas e maiores dores", false],
+  sistemas: ["Sistemas usados", false], objetivos: ["Resultados que quer alcançar", false],
+  setores: ["Setores e responsáveis", false], areas: ["Áreas, pessoas e responsáveis", false],
+};
+/** Etapas de texto: o que contar e onde o texto organizado é guardado. */
+const STEPS: { key: string; label: string; sections: string[]; ask: string[] }[] = [
+  { key: "empresa", label: "Empresa", sections: ["empresa", "atendimento", "produtos", "politicas", "faq"],
+    ask: ["O que a empresa faz, para quem e onde", "Canais e horários de atendimento", "Produtos/serviços e preços (ou como faz orçamento)", "Políticas: troca, cancelamento, pagamento, garantia", "Dúvidas que os clientes mais perguntam"] },
+  { key: "cultura", label: "Cultura", sections: ["cultura"],
+    ask: ["A empresa já tem cultura definida? Como ela aparece no dia a dia?", "Missão (por que existe)", "Visão (onde quer chegar)", "Valores (o que não abre mão)"] },
+  { key: "situacao", label: "Hoje", sections: ["situacao", "metas", "sistemas"],
+    ask: ["Tamanho da equipe", "Volumes por mês (mensagens, pedidos, atendimentos)", "Sistemas e planilhas que usa", "Maiores dores e o que já funciona bem"] },
+  { key: "objetivos", label: "Objetivos", sections: ["objetivos"],
+    ask: ["Resultados que quer nos próximos 6 a 12 meses", "Como vai medir cada um (número, prazo)"] },
+  { key: "setores", label: "Setores", sections: ["setores", "areas"],
+    ask: ["Todos os setores (ex.: comercial, financeiro, atendimento, operação, RH)", "Responsável e quantas pessoas em cada um", "Ainda não precisa detalhar os processos"] },
 ];
-/** Etapas da consultoria (mesma ordem do servidor). */
-const STAGES: [string, string][] = [
-  ["empresa", "Empresa"], ["cultura", "Cultura"], ["situacao", "Hoje"], ["objetivos", "Objetivos"],
-  ["setores", "Setores"], ["processos", "Processos"], ["plano", "Planejamento"],
+const PROC_ASK = [
+  "Descreva cada processo como se estivesse ensinando uma pessoa nova: passo a passo",
+  "Quem faz, com que ferramenta, quanto tempo leva e onde trava",
+  "Se quiser, conte também como deveria funcionar",
 ];
-interface Msg { id: number; role: "assistant" | "user"; content: string }
 
-/** Negrito "**texto**" da IA vira <b> (sem HTML: só texto e <b>). */
-const rich = (t: string) => t.split(/\*\*(.+?)\*\*/g).map((part, i) => (i % 2 ? <b key={i}>{part}</b> : part));
-interface Suggestion {
-  titulo: string; area: string; tipo: "pronta" | "integracao"; impacto: string; esforco: string;
-  descricao: string; modelo: string | null; sistema: string | null; passos: string[];
-  instalado?: { kind: "flow" | "record_type"; id: string };
-}
-interface Auto {
-  titulo: string; setor: string; tipo: "sem_ia" | "ia" | "integracao"; descricao: string; modelo: string | null; sistema: string | null;
-  impacto: string; esforco: string; custo: { volume: number; groq: number; claude: number; claude_model: string } | null;
-}
+interface Proc { nome: string; setor?: string; area?: string; quem_faz?: string; frequencia?: string; tempo?: string; dificuldade?: string; passo_a_passo?: string; como_deveria?: string }
+interface StepState { raw?: string; approved_at?: string; setores?: string[] }
+interface Suggestion { titulo: string; tipo: "pronta" | "integracao"; modelo: string | null; sistema: string | null; instalado?: { kind: "flow" | "record_type"; id: string } }
+interface Auto { titulo: string; setor: string; tipo: "sem_ia" | "ia" | "integracao"; descricao: string; impacto: string; esforco: string; custo: { volume: number; groq: number; claude: number; claude_model: string } | null }
 interface Plan {
   diagnostico?: string; missao?: string; visao?: string; valores?: string[];
   objetivos?: { objetivo: string; indicador: string; prazo: string }[];
   melhorias?: { titulo: string; setor: string; problema: string; como: string; impacto: string }[];
-  automacoes?: Auto[];
-  plano_acao?: { acao: string; responsavel: string; prazo: string }[];
+  automacoes?: Auto[]; plano_acao?: { acao: string; responsavel: string; prazo: string }[];
   custo?: { groq_mes: number; claude_mes: number; premissas: string };
 }
 interface Profile {
-  sections: Record<string, string>; processes: Record<string, string>[]; suggestions: Suggestion[]; use_in_ai: boolean;
-  stage: string; public_research: { resumo?: string; site?: string; cnpj?: string; problemas?: string[] }; plan: Plan; plan_at: string | null;
+  sections: Record<string, string>; processes: Proc[]; suggestions: Suggestion[]; use_in_ai: boolean; stage: string;
+  steps: Record<string, StepState>; public_research: { resumo?: string }; plan: Plan; plan_at: string | null;
 }
-const EMPTY: Profile = { sections: {}, processes: [], suggestions: [], use_in_ai: true, stage: "empresa", public_research: {}, plan: {}, plan_at: null };
+const EMPTY: Profile = { sections: {}, processes: [], suggestions: [], use_in_ai: true, stage: "empresa", steps: {}, public_research: {}, plan: {}, plan_at: null };
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const TIPO: Record<Auto["tipo"], [string, "secondary" | "default" | "outline"]> = {
   sem_ia: ["Sem IA (sem custo de IA)", "secondary"], ia: ["Com IA", "default"], integracao: ["Integração", "outline"],
 };
 
-/** Entrevistador 2.0: consultoria em etapas, retrato da empresa e planejamento estratégico (dono/admin). */
+/** Diagnóstico em páginas: o dono escreve, a IA organiza, ele aprova etapa por etapa; no fim, o planejamento. */
 export default function Diagnostico() {
   const { signOut } = useAuth();
   const { org, can } = useOrg();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [msgs, setMsgs] = useState<Msg[]>([]);
-  const [text, setText] = useState("");
-  const [busy, setBusy] = useState(false);
   const [profile, setProfile] = useState<Profile>(EMPTY);
-  const [dirty, setDirty] = useState(false);
-  const [planning, setPlanning] = useState(false);
+  const [page, setPage] = useState<string>("empresa");
+  const [raw, setRaw] = useState("");
+  const [draft, setDraft] = useState<{ secoes?: Record<string, string>; processos?: Proc[]; setores?: string[]; faltando: string[] } | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
   const [research, setResearch] = useState({ site: "", cnpj: "" });
-  const [researching, setResearching] = useState(false);
-  const end = useRef<HTMLDivElement>(null);
+  const [copies, setCopies] = useState(0);
   const { install, busy: installing } = useInstall(org?.id ?? "");
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (goTo?: string) => {
     if (!org) return;
-    const [m, p] = await Promise.all([
-      supabase.from("interview_messages").select("id, role, content").eq("organization_id", org.id).order("id"),
-      supabase.from("company_profiles").select("sections, processes, suggestions, use_in_ai, stage, public_research, plan, plan_at").eq("organization_id", org.id).maybeSingle(),
-    ]);
-    setMsgs((m.data as Msg[]) ?? []);
-    if (p.data) setProfile({ ...EMPTY, ...(p.data as unknown as Profile) });
-    setDirty(false);
+    const { data } = await supabase.from("company_profiles")
+      .select("sections, processes, suggestions, use_in_ai, stage, steps, public_research, plan, plan_at").eq("organization_id", org.id).maybeSingle();
+    const p = data ? { ...EMPTY, ...(data as unknown as Profile) } : EMPTY;
+    setProfile(p);
+    const { data: n } = await supabase.rpc("company_profile_snapshots_count", { org: org.id });
+    setCopies((n as number | null) ?? 0);
+    if (goTo !== undefined) setPage(goTo);
+    return p;
   }, [org]);
-  useEffect(() => { void load(); }, [load]);
-  useEffect(() => { end.current?.scrollIntoView({ block: "end" }); }, [msgs]);
+  useEffect(() => { void load().then((p) => p && setPage(p.stage === "processos" ? "setores" : p.stage || "empresa")); }, [load]);
+
+  // Setores aprovados viram páginas de processos.
+  const sectors = useMemo(() => {
+    const fromStep = profile.steps.setores?.setores ?? [];
+    const fromProcs = profile.processes.map((p) => p.setor || p.area || "").filter(Boolean);
+    return [...new Set([...fromStep, ...fromProcs])];
+  }, [profile]);
+  const pages = useMemo(() => [...STEPS.map((s) => s.key), ...sectors.map((s) => `proc:${s}`), "plano"], [sectors]);
+  const approved = (k: string) => !!profile.steps[k]?.approved_at;
+  const outdated = !!profile.plan_at && Object.values(profile.steps).some((s) => s.approved_at && s.approved_at > profile.plan_at!);
+
+  // Ao trocar de página: carrega o texto que o dono escreveu (se houver) e limpa a prévia.
+  useEffect(() => { setRaw(profile.steps[page]?.raw ?? ""); setDraft(null); }, [page]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!org) return null;
   if (!can("org.settings")) return <Navigate to="/" replace />;
 
-  const ask = async (t: string) => {
-    setBusy(true);
-    if (t) setMsgs((ms) => [...ms, { id: Date.now(), role: "user", content: t }]);
-    setText("");
-    const r = await callFunction<{ reply: string; saved: number; stage: string }>("interviewer", { action: "message", organization_id: org.id, text: t });
-    setBusy(false);
-    if (!r.ok) return toast({ variant: "destructive", title: r.message });
-    if (r.data.stage !== profile.stage) toast({ title: "Etapa concluída", description: `Agora: ${STAGES.find(([k]) => k === r.data.stage)?.[1] ?? ""}` });
-    else if (r.data.saved) toast({ title: "Retrato atualizado", description: "O consultor anotou o que você contou." });
-    void load();
+  const step = STEPS.find((s) => s.key === page);
+  const setor = page.startsWith("proc:") ? page.slice(5) : null;
+  const idx = pages.indexOf(page);
+  const next = pages[idx + 1] ?? "plano";
+  const prev = pages[idx - 1];
+
+  const ensureRow = async () => {
+    const { data } = await supabase.from("company_profiles").select("organization_id").eq("organization_id", org.id).maybeSingle();
+    if (!data) await supabase.from("company_profiles").insert({ organization_id: org.id });
   };
 
-  const goStage = async (stage: string) => {
-    const { error } = await supabase.from("company_profiles").update({ stage }).eq("organization_id", org.id);
-    if (error) return toast({ variant: "destructive", title: "Não foi possível mudar a etapa" });
-    setProfile((p) => ({ ...p, stage }));
+  const organize = async () => {
+    setBusy("format");
+    const r = await callFunction<{ secoes?: Record<string, string>; processos?: Proc[]; setores?: string[]; faltando: string[] }>(
+      "interviewer", { action: "format", organization_id: org.id, step: setor ? "processos" : page, setor, text: raw });
+    setBusy(null);
+    if (!r.ok) return toast({ variant: "destructive", title: r.message });
+    setDraft(r.data);
+  };
+
+  // Aprovar: grava o texto organizado (e o que o dono escreveu) e segue para a próxima página.
+  const approve = async () => {
+    if (!draft) return;
+    setBusy("approve");
+    await ensureRow();
+    const steps = { ...profile.steps, [page]: { raw, approved_at: new Date().toISOString(), ...(draft.setores ? { setores: draft.setores } : {}) } };
+    const patch: Record<string, unknown> = { steps, stage: next.startsWith("proc:") ? "processos" : next === "plano" ? "plano" : next };
+    if (draft.secoes) patch.sections = { ...profile.sections, ...Object.fromEntries(Object.entries(draft.secoes).filter(([, v]) => v.trim())) };
+    if (setor && draft.processos) {
+      patch.processes = [...profile.processes.filter((p) => (p.setor || p.area) !== setor), ...draft.processos.map((p) => ({ ...p, setor, area: setor }))];
+    }
+    const { error } = await supabase.from("company_profiles").update(patch as never).eq("organization_id", org.id);
+    setBusy(null);
+    if (error) return toast({ variant: "destructive", title: "Não salvo", description: error.message });
+    toast({ title: "Etapa aprovada", description: "O retrato da empresa foi atualizado." });
+    const nextPage = draft.setores?.length && page === "setores" ? `proc:${draft.setores[0]}` : next;
+    await load(nextPage);
+  };
+
+  // Editar uma etapa aprovada: traz o que está salvo para a prévia (sem mexer nas outras).
+  const edit = () => {
+    if (step) setDraft({ secoes: Object.fromEntries(step.sections.map((k) => [k, profile.sections[k] ?? ""])), setores: page === "setores" ? profile.steps.setores?.setores ?? [] : undefined, faltando: [] });
+    if (setor) setDraft({ processos: profile.processes.filter((p) => (p.setor || p.area) === setor), faltando: [] });
+  };
+
+  // Refazer só esta etapa: limpa texto, aprovação e o que ela gravou.
+  const redoStep = async () => {
+    if (!window.confirm("Refazer só esta etapa? O texto e o resultado dela são apagados; as outras etapas continuam.")) return;
+    await ensureRow();
+    const steps = { ...profile.steps };
+    delete steps[page];
+    const patch: Record<string, unknown> = { steps };
+    if (step) patch.sections = Object.fromEntries(Object.entries(profile.sections).filter(([k]) => !step.sections.includes(k)));
+    if (setor) patch.processes = profile.processes.filter((p) => (p.setor || p.area) !== setor);
+    const { error } = await supabase.from("company_profiles").update(patch as never).eq("organization_id", org.id);
+    if (error) return toast({ variant: "destructive", title: "Não foi possível", description: error.message });
+    await load(page);
+    setRaw("");
+  };
+
+  const resetAll = async () => {
+    const typed = window.prompt("Recomeçar o diagnóstico do zero? Todas as etapas e o planejamento são apagados (fluxos e registros já instalados continuam). Uma cópia fica guardada para desfazer.\n\nDigite RECOMEÇAR para confirmar:");
+    if (!["RECOMEÇAR", "RECOMECAR"].includes(typed?.trim().toUpperCase() ?? "")) return;
+    const { error } = await supabase.rpc("reset_company_profile", { org: org.id });
+    if (error) return toast({ variant: "destructive", title: "Não foi possível", description: error.message });
+    toast({ title: "Diagnóstico zerado" });
+    await load("empresa");
+  };
+  const restorePrev = async () => {
+    if (!window.confirm("Voltar o diagnóstico de antes do último recomeço?")) return;
+    const { error } = await supabase.rpc("restore_company_profile", { org: org.id });
+    if (error) return toast({ variant: "destructive", title: "Não foi possível", description: error.message });
+    const p = await load();
+    if (p) setPage(p.stage === "processos" ? "setores" : p.stage || "empresa");
   };
 
   const doResearch = async () => {
-    setResearching(true);
+    setBusy("research");
     const r = await callFunction("interviewer", { action: "research", organization_id: org.id, site: research.site, cnpj: research.cnpj });
-    setResearching(false);
+    setBusy(null);
     if (!r.ok) return toast({ variant: "destructive", title: r.message });
-    toast({ title: "Dados públicos encontrados", description: "Confira o retrato e corrija o que precisar." });
-    void load();
+    toast({ title: "Dados públicos encontrados", description: "Use como ponto de partida e complete com o seu texto." });
+    await load();
   };
-
   const makePlan = async () => {
-    setPlanning(true);
+    setBusy("plan");
     const r = await callFunction("interviewer", { action: "plan", organization_id: org.id });
-    setPlanning(false);
+    setBusy(null);
     if (!r.ok) return toast({ variant: "destructive", title: r.message });
     toast({ title: "Planejamento pronto" });
-    void load();
+    await load("plano");
+  };
+  const toggleAI = async (v: boolean) => {
+    await ensureRow();
+    await supabase.from("company_profiles").update({ use_in_ai: v }).eq("organization_id", org.id);
+    setProfile((p) => ({ ...p, use_in_ai: v }));
   };
 
-  const saveProfile = async () => {
-    const { error } = await supabase.from("company_profiles").upsert({
-      organization_id: org.id, sections: profile.sections as never, processes: profile.processes as never, use_in_ai: profile.use_in_ai,
-    }, { onConflict: "organization_id" });
-    if (error) return toast({ variant: "destructive", title: "Não salvo", description: error.message });
-    setDirty(false);
-    toast({ title: "Retrato salvo" });
-  };
-
-  const restart = async () => {
-    if (!window.confirm("Apagar a conversa e recomeçar? O retrato da empresa é mantido.")) return;
-    await supabase.from("interview_messages").delete().eq("organization_id", org.id);
-    void load();
-  };
-
-  const filled = SECTIONS.filter(([k]) => profile.sections?.[k]?.trim()).length;
-  const stageIdx = Math.max(0, STAGES.findIndex(([k]) => k === profile.stage));
-  const bySector = profile.processes.reduce((m: Record<string, Record<string, string>[]>, p) => {
-    const k = p.setor || p.area || "Sem setor";
-    (m[k] ??= []).push(p);
-    return m;
-  }, {});
+  const pageLabel = (k: string) => STEPS.find((s) => s.key === k)?.label ?? (k.startsWith("proc:") ? k.slice(5) : "Planejamento");
   const plan = profile.plan ?? {};
   const hasPlan = !!(plan.diagnostico || plan.automacoes?.length);
+  const readyForPlan = approved("empresa") && approved("setores") && sectors.some((s) => approved(`proc:${s}`));
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -170,197 +227,236 @@ export default function Diagnostico() {
       </header>
       <NumberHealthBanner />
 
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 pt-4">
-        <ol className="flex flex-wrap gap-1.5" aria-label="Etapas da consultoria">
-          {STAGES.map(([k, label], i) => (
-            <li key={k}>
-              <button type="button" onClick={() => goStage(k)} title="Ir para esta etapa"
-                className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs transition ${
-                  i === stageIdx ? "bg-primary text-primary-foreground border-primary" : i < stageIdx ? "bg-muted" : "text-muted-foreground hover:bg-muted"}`}>
-                {i < stageIdx ? <Check className="w-3 h-3" /> : <span>{i + 1}.</span>}{label}
-              </button>
-            </li>
-          ))}
-        </ol>
-      </div>
-
-      <main className="flex-1 w-full max-w-7xl mx-auto p-4 sm:p-6 grid gap-6 lg:grid-cols-2">
-        <section className="flex flex-col rounded-lg border min-h-[70vh]">
-          <div className="p-3 border-b flex items-center justify-between">
-            <div>
-              <p className="font-semibold">Consultoria</p>
-              <p className="text-xs text-muted-foreground">Uma etapa por vez. Nos processos, descreva como se estivesse ensinando uma pessoa nova.</p>
-            </div>
-            {msgs.length > 0 && <Button variant="ghost" size="icon" title="Recomeçar conversa" onClick={restart}><RotateCcw className="w-4 h-4" /></Button>}
+      <main className="flex-1 w-full max-w-6xl mx-auto p-4 sm:p-6 grid gap-6 md:grid-cols-[220px_1fr]">
+        <aside className="space-y-3">
+          <p className="text-sm font-semibold">Diagnóstico</p>
+          <nav className="space-y-0.5" aria-label="Etapas">
+            {pages.map((k) => {
+              const isProc = k.startsWith("proc:");
+              return (
+                <button key={k} type="button" onClick={() => setPage(k)}
+                  className={`w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-left transition ${isProc ? "pl-6" : ""} ${
+                    page === k ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>
+                  {approved(k) ? <Check className="w-3.5 h-3.5 shrink-0" /> : <span className="w-3.5 h-3.5 shrink-0 rounded-full border" />}
+                  <span className="truncate">{pageLabel(k)}</span>
+                </button>
+              );
+            })}
+            {sectors.length === 0 && <p className="pl-6 text-xs text-muted-foreground">Processos: aprove os setores primeiro</p>}
+          </nav>
+          <div className="pt-2 space-y-1 border-t">
+            <Button size="sm" variant="ghost" className="w-full justify-start" onClick={resetAll}><Eraser className="w-4 h-4 mr-2" /> Recomeçar tudo</Button>
+            {copies > 0 && <Button size="sm" variant="ghost" className="w-full justify-start" onClick={restorePrev}><Undo2 className="w-4 h-4 mr-2" /> Desfazer recomeço</Button>}
           </div>
-          {profile.stage === "empresa" && (
-            <div className="p-3 border-b space-y-2 bg-muted/30">
-              <p className="text-xs flex items-center gap-1"><Globe className="w-3.5 h-3.5" /> Buscar dados públicos para eu já chegar conhecendo a empresa (opcional)</p>
-              <div className="flex flex-wrap gap-2">
-                <Input className="h-8 flex-1 min-w-[10rem]" placeholder="Site (ex.: minhaempresa.com.br)" value={research.site} onChange={(e) => setResearch({ ...research, site: e.target.value })} />
-                <Input className="h-8 w-44" placeholder="CNPJ" value={research.cnpj} onChange={(e) => setResearch({ ...research, cnpj: e.target.value })} />
-                <Button size="sm" variant="outline" disabled={researching || (!research.site.trim() && !research.cnpj.trim())} onClick={doResearch}>
-                  {researching ? "Buscando..." : "Buscar"}
+        </aside>
+
+        <section className="space-y-4 min-w-0">
+          {page !== "plano" && (
+            <>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h1 className="text-xl font-semibold">{setor ? `Processos — ${setor}` : step?.label}</h1>
+                {approved(page) && <Badge>Aprovado</Badge>}
+              </div>
+              <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-0.5">
+                {(setor ? PROC_ASK : step?.ask ?? []).map((q) => <li key={q}>{q}</li>)}
+              </ul>
+
+              {page === "empresa" && (
+                <div className="rounded-md border p-3 space-y-2 bg-muted/30">
+                  <p className="text-xs flex items-center gap-1"><Globe className="w-3.5 h-3.5" /> Opcional: buscar dados públicos (site e CNPJ) para começar</p>
+                  <div className="flex flex-wrap gap-2">
+                    <Input className="h-8 flex-1 min-w-[10rem]" placeholder="Site" value={research.site} onChange={(e) => setResearch({ ...research, site: e.target.value })} />
+                    <Input className="h-8 w-44" placeholder="CNPJ" value={research.cnpj} onChange={(e) => setResearch({ ...research, cnpj: e.target.value })} />
+                    <Button size="sm" variant="outline" disabled={busy === "research" || (!research.site.trim() && !research.cnpj.trim())} onClick={doResearch}>
+                      {busy === "research" ? "Buscando..." : "Buscar"}
+                    </Button>
+                  </div>
+                  {profile.public_research?.resumo && <p className="text-xs text-muted-foreground">Achado: {profile.public_research.resumo}</p>}
+                </div>
+              )}
+
+              {!draft && approved(page) ? (
+                <div className="space-y-3">
+                  {step?.sections.filter((k) => profile.sections[k]?.trim()).map((k) => (
+                    <div key={k} className="rounded-md border p-3">
+                      <p className="text-xs font-medium mb-1">{SECTION_LABEL[k][1] ? "🌐 " : "🔒 "}{SECTION_LABEL[k][0]}</p>
+                      <p className="text-sm whitespace-pre-wrap">{profile.sections[k]}</p>
+                    </div>
+                  ))}
+                  {setor && profile.processes.filter((p) => (p.setor || p.area) === setor).map((p, i) => <ProcCard key={i} p={p} />)}
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" onClick={edit}><Pencil className="w-4 h-4 mr-1" /> Editar esta etapa</Button>
+                    <Button variant="ghost" onClick={redoStep}><RotateCcw className="w-4 h-4 mr-1" /> Refazer esta etapa</Button>
+                    <Button className="ml-auto" onClick={() => setPage(next)}>Próxima: {pageLabel(next)}</Button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <Textarea rows={draft ? 5 : 12} value={raw} onChange={(e) => setRaw(e.target.value)} maxLength={12000}
+                    placeholder={setor ? "Ex.: 1. O cliente pede orçamento no WhatsApp. 2. O vendedor confere o estoque na planilha..." : "Escreva do seu jeito, sem se preocupar com a forma. A IA organiza para você revisar."} />
+                  <div className="flex flex-wrap gap-2">
+                    {prev && <Button variant="ghost" onClick={() => setPage(prev)}><ArrowLeft className="w-4 h-4 mr-1" /> Voltar</Button>}
+                    <Button variant={draft ? "outline" : "default"} disabled={busy === "format" || raw.trim().length < 10} onClick={organize}>
+                      <Sparkles className="w-4 h-4 mr-1" /> {busy === "format" ? "Organizando..." : draft ? "Organizar de novo" : "Organizar com IA"}
+                    </Button>
+                  </div>
+                </>
+              )}
+
+              {draft && (
+                <div className="rounded-lg border p-4 space-y-3">
+                  <p className="font-medium">Confira e ajuste antes de aprovar</p>
+                  {draft.secoes && Object.entries(draft.secoes).map(([k, v]) => (
+                    <div key={k} className="space-y-1">
+                      <p className="text-xs font-medium">{SECTION_LABEL[k]?.[1] ? "🌐 " : "🔒 "}{SECTION_LABEL[k]?.[0] ?? k}</p>
+                      <Textarea rows={4} value={v} onChange={(e) => setDraft({ ...draft, secoes: { ...draft.secoes!, [k]: e.target.value } })} />
+                    </div>
+                  ))}
+                  {draft.setores && (
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium">Setores (cada um vira uma página de processos) — um por linha</p>
+                      <Textarea rows={3} value={draft.setores.join("\n")}
+                        onChange={(e) => setDraft({ ...draft, setores: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean) })} />
+                    </div>
+                  )}
+                  {draft.processos?.map((p, i) => (
+                    <div key={i} className="rounded-md border p-3 space-y-2">
+                      <Input value={p.nome} placeholder="Nome do processo" onChange={(e) => setDraft({ ...draft, processos: draft.processos!.map((x, j) => (j === i ? { ...x, nome: e.target.value } : x)) })} />
+                      <Textarea rows={5} value={p.passo_a_passo ?? ""} placeholder="Passo a passo (como funciona hoje)"
+                        onChange={(e) => setDraft({ ...draft, processos: draft.processos!.map((x, j) => (j === i ? { ...x, passo_a_passo: e.target.value } : x)) })} />
+                      <Textarea rows={2} value={p.como_deveria ?? ""} placeholder="Como deveria funcionar (opcional)"
+                        onChange={(e) => setDraft({ ...draft, processos: draft.processos!.map((x, j) => (j === i ? { ...x, como_deveria: e.target.value } : x)) })} />
+                      <p className="text-xs text-muted-foreground">{[p.quem_faz && `Quem: ${p.quem_faz}`, p.tempo && `Tempo: ${p.tempo}`, p.dificuldade && `Trava: ${p.dificuldade}`].filter(Boolean).join(" · ")}</p>
+                    </div>
+                  ))}
+                  {draft.faltando.length > 0 && (
+                    <div className="text-sm rounded-md bg-amber-500/10 p-3">
+                      <p className="font-medium text-xs mb-1">Pode completar (opcional): escreva acima e organize de novo</p>
+                      <ul className="list-disc pl-5 space-y-0.5">{draft.faltando.map((f) => <li key={f}>{f}</li>)}</ul>
+                    </div>
+                  )}
+                  {page === "empresa" && (
+                    <label className="flex items-start gap-2 text-xs">
+                      <Switch checked={profile.use_in_ai} onCheckedChange={toggleAI} />
+                      <span>A IA de atendimento usa as seções 🌐 para responder clientes. As 🔒 são internas e nunca vão para clientes.</span>
+                    </label>
+                  )}
+                  <div className="flex gap-2 justify-end">
+                    <Button variant="ghost" onClick={() => setDraft(null)}>Cancelar</Button>
+                    <Button disabled={busy === "approve"} onClick={approve}><Check className="w-4 h-4 mr-1" /> {busy === "approve" ? "Salvando..." : "Aprovar e seguir"}</Button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {page === "plano" && (
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h1 className="text-xl font-semibold flex items-center gap-2"><Target className="w-5 h-5" /> Planejamento estratégico</h1>
+                <Button disabled={busy === "plan" || !readyForPlan} onClick={makePlan}>
+                  <Sparkles className="w-4 h-4 mr-1" /> {busy === "plan" ? "Analisando..." : hasPlan ? "Gerar de novo" : "Gerar planejamento"}
                 </Button>
               </div>
-              {profile.public_research?.resumo && <p className="text-xs text-muted-foreground">Achado: {profile.public_research.resumo}</p>}
+              {!readyForPlan && <p className="text-sm text-muted-foreground">Aprove ao menos Empresa, Setores e os processos de um setor para gerar o planejamento. Quanto mais etapas aprovadas, melhor o resultado.</p>}
+              {outdated && <p className="text-sm rounded-md bg-amber-500/10 p-3">Etapas foram alteradas depois deste planejamento. Gere de novo para ele refletir a forma atual de trabalhar.</p>}
+              {hasPlan && <PlanView plan={plan} suggestions={profile.suggestions} planAt={profile.plan_at} installing={installing}
+                onInstall={async (i) => { const r = await install({ suggestion_index: i }, `s${i}`); if (r?.id) await load(); }}
+                onOpen={(s) => navigate(s.instalado!.kind === "flow" ? `/fluxos/${s.instalado!.id}` : "/registros")}
+                onGuide={async (i, s) => {
+                  const r = await callFunction<{ guide_id: string }>("integrations", { action: "draft", organization_id: org.id, suggestion_index: i, system: s.sistema ?? "Sistema", goal: s.titulo });
+                  if (!r.ok) return toast({ variant: "destructive", title: r.message });
+                  navigate(`/integracoes?guia=${r.data.guide_id}`);
+                }} />}
             </div>
           )}
-          <div className="flex-1 overflow-y-auto p-3 space-y-2">
-            {msgs.length === 0 && (
-              <div className="text-center py-10 space-y-3">
-                <p className="text-sm text-muted-foreground">São 6 etapas; dá para parar e continuar depois. No fim, sai o planejamento estratégico com plano de ação.</p>
-                <Button onClick={() => ask("")} disabled={busy}><Sparkles className="w-4 h-4 mr-1" /> Começar consultoria</Button>
-              </div>
-            )}
-            {msgs.map((m) => (
-              <div key={m.id} className={m.role === "user" ? "text-right" : ""}>
-                <span className={`inline-block max-w-[90%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap text-left ${m.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
-                  {m.role === "assistant" ? rich(m.content) : m.content}
-                </span>
-              </div>
-            ))}
-            {busy && <p className="text-xs text-muted-foreground">Pensando…</p>}
-            <div ref={end} />
-          </div>
-          {msgs.length > 0 && (
-            <div className="p-3 border-t flex gap-2 items-end">
-              <Textarea rows={2} value={text} placeholder={profile.stage === "processos" ? "Descreva o processo passo a passo..." : "Sua resposta"} maxLength={4000} disabled={busy}
-                onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && text.trim()) { e.preventDefault(); void ask(text.trim()); } }} />
-              <Button size="icon" disabled={busy || !text.trim()} onClick={() => ask(text.trim())} title="Enviar"><Send className="w-4 h-4" /></Button>
-            </div>
-          )}
-        </section>
-
-        <section className="space-y-4">
-          <div className="rounded-lg border p-4 space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="font-semibold flex items-center gap-2"><Target className="w-4 h-4" /> Planejamento estratégico</p>
-              <Button size="sm" disabled={planning || (filled < 3 && profile.processes.length < 2)} onClick={makePlan}>
-                <Sparkles className="w-4 h-4 mr-1" /> {planning ? "Analisando..." : hasPlan ? "Gerar de novo" : "Gerar planejamento"}
-              </Button>
-            </div>
-            {!hasPlan && <p className="text-sm text-muted-foreground">Complete as etapas (principalmente setores e processos) e gere o planejamento: diagnóstico, missão/visão/valores, objetivos, melhorias, automações — as sem IA primeiro — plano de ação e custo estimado da IA.</p>}
-            {hasPlan && (
-              <div className="space-y-4 text-sm">
-                {plan.diagnostico && <div><p className="text-xs font-medium text-muted-foreground">Diagnóstico</p><p className="whitespace-pre-wrap">{plan.diagnostico}</p></div>}
-                {(plan.missao || plan.visao || plan.valores?.length) && (
-                  <div className="grid gap-2 sm:grid-cols-3">
-                    <div><p className="text-xs font-medium text-muted-foreground">Missão</p><p>{plan.missao}</p></div>
-                    <div><p className="text-xs font-medium text-muted-foreground">Visão</p><p>{plan.visao}</p></div>
-                    <div><p className="text-xs font-medium text-muted-foreground">Valores</p><p>{plan.valores?.join(" · ")}</p></div>
-                  </div>
-                )}
-                {!!plan.objetivos?.length && (
-                  <div><p className="text-xs font-medium text-muted-foreground">Objetivos</p>
-                    <ul className="list-disc pl-5 space-y-0.5">{plan.objetivos.map((o, i) => <li key={i}>{o.objetivo}{o.indicador ? ` — medir: ${o.indicador}` : ""}{o.prazo ? ` (${o.prazo})` : ""}</li>)}</ul>
-                  </div>
-                )}
-                {!!plan.melhorias?.length && (
-                  <div className="space-y-1"><p className="text-xs font-medium text-muted-foreground">Melhorias de processo</p>
-                    {plan.melhorias.map((m, i) => (
-                      <div key={i} className="rounded border p-2">
-                        <p className="font-medium">{m.titulo} <span className="text-xs text-muted-foreground font-normal">{m.setor} · impacto {m.impacto}</span></p>
-                        {m.problema && <p className="text-muted-foreground">{m.problema}</p>}
-                        {m.como && <p className="whitespace-pre-wrap"><b>Como:</b> {m.como}</p>}
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {!!plan.automacoes?.length && (
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground">Automações (as sem IA primeiro, para gastar menos)</p>
-                    {plan.automacoes.map((a, i) => {
-                      const s = i < 12 ? profile.suggestions[i] : undefined;
-                      return (
-                        <div key={i} className="rounded border p-2 space-y-1">
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            <span className="font-medium">{a.titulo}</span>
-                            <Badge variant={TIPO[a.tipo][1]}>{TIPO[a.tipo][0]}</Badge>
-                            <Badge variant="outline">Impacto {a.impacto}</Badge>
-                            <Badge variant="outline">Esforço {a.esforco}</Badge>
-                            {a.setor && <span className="text-xs text-muted-foreground">{a.setor}</span>}
-                          </div>
-                          <p className="text-muted-foreground">{a.descricao}</p>
-                          {a.custo && (
-                            <p className="text-xs">≈ {a.custo.volume.toLocaleString("pt-BR")} respostas/mês · Groq {brl(a.custo.groq)}/mês · {a.custo.claude_model} {brl(a.custo.claude)}/mês</p>
-                          )}
-                          {s?.tipo === "pronta" && s.modelo && (s.instalado ? (
-                            <Button size="sm" variant="ghost" onClick={() => navigate(s.instalado!.kind === "flow" ? `/fluxos/${s.instalado!.id}` : "/registros")}>Instalado — abrir rascunho</Button>
-                          ) : (
-                            <Button size="sm" variant="outline" disabled={!!installing} onClick={async () => {
-                              const r = await install({ suggestion_index: i }, `s${i}`);
-                              if (r?.id) void load();
-                            }}>{installing === `s${i}` ? "Instalando..." : "Instalar (rascunho)"}</Button>
-                          ))}
-                          {s?.tipo === "integracao" && (
-                            <Button size="sm" variant="outline" disabled={!!installing} onClick={async () => {
-                              const r = await callFunction<{ guide_id: string }>("integrations", { action: "draft", organization_id: org.id, suggestion_index: i, system: s.sistema ?? "Sistema", goal: s.titulo });
-                              if (!r.ok) return toast({ variant: "destructive", title: r.message });
-                              navigate(`/integracoes?guia=${r.data.guide_id}`);
-                            }}>Abrir guia de integração</Button>
-                          )}
-                        </div>
-                      );
-                    })}
-                    {plan.custo && (
-                      <p className="text-xs rounded bg-muted p-2">
-                        <b>Custo mensal estimado da IA:</b> Groq {brl(plan.custo.groq_mes)} · Claude {brl(plan.custo.claude_mes)}. {plan.custo.premissas} Valores em dólar convertidos por estimativa; confira no painel do provedor.
-                      </p>
-                    )}
-                  </div>
-                )}
-                {!!plan.plano_acao?.length && (
-                  <div><p className="text-xs font-medium text-muted-foreground">Plano de ação</p>
-                    <table className="w-full text-xs">
-                      <thead><tr className="text-left text-muted-foreground"><th className="py-1">Ação</th><th>Quem</th><th>Quando</th></tr></thead>
-                      <tbody>{plan.plano_acao.map((p, i) => <tr key={i} className="border-t align-top"><td className="py-1 pr-2">{p.acao}</td><td className="pr-2">{p.responsavel}</td><td>{p.prazo}</td></tr>)}</tbody>
-                    </table>
-                  </div>
-                )}
-                {profile.plan_at && <p className="text-xs text-muted-foreground">Gerado em {new Date(profile.plan_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}. Tudo instalado fica em rascunho para você revisar.</p>}
-              </div>
-            )}
-          </div>
-
-          <div className="rounded-lg border p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="font-semibold">Retrato da empresa <span className="text-xs text-muted-foreground font-normal">({filled}/{SECTIONS.length} seções)</span></p>
-              <Button size="sm" disabled={!dirty} onClick={saveProfile}>Salvar</Button>
-            </div>
-            <label className="flex items-start gap-2 text-sm">
-              <Switch checked={profile.use_in_ai} onCheckedChange={(v) => { setProfile({ ...profile, use_in_ai: v }); setDirty(true); }} />
-              <span>A IA de atendimento usa as seções públicas (🌐) para responder clientes. Cultura, situação, objetivos, setores, sistemas, metas e processos são internos (🔒) e nunca vão para clientes.</span>
-            </label>
-            {SECTIONS.map(([k, label, pub]) => (
-              <div key={k} className="space-y-1">
-                <p className="text-xs font-medium">{pub ? "🌐 " : "🔒 "}{label}</p>
-                <Textarea rows={3} maxLength={8000} value={profile.sections?.[k] ?? ""} placeholder="O consultor preenche; você pode ajustar."
-                  onChange={(e) => { setProfile({ ...profile, sections: { ...profile.sections, [k]: e.target.value } }); setDirty(true); }} />
-              </div>
-            ))}
-            {profile.processes.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs font-medium">🔒 Processos por setor</p>
-                {Object.entries(bySector).map(([setor, list]) => (
-                  <div key={setor} className="space-y-1">
-                    <p className="text-xs font-semibold">{setor}</p>
-                    {list.map((p, i) => (
-                      <details key={i} className="text-xs rounded border p-2">
-                        <summary className="cursor-pointer">
-                          <b>{p.nome}</b>{p.quem_faz ? ` · ${p.quem_faz}` : ""}{p.frequencia ? ` · ${p.frequencia}` : ""}{p.tempo ? ` · ${p.tempo}` : ""}
-                        </summary>
-                        {p.passo_a_passo && <p className="whitespace-pre-wrap mt-1">{p.passo_a_passo}</p>}
-                        {p.dificuldade && <p className="text-muted-foreground mt-1">Onde trava: {p.dificuldade}</p>}
-                      </details>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </section>
       </main>
+    </div>
+  );
+}
+
+function ProcCard({ p }: { p: Proc }) {
+  return (
+    <div className="rounded-md border p-3 text-sm space-y-1">
+      <p className="font-medium">{p.nome}</p>
+      <p className="text-xs text-muted-foreground">{[p.quem_faz, p.frequencia, p.tempo].filter(Boolean).join(" · ")}</p>
+      {p.passo_a_passo && <p className="whitespace-pre-wrap">{p.passo_a_passo}</p>}
+      {p.como_deveria && <p className="whitespace-pre-wrap text-muted-foreground"><b>Como deveria:</b> {p.como_deveria}</p>}
+      {p.dificuldade && <p className="text-xs text-muted-foreground">Onde trava: {p.dificuldade}</p>}
+    </div>
+  );
+}
+
+function PlanView({ plan, suggestions, planAt, installing, onInstall, onOpen, onGuide }: {
+  plan: Plan; suggestions: Suggestion[]; planAt: string | null; installing: string | null;
+  onInstall: (i: number) => void; onOpen: (s: Suggestion) => void; onGuide: (i: number, s: Suggestion) => void;
+}) {
+  return (
+    <div className="space-y-4 text-sm">
+      {plan.diagnostico && <div><p className="text-xs font-medium text-muted-foreground">Diagnóstico</p><p className="whitespace-pre-wrap">{plan.diagnostico}</p></div>}
+      {(plan.missao || plan.visao || plan.valores?.length) && (
+        <div className="grid gap-2 sm:grid-cols-3">
+          <div><p className="text-xs font-medium text-muted-foreground">Missão</p><p>{plan.missao}</p></div>
+          <div><p className="text-xs font-medium text-muted-foreground">Visão</p><p>{plan.visao}</p></div>
+          <div><p className="text-xs font-medium text-muted-foreground">Valores</p><p>{plan.valores?.join(" · ")}</p></div>
+        </div>
+      )}
+      {!!plan.objetivos?.length && (
+        <div><p className="text-xs font-medium text-muted-foreground">Objetivos</p>
+          <ul className="list-disc pl-5 space-y-0.5">{plan.objetivos.map((o, i) => <li key={i}>{o.objetivo}{o.indicador ? ` — medir: ${o.indicador}` : ""}{o.prazo ? ` (${o.prazo})` : ""}</li>)}</ul>
+        </div>
+      )}
+      {!!plan.melhorias?.length && (
+        <div className="space-y-1"><p className="text-xs font-medium text-muted-foreground">Melhorias de processo</p>
+          {plan.melhorias.map((m, i) => (
+            <div key={i} className="rounded border p-2">
+              <p className="font-medium">{m.titulo} <span className="text-xs text-muted-foreground font-normal">{m.setor} · impacto {m.impacto}</span></p>
+              {m.problema && <p className="text-muted-foreground">{m.problema}</p>}
+              {m.como && <p className="whitespace-pre-wrap"><b>Como:</b> {m.como}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+      {!!plan.automacoes?.length && (
+        <div className="space-y-1">
+          <p className="text-xs font-medium text-muted-foreground">Automações (as sem IA primeiro, para gastar menos)</p>
+          {plan.automacoes.map((a, i) => {
+            const s = i < 12 ? suggestions[i] : undefined;
+            return (
+              <div key={i} className="rounded border p-2 space-y-1">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="font-medium">{a.titulo}</span>
+                  <Badge variant={TIPO[a.tipo][1]}>{TIPO[a.tipo][0]}</Badge>
+                  <Badge variant="outline">Impacto {a.impacto}</Badge>
+                  <Badge variant="outline">Esforço {a.esforco}</Badge>
+                  {a.setor && <span className="text-xs text-muted-foreground">{a.setor}</span>}
+                </div>
+                <p className="text-muted-foreground">{a.descricao}</p>
+                {a.custo && <p className="text-xs">≈ {a.custo.volume.toLocaleString("pt-BR")} respostas/mês · Groq {brl(a.custo.groq)}/mês · {a.custo.claude_model} {brl(a.custo.claude)}/mês</p>}
+                {s?.tipo === "pronta" && s.modelo && (s.instalado
+                  ? <Button size="sm" variant="ghost" onClick={() => onOpen(s)}>Instalado — abrir rascunho</Button>
+                  : <Button size="sm" variant="outline" disabled={!!installing} onClick={() => onInstall(i)}>{installing === `s${i}` ? "Instalando..." : "Instalar (rascunho)"}</Button>)}
+                {s?.tipo === "integracao" && <Button size="sm" variant="outline" disabled={!!installing} onClick={() => onGuide(i, s)}>Abrir guia de integração</Button>}
+              </div>
+            );
+          })}
+          {plan.custo && (
+            <p className="text-xs rounded bg-muted p-2">
+              <b>Custo mensal estimado da IA:</b> Groq {brl(plan.custo.groq_mes)} · Claude {brl(plan.custo.claude_mes)}. {plan.custo.premissas} Valores convertidos por estimativa; confira no painel do provedor.
+            </p>
+          )}
+        </div>
+      )}
+      {!!plan.plano_acao?.length && (
+        <div><p className="text-xs font-medium text-muted-foreground">Plano de ação</p>
+          <table className="w-full text-xs">
+            <thead><tr className="text-left text-muted-foreground"><th className="py-1">Ação</th><th>Quem</th><th>Quando</th></tr></thead>
+            <tbody>{plan.plano_acao.map((p, i) => <tr key={i} className="border-t align-top"><td className="py-1 pr-2">{p.acao}</td><td className="pr-2">{p.responsavel}</td><td>{p.prazo}</td></tr>)}</tbody>
+          </table>
+        </div>
+      )}
+      {planAt && <p className="text-xs text-muted-foreground">Gerado em {new Date(planAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}. Tudo instalado fica em rascunho para você revisar.</p>}
     </div>
   );
 }

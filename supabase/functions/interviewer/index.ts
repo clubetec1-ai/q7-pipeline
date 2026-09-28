@@ -40,14 +40,14 @@ const oneOf = <T extends string>(v: unknown, list: readonly T[], d: T): T => (li
 const parseJson = (reply: string): Record<string, unknown> => {
   try { return JSON.parse(reply.match(/\{[\s\S]*\}/)?.[0] ?? "{}"); } catch { return {}; }
 };
-const PROC_KEYS = ["nome", "setor", "quem_faz", "frequencia", "tempo", "dificuldade", "passo_a_passo"] as const;
+const PROC_KEYS = ["nome", "setor", "quem_faz", "frequencia", "tempo", "dificuldade", "passo_a_passo", "como_deveria"] as const;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
     const body = await req.json().catch(() => ({}));
     const action = String(body?.action ?? "");
-    if (!["message", "suggest", "research", "plan"].includes(action)) throw new HttpError(400, "Ação inválida");
+    if (!["message", "suggest", "research", "plan", "format"].includes(action)) throw new HttpError(400, "Ação inválida");
     const ctx = await requireUser(req);
     const orgId = await resolveOrg(ctx, body?.organization_id);
     await requirePermission(ctx, orgId, "org.settings");
@@ -210,6 +210,53 @@ Deno.serve(async (req) => {
       }).eq("organization_id", orgId);
       await admin.from("audit_log").insert({ organization_id: orgId, actor_id: ctx.user.id, action: "interviewer.plan", meta: { automacoes: autos.length } });
       return json({ ok: true, plan, suggestions });
+    }
+
+    // ------------------------------------------------------------------- format
+    // Diagnóstico em páginas: organiza o que o dono escreveu numa etapa e devolve
+    // para ele revisar. NÃO salva — quem salva é a aprovação dele na tela.
+    if (action === "format") {
+      const stepKey = String(body?.step ?? "");
+      const raw = clip(body?.text, 12_000);
+      if (raw.length < 10) throw new HttpError(400, "Escreva um pouco mais antes de organizar.");
+      if (stepKey === "processos") {
+        const setor = clip(body?.setor, 80);
+        if (!setor) throw new HttpError(400, "Setor não informado");
+        const out = await ask(
+          `Você organiza a descrição de processos do setor "${setor}" de uma empresa, escrita pelo dono como se ensinasse uma pessoa nova. ` +
+          "Separe cada processo e escreva o passo a passo numerado, claro e fiel ao que ele disse (não invente passos). " +
+          "Se ele contou como DEVERIA funcionar, registre em como_deveria. Em faltando, até 3 perguntas curtas sobre o que ficou vago (quem faz, tempo, ferramenta, onde trava). " +
+          'Responda SOMENTE com JSON: {"processos":[{"nome":"","quem_faz":"","frequencia":"","tempo":"","dificuldade":"onde trava","passo_a_passo":"1. ...\n2. ...","como_deveria":""}],"faltando":[""]}',
+          `Empresa: ${orgRow?.name ?? ""}\nSetores: ${sections.setores ?? ""}\n\nO que o dono escreveu sobre o setor ${setor}:\n${raw}`,
+        );
+        const processos = (Array.isArray(out.processos) ? out.processos : []).slice(0, 20).map((p: any) => {
+          const item = Object.fromEntries(PROC_KEYS.map((k) => [k, clip(p?.[k], k === "passo_a_passo" || k === "como_deveria" ? 3000 : 300)])) as Record<string, string>;
+          item.setor = setor; item.area = setor;
+          return item;
+        }).filter((p) => p.nome);
+        if (!processos.length) throw new HttpError(502, "Não consegui separar os processos. Tente descrever um de cada vez.");
+        return json({ ok: true, processos, faltando: (Array.isArray(out.faltando) ? out.faltando : []).slice(0, 3).map((f) => clip(f, 200)).filter(Boolean) });
+      }
+      const stage = STAGES.find((s) => s.key === stepKey && s.key !== "processos");
+      if (!stage) throw new HttpError(400, "Etapa inválida");
+      const keys = stage.sections;
+      const out = await ask(
+        `Você organiza o que o dono de uma empresa escreveu na etapa "${stage.label}" de um diagnóstico. Objetivo da etapa: ${stage.guide} ` +
+        "Reescreva em tópicos curtos e claros, fiel ao que ele disse (não invente nada; mantenha números e nomes de setores). " +
+        `Distribua nas seções: ${keys.map((k) => `${k} (${SECTIONS[k].label})`).join(", ")}; deixe vazia a seção sem informação. ` +
+        "Em faltando, até 3 perguntas curtas sobre o que ficou vago ou faltou para esta etapa. " +
+        (stepKey === "setores" ? 'Em "setores_lista", liste só os nomes dos setores citados. ' : "") +
+        `Responda SOMENTE com JSON: {"secoes":{${keys.map((k) => `"${k}":""`).join(",")}},${stepKey === "setores" ? '"setores_lista":[""],' : ""}"faltando":[""]}`,
+        `Empresa: ${orgRow?.name ?? ""}\n${stepKey === "empresa" && profile.public_research?.resumo ? `Dados públicos encontrados: ${profile.public_research.resumo}\n` : ""}\nO que o dono escreveu:\n${raw}`,
+      );
+      const secoes: Record<string, string> = {};
+      for (const k of keys) secoes[k] = clip((out.secoes as Record<string, unknown> | undefined)?.[k], 8000);
+      if (!Object.values(secoes).some(Boolean)) throw new HttpError(502, "Não consegui organizar. Tente escrever de novo com mais detalhes.");
+      return json({
+        ok: true, secoes,
+        setores: stepKey === "setores" ? (Array.isArray(out.setores_lista) ? out.setores_lista : []).slice(0, 20).map((s) => clip(s, 80)).filter(Boolean) : undefined,
+        faltando: (Array.isArray(out.faltando) ? out.faltando : []).slice(0, 3).map((f) => clip(f, 200)).filter(Boolean),
+      });
     }
 
     // ------------------------------------------------------------------ message
