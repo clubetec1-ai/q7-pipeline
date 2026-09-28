@@ -2607,6 +2607,77 @@ export type Database = {
           },
         ]
       }
+      team_channel_members: {
+        Row: {
+          channel_id: string
+          organization_id: string
+          user_id: string
+        }
+        Insert: {
+          channel_id: string
+          organization_id: string
+          user_id: string
+        }
+        Update: {
+          channel_id?: string
+          organization_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_channel_members_channel_id_organization_id_fkey"
+            columns: ["channel_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "team_channels"
+            referencedColumns: ["id", "organization_id"]
+          },
+        ]
+      }
+      team_channels: {
+        Row: {
+          created_at: string
+          department_id: string | null
+          dm_key: string | null
+          id: string
+          kind: string
+          name: string
+          organization_id: string
+        }
+        Insert: {
+          created_at?: string
+          department_id?: string | null
+          dm_key?: string | null
+          id?: string
+          kind: string
+          name: string
+          organization_id: string
+        }
+        Update: {
+          created_at?: string
+          department_id?: string | null
+          dm_key?: string | null
+          id?: string
+          kind?: string
+          name?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_channels_department_fk"
+            columns: ["department_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "team_channels_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_members: {
         Row: {
           created_at: string
@@ -2639,6 +2710,89 @@ export type Database = {
             columns: ["team_id", "organization_id"]
             isOneToOne: false
             referencedRelation: "teams"
+            referencedColumns: ["id", "organization_id"]
+          },
+        ]
+      }
+      team_messages: {
+        Row: {
+          attachment_name: string | null
+          attachment_path: string | null
+          author_id: string
+          channel_id: string
+          content: string | null
+          conversation_id: string | null
+          created_at: string
+          id: number
+          mentions: string[]
+          organization_id: string
+        }
+        Insert: {
+          attachment_name?: string | null
+          attachment_path?: string | null
+          author_id: string
+          channel_id: string
+          content?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          id?: never
+          mentions?: string[]
+          organization_id: string
+        }
+        Update: {
+          attachment_name?: string | null
+          attachment_path?: string | null
+          author_id?: string
+          channel_id?: string
+          content?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          id?: never
+          mentions?: string[]
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_messages_channel_id_organization_id_fkey"
+            columns: ["channel_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "team_channels"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "team_messages_conversation_fk"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_reads: {
+        Row: {
+          channel_id: string
+          last_read_id: number
+          organization_id: string
+          user_id: string
+        }
+        Insert: {
+          channel_id: string
+          last_read_id?: number
+          organization_id: string
+          user_id?: string
+        }
+        Update: {
+          channel_id?: string
+          last_read_id?: number
+          organization_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_reads_channel_id_organization_id_fkey"
+            columns: ["channel_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "team_channels"
             referencedColumns: ["id", "organization_id"]
           },
         ]
@@ -3148,6 +3302,7 @@ export type Database = {
         Args: { improvement: string; reason: string }
         Returns: undefined
       }
+      ensure_team_channels: { Args: { org: string }; Returns: undefined }
       export_contacts: { Args: { org: string }; Returns: Json }
       flow_stats: {
         Args: { flow: string; period?: number }
@@ -3210,6 +3365,10 @@ export type Database = {
           instance_id: string
           last_inbound_at: string
         }[]
+      }
+      open_direct_chat: {
+        Args: { org: string; other: string }
+        Returns: string
       }
       org_setup_status: { Args: { org: string }; Returns: Json }
       platform_close_support: { Args: { org: string }; Returns: undefined }
@@ -3495,6 +3654,13 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      team_unread: {
+        Args: { org: string }
+        Returns: {
+          channel_id: string
+          unread: number
+        }[]
       }
       transfer_ticket: {
         Args: {

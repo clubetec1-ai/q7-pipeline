@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import {
   Activity, BarChart3, BookOpen, Bot, Building2, ChevronDown, ClipboardCheck, ClipboardList, Contact, Library, Megaphone, Menu,
-  MessageSquare, Phone, Tags, Plug, RefreshCw, Server, Settings2, ShieldCheck, Target, Trello, UserCog, UsersRound, Wallet, Workflow,
+  MessageSquare, MessagesSquare, Phone, Tags, Plug, RefreshCw, Server, Settings2, ShieldCheck, Target, Trello, UserCog, UsersRound, Wallet, Workflow,
   type LucideIcon,
 } from "lucide-react";
 import { useOrg } from "@/contexts/OrgContext";
@@ -9,7 +9,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-type Section = "conversas" | "kanban" | "registros" | "cobrancas" | "integracoes" | "equipe" | "numeros" | "fluxos" | "biblioteca" | "diagnostico" | "supervisor" | "avaliacoes" | "campanhas" | "seguranca" | "melhorias" | "conhecimento" | "clientes" | "agente" | "relatorios" | "etiquetas" | "plataforma";
+type Section = "conversas" | "kanban" | "registros" | "cobrancas" | "integracoes" | "equipe" | "numeros" | "fluxos" | "biblioteca" | "diagnostico" | "supervisor" | "avaliacoes" | "campanhas" | "seguranca" | "melhorias" | "conhecimento" | "clientes" | "agente" | "relatorios" | "etiquetas" | "chat" | "plataforma";
 interface Item { key: Section; to: string; label: string; icon: LucideIcon; show: boolean }
 
 const base = "px-3 py-1.5 text-sm rounded-md transition inline-flex items-center gap-1.5";
@@ -28,6 +28,7 @@ export function MainNav({ active }: { active: Section }) {
   const top: Item[] = [
     { key: "conversas", to: "/", label: "Conversas", icon: MessageSquare, show: true },
     { key: "kanban", to: "/kanban", label: "Kanban", icon: Trello, show: true },
+    { key: "chat", to: "/chat", label: "Equipe", icon: MessagesSquare, show: true },
   ];
   const groups: { label: string; icon: LucideIcon; items: Item[] }[] = [
     { label: "Clientes", icon: Contact, items: [
