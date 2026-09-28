@@ -25,6 +25,7 @@ import Integracoes from "./pages/Integracoes";
 import Supervisor from "./pages/Supervisor";
 import Avaliacoes from "./pages/Avaliacoes";
 import Campanhas from "./pages/Campanhas";
+import Seguranca from "./pages/Seguranca";
 import Fluxos from "./pages/Fluxos";
 import FlowEditor from "./pages/FlowEditor";
 
@@ -54,6 +55,7 @@ const App = () => (
             <Route path="/supervisor" element={<ProtectedRoute><Supervisor /></ProtectedRoute>} />
             <Route path="/avaliacoes" element={<ProtectedRoute><Avaliacoes /></ProtectedRoute>} />
             <Route path="/campanhas" element={<ProtectedRoute><Campanhas /></ProtectedRoute>} />
+            <Route path="/seguranca" element={<ProtectedRoute><Seguranca /></ProtectedRoute>} />
             <Route path="/fluxos" element={<ProtectedRoute><Fluxos /></ProtectedRoute>} />
             <Route path="/fluxos/:id" element={<ProtectedRoute><FlowEditor /></ProtectedRoute>} />
             <Route path="/convite" element={<ProtectedRoute allowWithoutOrg><Convite /></ProtectedRoute>} />

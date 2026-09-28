@@ -14,7 +14,8 @@ BEGIN;
 CREATE FUNCTION pg_temp.become(uid uuid) RETURNS void LANGUAGE plpgsql AS $$
 BEGIN
   PERFORM set_config('request.jwt.claims',
-    json_build_object('sub', uid, 'role', 'authenticated')::text, true);
+    json_build_object('sub', uid, 'role', 'authenticated',
+      'aal', coalesce(nullif(current_setting('test.aal', true), ''), 'aal2'))::text, true);
   EXECUTE 'SET LOCAL ROLE authenticated';
 END $$;
 
@@ -843,6 +844,29 @@ BEGIN
     WHERE conversation_id = 'aaaaaaaa-0000-0000-0044-000000000001'), 'notas sem dado pessoal');
   PERFORM pg_temp.expect(EXISTS (SELECT 1 FROM public.audit_log WHERE organization_id = A AND action = 'contact.anonymize'
     AND meta ->> 'motivo' = 'pedido do titular'), 'auditado com motivo');
+
+  -- 45. MFA: com fator ativado, sessao so com senha nao tem permissao; empresa pode exigir de dono/admin; operador so com codigo.
+  PERFORM set_config('test.aal', 'aal1', true);
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, format('SELECT cardinality(public.my_permissions(%L))', A)) > 0, 'sem MFA e sem exigencia: dono entra so com senha');
+  UPDATE public.organizations SET settings = settings || '{"require_mfa": true}'::jsonb WHERE id = A;
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, format('SELECT cardinality(public.my_permissions(%L))', A)) = 0, 'exigido: dono sem codigo fica sem acesso');
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT count(*) FROM public.conversations') = 0, 'exigido: dono sem codigo nao le conversas');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, format('SELECT cardinality(public.my_permissions(%L))', A)) > 0, 'exigencia vale so para dono/admin');
+  PERFORM pg_temp.expect(pg_temp.t(owner_a, 'SELECT public.my_mfa_status() ->> ''required''') = 'true', 'tela sabe que precisa ativar');
+  INSERT INTO auth.mfa_factors (id, user_id, friendly_name, factor_type, status, created_at, updated_at)
+  VALUES (gen_random_uuid(), agent_a, 'iso', 'totp', 'verified', now(), now());
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, format('SELECT cardinality(public.my_permissions(%L))', A)) = 0, 'com fator: so senha nao basta');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, 'SELECT count(*) FROM public.conversations') = 0, 'com fator: so senha nao le conversas');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.set_require_mfa(%L, false)', A), 'sem codigo nao mexe na exigencia');
+  PERFORM pg_temp.expect_error(operator, 'SELECT public.platform_org_overview()', 'operador sem codigo nao ve a plataforma');
+  PERFORM set_config('test.aal', 'aal2', true);
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, format('SELECT cardinality(public.my_permissions(%L))', A)) > 0, 'com codigo: atendente entra');
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, format('SELECT cardinality(public.my_permissions(%L))', A)) > 0, 'com codigo: dono entra');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.set_require_mfa(%L, true)', A), 'so exige quem tem MFA ativado');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.set_require_mfa(%L, false)', A), 'atendente nao mexe na exigencia');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('SELECT public.set_require_mfa(%L, false)', A)) LIKE 'ok:%', 'dono desliga exigencia');
+  PERFORM pg_temp.expect(pg_temp.run(operator, 'SELECT public.platform_org_overview()') LIKE 'ok:%', 'operador com codigo ve a plataforma');
+  DELETE FROM auth.mfa_factors WHERE user_id = agent_a;
 
   RAISE NOTICE 'ISOLATION OK';
 END $$;

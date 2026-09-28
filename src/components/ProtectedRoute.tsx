@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/contexts/OrgContext";
 import { Button } from "@/components/ui/button";
 import { NamePrompt } from "@/components/NamePrompt";
+import { MfaChallenge, MfaEnroll, useMfa } from "@/components/Mfa";
 
 function Spinner() {
   return (
@@ -25,9 +26,14 @@ export const ProtectedRoute = ({
 }) => {
   const { user, loading, signOut } = useAuth();
   const { loading: orgLoading, orgs, invitations } = useOrg();
+  const mfa = useMfa();
 
-  if (loading || (user && orgLoading)) return <Spinner />;
+  if (loading || (user && (orgLoading || mfa.loading))) return <Spinner />;
   if (!user) return <Navigate to="/login" replace />;
+  // Segundo passo antes de qualquer tela (o banco também bloqueia sem ele).
+  // Depois do código, recarrega para as permissões virem com a sessão nova.
+  if (mfa.needsCode) return <MfaChallenge onDone={() => window.location.reload()} />;
+  if (mfa.status?.required && !mfa.status.enrolled) return <MfaEnroll mandatory onDone={() => window.location.reload()} />;
   if (allowWithoutOrg || orgs.length > 0) return <>{children}{orgs.length > 0 && <NamePrompt />}</>;
   if (invitations.length > 0) return <Navigate to="/convite" replace />;
 
