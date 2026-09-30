@@ -1,4 +1,5 @@
 import { NumberHealthBanner } from "@/components/NumberHealthBanner";
+import { AppHeader } from "@/components/AppHeader";
 import { useCallback, useEffect, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { LogOut, Plus, Trash2 } from "lucide-react";
@@ -124,18 +125,7 @@ export default function Fluxos() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <header className="border-b px-4 h-14 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <Logo horizontal width={26} height={26} />
-          <MainNav active="fluxos" />
-        </div>
-        <div className="flex items-center gap-1">
-          <ThemeToggle />
-          <Button variant="ghost" size="icon" title="Sair" onClick={async () => { await signOut(); navigate("/login"); }}>
-            <LogOut className="w-4 h-4" />
-          </Button>
-        </div>
-      </header>
+      <AppHeader active="fluxos" />
       <NumberHealthBanner />
 
       <main className="flex-1 w-full max-w-4xl mx-auto p-4 sm:p-6 space-y-8">

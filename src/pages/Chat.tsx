@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AppHeader } from "@/components/AppHeader";
 import { useNavigate } from "react-router-dom";
 import { AtSign, Hash, LogOut, MessageSquare, MessagesSquare, Paperclip, Plus, Send, Share2, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -145,16 +146,7 @@ export default function Chat() {
 
   return (
     <div className="h-screen flex flex-col bg-background">
-      <header className="border-b px-4 h-14 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <Logo horizontal width={26} height={26} />
-          <MainNav active="chat" />
-        </div>
-        <div className="flex items-center gap-1">
-          <ThemeToggle />
-          <Button variant="ghost" size="icon" title="Sair" onClick={async () => { await signOut(); navigate("/login"); }}><LogOut className="w-4 h-4" /></Button>
-        </div>
-      </header>
+      <AppHeader active="chat" />
 
       <div className="flex-1 min-h-0 grid md:grid-cols-[240px_1fr]">
         <aside className="border-r p-2 space-y-3 overflow-y-auto">

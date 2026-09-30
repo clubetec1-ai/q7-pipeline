@@ -35,6 +35,9 @@ import Relatorios from "./pages/Relatorios";
 import EtiquetasGrupos from "./pages/EtiquetasGrupos";
 import Chat from "./pages/Chat";
 import Fluxos from "./pages/Fluxos";
+import Inicio from "./pages/Inicio";
+import Configuracoes from "./pages/Configuracoes";
+import Setores from "./pages/Setores";
 import FlowEditor from "./pages/FlowEditor";
 
 const queryClient = new QueryClient();
@@ -77,6 +80,9 @@ const App = () => (
             <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
             <Route path="/etiquetas" element={<ProtectedRoute><EtiquetasGrupos /></ProtectedRoute>} />
             <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+            <Route path="/inicio" element={<ProtectedRoute><Inicio /></ProtectedRoute>} />
+            <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
+            <Route path="/setores" element={<ProtectedRoute><Setores /></ProtectedRoute>} />
             <Route path="/conectar" element={<Navigate to="/" replace />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

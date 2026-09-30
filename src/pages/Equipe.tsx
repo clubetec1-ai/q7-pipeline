@@ -1,4 +1,5 @@
 import { NumberHealthBanner } from "@/components/NumberHealthBanner";
+import { AppHeader } from "@/components/AppHeader";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,6 +21,8 @@ export default function Equipe() {
   const { org, can } = useOrg();
   const navigate = useNavigate();
   const [params] = useSearchParams();
+  const tab = params.get("tab") ?? "";
+  const tabParam = ["membros", "departamentos", "grupos", "ramais"].includes(tab) ? tab : "";
   const data = useEquipeData(org?.id);
   const canMembers = can("members.manage");
   const canDepts = can("departments.manage");
@@ -29,24 +32,12 @@ export default function Equipe() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <header className="border-b px-4 h-14 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <Logo horizontal width={26} height={26} />
-          <MainNav active="equipe" />
-        </div>
-        <div className="flex items-center gap-1">
-          <ThemeToggle />
-          <Button variant="ghost" size="icon" title="Sair"
-            onClick={async () => { await signOut(); navigate("/login"); }}>
-            <LogOut className="w-4 h-4" />
-          </Button>
-        </div>
-      </header>
+      <AppHeader active="equipe" />
       <NumberHealthBanner />
 
       <main className="flex-1 w-full max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold">Equipe</h1>
+          <h1 className="text-2xl font-semibold">Equipe e permissões</h1>
           <p className="text-sm text-muted-foreground">{org.name}</p>
         </div>
 
@@ -57,7 +48,7 @@ export default function Equipe() {
             <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           </div>
         ) : (
-          <Tabs key={params.get("tab") ?? ""} defaultValue={params.get("tab") === "ramais" && canMembers ? "ramais" : canMembers ? "membros" : "departamentos"}>
+          <Tabs key={tabParam} defaultValue={tabParam && (canMembers || tabParam !== "ramais" && tabParam !== "membros") ? tabParam : canMembers ? "membros" : "departamentos"}>
             <TabsList>
               <TabsTrigger value="membros">Membros</TabsTrigger>
               <TabsTrigger value="departamentos">Departamentos</TabsTrigger>
