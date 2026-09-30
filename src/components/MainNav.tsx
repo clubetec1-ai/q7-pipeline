@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import {
   Activity, BarChart3, Building2, ChevronDown, ClipboardCheck, ClipboardList, Contact, Home, Layers, Megaphone, Menu,
-  MessageSquare, MessagesSquare, Palette, RefreshCw, Server, Settings2, ShieldCheck, Target, Trello, UserCog, UsersRound, Wallet,
+  MessageSquare, MessagesSquare, Palette, RefreshCw, Settings2, ShieldCheck, Target, Trello, UserCog, UsersRound, Wallet,
   type LucideIcon,
 } from "lucide-react";
 import { useOrg } from "@/contexts/OrgContext";
@@ -31,7 +31,7 @@ export function MainNav({ active }: { active: Section }) {
   const manage = can("org.settings");
   const reports = can("reports.view");
   const attend = can("conversations.attend");
-  const configures = manage || can("library.manage") || can("departments.manage") || can("members.manage");
+  const configures = manage || isOperator || can("library.manage") || can("departments.manage") || can("members.manage");
   const top: Item[] = [
     { key: "inicio", to: "/inicio", label: "Início", icon: Home, show: true },
     { key: "conversas", to: "/", label: "Conversas", icon: MessageSquare, show: true },
@@ -63,7 +63,6 @@ export function MainNav({ active }: { active: Section }) {
     { label: "Conta", icon: UserCog, items: [
       { key: "seguranca", to: "/seguranca", label: "Segurança", icon: ShieldCheck, show: true },
       { key: "plataforma", to: "/plataforma", label: "Plataforma (Clubetec)", icon: Building2, show: isOperator },
-      { key: "plataforma", to: "/admin/uazapi", label: "Uazapi global (Clubetec)", icon: Server, show: isOperator },
     ] },
   ];
   const isActive = (i: Item) => active === i.key || !!i.also?.includes(active);

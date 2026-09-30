@@ -1,6 +1,6 @@
 import { Link, Navigate } from "react-router-dom";
 import {
-  Bot, BookOpen, Library, Mail, MessageSquare, PhoneCall, Plug, Settings2, ShieldCheck, Shuffle, Tags, Wallet, Workflow, type LucideIcon,
+  Bot, BookOpen, Library, Mail, MessageSquare, PhoneCall, Plug, Server, Settings2, ShieldCheck, Shuffle, Tags, Wallet, Workflow, type LucideIcon,
 } from "lucide-react";
 import { useOrg } from "@/contexts/OrgContext";
 import { AppHeader } from "@/components/AppHeader";
@@ -21,13 +21,13 @@ const PILL: Record<State, [string, string]> = {
  * situação (configurado / pendente / opcional). Cada cartão abre a tela certa.
  */
 export default function Configuracoes() {
-  const { org, can } = useOrg();
+  const { org, can, isOperator } = useOrg();
   const { status: s } = useSetupStatus(org?.id);
   if (!org) return null;
   const manage = can("org.settings");
   const lib = can("library.manage");
   const team = can("members.manage") || can("departments.manage");
-  if (!manage && !lib && !team) return <Navigate to="/" replace />;
+  if (!manage && !lib && !team && !isOperator) return <Navigate to="/" replace />;
 
   const groups: { title: string; cards: Card[] }[] = [
     { title: "Canais", cards: [
@@ -59,6 +59,8 @@ export default function Configuracoes() {
         icon: Wallet, color: "#10B981", state: s.payments ? "ok" : "optional", detail: s.payments ? "Asaas conectado" : undefined, show: manage },
       { title: "Integrações", desc: "Conectar outros sistemas (ERP, cobrança, agenda) para a IA e os fluxos.", to: "/integracoes", icon: Plug, color: "#64748B",
         state: s.integrations ? "ok" : "optional", detail: s.integrations ? `${s.integrations} integração(ões)` : undefined, show: manage },
+      { title: "Uazapi — servidor global (Clubetec)", desc: "Servidor e token de administrador do WhatsApp por QR de toda a plataforma. Só a equipe Clubetec vê.",
+        to: "/admin/uazapi", icon: Server, color: "#0EA5E9", state: "optional", show: isOperator },
       { title: "Segurança", desc: "Verificação em duas etapas (MFA) e códigos de recuperação.", to: "/seguranca", icon: ShieldCheck, color: "#EF4444",
         state: "optional", show: true },
     ] },

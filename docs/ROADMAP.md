@@ -286,6 +286,8 @@ exportar CSV com auditoria. Falta: PDF, período personalizado, envio automátic
   *Ajuste (30/09): a configuração da API de Cobranças (chave do Asaas, ambiente e regras) saiu da tela Cobranças e
   foi para Configurações → Cobranças (Asaas), com cartão na central; em Cobranças fica só o dia a dia (gerar cobrança
   e lista) e um atalho para configurar.*
+  *Ajuste (30/09): "Uazapi global" saiu do menu Conta e virou cartão na central de Configurações, visível só para a
+  equipe Clubetec (operador; a tela e o banco continuam bloqueando os demais), com o cabeçalho padrão.*
 - **Software autogerenciável (princípio, 30/09):** quanto menos depender de pessoas para **vender, implantar,
   acompanhar e dar suporte**, melhor. Agentes de IA, chatbot, passos guiados, checagens e alertas automáticos resolvem
   de forma simples, com menos ocorrências. Próximos passos nessa linha: assistente dentro do app ("como faço…?") que

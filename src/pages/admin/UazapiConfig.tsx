@@ -8,6 +8,7 @@ import { toast } from "@/hooks/use-toast";
 import { Plug, TestTube2, ArrowLeft, Info } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useOrg } from "@/contexts/OrgContext";
+import { AppHeader } from "@/components/AppHeader";
 
 const DEFAULT_INSTANCE_NAME = "principal";
 
@@ -81,10 +82,11 @@ export default function UazapiConfig() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6 lg:p-8">
-      <div className="max-w-2xl mx-auto space-y-6">
-        <Button variant="ghost" size="sm" onClick={() => navigate("/")}>
-          <ArrowLeft className="w-4 h-4 mr-2" /> Voltar
+    <div className="min-h-screen bg-background">
+      <AppHeader active="configuracoes" />
+      <div className="max-w-2xl mx-auto space-y-6 p-6 lg:p-8">
+        <Button variant="ghost" size="sm" onClick={() => navigate("/configuracoes")}>
+          <ArrowLeft className="w-4 h-4 mr-2" /> Configurações
         </Button>
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
