@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
+import { requireModule } from "../_shared/modules.ts";
 import { HttpError, permissionsIn, requireUser } from "../_shared/auth.ts";
 import { forOrg } from "../_shared/tenant.ts";
 import * as providers from "../_shared/providers/index.ts";
@@ -45,6 +46,7 @@ Deno.serve(async (req) => {
     const perms = await permissionsIn(ctx, orgId);
     if (!perms.includes("conversations.attend")) throw new HttpError(403, "Sem permissão para atender");
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    await requireModule(admin, orgId, "telefonia");
     const org = forOrg(admin, orgId);
 
     if (action === "nvoip_test") {

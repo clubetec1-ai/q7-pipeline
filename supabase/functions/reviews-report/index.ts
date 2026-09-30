@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
+import { requireModule } from "../_shared/modules.ts";
 import { HttpError, requirePermission, requireUser, resolveOrg } from "../_shared/auth.ts";
 import { chat, resolveAI } from "../_shared/ai-chat.ts";
 
@@ -47,6 +48,7 @@ Deno.serve(async (req) => {
     if (!rows?.length) return json({ ok: true, report: null, count: 0 });
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    await requireModule(admin, orgId, "gestao");
     const { data: allowed } = await admin.rpc("service_ai_take", { org: orgId });
     if (allowed === false) throw new HttpError(429, "Muitas chamadas de IA agora. Tente em um minuto.");
     const { data: o } = await admin.from("organizations").select("settings").eq("id", orgId).maybeSingle();

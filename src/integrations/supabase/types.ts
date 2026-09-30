@@ -2116,6 +2116,38 @@ export type Database = {
           },
         ]
       }
+      org_modules: {
+        Row: {
+          enabled: boolean
+          module: string
+          organization_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          enabled?: boolean
+          module: string
+          organization_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          enabled?: boolean
+          module?: string
+          organization_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_modules_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_rate_usage: {
         Row: {
           bucket: string
@@ -3686,6 +3718,10 @@ export type Database = {
         Args: { client_id: string; client_secret: string; connector: string }
         Returns: undefined
       }
+      platform_set_module: {
+        Args: { m: string; on_off: boolean; org: string }
+        Returns: undefined
+      }
       platform_set_org_status: {
         Args: { new_status: string; org: string }
         Returns: undefined
@@ -3779,6 +3815,7 @@ export type Database = {
         Args: { org: string; pmid: string; who: string }
         Returns: number
       }
+      service_module_on: { Args: { m: string; org: string }; Returns: boolean }
       service_put_secret: {
         Args: { secret_name: string; secret_value: string }
         Returns: undefined

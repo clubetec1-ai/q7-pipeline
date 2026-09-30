@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
+import { moduleOn } from "../_shared/modules.ts";
 import { forOrg } from "../_shared/tenant.ts";
 import { getSecret, safeEqual } from "../_shared/secrets.ts";
 import { instForSend, runFlow } from "../_shared/flow/executor.ts";
@@ -35,6 +36,7 @@ Deno.serve(async (req) => {
   for (const d of due ?? []) {
     try {
       const org = forOrg(admin, d.organization_id);
+      if (!(await moduleOn(admin, d.organization_id, "ia"))) continue; // módulo desligado: o fluxo fica parado
       // Reserva: só quem zerar o wait_until processa.
       const { data: run } = await org.update("flow_runs", { wait_until: null })
         .eq("id", d.id).eq("wait_until", d.wait_until).in("state", ["waiting_input", "waiting_timer"])

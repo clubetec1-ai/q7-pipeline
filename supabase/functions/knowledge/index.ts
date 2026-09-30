@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
+import { requireModule } from "../_shared/modules.ts";
 import { HttpError, permissionsIn, requireUser, resolveOrg } from "../_shared/auth.ts";
 import { forOrg } from "../_shared/tenant.ts";
 import { chunkText, extractDocText, sanitize } from "../_shared/knowledge.ts";
@@ -29,6 +30,7 @@ Deno.serve(async (req) => {
     const ctx = await requireUser(req);
     const orgId = await resolveOrg(ctx, body?.organization_id);
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    await requireModule(admin, orgId, "ia");
     const org = forOrg(admin, orgId);
     const canManage = async (dept: string | null) => {
       const { data } = await ctx.userClient.rpc("can_manage_knowledge", { org: orgId, dept });

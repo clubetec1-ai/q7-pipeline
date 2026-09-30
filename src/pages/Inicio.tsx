@@ -18,24 +18,25 @@ interface Step { title: string; why: string; to: string; icon: LucideIcon; done:
  * para o suporte). Para todos, atalhos do dia a dia.
  */
 export default function Inicio() {
-  const { org, can } = useOrg();
+  const { org, can, hasModule } = useOrg();
   const { status: s, loading } = useSetupStatus(org?.id);
   if (!org) return null;
   const manage = can("org.settings");
 
-  const steps: Step[] = [
-    { title: "Diagnóstico da empresa", why: "A IA entende o seu negócio e monta o plano.", to: "/diagnostico", icon: Target,
+  const all: (Step & { m?: Parameters<typeof hasModule>[0] })[] = [
+    { title: "Diagnóstico da empresa", why: "A IA entende o seu negócio e monta o plano.", to: "/diagnostico", icon: Target, m: "diagnostico",
       done: s.diagApproved >= 1, detail: s.diagApproved ? `${s.diagApproved} etapa(s) aprovada(s)` : undefined },
-    { title: "Marca", why: "Cores, logos e tom de voz — os agentes passam a escrever do seu jeito.", to: "/diagnostico?pagina=marca", icon: Palette, done: s.brand },
+    { title: "Marca", why: "Cores, logos e tom de voz — os agentes passam a escrever do seu jeito.", to: "/diagnostico?pagina=marca", icon: Palette, m: "diagnostico", done: s.brand },
     { title: "Conectar o WhatsApp", why: "O número onde os clientes falam com você.", to: "/numeros", icon: MessageSquare, done: s.whatsappOnline > 0 },
     { title: "Setores e equipe", why: "Quem atende o quê: cada setor com sua fila e sua cor.", to: "/setores", icon: Layers,
       done: s.departments > 0 && s.members > 1, detail: `${s.departments} setor(es) · ${s.members} pessoa(s)` },
-    { title: "Ligar o agente de IA", why: "A IA responde na hora e passa para uma pessoa quando precisa.", to: "/agente", icon: Bot, done: s.aiOn > 0 },
+    { title: "Ligar o agente de IA", why: "A IA responde na hora e passa para uma pessoa quando precisa.", to: "/agente", icon: Bot, m: "ia", done: s.aiOn > 0 },
     { title: "Etiquetas por setor", why: "Sinalizam o cliente com cores (VIP, Urgente, Suporte…).", to: "/etiquetas", icon: Tags, done: s.tagScopes > 0 || s.groups > 0 },
-    { title: "Primeiro fluxo publicado", why: "Menu de entrada, horário e triagem automáticos.", to: "/fluxos", icon: Workflow, done: s.flowsLive > 0 },
-    { title: "Plano de implementação", why: "Escolha o que implementar agora e o que fica para depois, com lembrete.", to: "/setores", icon: ClipboardList,
+    { title: "Primeiro fluxo publicado", why: "Menu de entrada, horário e triagem automáticos.", to: "/fluxos", icon: Workflow, m: "ia", done: s.flowsLive > 0 },
+    { title: "Plano de implementação", why: "Escolha o que implementar agora e o que fica para depois, com lembrete.", to: "/setores", icon: ClipboardList, m: "diagnostico",
       done: s.planned > 0, detail: s.processes ? `${s.planned} de ${s.processes} processo(s) decidido(s)` : undefined },
   ];
+  const steps: Step[] = all.filter((x) => !x.m || hasModule(x.m));
   const done = steps.filter((x) => x.done).length;
   const next = steps.find((x) => !x.done);
   const shortcuts: { label: string; to: string; icon: LucideIcon; show: boolean }[] = [

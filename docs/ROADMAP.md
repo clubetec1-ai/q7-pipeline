@@ -334,6 +334,15 @@ exportar CSV com auditoria. Falta: PDF, período personalizado, envio automátic
 - **Base técnica para vender:** módulos ligados por empresa (tabela por organização, liga/desliga em Plataforma),
   menu e telas escondem o que não foi contratado e o **servidor recusa** módulo desligado (não só a tela); depois,
   assinatura recorrente (Asaas), período de teste e limites por plano.
+  *Entregue (30/09): módulos por empresa — base Atendimento sempre ativa + Diagnóstico e Plano, Agentes de IA e
+  Automação, Canais extras, Telefonia, Campanhas e Marca, Cobranças, Qualidade e Gestão. Liga/desliga só pela
+  Clubetec em Plataforma → Módulos (auditado). Trava no banco (gatilhos: campanha, cobrança, ligação, 2º número ou
+  número da Meta, e-mail, base de conhecimento, publicar fluxo, avaliação automática, melhoria) e nas funções do
+  servidor (entrevistador, telefone, conhecimento, implementador, melhorias, avaliações, cobranças; sem o módulo de
+  IA a conversa vai direto para a fila das pessoas; disparos, fluxos agendados e sincronização de ligações pulam a
+  empresa). Menu, central de Configurações, Início, telefone e botões de cobrar/ligar escondem o que não foi
+  contratado; abrir o endereço direto mostra "módulo não ativo". Empresas atuais e novas começam com tudo ligado
+  (fase de testes). Falta: planos/pacotes, assinatura recorrente, período de teste e limites de uso.*
 - **Visão de CEO (prioridades sugeridas):** 1) módulos + assinatura (sem isso não dá para vender); 2) entrada
   autoatendida: cadastro → diagnóstico → implantação guiada, valor no primeiro dia; 3) painel "o que o ClubeCRM fez
   por você" (tempo de resposta, conversas resolvidas pela IA, vendas/cobranças recuperadas) para reter e vender mais;

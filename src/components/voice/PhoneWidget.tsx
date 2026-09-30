@@ -48,7 +48,7 @@ function useRingtone() {
  */
 export function PhoneWidget() {
   const { user } = useAuth();
-  const { org } = useOrg();
+  const { org, hasModule } = useOrg();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [ext, setExt] = useState<MyExt | null>(null);
@@ -220,7 +220,7 @@ export function PhoneWidget() {
     if (r.data.conversation_id) navigate(`/?open=${r.data.conversation_id}`);
   };
 
-  if (!ext) return null;
+  if (!ext || !hasModule("telefonia")) return null;
   const live = callState !== "idle";
   const dot = ext.mode === "off" ? "bg-muted-foreground" : ext.mode === "sip" ? "bg-sky-500"
     : phoneState === "ready" ? "bg-emerald-500" : phoneState === "error" ? "bg-red-500" : "bg-amber-400";

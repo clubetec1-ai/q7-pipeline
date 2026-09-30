@@ -39,7 +39,7 @@ interface Person { id: string; name: string }
 export function ContactSheet({
   open, onClose, contactId, conversationId, ticketId,
 }: { open: boolean; onClose: () => void; contactId: string | null; conversationId: string; ticketId?: string }) {
-  const { org, can } = useOrg();
+  const { org, can, hasModule } = useOrg();
   const { toast } = useToast();
   const [c, setC] = useState<Contact | null>(null);
   const [tags, setTags] = useState<Tag[]>([]);
@@ -198,7 +198,7 @@ export function ContactSheet({
                 <>
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-xs text-muted-foreground">Telefone: {c.phone}</p>
-                    {can("conversations.attend") && !c.name?.startsWith("Anonimizado") && (
+                    {can("conversations.attend") && hasModule("telefonia") && !c.name?.startsWith("Anonimizado") && (
                       <Button size="sm" variant="outline" onClick={() => requestCall(c.phone)} title="Ligar pelo seu ramal"><Phone className="w-4 h-4 mr-1" /> Ligar</Button>
                     )}
                   </div>

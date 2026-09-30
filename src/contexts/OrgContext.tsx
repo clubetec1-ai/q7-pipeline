@@ -30,9 +30,14 @@ interface OrgContextValue {
   isOperator: boolean;
   invitations: Invitation[];
   can: (perm: string) => boolean;
+  /** Módulo contratado pela empresa (a trava de verdade é no banco e no servidor; aqui só esconde a tela). */
+  hasModule: (m: ModuleKey) => boolean;
+  reloadModules: () => void;
   selectOrg: (id: string) => void;
   reload: () => Promise<void>;
 }
+
+export type ModuleKey = "diagnostico" | "ia" | "canais" | "telefonia" | "campanhas" | "cobrancas" | "gestao";
 
 const OrgContext = createContext<OrgContextValue | undefined>(undefined);
 const STORAGE_KEY = "clubecrm:org";
@@ -136,9 +141,23 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
   }, [org, user]);
   const can = useCallback((perm: string) => permissions.includes(perm), [permissions]);
 
+  // Módulos ativos da empresa (antes de carregar, não esconde nada para não piscar).
+  const [modules, setModules] = useState<Set<string> | null>(null);
+  const [modTick, setModTick] = useState(0);
+  useEffect(() => {
+    setModules(null);
+    if (!org) return;
+    let alive = true;
+    void supabase.from("org_modules").select("module, enabled").eq("organization_id", org.id)
+      .then(({ data }) => { if (alive) setModules(new Set((data ?? []).filter((r) => r.enabled).map((r) => r.module))); });
+    return () => { alive = false; };
+  }, [org, modTick]);
+  const hasModule = useCallback((m: ModuleKey) => modules === null || modules.has(m), [modules]);
+  const reloadModules = useCallback(() => setModTick((t) => t + 1), []);
+
   return (
     <OrgContext.Provider
-      value={{ loading, orgs, org, permissions, isOperator, invitations, can, selectOrg, reload }}
+      value={{ loading, orgs, org, permissions, isOperator, invitations, can, hasModule, reloadModules, selectOrg, reload }}
     >
       {children}
     </OrgContext.Provider>

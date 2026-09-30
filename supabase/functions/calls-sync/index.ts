@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
+import { moduleOn } from "../_shared/modules.ts";
 import { getSecret, safeEqual } from "../_shared/secrets.ts";
 import { forOrg } from "../_shared/tenant.ts";
 import { brDate, fetchHistory, normalizeCall, NvoipError, nvoipToken } from "../_shared/nvoip.ts";
@@ -23,6 +24,7 @@ Deno.serve(async (req) => {
   for (const v of list ?? []) {
     const orgId: string = v.organization_id;
     const org = forOrg(admin, orgId);
+    if (!(await moduleOn(admin, orgId, "telefonia"))) continue;
     try {
       const token = await nvoipToken(admin, orgId);
       const { data: exts } = await org.select("pbx_extensions", "number, sip_user");

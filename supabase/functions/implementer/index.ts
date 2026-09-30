@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
+import { requireModule } from "../_shared/modules.ts";
 import { HttpError, requirePermission, requireUser, resolveOrg } from "../_shared/auth.ts";
 import { forOrg } from "../_shared/tenant.ts";
 import { chat, resolveAI } from "../_shared/ai-chat.ts";
@@ -61,6 +62,7 @@ Deno.serve(async (req) => {
     const orgId = await resolveOrg(ctx, body?.organization_id);
     await requirePermission(ctx, orgId, "org.settings");
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    await requireModule(admin, orgId, "ia");
     const org = forOrg(admin, orgId);
 
     // Modelo: direto (página Fluxos) ou de uma sugestão do Diagnóstico.
