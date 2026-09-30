@@ -4,7 +4,7 @@ import { forOrg } from "../_shared/tenant.ts";
 import { getSecret, safeEqual } from "../_shared/secrets.ts";
 import { storeMedia } from "../_shared/media.ts";
 import { accountPassword, type MailAccount, openImap } from "../_shared/mail.ts";
-import { friendlyMailError, htmlToText, isAutomated, stripQuoted } from "../_shared/mail-utils.ts";
+import { friendlyMailError, htmlToText, isAutomated, isIgnored, stripQuoted } from "../_shared/mail-utils.ts";
 
 /**
  * Recebimento do canal de e-mail (spec canal-email §Recebimento). Cron a cada
@@ -57,6 +57,10 @@ async function syncAccount(admin: any, acc: MailAccount) {
     return { error: "login" };
   }
 
+  // Remetentes que a equipe marcou como "Não é atendimento".
+  const { data: ign } = await org.select("email_ignore", "pattern");
+  const ignored = (ign ?? []).map((r: { pattern: string }) => r.pattern);
+
   let imported = 0;
   let failed = false;
   let last = acc.last_uid ?? null;
@@ -76,7 +80,7 @@ async function syncAccount(admin: any, acc: MailAccount) {
       const mail = await PostalMime.parse(m.source);
       const from = String(mail.from?.address ?? "").trim().toLowerCase();
       const headers = (mail.headers ?? []) as unknown as { key: string; value: string }[];
-      if (!from || from === acc.address.toLowerCase() || isAutomated(headers, from)) continue;
+      if (!from || from === acc.address.toLowerCase() || isAutomated(headers, from) || isIgnored(ignored, from)) continue;
 
       const conv = await conversationFor(admin, acc, from, mail.from?.name?.slice(0, 120) || null);
       if (!conv) continue;

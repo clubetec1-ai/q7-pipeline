@@ -174,6 +174,11 @@ export function EmailAccounts({ orgId }: { orgId: string }) {
                 : a.last_sync_at ? <Badge variant="secondary">Recebendo</Badge> : <Badge variant="outline">Aguardando 1ª leitura</Badge>}
               {a.department_id && <Badge variant="outline">{depts.find((d) => d.id === a.department_id)?.name ?? "Departamento"}</Badge>}
             </div>
+            {!a.department_id && a.status !== "disabled" && (
+              <p className="text-xs rounded-md bg-amber-50 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200 p-2">
+                Sem setor: os e-mails desta caixa caem na Fila geral, sem dono. Em ⋯ → Editar, escolha o setor que atende esta caixa.
+              </p>
+            )}
             {a.status !== "disabled" && a.health_error && <p className="text-sm text-destructive">{a.health_error}</p>}
             <p className="text-xs text-muted-foreground">Última leitura: {when(a.last_sync_at)}</p>
           </div>

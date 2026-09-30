@@ -1172,6 +1172,19 @@ BEGIN
   PERFORM pg_temp.run(operator, format('SELECT public.platform_set_module(%L, %L, true)', A, 'canais'));
   PERFORM pg_temp.run(operator, format('SELECT public.platform_set_module(%L, %L, true)', A, 'gestao'));
 
+  -- 62. "Nao e atendimento" (e-mail): quem ve a conversa ignora o remetente e fecha; outra org nunca.
+  INSERT INTO public.tickets (organization_id, conversation_id, protocol, status, queued_at)
+  VALUES (A, 'aaaaaaaa-0000-0000-0010-000000000032', '2099-000062', 'queued', now()) ON CONFLICT DO NOTHING;
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.ignore_email_sender(%L)', 'aaaaaaaa-0000-0000-0010-000000000032'), 'outra org nao ignora');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.unignore_email(%L, %L)', A, 'cliente@b.test'), 'outra org nao desfaz');
+  PERFORM pg_temp.expect(pg_temp.t(owner_a, format('SELECT public.ignore_email_sender(%L, true)', 'aaaaaaaa-0000-0000-0010-000000000032')) = '@b.test', 'dono ignora o dominio');
+  PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM public.tickets WHERE conversation_id = 'aaaaaaaa-0000-0000-0010-000000000032' AND status <> 'closed'), 'atendimento fechado');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, 'SELECT count(*) FROM public.email_ignore') = 1, 'equipe ve a lista');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.email_ignore') = 0, 'outra org nao ve a lista');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.unignore_email(%L, %L)', A, '@b.test'), 'atendente nao desfaz');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('SELECT public.unignore_email(%L, %L)', A, '@b.test')) = 'ok:1', 'dono desfaz');
+  PERFORM pg_temp.expect_error(owner_a, format('INSERT INTO public.email_ignore (organization_id, pattern) VALUES (%L, %L)', A, 'x@y.com'), 'lista so pela funcao');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 

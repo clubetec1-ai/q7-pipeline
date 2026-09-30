@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert@1";
-import { friendlyMailError, htmlToText, isAutomated, replySubject, stripQuoted } from "./mail-utils.ts";
+import { friendlyMailError, htmlToText, isAutomated, isIgnored, replySubject, stripQuoted } from "./mail-utils.ts";
 
 Deno.test("respostas automaticas e listas nao abrem atendimento", () => {
   assertEquals(isAutomated([{ key: "Auto-Submitted", value: "auto-replied" }], "a@x.com"), true);
@@ -7,6 +7,18 @@ Deno.test("respostas automaticas e listas nao abrem atendimento", () => {
   assertEquals(isAutomated([{ key: "List-Id", value: "<lista>" }], "a@x.com"), true);
   assertEquals(isAutomated([], "no-reply@loja.com"), true);
   assertEquals(isAutomated([{ key: "Auto-Submitted", value: "no" }], "cliente@x.com"), false);
+  assertEquals(isAutomated([], "ads-support-noreply@google.com"), true);
+  assertEquals(isAutomated([], "transacional@catho.com.br"), true);
+  assertEquals(isAutomated([], "comunicacao@salesmeet.io"), true);
+  assertEquals(isAutomated([{ key: "X-SG-EID", value: "abc" }], "vendas@loja.com"), true);
+  assertEquals(isAutomated([], "maria.silva@empresa.com"), false);
+  assertEquals(isAutomated([], "financeiro@cliente.com.br"), false);
+});
+
+Deno.test("lista de remetentes ignorados", () => {
+  assertEquals(isIgnored(["@catho.com.br"], "transacional@catho.com.br"), true);
+  assertEquals(isIgnored(["boleto@condfy.com.br"], "BOLETO@condfy.com.br"), true);
+  assertEquals(isIgnored(["@catho.com.br"], "cliente@gmail.com"), false);
 });
 
 Deno.test("assunto, html e citacao", () => {

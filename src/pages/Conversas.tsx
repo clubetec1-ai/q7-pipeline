@@ -16,6 +16,7 @@ import { PresenceControl } from "@/components/PresenceControl";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { ContactSheet } from "./conversas/ContactSheet";
 import { ContactMarksBar, type Mark } from "./conversas/ContactMarksBar";
+import { EmailIgnoreButton } from "./conversas/EmailIgnoreButton";
 import { QuickReplies } from "./conversas/QuickReplies";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -701,6 +702,9 @@ export default function Conversas() {
                     </Select>
                   )}
                   <Button size="sm" variant="outline" className="h-8" onClick={() => setFichaOpen(true)}>Ficha</Button>
+                  {active.channel === "email" && active.contact_email && (
+                    <EmailIgnoreButton conversationId={active.id} email={active.contact_email} onDone={() => void reloadTickets()} />
+                  )}
                   <TicketBar ticket={byConversation.get(active.id)} onChanged={reloadTickets} greet={active.channel !== "email"} />
                 </div>
               </div>
