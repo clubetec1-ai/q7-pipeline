@@ -258,6 +258,51 @@ período, setor, atendente, canal e número; comparação com o período anterio
 escopo pelo papel no banco; período 7/30/90 dias e setor; comparação com o período anterior; gráficos por hora e dia;
 exportar CSV com auditoria. Falta: PDF, período personalizado, envio automático por e-mail (semanal/mensal).*
 
+## Repaginação do layout e cliente guiado (pedido em 30/09 — antes dos módulos)
+- **Reorganizar o menu:** tudo que é configuração/instalação num lugar só (hoje WhatsApp, ramais, equipe, etiquetas
+  e outros itens de instalação estão espalhados em menus diferentes). Dia a dia separado de configuração.
+- **Definir onde ficam setores e processos:** depois do mapeamento no Diagnóstico, os setores viram setores de
+  verdade no sistema e ganham uma página própria com seus processos (e o plano agora/depois).
+- **Mais visual e mais bonito:** cores (etiquetas, clientes, setores) consistentes, painel com estética melhor.
+- **Cliente guiado passo a passo** nos primeiros usos (primeiros passos com progresso), para depois trabalhar de
+  forma intuitiva.
+- Proposta (30/09): Fase 1 — estrutura: moldura única das telas, menu novo (Dia a dia · Clientes · Gestão · Minha
+  empresa · Configurações), central de Configurações em cartões com situação (configurado/pendente), página
+  "Setores e processos" alimentada pelo Diagnóstico, tela Início com "Primeiros passos". Fase 2 — visual: painel
+  Início com indicadores e gráficos, cartões e cores consistentes, cor da marca da empresa no tema.
+
+## Comercialização: módulos, planos e visão de CEO (pedido em 30/09)
+- **Habilitação por módulos** — cada empresa contrata o que precisa; exemplo do pedido: Diagnóstico, WhatsApp,
+  Agentes de automação… Sugestão registrada: **base "Atendimento"** (Conversas, Kanban, contatos/etiquetas, equipe,
+  chat interno, 1 número WhatsApp, relatórios básicos) + módulos: **Diagnóstico e Plano**, **Agentes de IA e
+  Automação** (fluxos, IA, base de conhecimento, follow-up), **Canais extras** (mais números, Meta oficial, e-mail),
+  **Telefonia** (ramal, clique-para-ligar, histórico), **Campanhas e Marca**, **Cobranças**, **Qualidade e Gestão**
+  (avaliações, supervisor, relatórios avançados, melhoria contínua). Três pacotes prontos (Essencial, Profissional,
+  Completo) + módulos avulsos; uso variável (IA, disparos, minutos) cobrado por pacote com margem e alerta de limite;
+  taxa de implantação com a Clubetec (diagnóstico + configuração).
+- **Base técnica para vender:** módulos ligados por empresa (tabela por organização, liga/desliga em Plataforma),
+  menu e telas escondem o que não foi contratado e o **servidor recusa** módulo desligado (não só a tela); depois,
+  assinatura recorrente (Asaas), período de teste e limites por plano.
+- **Visão de CEO (prioridades sugeridas):** 1) módulos + assinatura (sem isso não dá para vender); 2) entrada
+  autoatendida: cadastro → diagnóstico → implantação guiada, valor no primeiro dia; 3) painel "o que o ClubeCRM fez
+  por você" (tempo de resposta, conversas resolvidas pela IA, vendas/cobranças recuperadas) para reter e vender mais;
+  4) varredura de segurança + termos de uso/LGPD (contrato de tratamento de dados) antes do 1º cliente pagante;
+  5) começar por 1 ou 2 nichos com modelos prontos (diagnóstico, fluxos, etiquetas e setores por nicho) e canal de
+  **revenda/white label** para agências. Segurar novos canais (Instagram) e WebRTC até clientes pedirem ou a
+  central liberar.
+
+## Segurança antes da produção (pedido em 30/09)
+Objetivo: o sistema sempre **blindado** — nenhum dado vaza (entre empresas ou para fora) e resiste a ataques,
+invasão, abuso e tentativas de burlar ou derrubar.
+- **Durante o desenvolvimento:** manter a rotina de cada entrega (testes de isolamento entre empresas, RLS, segredos
+  só no cofre, checagem de permissão no servidor, validação de entrada), sem plugins que rodam IA a cada edição.
+- **Antes de aprovar o projeto para produção:** varredura completa de segurança do código inteiro com a skill
+  `security-review` ou o plugin **claude-security** (Anthropic, sob demanda), corrigindo tudo antes de abrir para
+  clientes. Incluir na revisão: autenticação/MFA, RLS de todas as tabelas e buckets, Edge Functions (quem chama,
+  segredo de cron, webhooks), SSRF/injeção/XSS, limites de uso (rate limit) contra abuso e força bruta, cabeçalhos
+  de segurança do site (CSP), dependências vulneráveis, alertas do Supabase (advisors), backups e plano de resposta a
+  incidente (LGPD).
+
 ## Disparos (campanhas)
 - Envio em massa para grupos de clientes, escolhendo o número (ex.: um número QR para disparos e o da Meta para
   receber clientes, como pedido). Respeita opt-out, horário e limite por minuto; modelos aprovados no número da Meta.
