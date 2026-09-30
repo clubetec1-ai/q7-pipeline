@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { setPhoneState as publishPhone } from "@/lib/phoneBus";
 import { useNavigate } from "react-router-dom";
 import { MessageSquare, Mic, MicOff, Pause, Phone, PhoneCall, PhoneIncoming, PhoneOff, Play, Search, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -220,17 +221,26 @@ export function PhoneWidget() {
     if (r.data.conversation_id) navigate(`/?open=${r.data.conversation_id}`);
   };
 
-  if (!ext || !hasModule("telefonia")) return null;
-  const live = callState !== "idle";
-  const dot = ext.mode === "off" ? "bg-muted-foreground" : ext.mode === "sip" ? "bg-sky-500"
+  const usable = !!ext && hasModule("telefonia");
+  const dot = !ext ? "" : ext.mode === "off" ? "bg-muted-foreground" : ext.mode === "sip" ? "bg-sky-500"
     : phoneState === "ready" ? "bg-emerald-500" : phoneState === "error" ? "bg-red-500" : "bg-amber-400";
-  const status = ext.mode === "off" ? "Ramal desligado" : ext.mode === "sip" ? "MicroSIP / aparelho"
+  const status = !ext ? "" : ext.mode === "off" ? "Ramal desligado" : ext.mode === "sip" ? "MicroSIP / aparelho"
     : !ext.wss_url ? "Ramal sem WebRTC (use MicroSIP)" : !ext.password ? "Aguardando senha da Clubetec"
     : phoneState === "ready" ? "Pronto para ligar" : phoneState === "error" ? phoneMsg || "Sem conexão com a central" : "Conectando…";
+  // O botão 📞 fica no cabeçalho: publica a situação e atende o pedido de abrir/fechar.
+  useEffect(() => { publishPhone({ available: usable, dot, status, ringing: callState === "ringing" }); }, [usable, dot, status, callState]);
+  useEffect(() => {
+    const t = () => setOpen((o) => !o);
+    window.addEventListener("clubecrm:phone-toggle", t);
+    return () => window.removeEventListener("clubecrm:phone-toggle", t);
+  }, []);
+
+  if (!ext || !usable) return null;
+  const live = callState !== "idle";
   const numberNow = call?.number || dial;
 
   return (
-    <div className="fixed bottom-4 left-4 z-50 flex flex-col items-start gap-2">
+    <div className="fixed top-16 right-4 z-50 flex flex-col items-end gap-2">
       {open && (
         <div className="w-80 max-w-[calc(100vw-2rem)] rounded-xl border bg-background shadow-xl p-3 space-y-3">
           <div className="flex items-center justify-between">
@@ -303,11 +313,6 @@ export function PhoneWidget() {
           </div>
         </div>
       )}
-      <button type="button" onClick={() => setOpen(!open)} title={status}
-        className={`relative h-12 w-12 rounded-full shadow-lg flex items-center justify-center ${callState === "ringing" ? "bg-emerald-600 text-white animate-pulse" : "bg-primary text-primary-foreground"}`}>
-        <Phone className="w-5 h-5" />
-        <span className={`absolute top-1 right-1 w-2.5 h-2.5 rounded-full border-2 border-background ${dot}`} />
-      </button>
     </div>
   );
 }

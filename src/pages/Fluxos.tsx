@@ -209,7 +209,10 @@ export default function Fluxos() {
           <Button variant="outline" disabled={optWords === null && optReply === null} onClick={saveOptOut}>Salvar</Button>
         </section>
 
-        <FlowSecrets orgId={org.id} />
+        <section className="rounded-md border p-3 text-sm flex flex-wrap items-center justify-between gap-2">
+          <span>As <b>chaves de IA</b>, o provedor padrão e os segredos do bloco “Consultar sistema” ficam em Configurações.</span>
+          <Link to="/configuracoes/ia" className="underline">Abrir Chaves de IA</Link>
+        </section>
 
         <section className="space-y-3">
           <h2 className="font-semibold">Horário de atendimento</h2>

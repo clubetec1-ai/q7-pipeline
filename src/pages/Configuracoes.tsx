@@ -1,6 +1,6 @@
 import { Link, Navigate } from "react-router-dom";
 import {
-  Bot, BookOpen, Library, Mail, MessageSquare, PhoneCall, Plug, Server, Settings2, ShieldCheck, Shuffle, Tags, Wallet, Workflow, type LucideIcon,
+  Bot, BookOpen, KeyRound, Library, Mail, MessageSquare, PhoneCall, Plug, Server, Settings2, ShieldCheck, Shuffle, Tags, Wallet, Workflow, type LucideIcon,
 } from "lucide-react";
 import { useOrg } from "@/contexts/OrgContext";
 import { AppHeader } from "@/components/AppHeader";
@@ -47,7 +47,10 @@ export default function Configuracoes() {
         state: s.library ? "ok" : "optional", detail: s.library ? `${s.library} arquivo(s)` : undefined, show: lib },
     ] },
     { title: "IA e automação", cards: [
-      { title: "Agente de IA e follow-up", desc: "IA que atende, chave da IA, comportamento e lembretes automáticos.", to: "/agente", icon: Bot, color: "#6C8EF5",
+      { title: "Chaves de IA", desc: "Chave de cada provedor (guardada no cofre, nunca aparece de novo), provedor padrão e leitura de imagens/PDF.",
+        to: "/configuracoes/ia", icon: KeyRound, color: "#8B5CF6", state: s.aiKeys ? "ok" : "pending",
+        detail: s.aiKeys ? `${s.aiKeys} provedor(es) com chave` : "Nenhuma chave", show: manage && hasModule("ia") },
+      { title: "Agente de IA e follow-up", desc: "Ligar a IA, como ela se comporta, follow-up automático e teste.", to: "/agente", icon: Bot, color: "#6C8EF5",
         state: s.aiOn ? "ok" : "pending", detail: s.aiOn ? "Agente ligado" : "Agente desligado", show: manage && hasModule("ia") },
       { title: "Fluxos", desc: "Menus, triagem, horários e automações sem código.", to: "/fluxos", icon: Workflow, color: "#3FB8BE",
         state: s.flowsLive ? "ok" : "pending", detail: s.flowsLive ? `${s.flowsLive} publicado(s)` : "Nenhum publicado", show: manage && hasModule("ia") },
