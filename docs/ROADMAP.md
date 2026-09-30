@@ -258,6 +258,26 @@ período, setor, atendente, canal e número; comparação com o período anterio
 escopo pelo papel no banco; período 7/30/90 dias e setor; comparação com o período anterior; gráficos por hora e dia;
 exportar CSV com auditoria. Falta: PDF, período personalizado, envio automático por e-mail (semanal/mensal).*
 
+## Comercialização: módulos, planos e visão de CEO (pedido em 30/09)
+- **Habilitação por módulos** — cada empresa contrata o que precisa; exemplo do pedido: Diagnóstico, WhatsApp,
+  Agentes de automação… Sugestão registrada: **base "Atendimento"** (Conversas, Kanban, contatos/etiquetas, equipe,
+  chat interno, 1 número WhatsApp, relatórios básicos) + módulos: **Diagnóstico e Plano**, **Agentes de IA e
+  Automação** (fluxos, IA, base de conhecimento, follow-up), **Canais extras** (mais números, Meta oficial, e-mail),
+  **Telefonia** (ramal, clique-para-ligar, histórico), **Campanhas e Marca**, **Cobranças**, **Qualidade e Gestão**
+  (avaliações, supervisor, relatórios avançados, melhoria contínua). Três pacotes prontos (Essencial, Profissional,
+  Completo) + módulos avulsos; uso variável (IA, disparos, minutos) cobrado por pacote com margem e alerta de limite;
+  taxa de implantação com a Clubetec (diagnóstico + configuração).
+- **Base técnica para vender:** módulos ligados por empresa (tabela por organização, liga/desliga em Plataforma),
+  menu e telas escondem o que não foi contratado e o **servidor recusa** módulo desligado (não só a tela); depois,
+  assinatura recorrente (Asaas), período de teste e limites por plano.
+- **Visão de CEO (prioridades sugeridas):** 1) módulos + assinatura (sem isso não dá para vender); 2) entrada
+  autoatendida: cadastro → diagnóstico → implantação guiada, valor no primeiro dia; 3) painel "o que o ClubeCRM fez
+  por você" (tempo de resposta, conversas resolvidas pela IA, vendas/cobranças recuperadas) para reter e vender mais;
+  4) varredura de segurança + termos de uso/LGPD (contrato de tratamento de dados) antes do 1º cliente pagante;
+  5) começar por 1 ou 2 nichos com modelos prontos (diagnóstico, fluxos, etiquetas e setores por nicho) e canal de
+  **revenda/white label** para agências. Segurar novos canais (Instagram) e WebRTC até clientes pedirem ou a
+  central liberar.
+
 ## Segurança antes da produção (pedido em 30/09)
 Objetivo: o sistema sempre **blindado** — nenhum dado vaza (entre empresas ou para fora) e resiste a ataques,
 invasão, abuso e tentativas de burlar ou derrubar.
