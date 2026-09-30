@@ -277,6 +277,12 @@ exportar CSV com auditoria. Falta: PDF, período personalizado, envio automátic
   passos" (8 passos em ordem, o próximo em destaque, cada um abre a tela certa); página Setores e processos (cartão por
   setor com cor, pessoas e processos; "Criar no sistema" para os setores mapeados no Diagnóstico; plano de
   implementação). Endereços antigos continuam funcionando.*
+  *Fase 2 entregue (30/09): painel "Resultados" no Início (7 ou 30 dias, comparando com o período anterior) —
+  atendimentos, finalizados, resolvidos pela IA (%), 1ª resposta e espera na fila com setas verde/vermelha,
+  atendimentos por hora, IA × pessoas e barras por setor na cor de cada setor; o escopo segue a regra do banco
+  (empresa, setor ou só os seus). Cor da marca no tema: no kit da marca, "usar a primeira cor como cor principal"
+  muda botões e destaques de todas as telas da empresa (só a cor é lida por quem é da empresa). Menu: "Chat equipe"
+  virou "Chat".*
 - **Software autogerenciável (princípio, 30/09):** quanto menos depender de pessoas para **vender, implantar,
   acompanhar e dar suporte**, melhor. Agentes de IA, chatbot, passos guiados, checagens e alertas automáticos resolvem
   de forma simples, com menos ocorrências. Próximos passos nessa linha: assistente dentro do app ("como faço…?") que

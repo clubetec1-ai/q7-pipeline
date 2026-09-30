@@ -8,6 +8,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { NumberHealthBanner } from "@/components/NumberHealthBanner";
 import { Button } from "@/components/ui/button";
 import { useSetupStatus } from "@/lib/useSetupStatus";
+import { Dashboard } from "@/components/dashboard/Dashboard";
 
 interface Step { title: string; why: string; to: string; icon: LucideIcon; done: boolean; detail?: string }
 
@@ -40,7 +41,7 @@ export default function Inicio() {
   const shortcuts: { label: string; to: string; icon: LucideIcon; show: boolean }[] = [
     { label: "Conversas", to: "/", icon: MessageSquare, show: true },
     { label: "Kanban", to: "/kanban", icon: Trello, show: true },
-    { label: "Chat da equipe", to: "/chat", icon: MessagesSquare, show: true },
+    { label: "Chat", to: "/chat", icon: MessagesSquare, show: true },
     { label: "Configurações", to: "/configuracoes", icon: Settings2, show: manage },
   ];
 
@@ -93,6 +94,8 @@ export default function Inicio() {
             </section>
           )
         )}
+
+        <Dashboard orgId={org.id} />
 
         <section className="grid gap-3 grid-cols-2 sm:grid-cols-4">
           {shortcuts.filter((x) => x.show).map((x) => (

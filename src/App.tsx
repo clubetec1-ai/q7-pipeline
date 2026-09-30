@@ -9,6 +9,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/admin/AdminRoute";
 import { PhoneWidget } from "@/components/voice/PhoneWidget";
+import { OrgTheme } from "@/components/OrgTheme";
 import Login from "./pages/Login";
 import Conversas from "./pages/Conversas";
 import Kanban from "./pages/Kanban";
@@ -48,6 +49,7 @@ const App = () => (
       <AuthProvider>
         <OrgProvider>
         <TooltipProvider>
+        <OrgTheme />
         <Toaster />
         <Sonner />
         <BrowserRouter>

@@ -3659,6 +3659,7 @@ export type Database = {
         Returns: string
       }
       org_setup_status: { Args: { org: string }; Returns: Json }
+      org_theme: { Args: { org: string }; Returns: Json }
       platform_close_support: { Args: { org: string }; Returns: undefined }
       platform_open_support: {
         Args: { minutes?: number; org: string; reason: string }

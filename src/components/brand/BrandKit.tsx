@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 
 export interface BrandColor { name: string; hex: string }
 export interface BrandFile { path: string; name: string; kind: "logo" | "manual" }
-export interface Brand { colors?: BrandColor[]; fonts?: string; files?: BrandFile[] }
+export interface Brand { colors?: BrandColor[]; fonts?: string; files?: BrandFile[]; use_in_theme?: boolean }
 export interface BrandKitData { brand: Brand; voz: string; visual: string }
 
 const HEX = /^#[0-9a-f]{6}$/i;
@@ -56,7 +56,7 @@ export function BrandKit({ orgId, editable = false, kit, onSaved }: { orgId: str
       ({ error } = await supabase.from("company_profiles").update({ brand: next as never }).eq("organization_id", orgId));
     }
     if (error) toast({ variant: "destructive", title: "Não salvou", description: error.message });
-    else onSaved?.();
+    else { onSaved?.(); window.dispatchEvent(new Event("clubecrm:theme-changed")); }
   };
   const upload = async (file: File, kind: BrandFile["kind"]) => {
     if (file.size > 10 * 1024 * 1024) return toast({ variant: "destructive", title: "Arquivo acima de 10 MB" });
@@ -102,6 +102,13 @@ export function BrandKit({ orgId, editable = false, kit, onSaved }: { orgId: str
           )}
         </div>
       </div>
+
+      {editable && colors.length > 0 && (
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <input type="checkbox" checked={!!brand.use_in_theme} onChange={(e) => save({ ...brand, use_in_theme: e.target.checked })} />
+          Usar a primeira cor ({colors[0]?.name || colors[0]?.hex}) como cor principal nas telas do ClubeCRM
+        </label>
+      )}
 
       <div className="space-y-1.5">
         <p className="text-xs text-muted-foreground">Fontes</p>

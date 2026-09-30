@@ -36,7 +36,7 @@ export function MainNav({ active }: { active: Section }) {
     { key: "inicio", to: "/inicio", label: "Início", icon: Home, show: true },
     { key: "conversas", to: "/", label: "Conversas", icon: MessageSquare, show: true },
     { key: "kanban", to: "/kanban", label: "Kanban", icon: Trello, show: true },
-    { key: "chat", to: "/chat", label: "Chat equipe", icon: MessagesSquare, show: true },
+    { key: "chat", to: "/chat", label: "Chat", icon: MessagesSquare, show: true },
   ];
   const groups: { label: string; icon: LucideIcon; items: Item[] }[] = [
     { label: "Clientes", icon: Contact, items: [
