@@ -1144,6 +1144,12 @@ BEGIN
   PERFORM pg_temp.expect((SELECT count(*) FROM public.notifications WHERE kind = 'process_reminder' AND organization_id = A) = 2, 'lembrete nao repete');
   PERFORM pg_temp.expect((SELECT processes->0->>'lembrado_em' FROM public.company_profiles WHERE organization_id = A) IS NOT NULL, 'marca que ja lembrou');
 
+  -- 60. Cor da marca no tema: so se o dono ligar; qualquer membro le so a cor; outra org nada.
+  PERFORM pg_temp.expect(pg_temp.t(agent_a, format('SELECT coalesce(public.org_theme(%L)::text, %L)', A, 'nada')) = 'nada', 'sem ligar, sem cor');
+  UPDATE public.company_profiles SET brand = brand || '{"use_in_theme": true}'::jsonb WHERE organization_id = A;
+  PERFORM pg_temp.expect(pg_temp.t(agent_a, format('SELECT public.org_theme(%L)->>%L', A, 'primary')) = '#1E40AF', 'atendente recebe so a cor');
+  PERFORM pg_temp.expect(pg_temp.t(owner_b, format('SELECT coalesce(public.org_theme(%L)::text, %L)', A, 'nada')) = 'nada', 'outra org nao recebe a cor');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 
