@@ -31,7 +31,7 @@ export default function Inicio() {
     { title: "Setores e equipe", why: "Quem atende o quê: cada setor com sua fila e sua cor.", to: "/setores", icon: Layers,
       done: s.departments > 0 && s.members > 1, detail: `${s.departments} setor(es) · ${s.members} pessoa(s)` },
     { title: "Ligar o agente de IA", why: "A IA responde na hora e passa para uma pessoa quando precisa.", to: "/agente", icon: Bot, m: "ia", done: s.aiOn > 0 },
-    { title: "Etiquetas por setor", why: "Sinalizam o cliente com cores (VIP, Urgente, Suporte…).", to: "/etiquetas", icon: Tags, done: s.tagScopes > 0 || s.groups > 0 },
+    { title: "Etiquetas por setor", why: "Sinalizam o cliente com cores (VIP, Urgente, Suporte…).", to: "/etiquetas", icon: Tags, done: s.tags > 0 || s.groups > 0 },
     { title: "Primeiro fluxo publicado", why: "Menu de entrada, horário e triagem automáticos.", to: "/fluxos", icon: Workflow, m: "ia", done: s.flowsLive > 0 },
     { title: "Plano de implementação", why: "Escolha o que implementar agora e o que fica para depois, com lembrete.", to: "/setores", icon: ClipboardList, m: "diagnostico",
       done: s.planned > 0, detail: s.processes ? `${s.planned} de ${s.processes} processo(s) decidido(s)` : undefined },

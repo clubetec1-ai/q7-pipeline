@@ -67,8 +67,10 @@ export function MainNav({ active }: { active: Section }) {
   ];
   const isActive = (i: Item) => active === i.key || !!i.also?.includes(active);
   const visible = groups.map((g) => ({ ...g, items: g.items.filter((i) => i.show) })).filter((g) => g.items.length);
-  const link = (i: Item) => (
-    <Link key={i.to} to={i.to} className={isActive(i) ? activeCls : idleCls}><i.icon className="w-4 h-4" />{i.label}</Link>
+  const link = (i: Item, compact = false) => (
+    <Link key={i.to} to={i.to} title={i.label} className={isActive(i) ? activeCls : idleCls}>
+      <i.icon className="w-4 h-4" /><span className={compact ? "hidden 2xl:inline" : ""}>{i.label}</span>
+    </Link>
   );
 
   return (
@@ -101,12 +103,12 @@ export function MainNav({ active }: { active: Section }) {
 
       <nav className="hidden lg:flex items-center gap-0.5 ml-1 min-w-0">
         {orgs.length > 1 && (
-          <select className="h-8 max-w-[180px] rounded-md border bg-background px-2 text-xs mr-1" value={org?.id ?? ""}
+          <select className="h-8 max-w-[140px] rounded-md border bg-background px-2 text-xs mr-1" value={org?.id ?? ""}
             title="Empresa" onChange={(e) => selectOrg(e.target.value)}>
             {orgs.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
           </select>
         )}
-        {top.map(link)}
+        {top.map((i) => link(i, true))}
         {visible.map((g) => {
           if (g.items.length === 1) return link(g.items[0]);
           const current = g.items.find(isActive);

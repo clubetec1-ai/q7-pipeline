@@ -3728,6 +3728,7 @@ export type Database = {
       }
       org_setup_status: { Args: { org: string }; Returns: Json }
       org_theme: { Args: { org: string }; Returns: Json }
+      platform_ai_available: { Args: { org: string }; Returns: boolean }
       platform_close_support: { Args: { org: string }; Returns: undefined }
       platform_open_support: {
         Args: { minutes?: number; org: string; reason: string }
@@ -3750,6 +3751,7 @@ export type Database = {
           template_key: string
         }[]
       }
+      platform_secret_status: { Args: never; Returns: Json }
       platform_set_connector_app: {
         Args: { client_id: string; client_secret: string; connector: string }
         Returns: undefined

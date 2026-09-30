@@ -1,6 +1,8 @@
 import type { ComponentProps, ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Phone } from "lucide-react";
+import { LogOut, Mail, Phone } from "lucide-react";
+import { Link } from "react-router-dom";
+import { useOrg } from "@/contexts/OrgContext";
 import { togglePhonePanel, usePhoneState } from "@/lib/phoneBus";
 import { useAuth } from "@/contexts/AuthContext";
 import { Logo } from "@/components/Logo";
@@ -14,6 +16,7 @@ export function AppHeader({ active, extra }: { active: ComponentProps<typeof Mai
   const { signOut } = useAuth();
   const navigate = useNavigate();
   const phone = usePhoneState();
+  const { invitations } = useOrg();
   return (
     <header className="border-b px-4 h-14 flex items-center justify-between shrink-0 bg-background/95 backdrop-blur sticky top-0 z-40">
       <div className="flex items-center gap-3 min-w-0">
@@ -21,6 +24,9 @@ export function AppHeader({ active, extra }: { active: ComponentProps<typeof Mai
         <MainNav active={active} />
       </div>
       <div className="flex items-center gap-1 shrink-0">
+        {invitations.length > 0 && (
+          <Button asChild size="sm" variant="default" className="h-8"><Link to="/convite"><Mail className="w-4 h-4 mr-1" /> Convite ({invitations.length})</Link></Button>
+        )}
         {extra}
         {phone.available && (
           <Button variant="ghost" size="icon" title={`Ramal: ${phone.status}`} onClick={togglePhonePanel}

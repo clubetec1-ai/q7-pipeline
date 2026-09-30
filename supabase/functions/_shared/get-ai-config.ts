@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
+import { providerKey } from "./ai-chat.ts";
 import { forOrg } from "./tenant.ts";
 import { getSecret } from "./secrets.ts";
 
@@ -45,7 +46,7 @@ export async function getAgentConfig(orgId: string): Promise<AIConfig | null> {
   const { data } = await forOrg(admin, orgId)
     .select("agent_configs", "groq_model, system_prompt, enabled")
     .maybeSingle();
-  const apiKey = (await getSecret(admin, `org:${orgId}:groq_api_key`)) || null;
+  const apiKey = (await providerKey(admin, orgId, "groq")) || null; // própria ou a IA da Clubetec
   if (!apiKey) return null;
   return {
     apiKey,

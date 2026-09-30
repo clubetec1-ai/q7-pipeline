@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
       const attempts = (r.attempts ?? 0) + 1;
       await org.update("ticket_reviews", { attempts, error, status: attempts >= 3 ? "failed" : "pending" }).eq("id", r.id);
     };
-    if (!ai) { await fail("sem chave de IA (Fluxos → Chaves de IA)"); continue; }
+    if (!ai) { await fail("sem chave de IA (Configurações → Chaves de IA)"); continue; }
     const model = ai.provider === "groq" && (!ai.model || ai.model === "auto") ? "llama-3.3-70b-versatile" : ai.model;
 
     const res = await chat(ai.apiKey, ai.provider, model, [

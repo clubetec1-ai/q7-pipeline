@@ -366,6 +366,14 @@ Passadas 25 telas logado como dono/operador, sem erros de JavaScript no console.
   inválida, fluxo parado); lembretes e dicas automáticas no Início; venda e implantação autoatendidas (cadastro →
   diagnóstico → plano → configuração guiada), deixando a equipe só para o que for complexo.
 
+## Teste de ponta a ponta com empresa fictícia (pedido em 01/10)
+- Criar uma empresa fictícia do zero e implantar tudo como um cliente novo, para achar gargalos (gerente de projetos),
+  decidir melhorias e quais agentes entram em produção desde o início (CEO); **depois das correções, zerar a Clubetec**
+  para o dono configurar do zero (confirmar o que será apagado antes).
+  *Feito (01/10) com "Auto Center Teste": achados E1–E10 em docs/PROJETO.md §4.1; corrigidos E1 (aceitar convite de
+  dono), E2 ("IA da Clubetec incluída": chave da plataforma usada quando a empresa não tem a própria; Plataforma →
+  Conectores), E3–E6. Pendentes: E7 (unificar modelos por nicho), E8 (horário padrão e configs fora de Fluxos).*
+
 ## Comercialização: módulos, planos e visão de CEO (pedido em 30/09)
 - **Habilitação por módulos** — cada empresa contrata o que precisa; exemplo do pedido: Diagnóstico, WhatsApp,
   Agentes de automação… Sugestão registrada: **base "Atendimento"** (Conversas, Kanban, contatos/etiquetas, equipe,

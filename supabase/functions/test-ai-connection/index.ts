@@ -3,7 +3,7 @@ import { callGroq, listChatModels, resolveModelChain } from "../_shared/get-ai-c
 import { HttpError, requirePermission, requireUser, resolveOrg } from "../_shared/auth.ts";
 import { forOrg } from "../_shared/tenant.ts";
 import { getSecret } from "../_shared/secrets.ts";
-import { chat, resolveAI } from "../_shared/ai-chat.ts";
+import { chat, providerKey, resolveAI } from "../_shared/ai-chat.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
       .select("agent_configs", "groq_model")
       .maybeSingle();
     if (!model) model = cfg?.groq_model ?? "auto";
-    if (!apiKey) apiKey = (await getSecret(supabase, `org:${orgId}:groq_api_key`)) ?? undefined;
+    if (!apiKey) apiKey = (await providerKey(supabase, orgId, "groq")) ?? undefined; // própria ou a IA da Clubetec
     if (!apiKey) {
       return json({ ok: false, error: "Chave da IA não configurada. Cadastre em Configurações → Chaves de IA." }, 200);
     }

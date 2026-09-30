@@ -33,7 +33,7 @@
 |---|---|---|---|
 | R1 | Dono com MFA e **0 códigos de recuperação** | Perder o acesso | Gerar em Conta → Segurança (ação do usuário) |
 | R2 | E-mails automáticos viram atendimento/lead | Fila suja, métricas erradas | ✅ Resolvido (filtro + "Não é atendimento"); limpar os 7 atuais com o botão |
-| R3 | Sem monitoramento de falhas (funções, crons, webhook) | Problema só aparece quando o cliente reclama | Painel de saúde + alertas (fase 7) |
+| R3 | Sem monitoramento de falhas (funções, crons, webhook) | Problema só aparece quando o cliente reclama | Painel de saúde + alertas (fase 7) — agente "Monitor de saúde" |
 | R4 | Documentação técnica ausente | Dependência de uma pessoa/IA para manter | Criar ARQUITETURA, SEGURANCA, OPERACAO (em andamento) |
 | R5 | Teste 55 de isolamento intermitente | Falso alarme ou falha real escondida | Investigar |
 | R6 | Nvoip: histórico negado (403) | Ligações não entram sozinhas | Resposta do suporte Nvoip |
@@ -48,6 +48,30 @@
 - [ ] **Qualidade:** tipos e lint sem erro; build ok; funções publicadas; migration aplicada.
 - [ ] **Verificação:** conferido no Chrome depois de publicar (telas que mudaram).
 - [ ] **Registro:** ROADMAP e este painel atualizados; documentação técnica, se mudou arquitetura/segurança.
+
+## 4.1 Teste de ponta a ponta — empresa fictícia "Auto Center Teste" (01/10)
+
+Criada pela Plataforma como um cliente novo (modelo Prestação de serviços), com a conta do dono.
+
+| # | Achado | Gravidade | Situação |
+|---|---|---|---|
+| E1 | Dono convidado **não conseguia aceitar o convite** ("apenas um owner pode alterar outro owner") — nenhum cliente novo entraria | 🔴 Crítico | ✅ Corrigido (+ teste 63) |
+| E2 | Empresa nova **não conseguia fazer o 1º passo** (Diagnóstico) sem cadastrar chave de IA; mensagem apontava para lugar antigo | 🔴 Crítico | ✅ "IA da Clubetec incluída" (chave da plataforma no cofre, usada quando a empresa não tem a própria) + mensagens corrigidas |
+| E3 | Com mais de uma empresa, o cabeçalho se sobrepõe (seletor de empresa + menu) | 🟠 Alto | ✅ Itens do topo só com ícone abaixo de 1536 px; seletor compacto |
+| E4 | Depois de aceitar o convite, o sistema ficava na empresa antiga | 🟠 Médio | ✅ Vai direto para a empresa nova, no Início |
+| E5 | Convite pendente não aparecia para quem já estava logado | 🟠 Médio | ✅ Botão "Convite (n)" no cabeçalho |
+| E6 | Etiquetas padrão apareciam como "Pendente" | 🟡 Baixo | ✅ Contam como configuradas |
+| E7 | Dois sistemas de "modelo" separados (Plataforma: Clínica, Escola, Loja… / Diagnóstico: Software) | 🟡 Médio | ⏳ Unificar: um modelo por nicho alimenta empresa, setores, etiquetas, fluxos e exemplos do Diagnóstico |
+| E8 | Horário de atendimento vazio na empresa nova; configurações de horário e palavras LGPD dentro de Fluxos | 🟡 Médio | ⏳ Horário padrão pelo modelo; levar para Configurações |
+| E9 | Modelos prontos de fluxo e agente dependem da IA (dependiam da chave) | 🟡 | ✅ Resolvido com E2 |
+| E10 | Sem número de WhatsApp de teste, não dá para testar o atendimento real ponta a ponta | ℹ️ | "Testar o agente" (conversa simulada) cobre a IA; WhatsApp exige um chip de teste |
+
+**Agentes que precisam estar em produção desde o 1º dia (visão CEO):**
+1. **Agente de atendimento** (com Regras e limites + Testar o agente) — é o que o cliente compra.
+2. **Entrevistador/Diagnóstico** — é a porta de entrada e a implantação autoatendida.
+3. **Avaliador de atendimentos** (qualidade) — prova valor e alimenta a melhoria contínua.
+4. **Assistente do cliente no app** ("como faço…?") — reduz suporte humano (a construir).
+5. **Monitor de saúde** (número caiu, chave inválida, fila parada) — avisa antes do cliente reclamar (a construir).
 
 ## 5. Papéis ("agentes") do projeto
 

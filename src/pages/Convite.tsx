@@ -23,7 +23,7 @@ const ROLE_LABEL: Record<string, string> = {
  */
 export default function Convite() {
   const { user, signOut } = useAuth();
-  const { invitations, orgs, reload } = useOrg();
+  const { invitations, orgs, reload, selectOrg } = useOrg();
   const navigate = useNavigate();
   const { toast } = useToast();
   const needsPassword = !!user?.invited_at && !user?.user_metadata?.password_set;
@@ -60,7 +60,9 @@ export default function Convite() {
       return;
     }
     await reload();
-    navigate("/", { replace: true });
+    selectOrg(orgId);
+    toast({ title: "Bem-vindo!", description: "Siga os Primeiros passos para configurar a empresa." });
+    navigate("/inicio", { replace: true });
   };
 
   return (

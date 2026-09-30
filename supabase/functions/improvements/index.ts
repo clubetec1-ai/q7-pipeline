@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
     const { data: allowed } = await admin.rpc("service_ai_take", { org: orgId });
     if (allowed === false) throw new HttpError(429, "Muitas chamadas de IA agora. Tente em um minuto.");
     const ai = await resolveAI(admin, orgId);
-    if (!ai) throw new HttpError(409, "Configure a chave do provedor de IA (Fluxos → Chaves de IA).");
+    if (!ai) throw new HttpError(409, "Configure a chave do provedor de IA (Configurações → Chaves de IA).");
     const model = ai.provider === "groq" && (!ai.model || ai.model === "auto") ? "llama-3.3-70b-versatile" : ai.model;
     const ask = async (system: string, user: string) => {
       const r = await chat(ai.apiKey, ai.provider, model, [{ role: "system", content: system }, { role: "user", content: user }], undefined, { json: true, timeoutMs: 60_000 });
