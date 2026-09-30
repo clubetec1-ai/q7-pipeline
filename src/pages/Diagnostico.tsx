@@ -19,32 +19,44 @@ import { Textarea } from "@/components/ui/textarea";
 import { useInstall } from "./fluxos/ReadyTemplates";
 import { BrandKit, useBrandKit } from "@/components/brand/BrandKit";
 import { ImplementationBoard, type Priority } from "./diagnostico/ImplementationBoard";
+import { TEMPLATES, templateByKey } from "./diagnostico/templates";
 
 /** Rótulo das seções (as mesmas do servidor, _shared/company.ts); 🌐 = pode ir para a IA de atendimento. */
 const SECTION_LABEL: Record<string, [string, boolean]> = {
   empresa: ["Sobre a empresa", true], atendimento: ["Atendimento (canais, horários, prazos)", true],
   produtos: ["Produtos, serviços e preços", true], politicas: ["Políticas (troca, cancelamento, pagamento, garantia)", true],
   faq: ["Perguntas frequentes", true], cultura: ["Cultura: missão, visão, valores", false],
+  clientes: ["Clientes e jornada de compra (os agentes usam para qualificar)", false],
+  regras_ia: ["Regras do atendimento e limites da IA (os agentes seguem sempre)", false],
   marca_visual: ["Identidade visual (cores, fontes, logos e como usar)", false], marca_voz: ["Tom de voz da marca (a IA segue ao escrever)", false],
   situacao: ["Onde a empresa está hoje", false], metas: ["Volumes, metas e maiores dores", false],
   sistemas: ["Sistemas usados", false], objetivos: ["Resultados que quer alcançar", false],
   setores: ["Setores e responsáveis", false], areas: ["Áreas, pessoas e responsáveis", false],
 };
 /** Etapas de texto: o que contar e onde o texto organizado é guardado. */
-const STEPS: { key: string; label: string; sections: string[]; ask: string[] }[] = [
-  { key: "empresa", label: "Empresa", sections: ["empresa", "atendimento", "produtos", "politicas", "faq"],
+/** Blocos da entrevista: conhecer → identidade → como funciona hoje → agentes. */
+const BLOCKS: Record<string, string> = { conhecer: "1 · Conhecer", identidade: "2 · Identidade", hoje: "3 · Como funciona hoje", agentes: "4 · Agentes" };
+const STEPS: { key: string; label: string; sections: string[]; ask: string[]; block: string; min: number; afterProcs?: boolean }[] = [
+  { key: "empresa", label: "Empresa", block: "conhecer", min: 5, sections: ["empresa", "atendimento", "produtos", "politicas", "faq"],
     ask: ["O que a empresa faz, para quem e onde", "Canais e horários de atendimento", "Produtos/serviços e preços (ou como faz orçamento)", "Políticas: troca, cancelamento, pagamento, garantia", "Dúvidas que os clientes mais perguntam"] },
-  { key: "marca", label: "Marca", sections: ["marca_visual", "marca_voz"],
+  { key: "clientes", label: "Clientes e jornada", block: "conhecer", min: 5, sections: ["clientes"],
+    ask: ["Quem são os seus clientes (perfil, de onde vêm, o que buscam)", "Por onde chegam: WhatsApp, Instagram, indicação, site…", "O que perguntam antes de comprar e as objeções mais comuns",
+      "As etapas do primeiro contato até fechar (e voltar a comprar)"] },
+  { key: "marca", label: "Marca", block: "identidade", min: 5, sections: ["marca_visual", "marca_voz"],
     ask: ["Cores da marca (nome e código) e fontes — cadastre no kit abaixo", "Logos (versões e onde usar cada uma) e o manual da marca, se tiver",
       "Tom de voz: como a marca fala (próximo ou formal, com ou sem emoji, você/senhor)", "Palavras e expressões que usa e que evita, e 2 ou 3 frases de exemplo"] },
-  { key: "cultura", label: "Cultura", sections: ["cultura"],
+  { key: "cultura", label: "Cultura (opcional)", block: "identidade", min: 3, sections: ["cultura"],
     ask: ["A empresa já tem cultura definida? Como ela aparece no dia a dia?", "Missão (por que existe)", "Visão (onde quer chegar)", "Valores (o que não abre mão)"] },
-  { key: "situacao", label: "Hoje", sections: ["situacao", "metas", "sistemas"],
-    ask: ["Tamanho da equipe", "Volumes por mês (mensagens, pedidos, atendimentos)", "Sistemas e planilhas que usa", "Maiores dores e o que já funciona bem"] },
-  { key: "objetivos", label: "Objetivos", sections: ["objetivos"],
+  { key: "situacao", label: "Hoje e números de partida", block: "hoje", min: 5, sections: ["situacao", "metas", "sistemas"],
+    ask: ["Tamanho da equipe", "Números de hoje: volumes por mês, tempo de resposta, quantos leads viram clientes (a base para medir a melhora)",
+      "Sistemas e planilhas que usa (onde ficam pedidos, estoque, agenda)", "Maiores dores e o que já funciona bem"] },
+  { key: "objetivos", label: "Objetivos", block: "hoje", min: 3, sections: ["objetivos"],
     ask: ["Resultados que quer nos próximos 6 a 12 meses", "Como vai medir cada um (número, prazo)"] },
-  { key: "setores", label: "Setores", sections: ["setores", "areas"],
+  { key: "setores", label: "Setores", block: "hoje", min: 3, sections: ["setores", "areas"],
     ask: ["Todos os setores (ex.: comercial, financeiro, atendimento, operação, RH)", "Responsável e quantas pessoas em cada um", "Ainda não precisa detalhar os processos"] },
+  { key: "regras", label: "Regras e limites da IA", block: "agentes", min: 5, afterProcs: true, sections: ["regras_ia"],
+    ask: ["O que a IA pode responder e resolver sozinha", "O que ela NUNCA pode fazer ou prometer (desconto, prazo, pedir senha…)",
+      "Quando passar para uma pessoa (pedido do cliente, reclamação, valor alto…)", "Horários, o que fazer fora do horário e dados que não devem ser pedidos"] },
 ];
 const PROC_ASK = [
   "Descreva cada processo como se estivesse ensinando uma pessoa nova: passo a passo",
@@ -59,7 +71,7 @@ interface Proc {
 /** Setores que quase toda empresa tem: ponto de partida para o dono editar (como as etiquetas padrão). */
 const COMMON_SECTORS = ["Vendas / Comercial", "Atendimento ao cliente", "Financeiro", "Administrativo", "Marketing",
   "Operação / Produção", "Logística / Entregas", "Compras", "RH / Pessoas"];
-interface StepState { raw?: string; approved_at?: string; setores?: string[]; attachments?: { id: string; name: string }[] }
+interface StepState { raw?: string; approved_at?: string; skipped_at?: string; setores?: string[]; attachments?: { id: string; name: string }[]; tpl?: string }
 interface Suggestion { titulo: string; tipo: "pronta" | "integracao"; modelo: string | null; sistema: string | null; instalado?: { kind: "flow" | "record_type"; id: string } }
 interface Auto { titulo: string; setor: string; tipo: "sem_ia" | "ia" | "integracao"; descricao: string; impacto: string; esforco: string; custo: { volume: number; groq: number; claude: number; claude_model: string } | null }
 interface Plan {
@@ -133,8 +145,11 @@ export default function Diagnostico() {
     const fromProcs = profile.processes.map((p) => p.setor || p.area || "").filter(Boolean);
     return [...new Set([...fromStep, ...fromProcs])];
   }, [profile]);
-  const pages = useMemo(() => [...STEPS.map((s) => s.key), ...sectors.map((s) => `proc:${s}`), "plano"], [sectors]);
+  const pages = useMemo(() => [...STEPS.filter((s) => !s.afterProcs).map((s) => s.key), ...sectors.map((s) => `proc:${s}`),
+    ...STEPS.filter((s) => s.afterProcs).map((s) => s.key), "plano"], [sectors]);
   const approved = (k: string) => !!profile.steps[k]?.approved_at;
+  const skipped = (k: string) => !approved(k) && !!profile.steps[k]?.skipped_at;
+  const tpl = templateByKey(profile.steps.modelo?.tpl);
   const outdated = !!profile.plan_at && Object.values(profile.steps).some((s) => s.approved_at && s.approved_at > profile.plan_at!);
 
   // Ao trocar de página: carrega o texto que o dono escreveu (se houver) e limpa a prévia.
@@ -297,6 +312,25 @@ export default function Diagnostico() {
   };
 
   // Refazer só esta etapa: limpa texto, aprovação e o que ela gravou.
+  // "Não sei / pular": marca a etapa como pulada (dá para voltar depois) e segue.
+  const skipStep = async () => {
+    await ensureRow();
+    const steps = { ...profile.steps, [page]: { ...(profile.steps[page] ?? {}), raw, skipped_at: new Date().toISOString() } };
+    const { error } = await supabase.from("company_profiles").update({ steps } as never).eq("organization_id", org.id);
+    if (error) return toast({ variant: "destructive", title: "Não foi possível", description: error.message });
+    toast({ title: "Etapa pulada", description: "Você pode voltar nela quando quiser." });
+    await load(next);
+  };
+  // Modelo por tipo de empresa: traz exemplos prontos para cada etapa.
+  const chooseTemplate = async (key: string) => {
+    await ensureRow();
+    const steps = { ...profile.steps, modelo: { tpl: key || undefined } };
+    const { error } = await supabase.from("company_profiles").update({ steps } as never).eq("organization_id", org.id);
+    if (error) return toast({ variant: "destructive", title: "Não foi possível", description: error.message });
+    await load(page);
+  };
+  const example = tpl ? (setor ? tpl.processes[setor] ?? Object.entries(tpl.processes).find(([k]) => k.toLowerCase() === setor.toLowerCase())?.[1] : tpl.steps[page]) : undefined;
+
   const redoStep = async () => {
     if (!window.confirm("Refazer só esta etapa? O texto e o resultado dela são apagados; as outras etapas continuam.")) return;
     await ensureRow();
@@ -362,16 +396,29 @@ export default function Diagnostico() {
       <main className="flex-1 w-full max-w-6xl mx-auto p-4 sm:p-6 grid gap-6 md:grid-cols-[220px_1fr]">
         <aside className="space-y-3">
           <p className="text-sm font-semibold">Diagnóstico</p>
+          <label className="block text-xs text-muted-foreground space-y-1">
+            <span>Modelo do seu tipo de empresa (traz exemplos prontos)</span>
+            <select className="h-8 w-full rounded-md border bg-background px-2 text-xs text-foreground" value={tpl?.key ?? ""} onChange={(e) => void chooseTemplate(e.target.value)}>
+              <option value="">Sem modelo</option>
+              {TEMPLATES.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
+            </select>
+          </label>
           <nav className="space-y-0.5" aria-label="Etapas">
-            {pages.map((k) => {
+            {pages.map((k, i) => {
               const isProc = k.startsWith("proc:");
+              const block = k === "plano" ? "agentes" : isProc ? "hoje" : STEPS.find((s) => s.key === k)?.block ?? "";
+              const prevK = pages[i - 1];
+              const prevBlock = !prevK ? "" : prevK === "plano" ? "agentes" : prevK.startsWith("proc:") ? "hoje" : STEPS.find((s) => s.key === prevK)?.block ?? "";
               return (
-                <button key={k} type="button" onClick={() => setPage(k)}
+                <div key={k}>
+                {block !== prevBlock && <p className="pt-2 pb-0.5 px-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{BLOCKS[block]}</p>}
+                <button type="button" onClick={() => setPage(k)}
                   className={`w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-left transition ${isProc ? "pl-6" : ""} ${
                     page === k ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>
-                  {approved(k) ? <Check className="w-3.5 h-3.5 shrink-0" /> : <span className="w-3.5 h-3.5 shrink-0 rounded-full border" />}
+                  {approved(k) ? <Check className="w-3.5 h-3.5 shrink-0" /> : skipped(k) ? <span className="w-3.5 h-3.5 shrink-0 text-center leading-3" title="Pulada">–</span> : <span className="w-3.5 h-3.5 shrink-0 rounded-full border" />}
                   <span className="truncate">{pageLabel(k)}</span>
                 </button>
+                </div>
               );
             })}
             {sectors.length === 0 && <p className="pl-6 text-xs text-muted-foreground">Processos: aprove os setores primeiro</p>}
@@ -386,7 +433,8 @@ export default function Diagnostico() {
           {page !== "plano" && (
             <>
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h1 className="text-xl font-semibold">{setor ? `Processos — ${setor}` : step?.label}</h1>
+                <h1 className="text-xl font-semibold">{setor ? `Processos — ${setor}` : step?.label}
+                  <span className="ml-2 text-xs font-normal text-muted-foreground">~{setor ? 5 : step?.min ?? 5} min</span></h1>
                 {approved(page) && <Badge>Aprovado</Badge>}
               </div>
               <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-0.5">
@@ -445,7 +493,14 @@ export default function Diagnostico() {
                 </div>
               ) : (
                 <>
-                  {page === "setores" && !raw.trim() && (
+                  {example && !raw.trim() && (
+                    <div className="rounded-md border border-dashed border-primary/50 bg-primary/5 p-3 space-y-2">
+                      <p className="text-xs">📋 <b>Exemplo — {tpl?.label}</b>: use como ponto de partida e troque pelo que é da sua empresa.</p>
+                      <p className="text-xs text-muted-foreground whitespace-pre-wrap line-clamp-6">{example}</p>
+                      <Button size="sm" variant="outline" onClick={() => setRaw(example)}>Usar exemplo</Button>
+                    </div>
+                  )}
+                  {page === "setores" && !raw.trim() && !example && (
                     <div className="rounded-md border border-dashed p-3 space-y-2">
                       <p className="text-xs">💡 <b>Setores que quase toda empresa tem</b> — use como ponto de partida: apague o que não existe, renomeie e complete responsável e pessoas.</p>
                       <div className="flex flex-wrap gap-1">{COMMON_SECTORS.map((s) => <span key={s} className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">{s}</span>)}</div>
@@ -485,6 +540,7 @@ export default function Diagnostico() {
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {prev && <Button variant="ghost" onClick={() => setPage(prev)}><ArrowLeft className="w-4 h-4 mr-1" /> Voltar</Button>}
+                    {!draft && <Button variant="ghost" onClick={skipStep} title="Pular por agora; dá para voltar depois">Não sei / pular</Button>}
                     <Button variant={draft ? "outline" : "default"} disabled={busy === "format" || (raw.trim().length < 10 && !atts.length)} onClick={organize}>
                       <Sparkles className="w-4 h-4 mr-1" /> {busy === "format" ? "Organizando..." : draft ? "Organizar de novo" : "Organizar com IA"}
                     </Button>
