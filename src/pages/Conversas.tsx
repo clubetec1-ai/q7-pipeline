@@ -1,4 +1,5 @@
 import { firstName, memberNames } from "@/lib/memberNames";
+import { AppHeader } from "@/components/AppHeader";
 import { NumberHealthBanner } from "@/components/NumberHealthBanner";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -581,31 +582,7 @@ export default function Conversas() {
   return (
     <div className="h-screen flex flex-col bg-background">
       {/* Header */}
-      <header className="border-b px-4 h-14 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <Logo horizontal width={26} height={26} />
-          <MainNav active="conversas" />
-        </div>
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="sm:hidden" onClick={() => navigate("/kanban")} title="Kanban">
-            <Trello className="w-4 h-4" />
-          </Button>
-          <PresenceControl />
-          <NotificationsBell />
-          <ThemeToggle />
-          <Button
-            variant={needsSetup ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setConfigOpen(true)}
-          >
-            <Settings className="w-4 h-4 sm:mr-2" />
-            <span className="hidden sm:inline">Configuração</span>
-          </Button>
-          <Button variant="ghost" size="icon" onClick={handleLogout} title="Sair">
-            <LogOut className="w-4 h-4" />
-          </Button>
-        </div>
-      </header>
+      <AppHeader active="conversas" extra={<PresenceControl />} />
       <NumberHealthBanner />
 
       <ConfigDrawer open={configOpen} onOpenChange={setConfigOpen} />
@@ -620,7 +597,7 @@ export default function Conversas() {
           <div className="flex-1 overflow-y-auto">
             {needsSetup && (
               <button
-                onClick={() => setConfigOpen(true)}
+                onClick={() => navigate("/inicio")}
                 className="w-full text-left p-4 border-b bg-primary/5 hover:bg-primary/10 transition"
               >
                 <div className="flex items-center gap-2 font-medium text-sm">

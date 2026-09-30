@@ -500,7 +500,9 @@ export function ConfigDrawer({ open, onOpenChange }: Props) {
             </>
           )}
 
-          {/* Webhook Uazapi */}
+          {/* Webhook Uazapi: detalhe técnico, só para a equipe Clubetec */}
+          {isAdmin && (
+            <>
           <section className="space-y-3">
             <h3 className="font-semibold text-sm flex items-center gap-2">
               <Webhook className="w-4 h-4 text-primary" /> Webhook do WhatsApp (Uazapi)
@@ -572,8 +574,9 @@ export function ConfigDrawer({ open, onOpenChange }: Props) {
               </div>
             )}
           </section>
-
-          <Separator />
+              <Separator />
+            </>
+          )}
 
           {/* Agente IA */}
           <section className="space-y-4">

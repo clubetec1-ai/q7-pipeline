@@ -418,10 +418,10 @@ export default function Diagnostico() {
                   {approved(k) ? <Check className="w-3.5 h-3.5 shrink-0" /> : skipped(k) ? <span className="w-3.5 h-3.5 shrink-0 text-center leading-3" title="Pulada">–</span> : <span className="w-3.5 h-3.5 shrink-0 rounded-full border" />}
                   <span className="truncate">{pageLabel(k)}</span>
                 </button>
+                {k === "setores" && sectors.length === 0 && <p className="pl-6 text-xs text-muted-foreground">Processos: aprove os setores primeiro</p>}
                 </div>
               );
             })}
-            {sectors.length === 0 && <p className="pl-6 text-xs text-muted-foreground">Processos: aprove os setores primeiro</p>}
           </nav>
           <div className="pt-2 space-y-1 border-t">
             <Button size="sm" variant="ghost" className="w-full justify-start" onClick={resetAll}><Eraser className="w-4 h-4 mr-2" /> Recomeçar tudo</Button>

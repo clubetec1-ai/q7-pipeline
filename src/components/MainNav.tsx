@@ -17,7 +17,7 @@ interface Item { key: Section; to: string; label: string; icon: LucideIcon; show
 /** Telas de instalação: ficam dentro da central de Configurações (o menu destaca "Configurações"). */
 const CONFIG_PAGES: Section[] = ["configuracoes", "numeros", "ramais", "etiquetas", "biblioteca", "agente", "fluxos", "conhecimento", "integracoes"];
 
-const base = "px-3 py-1.5 text-sm rounded-md transition inline-flex items-center gap-1.5";
+const base = "px-3 py-1.5 text-sm rounded-md transition inline-flex items-center gap-1.5 whitespace-nowrap";
 const activeCls = `${base} bg-muted font-medium`;
 const idleCls = `${base} text-muted-foreground hover:bg-muted`;
 
@@ -62,7 +62,7 @@ export function MainNav({ active }: { active: Section }) {
     ] },
     { label: "Conta", icon: UserCog, items: [
       { key: "seguranca", to: "/seguranca", label: "Segurança", icon: ShieldCheck, show: true },
-      { key: "plataforma", to: "/plataforma", label: "Plataforma (Clubetec)", icon: Building2, show: isOperator },
+      { key: "plataforma", to: "/plataforma", label: "Plataforma", icon: Building2, show: isOperator },
     ] },
   ];
   const isActive = (i: Item) => active === i.key || !!i.also?.includes(active);
@@ -110,11 +110,11 @@ export function MainNav({ active }: { active: Section }) {
         {visible.map((g) => {
           if (g.items.length === 1) return link(g.items[0]);
           const current = g.items.find(isActive);
-          const Icon = current?.icon ?? g.icon;
+          const Icon = g.icon;
           return (
             <DropdownMenu key={g.label}>
               <DropdownMenuTrigger className={current ? activeCls : idleCls}>
-                <Icon className="w-4 h-4" />{current ? current.label : g.label}<ChevronDown className="w-3.5 h-3.5 opacity-60" />
+                <Icon className="w-4 h-4" />{g.label}<ChevronDown className="w-3.5 h-3.5 opacity-60" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
                 {g.items.map((i) => (

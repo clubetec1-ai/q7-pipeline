@@ -1,4 +1,5 @@
 import { NumberHealthBanner } from "@/components/NumberHealthBanner";
+import { AppHeader } from "@/components/AppHeader";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -311,21 +312,7 @@ export default function Kanban() {
 
   return (
     <div className="h-screen flex flex-col bg-background">
-      <header className="border-b px-4 h-14 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <Logo horizontal width={26} height={26} />
-          <MainNav active="kanban" />
-        </div>
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="sm" onClick={() => setConfigOpen(true)}>
-            <Settings className="w-4 h-4 sm:mr-2" />
-            <span className="hidden sm:inline">Configuração</span>
-          </Button>
-          <Button variant="ghost" size="icon" onClick={async () => { await signOut(); navigate("/login"); }} title="Sair">
-            <LogOut className="w-4 h-4" />
-          </Button>
-        </div>
-      </header>
+      <AppHeader active="kanban" />
       <NumberHealthBanner />
 
       <ConfigDrawer open={configOpen} onOpenChange={setConfigOpen} />
