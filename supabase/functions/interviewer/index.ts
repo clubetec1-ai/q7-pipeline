@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const action = String(body?.action ?? "");
-    if (!["message", "suggest", "research", "plan", "format", "transcribe", "brand_write"].includes(action)) throw new HttpError(400, "Ação inválida");
+    if (!["message", "suggest", "research", "plan", "format", "transcribe", "brand_write", "sector_priority"].includes(action)) throw new HttpError(400, "Ação inválida");
     const ctx = await requireUser(req);
     const orgId = await resolveOrg(ctx, body?.organization_id);
     await requirePermission(ctx, orgId, "org.settings");
@@ -134,6 +134,31 @@ Deno.serve(async (req) => {
       const texto = clip(out.texto, 1000);
       if (!texto) throw new HttpError(502, "Não consegui escrever agora. Tente de novo.");
       return json({ ok: true, texto, variacao: clip(out.variacao, 1000), sem_voz: !voz });
+    }
+
+    // --------------------------------------------------------- sector_priority
+    // Por onde começar: ordena os setores pelo resultado esperado (objetivos, dores e processos mapeados).
+    if (action === "sector_priority") {
+      const setores = [...new Set([...(profile.steps?.setores?.setores ?? []), ...processes.map((p) => p.setor || p.area).filter(Boolean)])] as string[];
+      if (!setores.length) throw new HttpError(400, "Mapeie os setores primeiro.");
+      const procs = processes.map((p) => ({ nome: p.nome, setor: p.setor || p.area, trava: clip(p.dificuldade, 200), tempo: clip(p.tempo, 60), frequencia: clip(p.frequencia, 60), implementar: p.implementar ?? "" }));
+      const out = await ask(
+        "Você é um consultor de implementação de CRM e automação. Ordene os setores da empresa do que traz MAIS resultado para o que traz menos, " +
+        "considerando os objetivos e as dores do dono, o volume e onde os processos travam, e o esforço para implementar. " +
+        "Para cada setor: motivo curto (1 frase, ligado ao que o dono disse), ganho esperado (concreto, ex.: responder leads em minutos) e até 3 processos para começar (nomes exatos da lista). " +
+        'Responda SOMENTE com JSON: {"resumo":"1 frase","ordem":[{"setor":"","motivo":"","ganho":"","primeiros":[""]}]}',
+        `Empresa: ${orgRow?.name ?? ""}\nSituação: ${clip(sections.situacao, 1500)}\nMetas e dores: ${clip(sections.metas, 1200)}\nObjetivos: ${clip(sections.objetivos, 1200)}\n` +
+        `Setores: ${setores.join(", ")}\nProcessos mapeados: ${JSON.stringify(procs).slice(0, 6000)}`,
+      );
+      const valid = new Set(setores);
+      const ordem = (Array.isArray(out.ordem) ? out.ordem : []).map((o: any) => ({
+        setor: clip(o?.setor, 80), motivo: clip(o?.motivo, 300), ganho: clip(o?.ganho, 200),
+        primeiros: (Array.isArray(o?.primeiros) ? o.primeiros : []).slice(0, 3).map((x: unknown) => clip(x, 120)).filter(Boolean),
+      })).filter((o: { setor: string }) => valid.has(o.setor)).slice(0, 20);
+      if (!ordem.length) throw new HttpError(502, "Não consegui sugerir agora. Tente de novo.");
+      const prioridade = { at: new Date().toISOString(), resumo: clip(out.resumo, 300), ordem };
+      await org.update("company_profiles", { steps: { ...(profile.steps ?? {}), prioridade } });
+      return json({ ok: true, prioridade });
     }
 
     // ---------------------------------------------------------------- research

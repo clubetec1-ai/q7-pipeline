@@ -150,6 +150,11 @@ Objetivo: a ligação cai na mesma tela do WhatsApp.
   etapas/setores; a IA sugere **qual setor implementar primeiro** (o que traz mais resultado, pelas respostas do
   diagnóstico); **setores padrão sugeridos** (Vendas, Financeiro, Administrativo, Atendimento, Marketing, RH,
   Operação…) já prontos como exemplo, que o dono edita — como as etiquetas padrão.
+  *Entregue (30/09): no passo Setores, "Setores que quase toda empresa tem" (Vendas, Atendimento, Financeiro,
+  Administrativo, Marketing, Operação, Logística, Compras, RH) preenche a caixa como exemplo para editar; depois de
+  aprovado, "Plano de implementação por setor" com Agora / Depois (data de lembrete) / Não em cada processo;
+  lembrete diário às 9h no sino do dono/admin (uma vez por data); "Por onde começar? (IA)" ordena os setores pelo
+  resultado esperado, com motivo, ganho e por quais processos começar. A escolha se mantém ao refazer um setor.*
 - *Pendência técnica (30/09):* o caso 55 dos testes de isolamento (etiquetas por setor) falhou uma vez e passou na
   execução seguinte sem mudança — investigar a intermitência (provável condição dependente de hora/dados).
 - **Agentes e fluxos prontos + guia de integração (pedido em 28/09)** — separar as automações em dois grupos:

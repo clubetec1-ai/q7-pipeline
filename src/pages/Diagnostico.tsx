@@ -17,6 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useInstall } from "./fluxos/ReadyTemplates";
 import { BrandKit, useBrandKit } from "@/components/brand/BrandKit";
+import { ImplementationBoard, type Priority } from "./diagnostico/ImplementationBoard";
 
 /** Rótulo das seções (as mesmas do servidor, _shared/company.ts); 🌐 = pode ir para a IA de atendimento. */
 const SECTION_LABEL: Record<string, [string, boolean]> = {
@@ -50,7 +51,13 @@ const PROC_ASK = [
   "Se quiser, conte também como deveria funcionar",
 ];
 
-interface Proc { nome: string; setor?: string; area?: string; quem_faz?: string; frequencia?: string; tempo?: string; dificuldade?: string; passo_a_passo?: string; como_deveria?: string }
+interface Proc {
+  nome: string; setor?: string; area?: string; quem_faz?: string; frequencia?: string; tempo?: string; dificuldade?: string; passo_a_passo?: string; como_deveria?: string;
+  implementar?: "agora" | "depois" | "nao"; lembrar_em?: string; lembrado_em?: string;
+}
+/** Setores que quase toda empresa tem: ponto de partida para o dono editar (como as etiquetas padrão). */
+const COMMON_SECTORS = ["Vendas / Comercial", "Atendimento ao cliente", "Financeiro", "Administrativo", "Marketing",
+  "Operação / Produção", "Logística / Entregas", "Compras", "RH / Pessoas"];
 interface StepState { raw?: string; approved_at?: string; setores?: string[]; attachments?: { id: string; name: string }[] }
 interface Suggestion { titulo: string; tipo: "pronta" | "integracao"; modelo: string | null; sistema: string | null; instalado?: { kind: "flow" | "record_type"; id: string } }
 interface Auto { titulo: string; setor: string; tipo: "sem_ia" | "ia" | "integracao"; descricao: string; impacto: string; esforco: string; custo: { volume: number; groq: number; claude: number; claude_model: string } | null }
@@ -246,7 +253,12 @@ export default function Diagnostico() {
     const patch: Record<string, unknown> = { steps, stage: next.startsWith("proc:") ? "processos" : next === "plano" ? "plano" : next };
     if (draft.secoes) patch.sections = { ...profile.sections, ...Object.fromEntries(Object.entries(draft.secoes).filter(([, v]) => v.trim())) };
     if (setor && draft.processos) {
-      patch.processes = [...profile.processes.filter((p) => (p.setor || p.area) !== setor), ...draft.processos.map((p) => ({ ...p, setor, area: setor }))];
+      // Mantém a decisão (agora/depois/não e lembrete) dos processos que continuam com o mesmo nome.
+      const before = new Map(profile.processes.filter((p) => (p.setor || p.area) === setor).map((p) => [p.nome.trim().toLowerCase(), p]));
+      patch.processes = [...profile.processes.filter((p) => (p.setor || p.area) !== setor), ...draft.processos.map((p) => {
+        const old = before.get(p.nome.trim().toLowerCase());
+        return { ...p, setor, area: setor, ...(old ? { implementar: old.implementar, lembrar_em: old.lembrar_em, lembrado_em: old.lembrado_em } : {}) };
+      })];
     }
     const { error } = await supabase.from("company_profiles").update(patch as never).eq("organization_id", org.id);
     setBusy(null);
@@ -255,6 +267,21 @@ export default function Diagnostico() {
     const nextPage = draft.setores?.length && page === "setores" ? `proc:${draft.setores[0]}` : next;
     await load(nextPage);
   };
+
+  // Plano de implementação: salva a escolha de cada processo (agora/depois/não + lembrete).
+  const saveProcesses = async (next: Proc[]) => {
+    setProfile((p) => ({ ...p, processes: next }));
+    const { error } = await supabase.from("company_profiles").update({ processes: next } as never).eq("organization_id", org.id);
+    if (error) toast({ variant: "destructive", title: "Não salvo", description: error.message });
+  };
+  const prioritize = async () => {
+    setBusy("priority");
+    const r = await callFunction("interviewer", { action: "sector_priority", organization_id: org.id });
+    setBusy(null);
+    if (!r.ok) return toast({ variant: "destructive", title: r.message });
+    await load(page);
+  };
+  const priority = (profile.steps as Record<string, unknown>).prioridade as Priority | undefined;
 
   // Editar uma etapa aprovada: traz o que está salvo para a prévia (sem mexer nas outras).
   const edit = () => {
@@ -401,6 +428,11 @@ export default function Diagnostico() {
                     </div>
                   ))}
                   {setor && profile.processes.filter((p) => (p.setor || p.area) === setor).map((p, i) => <ProcCard key={i} p={p} />)}
+                  {setor && <p className="text-xs text-muted-foreground">Defina o que implementar agora ou depois em <button type="button" className="underline" onClick={() => setPage("setores")}>Setores → Plano de implementação</button>.</p>}
+                  {page === "setores" && (
+                    <ImplementationBoard processes={profile.processes} sectors={sectors} priority={priority} busy={busy === "priority"}
+                      onChange={(n) => void saveProcesses(n as Proc[])} onPrioritize={prioritize} />
+                  )}
                   <div className="flex flex-wrap gap-2">
                     <Button variant="outline" onClick={edit}><Pencil className="w-4 h-4 mr-1" /> Editar esta etapa</Button>
                     <Button variant="ghost" onClick={redoStep}><RotateCcw className="w-4 h-4 mr-1" /> Refazer esta etapa</Button>
@@ -409,6 +441,13 @@ export default function Diagnostico() {
                 </div>
               ) : (
                 <>
+                  {page === "setores" && !raw.trim() && (
+                    <div className="rounded-md border border-dashed p-3 space-y-2">
+                      <p className="text-xs">💡 <b>Setores que quase toda empresa tem</b> — use como ponto de partida: apague o que não existe, renomeie e complete responsável e pessoas.</p>
+                      <div className="flex flex-wrap gap-1">{COMMON_SECTORS.map((s) => <span key={s} className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">{s}</span>)}</div>
+                      <Button size="sm" variant="outline" onClick={() => setRaw(COMMON_SECTORS.map((s) => `${s} — responsável: ___ — pessoas: ___`).join("\n"))}>Usar como exemplo</Button>
+                    </div>
+                  )}
                   <Textarea rows={draft ? 5 : 12} value={raw} onChange={(e) => setRaw(e.target.value)} maxLength={12000}
                     placeholder={setor
                       ? "Escreva aqui ou clique em 🎤 Falar logo abaixo — o que você falar aparece escrito nesta caixa.\nEx.: 1. O cliente pede orçamento no WhatsApp. 2. O vendedor confere o estoque na planilha..."

@@ -1131,6 +1131,19 @@ BEGIN
   PERFORM pg_temp.expect(pg_temp.q(agent_a, format('SELECT count(*) FROM storage.objects WHERE bucket_id = %L', 'brand')) = 0, 'atendente nao ve os arquivos da marca');
   PERFORM pg_temp.expect(pg_temp.q(owner_b, format('SELECT count(*) FROM storage.objects WHERE bucket_id = %L', 'brand')) = 0, 'outra org nao ve os arquivos da marca');
 
+  -- 59. Lembrete de processo "depois": avisa dono/admin da empresa na data, uma vez; atendente e outra org nao.
+  UPDATE public.company_profiles SET processes = jsonb_build_array(
+    jsonb_build_object('nome', 'Orcamento', 'setor', 'Vendas', 'implementar', 'depois', 'lembrar_em', to_char(current_date - 1, 'YYYY-MM-DD')),
+    jsonb_build_object('nome', 'Cobranca', 'setor', 'Financeiro', 'implementar', 'agora'),
+    jsonb_build_object('nome', 'Futuro', 'setor', 'RH', 'implementar', 'depois', 'lembrar_em', to_char(current_date + 30, 'YYYY-MM-DD')))
+  WHERE organization_id = A;
+  PERFORM private.process_reminders_tick();
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.notifications WHERE kind = 'process_reminder' AND organization_id = A AND user_id IN (owner_a, admin_a)) = 2, 'lembrete para dono e admin');
+  PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM public.notifications WHERE kind = 'process_reminder' AND user_id IN (agent_a, sup_a, owner_b)), 'atendente, supervisor e outra org nao recebem');
+  PERFORM private.process_reminders_tick();
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.notifications WHERE kind = 'process_reminder' AND organization_id = A) = 2, 'lembrete nao repete');
+  PERFORM pg_temp.expect((SELECT processes->0->>'lembrado_em' FROM public.company_profiles WHERE organization_id = A) IS NOT NULL, 'marca que ja lembrou');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 
