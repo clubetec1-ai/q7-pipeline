@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
+import { moduleOn } from "../_shared/modules.ts";
 import { getSecret, safeEqual } from "../_shared/secrets.ts";
 import { forOrg } from "../_shared/tenant.ts";
 import * as providers from "../_shared/providers/index.ts";
@@ -32,6 +33,7 @@ Deno.serve(async (req) => {
   for (const c of running ?? []) {
     if (hourBr < c.window_start || hourBr >= c.window_end) continue;
     const org = forOrg(admin, c.organization_id);
+    if (!(await moduleOn(admin, c.organization_id, "campanhas"))) continue; // módulo desligado: não envia
     const { data: bare } = await org.select("whatsapp_instances").eq("id", c.instance_id).maybeSingle();
     if (!bare || bare.status === "disabled") {
       await org.update("campaigns", { status: "paused" }).eq("id", c.id);

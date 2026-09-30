@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
+import { requireModule } from "../_shared/modules.ts";
 import { HttpError, permissionsIn, requirePermission, requireUser, resolveOrg } from "../_shared/auth.ts";
 import { forOrg } from "../_shared/tenant.ts";
 import { putSecret } from "../_shared/secrets.ts";
@@ -35,6 +36,7 @@ Deno.serve(async (req) => {
     const ctx = await requireUser(req);
     const orgId = await resolveOrg(ctx, body?.organization_id);
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    if (action !== "disconnect") await requireModule(admin, orgId, "cobrancas");
     const org = forOrg(admin, orgId);
     const { data: orgRow } = await admin.from("organizations").select("settings").eq("id", orgId).maybeSingle();
     const settings = (orgRow?.settings ?? {}) as Record<string, any>;

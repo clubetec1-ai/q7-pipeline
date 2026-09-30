@@ -18,7 +18,7 @@ import { RamaisTab } from "./equipe/RamaisTab";
 /** Equipe: membros, departamentos e grupos da organização ativa (spec §9). */
 export default function Equipe() {
   const { signOut } = useAuth();
-  const { org, can } = useOrg();
+  const { org, can, hasModule } = useOrg();
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const tab = params.get("tab") ?? "";
@@ -53,7 +53,7 @@ export default function Equipe() {
               <TabsTrigger value="membros">Membros</TabsTrigger>
               <TabsTrigger value="departamentos">Departamentos</TabsTrigger>
               <TabsTrigger value="grupos">Grupos</TabsTrigger>
-              {canMembers && <TabsTrigger value="ramais">Ramais</TabsTrigger>}
+              {canMembers && hasModule("telefonia") && <TabsTrigger value="ramais">Ramais</TabsTrigger>}
             </TabsList>
             <TabsContent value="membros" className="pt-4">
               <MembersTab orgId={org.id} data={data} canManage={canMembers} myRole={org.role} />

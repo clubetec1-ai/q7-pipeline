@@ -27,7 +27,7 @@ const idleCls = `${base} text-muted-foreground hover:bg-muted`;
  * Conta. Grupo com um item só vira link direto. No celular, tudo fica no botão ☰.
  */
 export function MainNav({ active }: { active: Section }) {
-  const { can, isOperator, orgs, org, selectOrg } = useOrg();
+  const { can, isOperator, orgs, org, selectOrg, hasModule } = useOrg();
   const manage = can("org.settings");
   const reports = can("reports.view");
   const attend = can("conversations.attend");
@@ -42,18 +42,18 @@ export function MainNav({ active }: { active: Section }) {
     { label: "Clientes", icon: Contact, items: [
       { key: "clientes", to: "/clientes", label: "Clientes e fichas", icon: Contact, show: attend || manage || reports },
       { key: "registros", to: "/registros", label: "Registros", icon: ClipboardList, show: true },
-      { key: "cobrancas", to: "/cobrancas", label: "Cobranças", icon: Wallet, show: manage || reports || attend },
-      { key: "campanhas", to: "/campanhas", label: "Campanhas", icon: Megaphone, show: can("campaigns.manage") },
+      { key: "cobrancas", to: "/cobrancas", label: "Cobranças", icon: Wallet, show: (manage || reports || attend) && hasModule("cobrancas") },
+      { key: "campanhas", to: "/campanhas", label: "Campanhas", icon: Megaphone, show: can("campaigns.manage") && hasModule("campanhas") },
     ] },
     { label: "Gestão", icon: Activity, items: [
       { key: "relatorios", to: "/relatorios", label: "Relatórios", icon: BarChart3, show: manage || reports || attend },
-      { key: "supervisor", to: "/supervisor", label: "Supervisor", icon: Activity, show: reports },
-      { key: "avaliacoes", to: "/avaliacoes", label: "Avaliações", icon: ClipboardCheck, show: reports || attend },
-      { key: "melhorias", to: "/melhorias", label: "Melhorias", icon: RefreshCw, show: manage || reports },
+      { key: "supervisor", to: "/supervisor", label: "Supervisor", icon: Activity, show: reports && hasModule("gestao") },
+      { key: "avaliacoes", to: "/avaliacoes", label: "Avaliações", icon: ClipboardCheck, show: (reports || attend) && hasModule("gestao") },
+      { key: "melhorias", to: "/melhorias", label: "Melhorias", icon: RefreshCw, show: (manage || reports) && hasModule("gestao") },
     ] },
     { label: "Minha empresa", icon: Building2, items: [
-      { key: "diagnostico", to: "/diagnostico", label: "Diagnóstico", icon: Target, show: manage },
-      { key: "diagnostico", to: "/diagnostico?pagina=marca", label: "Marca", icon: Palette, show: manage },
+      { key: "diagnostico", to: "/diagnostico", label: "Diagnóstico", icon: Target, show: manage && hasModule("diagnostico") },
+      { key: "diagnostico", to: "/diagnostico?pagina=marca", label: "Marca", icon: Palette, show: manage && hasModule("diagnostico") },
       { key: "setores", to: "/setores", label: "Setores e processos", icon: Layers, show: manage || can("departments.manage") },
       { key: "equipe", to: "/equipe", label: "Equipe e permissões", icon: UsersRound, show: can("members.manage") || can("departments.manage") },
     ] },

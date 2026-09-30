@@ -27,7 +27,7 @@ interface Option { id: string; name: string }
  */
 export function TicketBar({ ticket, onChanged, greet = true }: { ticket: Ticket | undefined; onChanged: () => void; greet?: boolean }) {
   const { user } = useAuth();
-  const { org, can } = useOrg();
+  const { org, can, hasModule } = useOrg();
   const { toast } = useToast();
   const [busy, setBusy] = useState(false);
   const [dialog, setDialog] = useState<"transfer" | "close" | "take" | null>(null);
@@ -136,7 +136,7 @@ export function TicketBar({ ticket, onChanged, greet = true }: { ticket: Ticket 
           <Hash className="w-3.5 h-3.5 mr-1" /> Enviar protocolo
         </Button>
       )}
-      {mine && <ChargeButton conversationId={ticket.conversation_id} />}
+      {mine && hasModule("cobrancas") && <ChargeButton conversationId={ticket.conversation_id} />}
       {canAct && (
         <>
           <Button size="sm" variant="ghost" className="h-8" disabled={busy} onClick={() => setDialog("transfer")}>

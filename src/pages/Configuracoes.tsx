@@ -21,7 +21,7 @@ const PILL: Record<State, [string, string]> = {
  * situação (configurado / pendente / opcional). Cada cartão abre a tela certa.
  */
 export default function Configuracoes() {
-  const { org, can, isOperator } = useOrg();
+  const { org, can, isOperator, hasModule } = useOrg();
   const { status: s } = useSetupStatus(org?.id);
   if (!org) return null;
   const manage = can("org.settings");
@@ -34,9 +34,9 @@ export default function Configuracoes() {
       { title: "WhatsApp", desc: "Conectar números (QR ou oficial da Meta), cor e saúde de cada número.", to: "/numeros", icon: MessageSquare, color: "#10B981",
         state: s.whatsappOnline ? "ok" : "pending", detail: s.whatsapp ? `${s.whatsappOnline} de ${s.whatsapp} conectado(s)` : "Nenhum número", show: manage },
       { title: "E-mail", desc: "Caixas de e-mail atendidas na mesma tela das conversas.", to: "/numeros", icon: Mail, color: "#6C8EF5",
-        state: s.email ? "ok" : "optional", detail: s.email ? `${s.email} caixa(s)` : undefined, show: manage },
+        state: s.email ? "ok" : "optional", detail: s.email ? `${s.email} caixa(s)` : undefined, show: manage && hasModule("canais") },
       { title: "Telefonia e ramais", desc: "Ramal de cada atendente, MicroSIP ou navegador, e a integração Nvoip.", to: "/equipe?tab=ramais", icon: PhoneCall, color: "#3FB8BE",
-        state: s.ramais ? "ok" : "optional", detail: s.ramais ? `${s.ramais} ramal(is)${s.nvoip ? " · Nvoip ativa" : ""}` : undefined, show: team },
+        state: s.ramais ? "ok" : "optional", detail: s.ramais ? `${s.ramais} ramal(is)${s.nvoip ? " · Nvoip ativa" : ""}` : undefined, show: team && hasModule("telefonia") },
     ] },
     { title: "Atendimento", cards: [
       { title: "Distribuição e saudação", desc: "Setores, fila, quem recebe cada atendimento e a mensagem ao assumir.", to: "/equipe?tab=departamentos", icon: Shuffle, color: "#F59E0B",
@@ -48,15 +48,15 @@ export default function Configuracoes() {
     ] },
     { title: "IA e automação", cards: [
       { title: "Agente de IA e follow-up", desc: "IA que atende, chave da IA, comportamento e lembretes automáticos.", to: "/agente", icon: Bot, color: "#6C8EF5",
-        state: s.aiOn ? "ok" : "pending", detail: s.aiOn ? "Agente ligado" : "Agente desligado", show: manage },
+        state: s.aiOn ? "ok" : "pending", detail: s.aiOn ? "Agente ligado" : "Agente desligado", show: manage && hasModule("ia") },
       { title: "Fluxos", desc: "Menus, triagem, horários e automações sem código.", to: "/fluxos", icon: Workflow, color: "#3FB8BE",
-        state: s.flowsLive ? "ok" : "pending", detail: s.flowsLive ? `${s.flowsLive} publicado(s)` : "Nenhum publicado", show: manage },
+        state: s.flowsLive ? "ok" : "pending", detail: s.flowsLive ? `${s.flowsLive} publicado(s)` : "Nenhum publicado", show: manage && hasModule("ia") },
       { title: "Base de conhecimento", desc: "Documentos que a IA e a equipe consultam para responder.", to: "/conhecimento", icon: BookOpen, color: "#10B981",
-        state: s.knowledge ? "ok" : "optional", detail: s.knowledge ? `${s.knowledge} documento(s)` : undefined, show: manage || lib },
+        state: s.knowledge ? "ok" : "optional", detail: s.knowledge ? `${s.knowledge} documento(s)` : undefined, show: (manage || lib) && hasModule("ia") },
     ] },
     { title: "Integrações e conta", cards: [
       { title: "Cobranças (Asaas)", desc: "Chave de API do Asaas, ambiente e regras: quem pode cobrar, aviso de pagamento e lembretes.", to: "/configuracoes/cobrancas",
-        icon: Wallet, color: "#10B981", state: s.payments ? "ok" : "optional", detail: s.payments ? "Asaas conectado" : undefined, show: manage },
+        icon: Wallet, color: "#10B981", state: s.payments ? "ok" : "optional", detail: s.payments ? "Asaas conectado" : undefined, show: manage && hasModule("cobrancas") },
       { title: "Integrações", desc: "Conectar outros sistemas (ERP, cobrança, agenda) para a IA e os fluxos.", to: "/integracoes", icon: Plug, color: "#64748B",
         state: s.integrations ? "ok" : "optional", detail: s.integrations ? `${s.integrations} integração(ões)` : undefined, show: manage },
       { title: "Uazapi — servidor global (Clubetec)", desc: "Servidor e token de administrador do WhatsApp por QR de toda a plataforma. Só a equipe Clubetec vê.",

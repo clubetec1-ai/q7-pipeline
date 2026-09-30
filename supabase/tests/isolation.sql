@@ -1150,6 +1150,28 @@ BEGIN
   PERFORM pg_temp.expect(pg_temp.t(agent_a, format('SELECT public.org_theme(%L)->>%L', A, 'primary')) = '#1E40AF', 'atendente recebe so a cor');
   PERFORM pg_temp.expect(pg_temp.t(owner_b, format('SELECT coalesce(public.org_theme(%L)::text, %L)', A, 'nada')) = 'nada', 'outra org nao recebe a cor');
 
+  -- 61. Modulos por empresa: so a Clubetec liga/desliga; a trava vale no banco; outra org nao ve nem mexe.
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, 'SELECT count(*) FROM public.org_modules') = 7, 'membro ve os modulos da empresa');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, format('SELECT count(*) FROM public.org_modules WHERE organization_id = %L', A)) = 0, 'outra org nao ve os modulos');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.platform_set_module(%L, %L, false)', A, 'campanhas'), 'dono nao liga/desliga modulo');
+  PERFORM pg_temp.expect_error(owner_a, format('UPDATE public.org_modules SET enabled = true WHERE organization_id = %L', A), 'dono nao altera modulo direto');
+  PERFORM pg_temp.expect(pg_temp.run(operator, format('SELECT public.platform_set_module(%L, %L, false)', A, 'campanhas')) = 'ok:1', 'clubetec desliga campanhas');
+  PERFORM pg_temp.expect_error(owner_a, format('INSERT INTO public.campaigns (organization_id, name, instance_id, message) VALUES (%L, %L, %L, %L)',
+    A, 'Promo sem modulo', 'aaaaaaaa-0000-0000-0003-000000000001', 'oi'), 'sem modulo nao cria campanha');
+  PERFORM pg_temp.expect(pg_temp.run(operator, format('SELECT public.platform_set_module(%L, %L, false)', A, 'telefonia')) = 'ok:1', 'clubetec desliga telefonia');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.log_call(%L, NULL, %L, %L, %L, %L)', A, 'out', '11999990000', 'ringing', 'sip'), 'sem modulo nao registra ligacao');
+  PERFORM pg_temp.expect(pg_temp.run(operator, format('SELECT public.platform_set_module(%L, %L, false)', A, 'canais')) = 'ok:1', 'clubetec desliga canais');
+  PERFORM pg_temp.expect_error(owner_a, format('INSERT INTO public.whatsapp_instances (organization_id, name, provider) VALUES (%L, %L, %L)', A, 'Segundo', 'uazapi'), 'sem canais nao cria 2o numero');
+  PERFORM pg_temp.expect(pg_temp.run(operator, format('SELECT public.platform_set_module(%L, %L, false)', A, 'gestao')) = 'ok:1', 'clubetec desliga gestao');
+  PERFORM pg_temp.expect(pg_temp.run(NULL, format('INSERT INTO public.ticket_reviews (organization_id, ticket_id) SELECT %L, t.id FROM public.tickets t WHERE t.organization_id = %L AND NOT EXISTS (SELECT 1 FROM public.ticket_reviews r WHERE r.ticket_id = t.id) LIMIT 1', A, A)) = 'ok:0', 'sem gestao nao gera avaliacao');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.org_modules WHERE NOT enabled') = 0, 'desligar em uma org nao afeta a outra');
+  PERFORM pg_temp.run(operator, format('SELECT public.platform_set_module(%L, %L, true)', A, 'campanhas'));
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('INSERT INTO public.campaigns (organization_id, name, instance_id, message) VALUES (%L, %L, %L, %L)',
+    A, 'Promo com modulo', 'aaaaaaaa-0000-0000-0003-000000000001', 'oi')) = 'ok:1', 'religado, cria campanha');
+  PERFORM pg_temp.run(operator, format('SELECT public.platform_set_module(%L, %L, true)', A, 'telefonia'));
+  PERFORM pg_temp.run(operator, format('SELECT public.platform_set_module(%L, %L, true)', A, 'canais'));
+  PERFORM pg_temp.run(operator, format('SELECT public.platform_set_module(%L, %L, true)', A, 'gestao'));
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 

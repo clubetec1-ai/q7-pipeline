@@ -10,6 +10,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/admin/AdminRoute";
 import { PhoneWidget } from "@/components/voice/PhoneWidget";
 import { OrgTheme } from "@/components/OrgTheme";
+import { ModuleGate } from "@/components/ModuleGate";
 import Login from "./pages/Login";
 import Conversas from "./pages/Conversas";
 import Kanban from "./pages/Kanban";
@@ -63,29 +64,29 @@ const App = () => (
             <Route path="/biblioteca" element={<ProtectedRoute><Biblioteca /></ProtectedRoute>} />
             <Route path="/plataforma" element={<ProtectedRoute><Plataforma /></ProtectedRoute>} />
             <Route path="/registros" element={<ProtectedRoute><Registros /></ProtectedRoute>} />
-            <Route path="/diagnostico" element={<ProtectedRoute><Diagnostico /></ProtectedRoute>} />
-            <Route path="/cobrancas" element={<ProtectedRoute><Cobrancas /></ProtectedRoute>} />
+            <Route path="/diagnostico" element={<ProtectedRoute><ModuleGate m="diagnostico"><Diagnostico /></ModuleGate></ProtectedRoute>} />
+            <Route path="/cobrancas" element={<ProtectedRoute><ModuleGate m="cobrancas"><Cobrancas /></ModuleGate></ProtectedRoute>} />
             <Route path="/integracoes" element={<ProtectedRoute><Integracoes /></ProtectedRoute>} />
-            <Route path="/supervisor" element={<ProtectedRoute><Supervisor /></ProtectedRoute>} />
-            <Route path="/avaliacoes" element={<ProtectedRoute><Avaliacoes /></ProtectedRoute>} />
-            <Route path="/campanhas" element={<ProtectedRoute><Campanhas /></ProtectedRoute>} />
+            <Route path="/supervisor" element={<ProtectedRoute><ModuleGate m="gestao"><Supervisor /></ModuleGate></ProtectedRoute>} />
+            <Route path="/avaliacoes" element={<ProtectedRoute><ModuleGate m="gestao"><Avaliacoes /></ModuleGate></ProtectedRoute>} />
+            <Route path="/campanhas" element={<ProtectedRoute><ModuleGate m="campanhas"><Campanhas /></ModuleGate></ProtectedRoute>} />
             <Route path="/seguranca" element={<ProtectedRoute><Seguranca /></ProtectedRoute>} />
-            <Route path="/melhorias" element={<ProtectedRoute><Melhorias /></ProtectedRoute>} />
-            <Route path="/conhecimento" element={<ProtectedRoute><Conhecimento /></ProtectedRoute>} />
+            <Route path="/melhorias" element={<ProtectedRoute><ModuleGate m="gestao"><Melhorias /></ModuleGate></ProtectedRoute>} />
+            <Route path="/conhecimento" element={<ProtectedRoute><ModuleGate m="ia"><Conhecimento /></ModuleGate></ProtectedRoute>} />
             <Route path="/clientes" element={<ProtectedRoute><Clientes /></ProtectedRoute>} />
-            <Route path="/fluxos" element={<ProtectedRoute><Fluxos /></ProtectedRoute>} />
-            <Route path="/fluxos/:id" element={<ProtectedRoute><FlowEditor /></ProtectedRoute>} />
+            <Route path="/fluxos" element={<ProtectedRoute><ModuleGate m="ia"><Fluxos /></ModuleGate></ProtectedRoute>} />
+            <Route path="/fluxos/:id" element={<ProtectedRoute><ModuleGate m="ia"><FlowEditor /></ModuleGate></ProtectedRoute>} />
             <Route path="/convite" element={<ProtectedRoute allowWithoutOrg><Convite /></ProtectedRoute>} />
             <Route path="/admin/uazapi" element={<ProtectedRoute><AdminRoute><UazapiConfig /></AdminRoute></ProtectedRoute>} />
             <Route path="/conversas" element={<Navigate to="/" replace />} />
             <Route path="/dashboard" element={<Navigate to="/" replace />} />
-            <Route path="/agente" element={<ProtectedRoute><Agente /></ProtectedRoute>} />
+            <Route path="/agente" element={<ProtectedRoute><ModuleGate m="ia"><Agente /></ModuleGate></ProtectedRoute>} />
             <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
             <Route path="/etiquetas" element={<ProtectedRoute><EtiquetasGrupos /></ProtectedRoute>} />
             <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
             <Route path="/inicio" element={<ProtectedRoute><Inicio /></ProtectedRoute>} />
             <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
-            <Route path="/configuracoes/cobrancas" element={<ProtectedRoute><ConfigCobrancas /></ProtectedRoute>} />
+            <Route path="/configuracoes/cobrancas" element={<ProtectedRoute><ModuleGate m="cobrancas"><ConfigCobrancas /></ModuleGate></ProtectedRoute>} />
             <Route path="/setores" element={<ProtectedRoute><Setores /></ProtectedRoute>} />
             <Route path="/conectar" element={<Navigate to="/" replace />} />
             <Route path="*" element={<NotFound />} />

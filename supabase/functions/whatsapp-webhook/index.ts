@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { moduleOn } from "../_shared/modules.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { getAgentConfig, getAgentProfile } from "../_shared/get-ai-config.ts";
 import { chat as aiChat, resolveAI } from "../_shared/ai-chat.ts";
@@ -627,6 +628,12 @@ async function handle(req: Request, ctx: QueueCtx): Promise<Response> {
 
     // IA só responde atendimento que está com ela.
     if (ticket.status !== "bot") return ok();
+
+    // Sem o módulo "Agentes de IA e Automação": nada de IA nem fluxo; vai direto para a fila das pessoas.
+    if (!(await moduleOn(supabase, orgId, "ia"))) {
+      await supabase.rpc("service_ticket_route", { ticket: ticket.id, action: "queue" });
+      return ok();
+    }
 
     // Limite de IA por organização: acima dele, a resposta espera na fila.
     if (ctx.eventId) {
