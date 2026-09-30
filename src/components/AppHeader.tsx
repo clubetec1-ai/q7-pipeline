@@ -1,4 +1,4 @@
-import type { ComponentProps } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -8,8 +8,8 @@ import { NotificationsBell } from "@/components/NotificationsBell";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 
-/** Cabeçalho único das telas: logo, menu, avisos, tema e sair. */
-export function AppHeader({ active }: { active: ComponentProps<typeof MainNav>["active"] }) {
+/** Cabeçalho único das telas: logo, menu, avisos, tema e sair (extra: ex. presença em Conversas). */
+export function AppHeader({ active, extra }: { active: ComponentProps<typeof MainNav>["active"]; extra?: ReactNode }) {
   const { signOut } = useAuth();
   const navigate = useNavigate();
   return (
@@ -18,7 +18,8 @@ export function AppHeader({ active }: { active: ComponentProps<typeof MainNav>["
         <Logo horizontal width={26} height={26} />
         <MainNav active={active} />
       </div>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 shrink-0">
+        {extra}
         <NotificationsBell />
         <ThemeToggle />
         <Button variant="ghost" size="icon" title="Sair" onClick={async () => { await signOut(); navigate("/login"); }}>

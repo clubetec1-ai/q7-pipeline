@@ -230,7 +230,7 @@ export function PhoneWidget() {
   const numberNow = call?.number || dial;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2">
+    <div className="fixed bottom-4 left-4 z-50 flex flex-col items-start gap-2">
       {open && (
         <div className="w-80 max-w-[calc(100vw-2rem)] rounded-xl border bg-background shadow-xl p-3 space-y-3">
           <div className="flex items-center justify-between">

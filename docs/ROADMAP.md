@@ -304,6 +304,12 @@ Passadas 25 telas logado como dono/operador, sem erros de JavaScript no console.
   Conta → Segurança; (14) o painel antigo do Agente mostra endereço do webhook e atalho do token global da Uazapi para
   dono de empresa — deixar só para a Clubetec.
 - Não testado nesta passada: celular, ações que enviam/cobram/ligam (evitadas de propósito).
+- *Passo 1 entregue (30/09): (1) tempos de fila e de 1ª resposta invertidos saem da média nos Relatórios, no Início e
+  nas métricas de melhorias; (2) 📞 foi para o canto esquerdo; (3) Conversas e Kanban usam o cabeçalho único (com
+  presença em Conversas), sem o botão legado "Configuração"; o aviso antigo "Configure em 2 passos" leva ao Início;
+  (4) o aviso "Processos: aprove os setores primeiro" fica logo abaixo de Setores; (8) o grupo do menu mantém o
+  próprio nome e nunca quebra linha ("Plataforma" sem o "(Clubetec)"); (14) o endereço do webhook no painel antigo
+  só aparece para a Clubetec.*
 
 ## Repaginação do layout e cliente guiado (pedido em 30/09 — antes dos módulos)
 - **Reorganizar o menu:** tudo que é configuração/instalação num lugar só (hoje WhatsApp, ramais, equipe, etiquetas
