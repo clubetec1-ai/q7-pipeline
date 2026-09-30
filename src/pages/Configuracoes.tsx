@@ -40,7 +40,7 @@ export default function Configuracoes() {
         state: s.ramais ? "ok" : "optional", detail: s.ramais ? `${s.ramais} ramal(is)${s.nvoip ? " · Nvoip ativa" : ""}` : undefined, show: team && hasModule("telefonia") },
     ] },
     { title: "Atendimento", cards: [
-      { title: "Distribuição e saudação", desc: "Setores, fila, quem recebe cada atendimento e a mensagem ao assumir.", to: "/equipe?tab=departamentos", icon: Shuffle, color: "#F59E0B",
+      { title: "Distribuição e saudação", desc: "Setores, fila e quem recebe cada atendimento. As mensagens automáticas (saudação e protocolo) ficam na aba Mensagens.", to: "/equipe?tab=departamentos", icon: Shuffle, color: "#F59E0B",
         state: s.departments ? "ok" : "pending", detail: s.departments ? `${s.departments} setor(es) · ${s.members} pessoa(s)` : "Nenhum setor", show: team },
       { title: "Etiquetas e grupos", desc: "Etiquetas por setor, grupos de clientes, cores e ícones.", to: "/etiquetas", icon: Tags, color: "#EC4899",
         state: s.tagScopes || s.groups ? "ok" : "pending", detail: `${s.tags} etiqueta(s) · ${s.groups} grupo(s)`, show: lib || can("contacts.groups_manage") },

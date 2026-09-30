@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { FilePicker } from "@/components/FilePicker";
 import { AppHeader } from "@/components/AppHeader";
 import { Navigate, useNavigate } from "react-router-dom";
 import { ExternalLink, FileText, LogOut, Trash2, Upload } from "lucide-react";
@@ -101,8 +102,8 @@ export default function Biblioteca() {
         </div>
 
         <section className="rounded-lg border p-4 space-y-3">
-          <input ref={input} type="file" accept={ACCEPT} className="text-sm"
-            onChange={(e) => { const f = e.target.files?.[0] ?? null; setFile(f); if (f && !name) setName(f.name.replace(/\.[^.]+$/, "")); }} />
+          <FilePicker ref={input} accept={ACCEPT} file={file} hint="Catálogo, tabela de preços, manual…"
+            onFile={(f) => { setFile(f); if (f && !name) setName(f.name.replace(/\.[^.]+$/, "")); }} />
           <div className="grid gap-2 sm:grid-cols-2">
             <Input placeholder="Nome (ex.: Tabela de preços 2026)" maxLength={120} value={name} onChange={(e) => setName(e.target.value)} />
             <Input placeholder="Descrição para a IA (quando enviar)" maxLength={500} value={description} onChange={(e) => setDescription(e.target.value)} />

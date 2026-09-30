@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { FilePicker } from "@/components/FilePicker";
 import { AppHeader } from "@/components/AppHeader";
 import { Navigate, useNavigate } from "react-router-dom";
 import { BookOpen, Download, LogOut, Search, Trash2, Upload } from "lucide-react";
@@ -123,7 +124,7 @@ export default function Conhecimento() {
 
         <section className="rounded-lg border p-4 space-y-3">
           <p className="font-medium">Anexar documento</p>
-          <input type="file" accept={ACCEPT} onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="text-sm" />
+          <FilePicker accept={ACCEPT} file={file} onFile={setFile} hint="PDF, Word (.docx), Excel (.xlsx), CSV ou texto, até 10 MB" />
           <div className="grid gap-2 sm:grid-cols-2">
             <Input placeholder="Título (opcional)" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
             <select className="h-9 rounded-md border bg-background px-2 text-sm" value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value })}>

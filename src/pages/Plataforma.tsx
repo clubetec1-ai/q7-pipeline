@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AppHeader } from "@/components/AppHeader";
 import { Navigate, useNavigate } from "react-router-dom";
 import { LogOut, Plus } from "lucide-react";
@@ -110,6 +111,15 @@ export default function Plataforma() {
           <Button onClick={() => setCreating({ name: "", template: "generico", email: "" })}><Plus className="w-4 h-4 mr-1" /> Nova empresa</Button>
         </div>
 
+        <Tabs defaultValue="empresas">
+          <TabsList className="flex-wrap h-auto">
+            <TabsTrigger value="empresas">Empresas</TabsTrigger>
+            <TabsTrigger value="modulos">Módulos</TabsTrigger>
+            <TabsTrigger value="ramais">Ramais</TabsTrigger>
+            <TabsTrigger value="conectores">Conectores</TabsTrigger>
+            <TabsTrigger value="ajuda">Pedidos de ajuda{requests.filter((r) => r.status === "open").length ? ` (${requests.filter((r) => r.status === "open").length})` : ""}</TabsTrigger>
+          </TabsList>
+          <TabsContent value="empresas" className="pt-4">
         <div className="rounded-md border overflow-x-auto">
           <Table>
             <TableHeader>
@@ -151,8 +161,10 @@ export default function Plataforma() {
             </TableBody>
           </Table>
         </div>
-        <ModulesPanel orgs={rows} />
-        <RamaisPanel orgs={rows} />
+          </TabsContent>
+          <TabsContent value="modulos" className="pt-4"><ModulesPanel orgs={rows} /></TabsContent>
+          <TabsContent value="ramais" className="pt-4"><RamaisPanel orgs={rows} /></TabsContent>
+          <TabsContent value="conectores" className="pt-4">
         <section className="space-y-2 rounded-lg border p-4">
           <h2 className="font-semibold">Aplicativo do conector Bling {apps.bling ? <Badge className="ml-2">Ativo</Badge> : <Badge variant="outline" className="ml-2">Não configurado</Badge>}</h2>
           <ol className="list-decimal pl-5 text-xs text-muted-foreground space-y-0.5">
@@ -173,7 +185,8 @@ export default function Plataforma() {
             }}>Salvar</Button>
           </div>
         </section>
-
+          </TabsContent>
+          <TabsContent value="ajuda" className="pt-4">
         <section className="space-y-2">
           <h2 className="font-semibold">Pedidos de ajuda (serviço Clubetec)</h2>
           {requests.length === 0 && <p className="text-sm text-muted-foreground">Nenhum pedido.</p>}
@@ -195,6 +208,8 @@ export default function Plataforma() {
             </div>
           ))}
         </section>
+          </TabsContent>
+        </Tabs>
       </main>
 
       <Dialog open={!!creating} onOpenChange={(o) => !o && setCreating(null)}>
