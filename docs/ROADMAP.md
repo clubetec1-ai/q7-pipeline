@@ -285,6 +285,26 @@ período, setor, atendente, canal e número; comparação com o período anterio
 escopo pelo papel no banco; período 7/30/90 dias e setor; comparação com o período anterior; gráficos por hora e dia;
 exportar CSV com auditoria. Falta: PDF, período personalizado, envio automático por e-mail (semanal/mensal).*
 
+## Auditoria completa no Chrome (30/09) — correções pendentes
+Passadas 25 telas logado como dono/operador, sem erros de JavaScript no console. A corrigir:
+- **Erros:** (1) "Espera na fila (média)" negativa no Início (atendimento aberto antes de entrar na fila) — ignorar
+  intervalos negativos no cálculo; (2) botão flutuante 📞 cobre o botão de enviar em Conversas e no Chat;
+  (3) cabeçalho de Conversas estoura a largura (rolagem horizontal, botão de tema cortado) e o Kanban ainda usa o
+  cabeçalho antigo com o botão legado "Configuração" e sem o sino; (4) no Diagnóstico, o aviso "Processos: aprove os
+  setores primeiro" aparece embaixo de Planejamento.
+- **Usabilidade:** (5) e-mails automáticos (newsletters, no-reply, avisos de fornecedores) viram atendimento e lead —
+  7 parados há 30h na Fila geral, poluindo Kanban e Clientes: filtro automático ("não é atendimento") e setor padrão
+  por caixa de e-mail; (6) atendimentos sem setor ficam na Fila geral sem dono; (7) "Agente de IA e follow-up" abre o
+  painel lateral antigo que mistura Números, Uazapi e webhook, com título "Groq" — virar tela própria e simples;
+  (8) no menu, o grupo troca o nome pelo da tela aberta e quebra em duas linhas ("Clientes e fichas", "Equipe e
+  permissões", "Plataforma (Clubetec)"); (9) em Equipe, as mensagens automáticas no topo empurram as abas;
+  (10) Plataforma é uma página longa — separar em abas; (11) campo de arquivo sem estilo ("Escolher arquivo") em
+  Biblioteca e Base de conhecimento; (12) Registros fala em "modelos prontos" sem botão visível para eles.
+- **Segurança:** (13) conta do dono com MFA ligado e 0 códigos de recuperação (risco de ficar sem acesso) — gerar em
+  Conta → Segurança; (14) o painel antigo do Agente mostra endereço do webhook e atalho do token global da Uazapi para
+  dono de empresa — deixar só para a Clubetec.
+- Não testado nesta passada: celular, ações que enviam/cobram/ligam (evitadas de propósito).
+
 ## Repaginação do layout e cliente guiado (pedido em 30/09 — antes dos módulos)
 - **Reorganizar o menu:** tudo que é configuração/instalação num lugar só (hoje WhatsApp, ramais, equipe, etiquetas
   e outros itens de instalação estão espalhados em menus diferentes). Dia a dia separado de configuração.
