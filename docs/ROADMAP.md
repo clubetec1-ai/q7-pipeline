@@ -258,6 +258,18 @@ período, setor, atendente, canal e número; comparação com o período anterio
 escopo pelo papel no banco; período 7/30/90 dias e setor; comparação com o período anterior; gráficos por hora e dia;
 exportar CSV com auditoria. Falta: PDF, período personalizado, envio automático por e-mail (semanal/mensal).*
 
+## Segurança antes da produção (pedido em 30/09)
+Objetivo: o sistema sempre **blindado** — nenhum dado vaza (entre empresas ou para fora) e resiste a ataques,
+invasão, abuso e tentativas de burlar ou derrubar.
+- **Durante o desenvolvimento:** manter a rotina de cada entrega (testes de isolamento entre empresas, RLS, segredos
+  só no cofre, checagem de permissão no servidor, validação de entrada), sem plugins que rodam IA a cada edição.
+- **Antes de aprovar o projeto para produção:** varredura completa de segurança do código inteiro com a skill
+  `security-review` ou o plugin **claude-security** (Anthropic, sob demanda), corrigindo tudo antes de abrir para
+  clientes. Incluir na revisão: autenticação/MFA, RLS de todas as tabelas e buckets, Edge Functions (quem chama,
+  segredo de cron, webhooks), SSRF/injeção/XSS, limites de uso (rate limit) contra abuso e força bruta, cabeçalhos
+  de segurança do site (CSP), dependências vulneráveis, alertas do Supabase (advisors), backups e plano de resposta a
+  incidente (LGPD).
+
 ## Disparos (campanhas)
 - Envio em massa para grupos de clientes, escolhendo o número (ex.: um número QR para disparos e o da Meta para
   receber clientes, como pedido). Respeita opt-out, horário e limite por minuto; modelos aprovados no número da Meta.
