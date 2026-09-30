@@ -258,6 +258,19 @@ período, setor, atendente, canal e número; comparação com o período anterio
 escopo pelo papel no banco; período 7/30/90 dias e setor; comparação com o período anterior; gráficos por hora e dia;
 exportar CSV com auditoria. Falta: PDF, período personalizado, envio automático por e-mail (semanal/mensal).*
 
+## Repaginação do layout e cliente guiado (pedido em 30/09 — antes dos módulos)
+- **Reorganizar o menu:** tudo que é configuração/instalação num lugar só (hoje WhatsApp, ramais, equipe, etiquetas
+  e outros itens de instalação estão espalhados em menus diferentes). Dia a dia separado de configuração.
+- **Definir onde ficam setores e processos:** depois do mapeamento no Diagnóstico, os setores viram setores de
+  verdade no sistema e ganham uma página própria com seus processos (e o plano agora/depois).
+- **Mais visual e mais bonito:** cores (etiquetas, clientes, setores) consistentes, painel com estética melhor.
+- **Cliente guiado passo a passo** nos primeiros usos (primeiros passos com progresso), para depois trabalhar de
+  forma intuitiva.
+- Proposta (30/09): Fase 1 — estrutura: moldura única das telas, menu novo (Dia a dia · Clientes · Gestão · Minha
+  empresa · Configurações), central de Configurações em cartões com situação (configurado/pendente), página
+  "Setores e processos" alimentada pelo Diagnóstico, tela Início com "Primeiros passos". Fase 2 — visual: painel
+  Início com indicadores e gráficos, cartões e cores consistentes, cor da marca da empresa no tema.
+
 ## Comercialização: módulos, planos e visão de CEO (pedido em 30/09)
 - **Habilitação por módulos** — cada empresa contrata o que precisa; exemplo do pedido: Diagnóstico, WhatsApp,
   Agentes de automação… Sugestão registrada: **base "Atendimento"** (Conversas, Kanban, contatos/etiquetas, equipe,
