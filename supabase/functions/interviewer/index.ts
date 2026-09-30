@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const action = String(body?.action ?? "");
-    if (!["message", "suggest", "research", "plan", "format", "transcribe"].includes(action)) throw new HttpError(400, "Ação inválida");
+    if (!["message", "suggest", "research", "plan", "format", "transcribe", "brand_write", "sector_priority"].includes(action)) throw new HttpError(400, "Ação inválida");
     const ctx = await requireUser(req);
     const orgId = await resolveOrg(ctx, body?.organization_id);
     await requirePermission(ctx, orgId, "org.settings");
@@ -115,6 +115,51 @@ Deno.serve(async (req) => {
       secoes: sections,
       processos: processes.map((p) => ({ ...p, passo_a_passo: clip(p.passo_a_passo, stepChars) })),
     }).slice(0, max);
+
+    // ------------------------------------------------------------- brand_write
+    // Marketing: texto de campanha no tom de voz da marca (usa só o retrato público + a voz).
+    if (action === "brand_write") {
+      const goal = clip(body?.goal, 1500);
+      if (goal.length < 5) throw new HttpError(400, "Conte sobre o que é a mensagem.");
+      const voz = clip(sections.marca_voz, 2500);
+      const out = await ask(
+        "Você escreve mensagens de marketing para WhatsApp de uma empresa brasileira, seguindo o tom de voz da marca. " +
+        "Mensagem curta (até 600 caracteres), clara, com uma chamada para ação; use {nome} onde entra o primeiro nome do cliente. " +
+        "Não invente preços, prazos ou promoções que não estejam no pedido ou nas informações da empresa. " +
+        (voz ? "" : "A marca ainda não tem tom de voz definido: use um tom cordial e profissional. ") +
+        'Responda SOMENTE com JSON: {"texto":"","variacao":""} (variacao = uma segunda opção com outra abordagem).',
+        `Empresa: ${orgRow?.name ?? ""}\nSobre a empresa: ${clip(sections.empresa, 1500)}\nProdutos/serviços: ${clip(sections.produtos, 1500)}\n` +
+        `Tom de voz da marca:\n${voz || "(não definido)"}\n\nObjetivo da mensagem: ${goal}`,
+      );
+      const texto = clip(out.texto, 1000);
+      if (!texto) throw new HttpError(502, "Não consegui escrever agora. Tente de novo.");
+      return json({ ok: true, texto, variacao: clip(out.variacao, 1000), sem_voz: !voz });
+    }
+
+    // --------------------------------------------------------- sector_priority
+    // Por onde começar: ordena os setores pelo resultado esperado (objetivos, dores e processos mapeados).
+    if (action === "sector_priority") {
+      const setores = [...new Set([...(profile.steps?.setores?.setores ?? []), ...processes.map((p) => p.setor || p.area).filter(Boolean)])] as string[];
+      if (!setores.length) throw new HttpError(400, "Mapeie os setores primeiro.");
+      const procs = processes.map((p) => ({ nome: p.nome, setor: p.setor || p.area, trava: clip(p.dificuldade, 200), tempo: clip(p.tempo, 60), frequencia: clip(p.frequencia, 60), implementar: p.implementar ?? "" }));
+      const out = await ask(
+        "Você é um consultor de implementação de CRM e automação. Ordene os setores da empresa do que traz MAIS resultado para o que traz menos, " +
+        "considerando os objetivos e as dores do dono, o volume e onde os processos travam, e o esforço para implementar. " +
+        "Para cada setor: motivo curto (1 frase, ligado ao que o dono disse), ganho esperado (concreto, ex.: responder leads em minutos) e até 3 processos para começar (nomes exatos da lista). " +
+        'Responda SOMENTE com JSON: {"resumo":"1 frase","ordem":[{"setor":"","motivo":"","ganho":"","primeiros":[""]}]}',
+        `Empresa: ${orgRow?.name ?? ""}\nSituação: ${clip(sections.situacao, 1500)}\nMetas e dores: ${clip(sections.metas, 1200)}\nObjetivos: ${clip(sections.objetivos, 1200)}\n` +
+        `Setores: ${setores.join(", ")}\nProcessos mapeados: ${JSON.stringify(procs).slice(0, 6000)}`,
+      );
+      const valid = new Set(setores);
+      const ordem = (Array.isArray(out.ordem) ? out.ordem : []).map((o: any) => ({
+        setor: clip(o?.setor, 80), motivo: clip(o?.motivo, 300), ganho: clip(o?.ganho, 200),
+        primeiros: (Array.isArray(o?.primeiros) ? o.primeiros : []).slice(0, 3).map((x: unknown) => clip(x, 120)).filter(Boolean),
+      })).filter((o: { setor: string }) => valid.has(o.setor)).slice(0, 20);
+      if (!ordem.length) throw new HttpError(502, "Não consegui sugerir agora. Tente de novo.");
+      const prioridade = { at: new Date().toISOString(), resumo: clip(out.resumo, 300), ordem };
+      await org.update("company_profiles", { steps: { ...(profile.steps ?? {}), prioridade } });
+      return json({ ok: true, prioridade });
+    }
 
     // ---------------------------------------------------------------- research
     if (action === "research") {

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { BrandWriter } from "@/components/brand/BrandWriter";
 import { Navigate, useNavigate } from "react-router-dom";
 import { LogOut, Megaphone, Pause, Play, Plus, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -199,6 +200,7 @@ export default function Campanhas() {
               <div className="space-y-1">
                 <p className="text-xs font-medium">Mensagem <span className="text-muted-foreground font-normal">— {"{nome}"} vira o primeiro nome do cliente</span></p>
                 <Textarea rows={5} maxLength={4000} value={draft.message ?? ""} onChange={(e) => setDraft({ ...draft, message: e.target.value })} />
+                {org && <BrandWriter orgId={org.id} onUse={(t) => setDraft({ ...draft, message: t })} />}
               </div>
             )}
 

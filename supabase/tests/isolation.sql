@@ -1118,6 +1118,32 @@ BEGIN
     AND (SELECT count(*) FROM public.notifications WHERE kind = 'missed_call' AND user_id = agent_a) = 1, 'aviso nao repete');
   PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.calls WHERE provider_call_id IS NOT NULL') = 0, 'outra org nao ve ligacoes da central');
 
+  -- 58. Marca: so dono/admin (ou campanhas) le e envia; atendente e outra org nunca.
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('UPDATE public.company_profiles SET brand = %L::jsonb WHERE organization_id = %L',
+    '{"colors":[{"name":"Azul","hex":"#1E40AF"}]}', A)) = 'ok:1', 'dono salva as cores da marca');
+  PERFORM pg_temp.expect(pg_temp.t(owner_a, format('SELECT public.brand_kit(%L)->%L->%L->0->>%L', A, 'brand', 'colors', 'hex')) = '#1E40AF', 'dono le a marca');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.brand_kit(%L)', A), 'atendente nao le a marca');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.brand_kit(%L)', A), 'outra org nao le a marca');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('INSERT INTO storage.objects (bucket_id, name) VALUES (%L, %L)', 'brand', A::text || '/logo.png')) = 'ok:1', 'dono envia logo');
+  PERFORM pg_temp.expect_error(agent_a, format('INSERT INTO storage.objects (bucket_id, name) VALUES (%L, %L)', 'brand', A::text || '/x.png'), 'atendente nao envia logo');
+  PERFORM pg_temp.expect_error(owner_b, format('INSERT INTO storage.objects (bucket_id, name) VALUES (%L, %L)', 'brand', A::text || '/y.png'), 'outra org nao envia logo');
+  PERFORM pg_temp.expect_error(owner_a, format('INSERT INTO storage.objects (bucket_id, name) VALUES (%L, %L)', 'brand', A::text || '/../z.png'), 'caminho fora do padrao recusado');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, format('SELECT count(*) FROM storage.objects WHERE bucket_id = %L', 'brand')) = 0, 'atendente nao ve os arquivos da marca');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, format('SELECT count(*) FROM storage.objects WHERE bucket_id = %L', 'brand')) = 0, 'outra org nao ve os arquivos da marca');
+
+  -- 59. Lembrete de processo "depois": avisa dono/admin da empresa na data, uma vez; atendente e outra org nao.
+  UPDATE public.company_profiles SET processes = jsonb_build_array(
+    jsonb_build_object('nome', 'Orcamento', 'setor', 'Vendas', 'implementar', 'depois', 'lembrar_em', to_char(current_date - 1, 'YYYY-MM-DD')),
+    jsonb_build_object('nome', 'Cobranca', 'setor', 'Financeiro', 'implementar', 'agora'),
+    jsonb_build_object('nome', 'Futuro', 'setor', 'RH', 'implementar', 'depois', 'lembrar_em', to_char(current_date + 30, 'YYYY-MM-DD')))
+  WHERE organization_id = A;
+  PERFORM private.process_reminders_tick();
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.notifications WHERE kind = 'process_reminder' AND organization_id = A AND user_id IN (owner_a, admin_a)) = 2, 'lembrete para dono e admin');
+  PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM public.notifications WHERE kind = 'process_reminder' AND user_id IN (agent_a, sup_a, owner_b)), 'atendente, supervisor e outra org nao recebem');
+  PERFORM private.process_reminders_tick();
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.notifications WHERE kind = 'process_reminder' AND organization_id = A) = 2, 'lembrete nao repete');
+  PERFORM pg_temp.expect((SELECT processes->0->>'lembrado_em' FROM public.company_profiles WHERE organization_id = A) IS NOT NULL, 'marca que ja lembrou');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 
