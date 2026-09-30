@@ -17,7 +17,7 @@ interface Item { key: Section; to: string; label: string; icon: LucideIcon; show
 /** Telas de instalação: ficam dentro da central de Configurações (o menu destaca "Configurações"). */
 const CONFIG_PAGES: Section[] = ["configuracoes", "numeros", "ramais", "etiquetas", "biblioteca", "agente", "fluxos", "conhecimento", "integracoes"];
 
-const base = "px-3 py-1.5 text-sm rounded-md transition inline-flex items-center gap-1.5 whitespace-nowrap";
+const base = "px-2.5 py-1.5 text-sm rounded-md transition inline-flex items-center gap-1.5 whitespace-nowrap";
 const activeCls = `${base} bg-muted font-medium`;
 const idleCls = `${base} text-muted-foreground hover:bg-muted`;
 
@@ -99,7 +99,7 @@ export function MainNav({ active }: { active: Section }) {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <nav className="hidden lg:flex items-center gap-1 ml-2">
+      <nav className="hidden lg:flex items-center gap-0.5 ml-1 min-w-0">
         {orgs.length > 1 && (
           <select className="h-8 max-w-[180px] rounded-md border bg-background px-2 text-xs mr-1" value={org?.id ?? ""}
             title="Empresa" onChange={(e) => selectOrg(e.target.value)}>

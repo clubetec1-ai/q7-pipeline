@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { AgentTester } from "./agente/AgentTester";
 import { Link, Navigate } from "react-router-dom";
 import { Bot, CheckCircle2, Clock, KeyRound, Loader2, Sparkles, TriangleAlert } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -155,6 +156,8 @@ export default function Agente() {
               <Button variant="outline" disabled={testing || !hasKey} onClick={runTest}>{testing ? "Testando…" : "Testar a IA"}</Button>
               {test && <span className={`text-sm ${test.ok ? "text-emerald-700 dark:text-emerald-400" : "text-red-600"}`}>{test.ok ? "✓ " : "✗ "}{test.text}</span>}
             </div>
+
+            <AgentTester orgId={org.id} prompt={prompt} disabled={!hasKey} />
           </>
         )}
       </main>

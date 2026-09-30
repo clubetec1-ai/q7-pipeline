@@ -48,7 +48,7 @@ export function PresenceControl() {
   const value = status === "paused" && reasonId ? `paused:${reasonId}` : status;
   return (
     <Select value={value} onValueChange={change}>
-      <SelectTrigger className="h-8 w-[150px] text-xs" aria-label="Minha presença">
+      <SelectTrigger className="h-8 w-[120px] text-xs" aria-label="Minha presença">
         <span className="flex items-center gap-2">
           <span className={`w-2 h-2 rounded-full ${DOT[status] ?? DOT.offline}`} />
           <SelectValue />
