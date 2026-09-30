@@ -316,6 +316,15 @@ Passadas 25 telas logado como dono/operador, sem erros de JavaScript no console.
   IA** (chave por provedor no cofre, provedor padrão, leitura de mídia e segredos do "Consultar sistema"), com cartão
   na central — saiu de dentro de Fluxos; o 📞 virou ícone no cabeçalho (pisca verde quando toca e o painel abre
   sozinho), sem cobrir nada.*
+- *Passos 3 a 5 entregues (30/09) — auditoria concluída:* (5) detecção de e-mail automático bem mais ampla
+  (no-reply em qualquer parte do nome, caixas de aviso como transacional@/comunicacao@/newsletter@ e plataformas de
+  disparo como Mailchimp, SendGrid, SES, RD Station, HubSpot) + botão **"Não é atendimento"** na conversa de e-mail
+  (ignora o remetente ou o domínio, fecha o atendimento com o motivo "Não é atendimento"; lista em Números com
+  "liberar" para dono/admin); (6) caixa de e-mail sem setor mostra aviso em Números, fica "Pendente" na central e o
+  Supervisor explica a Fila geral; (9) mensagens automáticas da Equipe numa aba própria; (10) Plataforma em abas
+  (Empresas, Módulos, Ramais, Conectores, Pedidos de ajuda com contagem); (11) seletor de arquivo no padrão do
+  sistema com arrastar e soltar (Biblioteca e Base de conhecimento); (12) Registros mostra os modelos prontos já na
+  tela vazia.*
 - **Gerente de projetos + CEO (pedido em 30/09):** revisar cada etapa do projeto (se está correto, se todas as etapas
   e "times" estão alinhados), cobrar documentação técnica, layout/cores, segurança e organização; e sugerir quais
   outros agentes (papéis) colocar para o projeto ficar 100% seguro e funcional.

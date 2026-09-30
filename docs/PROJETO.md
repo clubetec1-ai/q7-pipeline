@@ -23,7 +23,7 @@
 | 2. Atendimento completo | WhatsApp, e-mail, fluxos, IA, Kanban, etiquetas, relatórios, campanhas, cobranças | ✅ Concluída |
 | 3. Consultoria guiada | Diagnóstico 3.0, marca, setores/processos, plano, melhoria contínua | 🟡 Falta: Sistemas e dados, Pós-venda, **Testar o agente**, outros modelos por nicho, convite ao responsável do setor |
 | 4. Telefonia | Ramal, MicroSIP, Nvoip | 🟡 Falta: histórico Nvoip (403 — depende da Nvoip), WSS/WebRTC, gravação/transcrição |
-| 5. Repaginação e auditoria | Menu, Configurações, Início, painel, correções da auditoria | 🟡 Passos 1–2 feitos; faltam 3–5 |
+| 5. Repaginação e auditoria | Menu, Configurações, Início, painel, correções da auditoria | ✅ Concluída (auditoria 1–5) |
 | 6. Venda (SaaS) | Planos, assinatura, teste grátis, limites, termos/LGPD, entrada autoatendida | ⬜ Próxima |
 | 7. Produção | Varredura de segurança completa, backups, monitoramento, documentação | ⬜ Antes do 1º cliente pagante |
 
@@ -32,7 +32,7 @@
 | # | Risco | Impacto | Ação |
 |---|---|---|---|
 | R1 | Dono com MFA e **0 códigos de recuperação** | Perder o acesso | Gerar em Conta → Segurança (ação do usuário) |
-| R2 | E-mails automáticos viram atendimento/lead | Fila suja, métricas erradas | Auditoria passo 3 (filtro + setor padrão) |
+| R2 | E-mails automáticos viram atendimento/lead | Fila suja, métricas erradas | ✅ Resolvido (filtro + "Não é atendimento"); limpar os 7 atuais com o botão |
 | R3 | Sem monitoramento de falhas (funções, crons, webhook) | Problema só aparece quando o cliente reclama | Painel de saúde + alertas (fase 7) |
 | R4 | Documentação técnica ausente | Dependência de uma pessoa/IA para manter | Criar ARQUITETURA, SEGURANCA, OPERACAO (em andamento) |
 | R5 | Teste 55 de isolamento intermitente | Falso alarme ou falha real escondida | Investigar |

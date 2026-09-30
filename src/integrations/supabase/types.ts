@@ -1101,6 +1101,38 @@ export type Database = {
           },
         ]
       }
+      email_ignore: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          organization_id: string
+          pattern: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          organization_id: string
+          pattern: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          organization_id?: string
+          pattern?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_ignore_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       flow_http_usage: {
         Row: {
           minute: string
@@ -3592,6 +3624,10 @@ export type Database = {
         Returns: boolean
       }
       heartbeat: { Args: { org: string }; Returns: undefined }
+      ignore_email_sender: {
+        Args: { conv: string; whole_domain?: boolean }
+        Returns: string
+      }
       link_improvement_artifact: {
         Args: { aid: string; akind: string; improvement: string }
         Returns: undefined
@@ -4057,6 +4093,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      unignore_email: {
+        Args: { org: string; p_pattern: string }
+        Returns: undefined
       }
     }
     Enums: {

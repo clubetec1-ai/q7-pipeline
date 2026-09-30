@@ -22,7 +22,7 @@ export default function Equipe() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const tab = params.get("tab") ?? "";
-  const tabParam = ["membros", "departamentos", "grupos", "ramais"].includes(tab) ? tab : "";
+  const tabParam = ["membros", "departamentos", "grupos", "ramais", "mensagens"].includes(tab) ? tab : "";
   const data = useEquipeData(org?.id);
   const canMembers = can("members.manage");
   const canDepts = can("departments.manage");
@@ -41,7 +41,6 @@ export default function Equipe() {
           <p className="text-sm text-muted-foreground">{org.name}</p>
         </div>
 
-        <GreetingSetting orgId={org.id} canEdit={can("org.settings")} />
 
         {data.loading ? (
           <div className="flex justify-center py-12">
@@ -54,6 +53,7 @@ export default function Equipe() {
               <TabsTrigger value="departamentos">Departamentos</TabsTrigger>
               <TabsTrigger value="grupos">Grupos</TabsTrigger>
               {canMembers && hasModule("telefonia") && <TabsTrigger value="ramais">Ramais</TabsTrigger>}
+              <TabsTrigger value="mensagens">Mensagens automáticas</TabsTrigger>
             </TabsList>
             <TabsContent value="membros" className="pt-4">
               <MembersTab orgId={org.id} data={data} canManage={canMembers} myRole={org.role} />
@@ -63,6 +63,9 @@ export default function Equipe() {
             </TabsContent>
             <TabsContent value="grupos" className="pt-4">
               <GroupsTab kind="teams" orgId={org.id} data={data} canManage={canDepts} />
+            </TabsContent>
+            <TabsContent value="mensagens" className="pt-4">
+              <GreetingSetting orgId={org.id} canEdit={can("org.settings")} />
             </TabsContent>
             {canMembers && (
               <TabsContent value="ramais" className="pt-4">

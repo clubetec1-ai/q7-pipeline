@@ -142,6 +142,9 @@ export default function Supervisor() {
                       <p className="text-xs text-muted-foreground">
                         {q.queued ? `na fila · maior espera ${since(q.oldest_queued_at)}` : "fila vazia"}
                       </p>
+                      {!q.department_id && q.queued > 0 && (
+                        <p className="text-[11px] text-muted-foreground mt-1">Sem setor: escolha o setor de cada caixa de e-mail e número em Configurações; e-mail que não é cliente, use “Não é atendimento”.</p>
+                      )}
                     </div>
                   );
                 })}

@@ -1,4 +1,5 @@
 import { NumberHealthBanner } from "@/components/NumberHealthBanner";
+import { IgnoredSenders } from "./numeros/IgnoredSenders";
 import { AppHeader } from "@/components/AppHeader";
 import { useCallback, useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
@@ -194,6 +195,7 @@ export default function Numeros() {
           </div>
         )}
         <EmailAccounts orgId={org.id} />
+        <IgnoredSenders orgId={org.id} canManage={can("org.settings")} />
       </main>
 
       <AddNumberDialog open={adding} orgId={org.id} reconnectId={reconnectId}

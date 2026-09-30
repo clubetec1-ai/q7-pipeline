@@ -7,12 +7,12 @@ import { supabase } from "@/integrations/supabase/client";
  * de conteúdo.
  */
 export interface SetupStatus {
-  whatsapp: number; whatsappOnline: number; email: number; ramais: number; nvoip: boolean;
+  whatsapp: number; whatsappOnline: number; email: number; emailNoDept: number; ramais: number; nvoip: boolean;
   tags: number; tagScopes: number; groups: number; library: number; aiOn: number; flowsLive: number; knowledge: number;
   integrations: number; payments: boolean; aiKeys: number; departments: number; members: number; diagApproved: number; brand: boolean; processes: number; planned: number;
 }
 const EMPTY: SetupStatus = {
-  whatsapp: 0, whatsappOnline: 0, email: 0, ramais: 0, nvoip: false, tags: 0, tagScopes: 0, groups: 0, library: 0, aiOn: 0,
+  whatsapp: 0, whatsappOnline: 0, email: 0, emailNoDept: 0, ramais: 0, nvoip: false, tags: 0, tagScopes: 0, groups: 0, library: 0, aiOn: 0,
   flowsLive: 0, knowledge: 0, integrations: 0, payments: false, aiKeys: 0, departments: 0, members: 0, diagApproved: 0, brand: false, processes: 0, planned: 0,
 };
 
@@ -23,10 +23,11 @@ export function useSetupStatus(orgId: string | undefined) {
     if (!orgId) return;
     const n = (q: PromiseLike<{ count: number | null }>) => Promise.resolve(q).then((r) => r.count ?? 0);
     const head = { count: "exact" as const, head: true };
-    const [whatsapp, whatsappOnline, email, ramais, tags, tagScopes, groups, library, aiOn, flowsLive, knowledge, integrations, departments, members, voice, profile, orgRow, keys] = await Promise.all([
+    const [whatsapp, whatsappOnline, email, emailNoDept, ramais, tags, tagScopes, groups, library, aiOn, flowsLive, knowledge, integrations, departments, members, voice, profile, orgRow, keys] = await Promise.all([
       n(supabase.from("whatsapp_instances").select("id", head).eq("organization_id", orgId)),
       n(supabase.from("whatsapp_instances").select("id", head).eq("organization_id", orgId).eq("status", "connected")),
       n(supabase.from("email_accounts").select("id", head).eq("organization_id", orgId)),
+      n(supabase.from("email_accounts").select("id", head).eq("organization_id", orgId).is("department_id", null).neq("status", "disabled")),
       n(supabase.from("pbx_extensions").select("id", head).eq("organization_id", orgId)),
       n(supabase.from("tags").select("id", head).eq("organization_id", orgId)),
       n(supabase.from("tag_departments").select("tag_id", head).eq("organization_id", orgId)),
@@ -45,7 +46,7 @@ export function useSetupStatus(orgId: string | undefined) {
     ]);
     const p = profile.data as { steps?: Record<string, { approved_at?: string }>; sections?: Record<string, string>; brand?: { colors?: unknown[] }; processes?: { implementar?: string }[] } | null;
     setStatus({
-      whatsapp, whatsappOnline, email, ramais, nvoip: !!voice.data?.has_credentials, tags, tagScopes, groups, library, aiOn, flowsLive,
+      whatsapp, whatsappOnline, email, emailNoDept, ramais, nvoip: !!voice.data?.has_credentials, tags, tagScopes, groups, library, aiOn, flowsLive,
       knowledge, integrations, departments, members,
       aiKeys: Object.values((keys.data as Record<string, boolean> | null) ?? {}).filter(Boolean).length,
       payments: ((orgRow.data?.settings ?? {}) as { payments?: { provider?: string } }).payments?.provider === "asaas",

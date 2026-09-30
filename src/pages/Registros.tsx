@@ -184,7 +184,17 @@ export default function Registros() {
         </div>
 
         {types.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{manage ? "Crie o primeiro tipo de registro (há modelos prontos)." : "Nenhum tipo de registro disponível para você."}</p>
+          manage ? (
+            <div className="rounded-lg border p-4 space-y-2">
+              <p className="text-sm">Crie o primeiro tipo de registro. Comece de um modelo pronto e ajuste os campos:</p>
+              <div className="flex flex-wrap gap-2">
+                {Object.keys(PRESETS).map((k) => (
+                  <Button key={k} size="sm" variant="outline" onClick={() => setTypeDraft({ ...PRESETS[k], key: "" })}>{k}</Button>
+                ))}
+                <Button size="sm" variant="ghost" onClick={() => setTypeDraft({ ...EMPTY })}>Em branco</Button>
+              </div>
+            </div>
+          ) : <p className="text-sm text-muted-foreground">Nenhum tipo de registro disponível para você.</p>
         ) : (
           <>
             <div className="flex flex-wrap items-center gap-2">
