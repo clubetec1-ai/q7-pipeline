@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { AppHeader } from "@/components/AppHeader";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Check, Eraser, Globe, LogOut, Mic, Paperclip, Pencil, RotateCcw, Sparkles, Square, Target, Undo2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/contexts/OrgContext";
@@ -118,7 +119,13 @@ export default function Diagnostico() {
     if (goTo !== undefined) setPage(goTo);
     return p;
   }, [org]);
-  useEffect(() => { void load().then((p) => p && setPage(p.stage === "processos" ? "setores" : p.stage || "empresa")); }, [load]);
+  // ?pagina=marca (menu "Marca") abre direto na etapa; senão, onde parou.
+  const [params] = useSearchParams();
+  const wanted = params.get("pagina");
+  useEffect(() => {
+    void load().then((p) => p && setPage(wanted && (STEPS.some((s) => s.key === wanted) || wanted.startsWith("proc:")) ? wanted
+      : p.stage === "processos" ? "setores" : p.stage || "empresa"));
+  }, [load, wanted]);
 
   // Setores aprovados viram páginas de processos.
   const sectors = useMemo(() => {
@@ -349,16 +356,7 @@ export default function Diagnostico() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <header className="border-b px-4 h-14 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <Logo horizontal width={26} height={26} />
-          <MainNav active="diagnostico" />
-        </div>
-        <div className="flex items-center gap-1">
-          <ThemeToggle />
-          <Button variant="ghost" size="icon" title="Sair" onClick={async () => { await signOut(); navigate("/login"); }}><LogOut className="w-4 h-4" /></Button>
-        </div>
-      </header>
+      <AppHeader active="diagnostico" />
       <NumberHealthBanner />
 
       <main className="flex-1 w-full max-w-6xl mx-auto p-4 sm:p-6 grid gap-6 md:grid-cols-[220px_1fr]">
@@ -429,6 +427,12 @@ export default function Diagnostico() {
                   ))}
                   {setor && profile.processes.filter((p) => (p.setor || p.area) === setor).map((p, i) => <ProcCard key={i} p={p} />)}
                   {setor && <p className="text-xs text-muted-foreground">Defina o que implementar agora ou depois em <button type="button" className="underline" onClick={() => setPage("setores")}>Setores → Plano de implementação</button>.</p>}
+                  {page === "setores" && (
+                    <div className="rounded-md border border-primary/40 bg-primary/5 p-3 text-sm flex flex-wrap items-center justify-between gap-2">
+                      <span>Os setores aprovados viram setores de verdade no sistema (fila, cor e equipe) em <b>Setores e processos</b>.</span>
+                      <Button size="sm" variant="outline" onClick={() => navigate("/setores")}>Criar setores no sistema</Button>
+                    </div>
+                  )}
                   {page === "setores" && (
                     <ImplementationBoard processes={profile.processes} sectors={sectors} priority={priority} busy={busy === "priority"}
                       onChange={(n) => void saveProcesses(n as Proc[])} onPrioritize={prioritize} />

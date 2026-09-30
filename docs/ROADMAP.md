@@ -270,6 +270,19 @@ exportar CSV com auditoria. Falta: PDF, período personalizado, envio automátic
   empresa · Configurações), central de Configurações em cartões com situação (configurado/pendente), página
   "Setores e processos" alimentada pelo Diagnóstico, tela Início com "Primeiros passos". Fase 2 — visual: painel
   Início com indicadores e gráficos, cartões e cores consistentes, cor da marca da empresa no tema.
+  *Fase 1 entregue (30/09): cabeçalho único nas telas (com o sino em todas); menu novo — topo Início · Conversas ·
+  Kanban · Chat equipe; grupos Clientes · Gestão · Minha empresa (Diagnóstico, Marca, Setores e processos, Equipe e
+  permissões) · Configurações · Conta; central de Configurações em cartões (Canais, Atendimento, IA e automação,
+  Integrações e conta) com situação configurado/pendente/opcional e barra de progresso; tela Início com "Primeiros
+  passos" (8 passos em ordem, o próximo em destaque, cada um abre a tela certa); página Setores e processos (cartão por
+  setor com cor, pessoas e processos; "Criar no sistema" para os setores mapeados no Diagnóstico; plano de
+  implementação). Endereços antigos continuam funcionando.*
+- **Software autogerenciável (princípio, 30/09):** quanto menos depender de pessoas para **vender, implantar,
+  acompanhar e dar suporte**, melhor. Agentes de IA, chatbot, passos guiados, checagens e alertas automáticos resolvem
+  de forma simples, com menos ocorrências. Próximos passos nessa linha: assistente dentro do app ("como faço…?") que
+  responde e leva à tela certa; autodiagnóstico de problemas com botão de correção (número desconectado, chave de IA
+  inválida, fluxo parado); lembretes e dicas automáticas no Início; venda e implantação autoatendidas (cadastro →
+  diagnóstico → plano → configuração guiada), deixando a equipe só para o que for complexo.
 
 ## Comercialização: módulos, planos e visão de CEO (pedido em 30/09)
 - **Habilitação por módulos** — cada empresa contrata o que precisa; exemplo do pedido: Diagnóstico, WhatsApp,
