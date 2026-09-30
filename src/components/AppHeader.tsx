@@ -1,6 +1,7 @@
 import type { ComponentProps, ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut } from "lucide-react";
+import { LogOut, Phone } from "lucide-react";
+import { togglePhonePanel, usePhoneState } from "@/lib/phoneBus";
 import { useAuth } from "@/contexts/AuthContext";
 import { Logo } from "@/components/Logo";
 import { MainNav } from "@/components/MainNav";
@@ -12,6 +13,7 @@ import { Button } from "@/components/ui/button";
 export function AppHeader({ active, extra }: { active: ComponentProps<typeof MainNav>["active"]; extra?: ReactNode }) {
   const { signOut } = useAuth();
   const navigate = useNavigate();
+  const phone = usePhoneState();
   return (
     <header className="border-b px-4 h-14 flex items-center justify-between shrink-0 bg-background/95 backdrop-blur sticky top-0 z-40">
       <div className="flex items-center gap-3 min-w-0">
@@ -20,6 +22,13 @@ export function AppHeader({ active, extra }: { active: ComponentProps<typeof Mai
       </div>
       <div className="flex items-center gap-1 shrink-0">
         {extra}
+        {phone.available && (
+          <Button variant="ghost" size="icon" title={`Ramal: ${phone.status}`} onClick={togglePhonePanel}
+            className={`relative ${phone.ringing ? "bg-emerald-600 text-white animate-pulse hover:bg-emerald-700" : ""}`}>
+            <Phone className="w-4 h-4" />
+            <span className={`absolute top-1.5 right-1.5 w-2 h-2 rounded-full ${phone.dot}`} />
+          </Button>
+        )}
         <NotificationsBell />
         <ThemeToggle />
         <Button variant="ghost" size="icon" title="Sair" onClick={async () => { await signOut(); navigate("/login"); }}>

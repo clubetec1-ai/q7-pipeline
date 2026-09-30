@@ -310,6 +310,15 @@ Passadas 25 telas logado como dono/operador, sem erros de JavaScript no console.
   (4) o aviso "Processos: aprove os setores primeiro" fica logo abaixo de Setores; (8) o grupo do menu mantém o
   próprio nome e nunca quebra linha ("Plataforma" sem o "(Clubetec)"); (14) o endereço do webhook no painel antigo
   só aparece para a Clubetec.*
+- *Passo 2 entregue (30/09): tela própria do **Agente de IA** (ligar/desligar, situação da IA sem mostrar chave,
+  "como o agente se comporta" com texto sugerido — marca, regras e clientes do Diagnóstico entram sozinhos —,
+  follow-up automático e "Testar a IA", que agora testa o provedor padrão da empresa); **Configurações → Chaves de
+  IA** (chave por provedor no cofre, provedor padrão, leitura de mídia e segredos do "Consultar sistema"), com cartão
+  na central — saiu de dentro de Fluxos; o 📞 virou ícone no cabeçalho (pisca verde quando toca e o painel abre
+  sozinho), sem cobrir nada.*
+- **Gerente de projetos + CEO (pedido em 30/09):** revisar cada etapa do projeto (se está correto, se todas as etapas
+  e "times" estão alinhados), cobrar documentação técnica, layout/cores, segurança e organização; e sugerir quais
+  outros agentes (papéis) colocar para o projeto ficar 100% seguro e funcional.
 
 ## Repaginação do layout e cliente guiado (pedido em 30/09 — antes dos módulos)
 - **Reorganizar o menu:** tudo que é configuração/instalação num lugar só (hoje WhatsApp, ramais, equipe, etiquetas
