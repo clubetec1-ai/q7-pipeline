@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const action = String(body?.action ?? "");
-    if (!["message", "suggest", "research", "plan", "format", "transcribe"].includes(action)) throw new HttpError(400, "Ação inválida");
+    if (!["message", "suggest", "research", "plan", "format", "transcribe", "brand_write"].includes(action)) throw new HttpError(400, "Ação inválida");
     const ctx = await requireUser(req);
     const orgId = await resolveOrg(ctx, body?.organization_id);
     await requirePermission(ctx, orgId, "org.settings");
@@ -115,6 +115,26 @@ Deno.serve(async (req) => {
       secoes: sections,
       processos: processes.map((p) => ({ ...p, passo_a_passo: clip(p.passo_a_passo, stepChars) })),
     }).slice(0, max);
+
+    // ------------------------------------------------------------- brand_write
+    // Marketing: texto de campanha no tom de voz da marca (usa só o retrato público + a voz).
+    if (action === "brand_write") {
+      const goal = clip(body?.goal, 1500);
+      if (goal.length < 5) throw new HttpError(400, "Conte sobre o que é a mensagem.");
+      const voz = clip(sections.marca_voz, 2500);
+      const out = await ask(
+        "Você escreve mensagens de marketing para WhatsApp de uma empresa brasileira, seguindo o tom de voz da marca. " +
+        "Mensagem curta (até 600 caracteres), clara, com uma chamada para ação; use {nome} onde entra o primeiro nome do cliente. " +
+        "Não invente preços, prazos ou promoções que não estejam no pedido ou nas informações da empresa. " +
+        (voz ? "" : "A marca ainda não tem tom de voz definido: use um tom cordial e profissional. ") +
+        'Responda SOMENTE com JSON: {"texto":"","variacao":""} (variacao = uma segunda opção com outra abordagem).',
+        `Empresa: ${orgRow?.name ?? ""}\nSobre a empresa: ${clip(sections.empresa, 1500)}\nProdutos/serviços: ${clip(sections.produtos, 1500)}\n` +
+        `Tom de voz da marca:\n${voz || "(não definido)"}\n\nObjetivo da mensagem: ${goal}`,
+      );
+      const texto = clip(out.texto, 1000);
+      if (!texto) throw new HttpError(502, "Não consegui escrever agora. Tente de novo.");
+      return json({ ok: true, texto, variacao: clip(out.variacao, 1000), sem_voz: !voz });
+    }
 
     // ---------------------------------------------------------------- research
     if (action === "research") {

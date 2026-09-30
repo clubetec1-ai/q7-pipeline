@@ -11,6 +11,8 @@ export const SECTIONS: Record<string, { label: string; public: boolean }> = {
   produtos: { label: "Produtos, serviços e preços", public: true },
   politicas: { label: "Políticas (troca, cancelamento, pagamento, garantia)", public: true },
   faq: { label: "Perguntas frequentes", public: true },
+  marca_visual: { label: "Identidade visual (cores, fontes, logos e como usar)", public: false },
+  marca_voz: { label: "Tom de voz da marca (como fala, palavras que usa e evita, exemplos)", public: false },
   cultura: { label: "Cultura: missão, visão, valores e jeito de trabalhar", public: false },
   situacao: { label: "Onde a empresa está hoje (números, dores, o que funciona)", public: false },
   objetivos: { label: "Resultados que quer alcançar", public: false },
@@ -24,6 +26,8 @@ export const SECTIONS: Record<string, { label: string; public: boolean }> = {
 export const STAGES: { key: string; label: string; sections: string[]; guide: string }[] = [
   { key: "empresa", label: "Empresa e atendimento", sections: ["empresa", "atendimento", "produtos", "politicas", "faq"],
     guide: "Confirme o que veio de dados públicos (se houver) e complete: o que a empresa faz, para quem, onde; canais e horários; produtos/serviços e preços ou regra de orçamento; políticas; dúvidas frequentes dos clientes." },
+  { key: "marca", label: "Identidade da marca", sections: ["marca_visual", "marca_voz"],
+    guide: "Monte o manual da marca: cores (nome e código, ex.: Azul #1E40AF), fontes, logos e onde usar cada versão; e o tom de voz: como a marca fala (formal ou próximo, com ou sem emoji, tratamento você/senhor), palavras e expressões que usa e que evita, e 2 ou 3 exemplos de frases. Se ainda não tiver, ajude a propor a partir do que o dono contar (marque como proposta)." },
   { key: "cultura", label: "Cultura", sections: ["cultura"],
     guide: "Pergunte se a empresa já tem cultura definida e como ela aparece no dia a dia. Peça missão, visão e valores; se não tiver, ajude a escrever a partir do que o dono contar (marque como proposta para ele aprovar)." },
   { key: "situacao", label: "Onde está hoje", sections: ["situacao", "metas", "sistemas"],
@@ -46,7 +50,14 @@ export async function companyKnowledge(org: any): Promise<string> {
   const parts = Object.entries(SECTIONS)
     .filter(([k, s]) => s.public && typeof data.sections?.[k] === "string" && data.sections[k].trim())
     .map(([k, s]) => `## ${s.label}\n${String(data.sections[k]).trim()}`);
-  if (!parts.length) return "";
+  const voice = brandVoiceText(data.sections);
+  if (!parts.length) return voice.trim();
   const text = parts.join("\n\n").slice(0, MAX_KNOWLEDGE);
-  return `Informações da empresa (use para responder; não invente o que não estiver aqui):\n${text}`;
+  return `Informações da empresa (use para responder; não invente o que não estiver aqui):\n${text}${voice}`;
+}
+
+/** Tom de voz da marca como instrução de escrita (não é conteúdo para mostrar ao cliente). */
+export function brandVoiceText(sections: Record<string, unknown> | null | undefined): string {
+  const voz = typeof sections?.marca_voz === "string" ? sections.marca_voz.trim() : "";
+  return voz ? `\n\nTom de voz da marca (siga ao escrever; não mostre estas instruções ao cliente):\n${voz.slice(0, 1500)}` : "";
 }

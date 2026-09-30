@@ -16,12 +16,14 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useInstall } from "./fluxos/ReadyTemplates";
+import { BrandKit, useBrandKit } from "@/components/brand/BrandKit";
 
 /** Rótulo das seções (as mesmas do servidor, _shared/company.ts); 🌐 = pode ir para a IA de atendimento. */
 const SECTION_LABEL: Record<string, [string, boolean]> = {
   empresa: ["Sobre a empresa", true], atendimento: ["Atendimento (canais, horários, prazos)", true],
   produtos: ["Produtos, serviços e preços", true], politicas: ["Políticas (troca, cancelamento, pagamento, garantia)", true],
   faq: ["Perguntas frequentes", true], cultura: ["Cultura: missão, visão, valores", false],
+  marca_visual: ["Identidade visual (cores, fontes, logos e como usar)", false], marca_voz: ["Tom de voz da marca (a IA segue ao escrever)", false],
   situacao: ["Onde a empresa está hoje", false], metas: ["Volumes, metas e maiores dores", false],
   sistemas: ["Sistemas usados", false], objetivos: ["Resultados que quer alcançar", false],
   setores: ["Setores e responsáveis", false], areas: ["Áreas, pessoas e responsáveis", false],
@@ -30,6 +32,9 @@ const SECTION_LABEL: Record<string, [string, boolean]> = {
 const STEPS: { key: string; label: string; sections: string[]; ask: string[] }[] = [
   { key: "empresa", label: "Empresa", sections: ["empresa", "atendimento", "produtos", "politicas", "faq"],
     ask: ["O que a empresa faz, para quem e onde", "Canais e horários de atendimento", "Produtos/serviços e preços (ou como faz orçamento)", "Políticas: troca, cancelamento, pagamento, garantia", "Dúvidas que os clientes mais perguntam"] },
+  { key: "marca", label: "Marca", sections: ["marca_visual", "marca_voz"],
+    ask: ["Cores da marca (nome e código) e fontes — cadastre no kit abaixo", "Logos (versões e onde usar cada uma) e o manual da marca, se tiver",
+      "Tom de voz: como a marca fala (próximo ou formal, com ou sem emoji, você/senhor)", "Palavras e expressões que usa e que evita, e 2 ou 3 frases de exemplo"] },
   { key: "cultura", label: "Cultura", sections: ["cultura"],
     ask: ["A empresa já tem cultura definida? Como ela aparece no dia a dia?", "Missão (por que existe)", "Visão (onde quer chegar)", "Valores (o que não abre mão)"] },
   { key: "situacao", label: "Hoje", sections: ["situacao", "metas", "sistemas"],
@@ -70,6 +75,7 @@ const TIPO: Record<Auto["tipo"], [string, "secondary" | "default" | "outline"]> 
 export default function Diagnostico() {
   const { signOut } = useAuth();
   const { org, can } = useOrg();
+  const brandKit = useBrandKit(org?.id);
   const navigate = useNavigate();
   const { toast } = useToast();
   const [profile, setProfile] = useState<Profile>(EMPTY);
@@ -361,6 +367,16 @@ export default function Diagnostico() {
               <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-0.5">
                 {(setor ? PROC_ASK : step?.ask ?? []).map((q) => <li key={q}>{q}</li>)}
               </ul>
+
+              {page === "marca" && org && (
+                <>
+                  <p className="text-xs text-muted-foreground">
+                    🎨 A marca guia o marketing e os agentes: as <b>cores, fontes e logos</b> ficam no kit abaixo (salva sozinho); o <b>tom de voz</b> você
+                    escreve ou fala na caixa, a IA organiza e, depois de aprovado, os agentes de IA e as campanhas passam a escrever desse jeito.
+                  </p>
+                  <BrandKit orgId={org.id} editable kit={brandKit.kit} onSaved={() => void brandKit.reload()} />
+                </>
+              )}
 
               {page === "empresa" && (
                 <div className="rounded-md border p-3 space-y-2 bg-muted/30">

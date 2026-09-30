@@ -1118,6 +1118,19 @@ BEGIN
     AND (SELECT count(*) FROM public.notifications WHERE kind = 'missed_call' AND user_id = agent_a) = 1, 'aviso nao repete');
   PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.calls WHERE provider_call_id IS NOT NULL') = 0, 'outra org nao ve ligacoes da central');
 
+  -- 58. Marca: so dono/admin (ou campanhas) le e envia; atendente e outra org nunca.
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('UPDATE public.company_profiles SET brand = %L::jsonb WHERE organization_id = %L',
+    '{"colors":[{"name":"Azul","hex":"#1E40AF"}]}', A)) = 'ok:1', 'dono salva as cores da marca');
+  PERFORM pg_temp.expect(pg_temp.t(owner_a, format('SELECT public.brand_kit(%L)->%L->%L->0->>%L', A, 'brand', 'colors', 'hex')) = '#1E40AF', 'dono le a marca');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.brand_kit(%L)', A), 'atendente nao le a marca');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.brand_kit(%L)', A), 'outra org nao le a marca');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('INSERT INTO storage.objects (bucket_id, name) VALUES (%L, %L)', 'brand', A::text || '/logo.png')) = 'ok:1', 'dono envia logo');
+  PERFORM pg_temp.expect_error(agent_a, format('INSERT INTO storage.objects (bucket_id, name) VALUES (%L, %L)', 'brand', A::text || '/x.png'), 'atendente nao envia logo');
+  PERFORM pg_temp.expect_error(owner_b, format('INSERT INTO storage.objects (bucket_id, name) VALUES (%L, %L)', 'brand', A::text || '/y.png'), 'outra org nao envia logo');
+  PERFORM pg_temp.expect_error(owner_a, format('INSERT INTO storage.objects (bucket_id, name) VALUES (%L, %L)', 'brand', A::text || '/../z.png'), 'caminho fora do padrao recusado');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, format('SELECT count(*) FROM storage.objects WHERE bucket_id = %L', 'brand')) = 0, 'atendente nao ve os arquivos da marca');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, format('SELECT count(*) FROM storage.objects WHERE bucket_id = %L', 'brand')) = 0, 'outra org nao ve os arquivos da marca');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 

@@ -580,6 +580,7 @@ export type Database = {
       }
       company_profiles: {
         Row: {
+          brand: Json
           organization_id: string
           plan: Json
           plan_at: string | null
@@ -595,6 +596,7 @@ export type Database = {
           use_in_ai: boolean
         }
         Insert: {
+          brand?: Json
           organization_id: string
           plan?: Json
           plan_at?: string | null
@@ -610,6 +612,7 @@ export type Database = {
           use_in_ai?: boolean
         }
         Update: {
+          brand?: Json
           organization_id?: string
           plan?: Json
           plan_at?: string | null
@@ -3415,6 +3418,7 @@ export type Database = {
         Args: { ext: string; member: string }
         Returns: undefined
       }
+      brand_kit: { Args: { org: string }; Returns: Json }
       campaign_audience: {
         Args: { groups: string[]; org: string }
         Returns: Json
