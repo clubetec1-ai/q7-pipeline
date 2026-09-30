@@ -1,6 +1,6 @@
 import { Link, Navigate } from "react-router-dom";
 import {
-  Bot, BookOpen, Library, Mail, MessageSquare, PhoneCall, Plug, Settings2, ShieldCheck, Shuffle, Tags, Workflow, type LucideIcon,
+  Bot, BookOpen, Library, Mail, MessageSquare, PhoneCall, Plug, Settings2, ShieldCheck, Shuffle, Tags, Wallet, Workflow, type LucideIcon,
 } from "lucide-react";
 import { useOrg } from "@/contexts/OrgContext";
 import { AppHeader } from "@/components/AppHeader";
@@ -55,6 +55,8 @@ export default function Configuracoes() {
         state: s.knowledge ? "ok" : "optional", detail: s.knowledge ? `${s.knowledge} documento(s)` : undefined, show: manage || lib },
     ] },
     { title: "Integrações e conta", cards: [
+      { title: "Cobranças (Asaas)", desc: "Chave de API do Asaas, ambiente e regras: quem pode cobrar, aviso de pagamento e lembretes.", to: "/configuracoes/cobrancas",
+        icon: Wallet, color: "#10B981", state: s.payments ? "ok" : "optional", detail: s.payments ? "Asaas conectado" : undefined, show: manage },
       { title: "Integrações", desc: "Conectar outros sistemas (ERP, cobrança, agenda) para a IA e os fluxos.", to: "/integracoes", icon: Plug, color: "#64748B",
         state: s.integrations ? "ok" : "optional", detail: s.integrations ? `${s.integrations} integração(ões)` : undefined, show: manage },
       { title: "Segurança", desc: "Verificação em duas etapas (MFA) e códigos de recuperação.", to: "/seguranca", icon: ShieldCheck, color: "#EF4444",
