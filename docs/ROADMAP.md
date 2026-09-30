@@ -155,6 +155,33 @@ Objetivo: a ligação cai na mesma tela do WhatsApp.
   aprovado, "Plano de implementação por setor" com Agora / Depois (data de lembrete) / Não em cada processo;
   lembrete diário às 9h no sino do dono/admin (uma vez por data); "Por onde começar? (IA)" ordena os setores pelo
   resultado esperado, com motivo, ganho e por quais processos começar. A escolha se mantém ao refazer um setor.*
+- **Diagnóstico 3.0 — revisão da entrevista como especialista (pedido em 30/09)** — conferir o que falta e a melhor
+  sequência para ficar fácil para o cliente e para implantar os agentes. Proposta:
+  - **Faltam:** (1) **Clientes e jornada** — quem compra, como chega, o que pergunta antes de comprar, objeções,
+    etapas até fechar (vira qualificação do lead e as etapas do Kanban); (2) **Regras do atendimento e limites da
+    IA** — o que a IA pode e não pode dizer/fazer, quando passar para uma pessoa, horários, prazos, dados sensíveis
+    (vira as regras do agente, com segurança); (3) **Números de partida** — tempo de resposta, volume e conversão
+    de hoje (base para medir a melhoria contínua); (4) **Sistemas e dados** em etapa própria — onde fica estoque,
+    pedido, agenda, se tem API (vira guia de integração); (5) **Pós-venda** — follow-up, pesquisa, cobrança,
+    recompra; (6) **Testar o agente** antes de publicar (conversa simulada) e **publicar e medir** (30 dias).
+  - **Sequência sugerida em 4 blocos:** Conhecer (Empresa → Clientes e jornada → Produtos, preços e políticas;
+    ao final já dá para testar um agente de atendimento — valor rápido) · Identidade (Marca; Cultura opcional) ·
+    Como funciona hoje (Números de partida → Objetivos → Setores e equipe → Processos do setor prioritário →
+    Sistemas e dados) · Agentes (Regras e limites → Plano → Implantação por setor → Testar → Publicar e medir).
+  - **Mais fácil para o cliente:** cada etapa em até ~5 minutos com 3 a 5 perguntas e exemplo, botão "não sei /
+    pular", tempo estimado por etapa, modelos por nicho que já vêm preenchidos, perguntas de complemento só do que
+    faltou, e convite para o responsável de cada setor responder a parte dele.
+  - **Modelo da Clubetec (pedido em 30/09):** modelo por tipo de empresa focado na própria Clubetec (vende e implanta
+    software + suporte técnico), com exemplos em cada etapa; serve depois para empresas de software, TI e suporte.
+  *Entregue (30/09), 1ª parte: etapas novas **Clientes e jornada** (depois de Empresa) e **Regras e limites da IA**
+  (depois dos processos) — os agentes de IA recebem as regras como instrução que vale acima de qualquer pedido do
+  cliente e o perfil dos clientes para qualificar; entrevista em 4 blocos (Conhecer · Identidade · Como funciona hoje
+  · Agentes) com tempo estimado por etapa; Cultura opcional; "Hoje" pede os números de partida; botão **"Não sei /
+  pular"** (etapa fica marcada e dá para voltar); **modelo "Software e suporte técnico"** com exemplos prontos para
+  todas as etapas e para os processos de Vendas, Suporte técnico, Implantação e treinamento, Sucesso do cliente e
+  Financeiro ("Usar exemplo" preenche a caixa para editar). Falta: etapa Sistemas e dados própria, Pós-venda,
+  Testar o agente (conversa simulada) e Publicar e medir, outros modelos por nicho, convite ao responsável do setor.*
+
 - *Pendência técnica (30/09):* o caso 55 dos testes de isolamento (etiquetas por setor) falhou uma vez e passou na
   execução seguinte sem mudança — investigar a intermitência (provável condição dependente de hora/dados).
 - **Agentes e fluxos prontos + guia de integração (pedido em 28/09)** — separar as automações em dois grupos:
