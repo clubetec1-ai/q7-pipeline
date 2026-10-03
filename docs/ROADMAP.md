@@ -176,13 +176,21 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
   INPI: nenhuma "Renova AI"/"Clube RenovAI"; "Renovai" só num brechó, classe 35; renovai.com.br e .com indisponíveis).
 
 ### 🙋 Pendências do dono (fora do código)
-- Decidir: logo do Clube Renova+; preços, pacotes e franquia de IA dos planos; próximo nicho; criptografia por campo; o que
+- Decidir: aprovar o logo do Deixa com a IA; preços, pacotes e franquia de IA dos planos; próximo nicho; criptografia por campo; o que
   fazer com a empresa de teste sem uso "Auto Center Modelo (TESTE)".
 - Fazer: parecer de propriedade industrial e pedido no INPI; comprar os domínios; gerar os códigos de recuperação do MFA;
   número de teste de WhatsApp; cobrar da Nvoip a permissão do histórico (403); respostas da Handphone; número fixo na
   Meta; validar o Bling com conta real; contas pagas (Supabase, Groq) antes do 1º cliente.
 
 ### Nome comercial e domínio (pedido em 02/10)
+**✅ Nome fechado em 03/10: Deixa com a IA** (substitui o Clube Renova+). Frase de venda: "Atendimento, organização e
+melhoria da sua empresa? Deixa com a IA." Domínios livres em 03/10: **deixacomaia.com.br** e **.com**, e também
+**deixecomaia.com.br** e **.com** (para quem digitar "deixe"); INPI: nenhuma marca "deixa com a IA". Logo (rascunho de
+03/10): "Deixa com a" em azul-petróleo e o **"IA" dentro de um quadradinho verde em forma de balão de conversa**, com
+três pontinhos (a IA pensando); assinatura "uma solução Clubetec"; versões clara, escura, empilhada e ícone do app (o
+balão com IA). 🙋 Próximos passos: comprar os 4 domínios, parecer de agente de propriedade industrial e pedido de marca
+mista (classes 42 e 9; 35 se vender consultoria) em nome da Clubetec, arte final com designer; depois, trocar o nome nas
+telas, e-mails, links e no app da Meta (só depois da aprovação da análise).
 **Mais ideias (02/10, "reset"):** "Clube Re7" (resete = reset) descartado — clubereset.com.br tem dono. Com
 .com.br e .com livres e "Clube X" sem processo no INPI: **Clube Virada** ("virada de chave"; "virada" com 1 marca na 42),
 **Clube Reboot** (0 na 42), Clube Set (11), Clube Rumo (7), Clube Chave (7), Clube Passo (8).
