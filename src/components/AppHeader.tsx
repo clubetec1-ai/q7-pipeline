@@ -1,6 +1,6 @@
 import type { ComponentProps, ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { Building2, LogOut, Mail, Moon, Phone, ShieldCheck, Sun, UserCog } from "lucide-react";
+import { Building2, LogOut, Mail, MessagesSquare, Moon, Phone, ShieldCheck, Sun, UserCog } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useOrg } from "@/contexts/OrgContext";
 import { togglePhonePanel, usePhoneState } from "@/lib/phoneBus";
@@ -45,6 +45,9 @@ export function AppHeader({ active, extra }: { active: ComponentProps<typeof Mai
             <span className={`absolute top-1.5 right-1.5 w-2 h-2 rounded-full ${phone.dot}`} />
           </Button>
         )}
+        <Button asChild variant="ghost" size="sm" className="h-9 px-2 hidden lg:inline-flex" title="Equipe (chat interno)">
+          <Link to="/chat"><MessagesSquare className="w-4 h-4 xl:mr-1" /><span className="hidden xl:inline">Equipe</span></Link>
+        </Button>
         <AppAssistant />
         <NotificationsBell />
         {/* Menu da pessoa: conta, tema e sair num lugar só (cabeçalho mais limpo). */}

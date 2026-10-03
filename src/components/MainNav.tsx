@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import {
-  Activity, BarChart3, Building2, ChevronDown, ClipboardCheck, ClipboardList, Contact, Filter, Home, Layers, Megaphone, Menu,
-  MessageSquare, MessagesSquare, Palette, RefreshCw, Settings2, ShieldCheck, Target, Trello, UserCog, UsersRound, Wallet,
+  Activity, BarChart3, Building2, ChevronDown, ClipboardCheck, ClipboardList, Contact, Filter, Home, Megaphone, Menu,
+  MessageSquare, MessagesSquare, RefreshCw, Settings2, ShieldCheck, Trello, UserCog, Wallet,
   type LucideIcon,
 } from "lucide-react";
 import { useOrg } from "@/contexts/OrgContext";
@@ -14,17 +14,19 @@ type Section = "inicio" | "conversas" | "kanban" | "registros" | "cobrancas" | "
   | "relatorios" | "etiquetas" | "chat" | "ramais" | "setores" | "configuracoes" | "plataforma" | "funil";
 interface Item { key: Section; to: string; label: string; icon: LucideIcon; show: boolean; also?: Section[] }
 
-/** Telas de instalação: ficam dentro da central de Configurações (o menu destaca "Configurações"). */
-const CONFIG_PAGES: Section[] = ["configuracoes", "numeros", "ramais", "etiquetas", "biblioteca", "agente", "fluxos", "conhecimento", "integracoes"];
+/** Telas de instalação e da empresa: ficam dentro da central de Configurações (o menu destaca "Configurações"). */
+const CONFIG_PAGES: Section[] = ["configuracoes", "numeros", "ramais", "etiquetas", "biblioteca", "agente", "fluxos", "conhecimento", "integracoes",
+  "diagnostico", "setores", "equipe", "seguranca"];
 
 const base = "px-2.5 py-1.5 text-sm rounded-md transition inline-flex items-center gap-1.5 whitespace-nowrap";
 const activeCls = `${base} bg-muted font-medium`;
 const idleCls = `${base} text-muted-foreground hover:bg-muted`;
 
 /**
- * Menu principal: o dia a dia no topo (Início, Conversas, Kanban, Chat) e o resto
- * em grupos — Clientes, Gestão, Minha empresa, Configurações (uma central só) e
- * Conta. Grupo com um item só vira link direto. No celular, tudo fica no botão ☰.
+ * Menu principal com no máximo 6 itens, sempre com nome: Início, Conversas, Funil,
+ * Clientes, Resultados e Configurações (uma central só, que também reúne a empresa,
+ * setores e equipe). O chat interno fica no cabeçalho ("Equipe"); conta e segurança,
+ * no menu da pessoa. Grupo com um item só vira link direto. No celular, tudo no ☰.
  */
 export function MainNav({ active }: { active: Section }) {
   const { can, isOperator, orgs, org, selectOrg, hasModule } = useOrg();
@@ -35,28 +37,21 @@ export function MainNav({ active }: { active: Section }) {
   const top: Item[] = [
     { key: "inicio", to: "/inicio", label: "Início", icon: Home, show: true },
     { key: "conversas", to: "/", label: "Conversas", icon: MessageSquare, show: true },
-    { key: "kanban", to: "/kanban", label: "Kanban", icon: Trello, show: true },
-    { key: "chat", to: "/chat", label: "Chat", icon: MessagesSquare, show: true },
+    { key: "kanban", to: "/kanban", label: "Funil", icon: Trello, show: true },
   ];
   const groups: { label: string; icon: LucideIcon; items: Item[] }[] = [
     { label: "Clientes", icon: Contact, items: [
       { key: "clientes", to: "/clientes", label: "Clientes e fichas", icon: Contact, show: attend || manage || reports },
-      { key: "registros", to: "/registros", label: "Registros", icon: ClipboardList, show: true },
+      { key: "registros", to: "/registros", label: "Registros", icon: ClipboardList, show: manage || reports },
       { key: "cobrancas", to: "/cobrancas", label: "Cobranças", icon: Wallet, show: (manage || reports || attend) && hasModule("cobrancas") },
       { key: "campanhas", to: "/campanhas", label: "Campanhas", icon: Megaphone, show: can("campaigns.manage") && hasModule("campanhas") },
     ] },
-    { label: "Gestão", icon: Activity, items: [
+    { label: "Resultados", icon: BarChart3, items: [
+      { key: "supervisor", to: "/supervisor", label: "Agora (equipe e fila)", icon: Activity, show: reports && hasModule("gestao") },
       { key: "relatorios", to: "/relatorios", label: "Relatórios", icon: BarChart3, show: manage || reports || attend },
       { key: "funil", to: "/funil", label: "Funil de vendas", icon: Filter, show: manage || reports },
-      { key: "supervisor", to: "/supervisor", label: "Supervisor", icon: Activity, show: reports && hasModule("gestao") },
       { key: "avaliacoes", to: "/avaliacoes", label: "Avaliações", icon: ClipboardCheck, show: (reports || attend) && hasModule("gestao") },
       { key: "melhorias", to: "/melhorias", label: "Melhorias", icon: RefreshCw, show: (manage || reports) && hasModule("gestao") },
-    ] },
-    { label: "Minha empresa", icon: Building2, items: [
-      { key: "diagnostico", to: "/diagnostico", label: "Diagnóstico", icon: Target, show: manage && hasModule("diagnostico") },
-      { key: "diagnostico", to: "/diagnostico?pagina=marca", label: "Marca", icon: Palette, show: manage && hasModule("diagnostico") },
-      { key: "setores", to: "/setores", label: "Setores e processos", icon: Layers, show: manage || can("departments.manage") },
-      { key: "equipe", to: "/equipe", label: "Equipe e permissões", icon: UsersRound, show: can("members.manage") || can("departments.manage") },
     ] },
     { label: "Configurações", icon: Settings2, items: [
       { key: "configuracoes", to: "/configuracoes", label: "Configurações", icon: Settings2, show: configures, also: CONFIG_PAGES },
@@ -68,8 +63,8 @@ export function MainNav({ active }: { active: Section }) {
   ];
   const isActive = (i: Item) => active === i.key || !!i.also?.includes(active);
   const visible = groups.map((g) => ({ ...g, items: g.items.filter((i) => i.show) })).filter((g) => g.items.length);
-  // Telas médias: só ícone (nome no title); o nome aparece em telas largas.
-  const link = (i: Item, show = "hidden 2xl:inline") => (
+  // Telas médias: só ícone (nome no title); o nome aparece a partir de telas comuns de notebook.
+  const link = (i: Item, show = "hidden xl:inline") => (
     <Link key={i.to} to={i.to} title={i.label} className={isActive(i) ? activeCls : idleCls}>
       <i.icon className="w-4 h-4" /><span className={show}>{i.label}</span>
     </Link>
@@ -90,7 +85,7 @@ export function MainNav({ active }: { active: Section }) {
               </select>
             </div>
           )}
-          {top.map((i) => (
+          {[...top, { key: "chat" as Section, to: "/chat", label: "Equipe (chat interno)", icon: MessagesSquare, show: true }].map((i) => (
             <DropdownMenuItem key={i.to} asChild><Link to={i.to} className="gap-2"><i.icon className="w-4 h-4" />{i.label}</Link></DropdownMenuItem>
           ))}
           {visible.map((g) => (
@@ -114,7 +109,7 @@ export function MainNav({ active }: { active: Section }) {
         )}
         {top.map((i) => link(i))}
         {desktop.map((g) => {
-          if (g.items.length === 1) return link(g.items[0], "hidden xl:inline");
+          if (g.items.length === 1) return link(g.items[0]);
           const current = g.items.find(isActive);
           const Icon = g.icon;
           return (

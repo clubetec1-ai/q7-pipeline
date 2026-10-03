@@ -1,6 +1,6 @@
 import { Link, Navigate } from "react-router-dom";
 import {
-  Bot, BookOpen, Clock, KeyRound, Library, Mail, MessageSquare, Palette, PhoneCall, Plug, Server, Settings2, ShieldCheck, Shuffle, Tags, Wallet, Workflow, type LucideIcon,
+  Bot, BookOpen, Clock, Filter, KeyRound, Library, Mail, MessageSquare, Palette, PhoneCall, Plug, Server, Settings2, Shuffle, Tags, Target, UsersRound, Wallet, Workflow, type LucideIcon,
 } from "lucide-react";
 import { useOrg } from "@/contexts/OrgContext";
 import { AppHeader } from "@/components/AppHeader";
@@ -30,47 +30,55 @@ export default function Configuracoes() {
   if (!manage && !lib && !team && !isOperator) return <Navigate to="/" replace />;
 
   const groups: { title: string; cards: Card[] }[] = [
-    { title: "Canais", cards: [
-      { title: "WhatsApp", desc: "Conectar números (QR ou oficial da Meta), cor e saúde de cada número.", to: "/numeros", icon: MessageSquare, color: "#10B981",
+    { title: "1. Onde seus clientes falam com você", cards: [
+      { title: "WhatsApp", desc: "Conectar o número pelo QR Code (ou o oficial da Meta) e ver se está funcionando.", to: "/numeros", icon: MessageSquare, color: "#10B981",
         state: s.whatsappOnline ? "ok" : "pending", detail: s.whatsapp ? `${s.whatsappOnline} de ${s.whatsapp} conectado(s)` : "Nenhum número", show: manage },
       { title: "E-mail", desc: "Caixas de e-mail atendidas na mesma tela das conversas.", to: "/numeros", icon: Mail, color: "#6C8EF5",
         state: !s.email ? "optional" : s.emailNoDept ? "pending" : "ok",
         detail: s.email ? `${s.email} caixa(s)${s.emailNoDept ? ` · ${s.emailNoDept} sem setor (cai na Fila geral)` : ""}` : undefined, show: manage && hasModule("canais") },
-      { title: "Telefonia e ramais", desc: "Ramal de cada atendente, MicroSIP ou navegador, e a integração Nvoip.", to: "/equipe?tab=ramais", icon: PhoneCall, color: "#3FB8BE",
-        state: s.ramais ? "ok" : "optional", detail: s.ramais ? `${s.ramais} ramal(is)${s.nvoip ? " · Nvoip ativa" : ""}` : undefined, show: team && hasModule("telefonia") },
+      { title: "Telefone", desc: "Ramal de cada atendente pelo navegador ou MicroSIP.", to: "/equipe?tab=ramais", icon: PhoneCall, color: "#3FB8BE",
+        state: s.ramais ? "ok" : "optional", detail: s.ramais ? `${s.ramais} ramal(is)` : undefined, show: team && hasModule("telefonia") },
     ] },
-    { title: "Atendimento", cards: [
-      { title: "Distribuição e saudação", desc: "Setores, fila e quem recebe cada atendimento. As mensagens automáticas (saudação e protocolo) ficam na aba Mensagens.", to: "/equipe?tab=departamentos", icon: Shuffle, color: "#F59E0B",
-        state: s.departments ? "ok" : "pending", detail: s.departments ? `${s.departments} setor(es) · ${s.members} pessoa(s)` : "Nenhum setor", show: team },
-      { title: "Horário e LGPD", desc: "Dias e horas de atendimento (fora deles, o fluxo avisa que está fechado) e as palavras para parar mensagens automáticas.",
+    { title: "2. Sua empresa (o que a IA precisa saber)", cards: [
+      { title: "Conte sobre a empresa", desc: "Diagnóstico guiado (por texto ou voz): serviços, regras, clientes e o jeito de falar.", to: "/diagnostico", icon: Target, color: "#22C1A4",
+        state: s.diagApproved ? "ok" : "pending", detail: s.diagApproved ? `${s.diagApproved} etapa(s) aprovada(s)` : "Ainda não começou", show: manage && hasModule("diagnostico") },
+      { title: "Horário de atendimento", desc: "Dias e horas de atendimento. Fora deles, o cliente é avisado que está fechado.",
         to: "/configuracoes/atendimento", icon: Clock, color: "#0EA5E9", state: s.hours ? "ok" : "pending", detail: s.hours ? "Horário definido" : "Sem horário", show: manage },
-      { title: "Etiquetas e grupos", desc: "Etiquetas por setor, grupos de clientes, cores e ícones.", to: "/etiquetas", icon: Tags, color: "#EC4899",
-        state: s.tags || s.groups ? "ok" : "pending", detail: `${s.tags} etiqueta(s) · ${s.groups} grupo(s)`, show: lib || can("contacts.groups_manage") },
-      { title: "Biblioteca e respostas", desc: "Arquivos e textos prontos para enviar no atendimento.", to: "/biblioteca", icon: Library, color: "#8B5CF6",
-        state: s.library ? "ok" : "optional", detail: s.library ? `${s.library} arquivo(s)` : undefined, show: lib },
-    ] },
-    { title: "IA e automação", cards: [
-      { title: "Chaves de IA", desc: "Chave de cada provedor (guardada no cofre, nunca aparece de novo), provedor padrão e leitura de imagens/PDF.",
-        to: "/configuracoes/ia", icon: KeyRound, color: "#8B5CF6", state: s.aiKeys || s.platformAI ? "ok" : "pending",
-        detail: s.aiKeys ? `${s.aiKeys} provedor(es) com chave` : s.platformAI ? "Usando a IA da Clubetec (incluída)" : "Nenhuma chave", show: manage && hasModule("ia") },
-      { title: "Agente de IA e follow-up", desc: "Ligar a IA, como ela se comporta, follow-up automático e teste.", to: "/agente", icon: Bot, color: "#6C8EF5",
-        state: s.aiOn ? "ok" : "pending", detail: s.aiOn ? "Agente ligado" : "Agente desligado", show: manage && hasModule("ia") },
-      { title: "Fluxos", desc: "Menus, triagem, horários e automações sem código.", to: "/fluxos", icon: Workflow, color: "#3FB8BE",
-        state: s.flowsLive ? "ok" : "pending", detail: s.flowsLive ? `${s.flowsLive} publicado(s)` : "Nenhum publicado", show: manage && hasModule("ia") },
-      { title: "Base de conhecimento", desc: "Documentos que a IA e a equipe consultam para responder.", to: "/conhecimento", icon: BookOpen, color: "#10B981",
+      { title: "Documentos para a IA", desc: "Tabelas, regras e perguntas frequentes que a IA e a equipe consultam para responder.", to: "/conhecimento", icon: BookOpen, color: "#10B981",
         state: s.knowledge ? "ok" : "optional", detail: s.knowledge ? `${s.knowledge} documento(s)` : undefined, show: (manage || lib) && hasModule("ia") },
-    ] },
-    { title: "Integrações e conta", cards: [
-      { title: "Cobranças (Asaas)", desc: "Chave de API do Asaas, ambiente e regras: quem pode cobrar, aviso de pagamento e lembretes.", to: "/configuracoes/cobrancas",
-        icon: Wallet, color: "#10B981", state: s.payments ? "ok" : "optional", detail: s.payments ? "Asaas conectado" : undefined, show: manage && hasModule("cobrancas") },
-      { title: "Integrações", desc: "Conectar outros sistemas (ERP, cobrança, agenda) para a IA e os fluxos.", to: "/integracoes", icon: Plug, color: "#64748B",
-        state: s.integrations ? "ok" : "optional", detail: s.integrations ? `${s.integrations} integração(ões)` : undefined, show: manage },
-      { title: "Uazapi — servidor global (Clubetec)", desc: "Servidor e token de administrador do WhatsApp por QR de toda a plataforma. Só a equipe Clubetec vê.",
-        to: "/admin/uazapi", icon: Server, color: "#0EA5E9", state: "optional", show: isOperator },
-      { title: "Aparência", desc: "Logo da sua empresa no topo das telas e as cores principal e secundária da marca.", to: "/configuracoes/aparencia",
+      { title: "Arquivos e respostas prontas", desc: "Arquivos e textos prontos para enviar no atendimento.", to: "/biblioteca", icon: Library, color: "#8B5CF6",
+        state: s.library ? "ok" : "optional", detail: s.library ? `${s.library} arquivo(s)` : undefined, show: lib },
+      { title: "Logo e cores", desc: "Logo da sua empresa no topo das telas e as cores principal e secundária.", to: "/configuracoes/aparencia",
         icon: Palette, color: "#22C1A4", state: "optional", show: manage },
-      { title: "Segurança", desc: "Verificação em duas etapas (MFA) e códigos de recuperação.", to: "/seguranca", icon: ShieldCheck, color: "#EF4444",
-        state: "optional", show: true },
+    ] },
+    { title: "3. Assistente de IA", cards: [
+      { title: "Ligar e testar o assistente", desc: "Ligar a IA, como ela se comporta, teste e retomar conversas paradas.", to: "/agente", icon: Bot, color: "#6C8EF5",
+        state: s.aiOn ? "ok" : "pending", detail: s.aiOn ? "Assistente ligado" : "Assistente desligado", show: manage && hasModule("ia") },
+      { title: "Menus e respostas automáticas", desc: "Menus, triagem, horário e automações sem código (fluxos).", to: "/fluxos", icon: Workflow, color: "#3FB8BE",
+        state: s.flowsLive ? "ok" : "optional", detail: s.flowsLive ? `${s.flowsLive} publicado(s)` : undefined, show: manage && hasModule("ia") },
+      { title: "Avançado: chave de IA própria", desc: "Só se quiser usar sua própria conta de IA. Sem isso, a IA da Clubetec já está incluída.",
+        to: "/configuracoes/ia", icon: KeyRound, color: "#64748B", state: s.aiKeys || s.platformAI ? "ok" : "pending",
+        detail: s.aiKeys ? `${s.aiKeys} provedor(es) com chave` : s.platformAI ? "Usando a IA da Clubetec (incluída)" : "Nenhuma IA disponível", show: manage && hasModule("ia") },
+    ] },
+    { title: "4. Equipe", cards: [
+      { title: "Pessoas e convites", desc: "Convidar atendentes e definir o que cada um pode fazer.", to: "/equipe", icon: UsersRound, color: "#F59E0B",
+        state: "optional", detail: `${s.members} pessoa(s)`, show: can("members.manage") },
+      { title: "Setores e fila", desc: "Setores, fila e quem recebe cada atendimento. Saudação e protocolo na aba Mensagens.", to: "/equipe?tab=departamentos", icon: Shuffle, color: "#F59E0B",
+        state: s.departments ? "ok" : "pending", detail: s.departments ? `${s.departments} setor(es)` : "Nenhum setor", show: team },
+      { title: "Etiquetas e grupos de clientes", desc: "Etiquetas por setor, grupos de clientes, cores e ícones.", to: "/etiquetas", icon: Tags, color: "#EC4899",
+        state: s.tags || s.groups ? "ok" : "optional", detail: `${s.tags} etiqueta(s) · ${s.groups} grupo(s)`, show: lib || can("contacts.groups_manage") },
+    ] },
+    { title: "5. Vendas e cobrança", cards: [
+      { title: "Funil de vendas", desc: "Instalar o funil pronto, ver contatos por etapa e criar links de captação.", to: "/funil", icon: Filter, color: "#8B5CF6",
+        state: "optional", show: manage },
+      { title: "Cobranças (Asaas)", desc: "Conectar o Asaas e as regras de cobrança, aviso de pagamento e lembretes.", to: "/configuracoes/cobrancas",
+        icon: Wallet, color: "#10B981", state: s.payments ? "ok" : "optional", detail: s.payments ? "Asaas conectado" : undefined, show: manage && hasModule("cobrancas") },
+      { title: "Ligar com outros sistemas", desc: "Conectar outros sistemas para a IA e os fluxos consultarem.", to: "/integracoes", icon: Plug, color: "#64748B",
+        state: s.integrations ? "ok" : "optional", detail: s.integrations ? `${s.integrations} integração(ões)` : undefined, show: manage },
+    ] },
+    { title: "Equipe Clubetec", cards: [
+      { title: "Uazapi — servidor global", desc: "Servidor e token de administrador do WhatsApp por QR de toda a plataforma. Só a equipe Clubetec vê.",
+        to: "/admin/uazapi", icon: Server, color: "#0EA5E9", state: "optional", show: isOperator },
     ] },
   ];
   const all = groups.flatMap((g) => g.cards).filter((c) => c.show && c.state !== "optional");

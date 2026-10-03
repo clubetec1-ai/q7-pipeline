@@ -7,15 +7,15 @@ export function isAutomated(headers: Header[], from: string): boolean {
   const h = (k: string) => headers.find((x) => x.key.toLowerCase() === k)?.value?.toLowerCase() ?? "";
   if (h("auto-submitted") && h("auto-submitted") !== "no") return true;
   if (/^(bulk|list|junk|auto_reply)$/.test(h("precedence"))) return true;
-  if (h("list-id") || h("list-unsubscribe") || h("x-autoreply") || h("x-autorespond")) return true;
+  if (h("list-id") || h("list-unsubscribe") || h("x-autoreply") || h("x-autorespond") || h("x-auto-response-suppress") || h("feedback-id")) return true;
   // Plataformas de disparo em massa/transacional (Mailchimp, SendGrid, SES, RD Station, HubSpot, Mailgun...).
   if (h("x-mc-user") || h("x-sg-eid") || h("x-ses-outgoing") || h("x-campaign") || h("x-campaignid") || h("x-rpcampaign")
     || h("x-hs-cid") || h("x-mailgun-tag") || h("x-mailer").includes("mailchimp") || h("x-mailer").includes("rdstation")) return true;
   const local = from.split("@")[0] ?? "";
   // "no-reply" em qualquer parte do nome (ads-support-noreply@, naoresponda@...).
   if (/(^|[._+-])(no-?reply|do-?not-?reply|nao-?responda|naoresponder)([._+-]|$)/i.test(local)) return true;
-  // Caixas que só enviam avisos (nunca são um cliente escrevendo).
-  return /^(mailer-daemon|postmaster|bounce[s]?|newsletter|news|marketing|mkt|comunicacao|comunicado[s]?|transacional|notificac(ao|oes)|notification[s]?|alert[s]?|avisos?)([._+-]|$)/i.test(local);
+  // Caixas que só enviam avisos (nunca são um cliente escrevendo): sistemas, cobrança automática, cadastro, segurança.
+  return /^(mailer-daemon|postmaster|hostmaster|webmaster|bounce[s]?|newsletter|news|marketing|mkt|comunicacao|comunicado[s]?|transacional|notificac(ao|oes)|notification[s]?|alert[s]?|avisos?|pagamento[s]?|faturamento|cobranca[s]?|billing|invoice[s]?|nfe|nf-e|notafiscal|boleto[s]?|cadastro|seguranca|security|accounts?|verify|verificacao)([._+-]|$)/i.test(local);
 }
 
 /** O remetente está na lista "Não é atendimento" da empresa (e-mail exato ou @domínio)? */
