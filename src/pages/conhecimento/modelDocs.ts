@@ -19,7 +19,7 @@ export const MODEL_DOCS: Record<string, { label: string; tip: string; docs: Mode
 
 Valores dos atos (emolumentos) seguem a tabela oficial do Tribunal de Justiça do estado, atualizada todo ano.
 - Só informe valores que estiverem na tabela oficial cadastrada nesta base de conhecimento.
-- Se a tabela oficial não estiver cadastrada, não informe valores: diga que o escrevente envia o orçamento.
+- Se a tabela oficial não estiver cadastrada, não informe valores e não prometa "verificar e retornar": diga que um escrevente confirma o valor e passe para uma pessoa.
 - Escrituras, inventários, divórcios e testamentos dependem do valor do bem e do caso: o orçamento é sempre feito por um escrevente.
 - Impostos (ITBI, ITCMD) são calculados e cobrados pela prefeitura ou pelo estado; o cartório não calcula imposto pelo WhatsApp.`,
       },
