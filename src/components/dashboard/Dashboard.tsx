@@ -23,11 +23,11 @@ async function fetchPeriod(orgId: string, from: Date, to: Date): Promise<Period 
 function Delta({ now, before, lowerIsBetter = false }: { now: number | null; before: number | null; lowerIsBetter?: boolean }) {
   if (now == null || before == null || before === 0) return null;
   const pct = Math.round(((now - before) / before) * 100);
-  if (!pct) return <span className="text-[11px] text-muted-foreground">= semana anterior</span>;
+  if (!pct) return <span className="text-xs text-muted-foreground">= semana anterior</span>;
   const good = lowerIsBetter ? pct < 0 : pct > 0;
   const Icon = pct > 0 ? ArrowUpRight : ArrowDownRight;
   return (
-    <span className={`inline-flex items-center text-[11px] font-medium ${good ? "text-emerald-600" : "text-red-600"}`}>
+    <span className={`inline-flex items-center text-xs font-medium ${good ? "text-emerald-600" : "text-red-600"}`}>
       <Icon className="w-3.5 h-3.5" />{Math.abs(pct)}%
     </span>
   );
@@ -116,7 +116,7 @@ export function Dashboard({ orgId }: { orgId: string }) {
               {hours.map((v, h) => (
                 <div key={h} className="flex-1 flex flex-col items-center justify-end h-full" title={`${h}h: ${v}`}>
                   <div className="w-full rounded-t bg-primary/80 hover:bg-primary transition" style={{ height: `${(v / maxH) * 100}%`, minHeight: v ? 3 : 0 }} />
-                  <span className="text-[9px] text-muted-foreground mt-0.5">{h % 3 === 0 ? `${h}h` : ""}</span>
+                  <span className="text-xs text-muted-foreground mt-0.5">{h % 3 === 0 ? `${h}h` : ""}</span>
                 </div>
               ))}
             </div>

@@ -210,7 +210,7 @@ function Bars({ title, values, labels }: { title: string; values: number[]; labe
         {values.map((v, i) => (
           <div key={i} className="flex-1 flex flex-col items-center justify-end h-full" title={`${labels[i]}: ${v}`}>
             <div className="w-full rounded-t bg-primary/70" style={{ height: `${(v / max) * 100}%`, minHeight: v ? 2 : 0 }} />
-            <span className="text-[9px] text-muted-foreground mt-0.5 truncate w-full text-center">{labels[i]}</span>
+            <span className="text-xs text-muted-foreground mt-0.5 truncate w-full text-center">{labels[i]}</span>
           </div>
         ))}
       </div>

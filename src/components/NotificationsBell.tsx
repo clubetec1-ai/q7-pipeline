@@ -66,7 +66,7 @@ export function NotificationsBell() {
         <Button variant="ghost" size="icon" className="relative" title="Notificações">
           <Bell className="w-4 h-4" />
           {unread > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] leading-4 px-1">
+            <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-xs leading-4 px-1">
               {unread}
             </span>
           )}
@@ -80,7 +80,7 @@ export function NotificationsBell() {
             <button key={n.id} type="button" onClick={() => open(n)}
               className={`w-full text-left px-3 py-2 text-sm border-b hover:bg-muted ${n.read_at ? "text-muted-foreground" : "font-medium"}`}>
               {(TEXT[n.kind] ?? (() => n.kind))(n.ref)}
-              <div className="text-[11px] text-muted-foreground font-normal">
+              <div className="text-xs text-muted-foreground font-normal">
                 {new Date(n.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
               </div>
             </button>

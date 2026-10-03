@@ -123,7 +123,7 @@ export function BrandKit({ orgId, editable = false, kit, onSaved }: { orgId: str
           {logos.map((f) => (
             <div key={f.path} className="rounded-md border p-1.5 text-center space-y-1 w-28">
               {urls[f.path] && !/\.pdf$/i.test(f.path) ? <img src={urls[f.path]} alt={f.name} className="h-16 w-full object-contain bg-[repeating-conic-gradient(#eee_0_25%,#fff_0_50%)] bg-[length:12px_12px]" /> : <FileText className="w-8 h-8 mx-auto" />}
-              <div className="text-[10px] truncate" title={f.name}>{f.name}</div>
+              <div className="text-xs truncate" title={f.name}>{f.name}</div>
               <div className="flex justify-center gap-1">
                 {urls[f.path] && <a href={urls[f.path]} target="_blank" rel="noreferrer" title="Baixar"><Download className="w-3.5 h-3.5" /></a>}
                 {editable && <button type="button" title="Tirar" onClick={() => removeFile(f)}><Trash2 className="w-3.5 h-3.5" /></button>}

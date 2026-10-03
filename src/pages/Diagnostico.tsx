@@ -440,7 +440,7 @@ export default function Diagnostico() {
               const prevBlock = !prevK ? "" : prevK === "plano" ? "agentes" : prevK.startsWith("proc:") ? "hoje" : STEPS.find((s) => s.key === prevK)?.block ?? "";
               return (
                 <div key={k}>
-                {block !== prevBlock && <p className="pt-2 pb-0.5 px-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{BLOCKS[block]}</p>}
+                {block !== prevBlock && <p className="pt-2 pb-0.5 px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{BLOCKS[block]}</p>}
                 <button type="button" onClick={() => setPage(k)}
                   className={`w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-left transition ${isProc ? "pl-6" : ""} ${
                     page === k ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>

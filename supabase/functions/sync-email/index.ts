@@ -34,10 +34,11 @@ async function conversationFor(admin: any, acc: MailAccount, from: string, name:
       .eq("id", conv.id);
     return conv;
   }
-  const { data: stage } = await org.select("pipeline_stages", "id").order("position", { ascending: true }).limit(1).maybeSingle();
+  // E-mail novo entra sem etapa: só vai para o funil quando alguém escolher a etapa na conversa.
+  // (Muito e-mail é aviso, fornecedor ou cobrança; o funil fica só com quem é venda.)
   const { data: created, error } = await org.insert("conversations", {
     channel: "email", email_account_id: acc.id, contact_email: from, contact_name: name,
-    ai_enabled: false, last_message_at: now, last_inbound_at: now, stage_id: stage?.id ?? null,
+    ai_enabled: false, last_message_at: now, last_inbound_at: now, stage_id: null,
   }).select().single();
   if (error) ({ data: conv } = await find()); // corrida com outra execução
   return created ?? conv;

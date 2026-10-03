@@ -13,6 +13,14 @@ Deno.test("respostas automaticas e listas nao abrem atendimento", () => {
   assertEquals(isAutomated([{ key: "X-SG-EID", value: "abc" }], "vendas@loja.com"), true);
   assertEquals(isAutomated([], "maria.silva@empresa.com"), false);
   assertEquals(isAutomated([], "financeiro@cliente.com.br"), false);
+  assertEquals(isAutomated([], "pagamento@registro.br"), true);
+  assertEquals(isAutomated([], "hostmaster@registro.br"), true);
+  assertEquals(isAutomated([], "faturamento@cibrasil.com.br"), true);
+  assertEquals(isAutomated([], "nfe@fornecedor.com.br"), true);
+  assertEquals(isAutomated([{ key: "Feedback-ID", value: "1:2:gmail" }], "ofertas@loja.com"), true);
+  assertEquals(isAutomated([], "pagamentos.joao@gmail.com"), true);
+  assertEquals(isAutomated([], "joao.pagamento@gmail.com"), false);
+  assertEquals(isAutomated([], "contato@cartorio.com.br"), false);
 });
 
 Deno.test("lista de remetentes ignorados", () => {

@@ -44,14 +44,14 @@ export function ProtocolHistory({ orgId, contactId, nameOf }: {
         <div key={r.id} className="rounded-md border p-2 text-sm space-y-0.5">
           <div className="flex items-center justify-between gap-2">
             <span className="font-mono font-medium">#{r.protocol}</span>
-            <Badge variant={r.status === "closed" ? "outline" : "secondary"} className="text-[10px]">
+            <Badge variant={r.status === "closed" ? "outline" : "secondary"} className="text-xs">
               {STATUS_LABEL[r.status as Ticket["status"]] ?? r.status}
             </Badge>
           </div>
-          <div className="text-[11px] text-muted-foreground">
+          <div className="text-xs text-muted-foreground">
             Aberto {fmt(r.created_at)}{r.closed_at ? ` · finalizado ${fmt(r.closed_at)}` : ""}
           </div>
-          <div className="text-[11px] text-muted-foreground">
+          <div className="text-xs text-muted-foreground">
             {r.department_id ? depts.get(r.department_id) ?? "Departamento" : "Fila geral"}
             {r.assigned_to ? ` · ${nameOf(r.assigned_to)}` : ""}
           </div>

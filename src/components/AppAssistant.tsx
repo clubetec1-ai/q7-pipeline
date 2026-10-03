@@ -18,7 +18,7 @@ function Answer({ text, onGo }: { text: string; onGo: () => void }) {
       {parts.map((p, i) => {
         const m = p.match(/^\[\[([^\]|]+)\|(\/[^\]\s]*)\]\]$/);
         return m
-          ? <Link key={i} to={m[2]} onClick={onGo} className="inline-flex items-center rounded-full border border-primary/50 bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary hover:bg-primary/20 mx-0.5">{m[1]} →</Link>
+          ? <Link key={i} to={m[2]} onClick={onGo} className="inline-flex items-center rounded-full border border-primary/50 bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary-text hover:bg-primary/20 mx-0.5">{m[1]} →</Link>
           : <Fragment key={i}>{p}</Fragment>;
       })}
     </>

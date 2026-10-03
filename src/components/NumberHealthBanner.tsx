@@ -23,8 +23,8 @@ export function NumberHealthBanner() {
   const critical = bad.some((b) => b.health_status === "critical");
   return (
     <div className={`px-4 py-2 text-sm flex items-center gap-2 border-b ${critical
-      ? "bg-red-50 text-red-900 dark:bg-red-950/40 dark:text-red-200"
-      : "bg-amber-50 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200"}`}>
+      ? "bg-danger-soft text-danger-text"
+      : "bg-warning-soft text-warning-text"}`}>
       <AlertTriangle className="w-4 h-4 shrink-0" />
       <span className="truncate">
         {bad.map((b) => `${b.name}: ${b.health_error ?? "precisa de atenção"}`).join(" · ")}

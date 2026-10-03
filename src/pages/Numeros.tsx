@@ -1,3 +1,4 @@
+import { PALETTE } from "@/components/ColorTag";
 import { NumberHealthBanner } from "@/components/NumberHealthBanner";
 import { IgnoredSenders } from "./numeros/IgnoredSenders";
 import { AppHeader } from "@/components/AppHeader";
@@ -39,7 +40,8 @@ interface NumberRow {
   last_health_check_at: string | null;
 }
 
-const COLORS = ["#3FB8BE", "#6C8EF5", "#F5A623", "#E8618C", "#2EB67D", "#8B5CF6"];
+// Mesma paleta dos setores e etiquetas (fonte única em ColorTag).
+const COLORS = PALETTE;
 const STATUS: Record<string, { label: string; variant: "secondary" | "outline" | "destructive" }> = {
   connected: { label: "Conectado", variant: "secondary" },
   disabled: { label: "Desativado", variant: "outline" },

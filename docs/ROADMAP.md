@@ -225,6 +225,18 @@ Outubro = só estabilidade, segurança, visual e melhorias, com a Clubetec usand
   restrito. Teste 71.
 - ✅ Limpeza: painel antigo de configuração (código morto) e o aviso "cole sua chave da Groq" (a IA agora é da
   plataforma) removidos.
+- ✅ **Equipe de design, rodada P1** *(pedido 03/10; auditorias em docs/design/01 e 02)*: menu com 6 itens com nome
+  (Início, Conversas, Funil, Clientes, Resultados, Configurações) e "Equipe" (chat) no cabeçalho; Configurações em 6
+  grupos de linguagem simples (empresa, setores e equipe entraram); primeiros passos na ordem WhatsApp → empresa →
+  horário → IA → equipe, com "Para depois"; e-mails automáticos (pagamento, hostmaster, faturamento, NF-e…) não
+  abrem atendimento e e-mail novo entra sem etapa do funil; cores com contraste WCAG (texto marinho sobre o verde),
+  tokens de status (IA violeta, fila âmbar, atendimento azul), tema da empresa com versão escura, fontes Inter +
+  Montserrat, texto mínimo de 12px, paleta única de 8 cores para setores e etiquetas.
+- ⏳ **Design P2/P3:** cabeçalho de página, estado vazio e barra de filtros padronizados; barra de ações da conversa
+  enxuta (Assumir/Finalizar + "Mais"); bolhas IA × pessoa; Resultados e Clientes com abas; Kanban com etiquetas no
+  card e "Mover para…"; instalar funil reordena as etapas; Clientes em tabela; trocar as cores cruas restantes.
+- ✅ **Backup semanal do piloto** *(03/10)*: `npm run backup` exporta os dados de todas as tabelas para
+  `C:\Users\HP\Backups\deixa-com-a-ia` (fora do git; guarda 8 cópias); agendado toda segunda às 9h no Windows.
 - ⏳ **Integrações: API aberta + webhooks em vez de conectores um a um** *(pedido 03/10; Bling deixa de ser foco)*:
   (1) **webhooks de saída** assinados (novo contato, mudou de etapa, atendimento finalizado, mensagem recebida);
   (2) **API com chave por empresa** e permissões (enviar mensagem, criar/atualizar contato, mover no funil, consultar
