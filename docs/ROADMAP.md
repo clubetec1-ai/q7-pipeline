@@ -104,7 +104,7 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
 26. ⏳ Messenger e Instagram; backup automático externo; logo e ícone da aba (com o nome novo).
 
 ### 🙋 Pendências do dono (fora do código)
-- Decidir: nome comercial; preços, pacotes e franquia de IA dos planos; próximo nicho; criptografia por campo; o que
+- Decidir: logo do Clube Renova+; preços, pacotes e franquia de IA dos planos; próximo nicho; criptografia por campo; o que
   fazer com a empresa de teste sem uso "Auto Center Modelo (TESTE)".
 - Fazer: parecer de propriedade industrial e pedido no INPI; comprar os domínios; gerar os códigos de recuperação do MFA;
   número de teste de WhatsApp; cobrar da Nvoip a permissão do histórico (403); respostas da Handphone; número fixo na
@@ -114,7 +114,8 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
 **Mais ideias (02/10, "reset"):** "Clube Re7" (resete = reset) descartado — clubereset.com.br tem dono. Com
 .com.br e .com livres e "Clube X" sem processo no INPI: **Clube Virada** ("virada de chave"; "virada" com 1 marca na 42),
 **Clube Reboot** (0 na 42), Clube Set (11), Clube Rumo (7), Clube Chave (7), Clube Passo (8).
-**Ideia do dono (03/10): Clube Renova Mais / "Clube Renova+"** — o "+" de sempre um pouco mais. Domínios
+**✅ Nome fechado em 03/10: Clube Renova+** (falado e no domínio: Clube Renova Mais). Antes de trocar no sistema, o dono
+quer aprovar o logo (4 propostas mostradas em 03/10: ciclo com +, ícone R+, + de setas, só a palavra). Pesquisa: **Clube Renova+** — o "+" de sempre um pouco mais. Domínios
 cluberenovamais e cluberenova (.com.br e .com) livres; INPI: "Clube Renova" sem processo; a única "renovamais" ativa é de
 suplementos (classe 5, outro ramo); "renova" na classe 42 só igrejas e projetos, nenhum software. Variações com "+" e
 domínios livres: Evolui+ e Avança+ (nenhuma marca "… mais"), Supera+ (nenhuma; mas clubesupera.com.br tem dono),
