@@ -103,7 +103,7 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
 ### Nome comercial e domínio (pedido em 02/10)
 **✅ Decidido em 02/10: o produto se chama Clube Re9** (lê-se "renove": a empresa se renovando sempre — diagnóstico,
 atendimento com IA e melhoria contínua). Logo: "Re" + um 9 cuja cauda vira seta circular (o ciclo). Domínios livres em
-02/10: clubere9.com.br, clubere9.com e cluberenove.com.br/.com (por extenso, para quem ouvir o nome). INPI: "Clube Re9"
+02/10: clubere9.com.br e clubere9.com; por extenso, cluberenove.com (o cluberenove.com.br já tem dono). INPI: "Clube Re9"
 sem nenhum processo; "re9" com 6 marcas ativas na classe 42. Próximos passos: 🙋 comprar os domínios, parecer de
 agente de propriedade industrial e pedido de marca mista em nome da Clubetec (classes 42 e 9; 35 se vender
 consultoria); depois, trocar "ClubeCRM" por "Clube Re9" nas telas, e-mails, links e documentação.
