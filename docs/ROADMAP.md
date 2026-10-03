@@ -118,7 +118,10 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
 quer aprovar o logo (4 propostas mostradas em 03/10: ciclo com +, ícone R+, + de setas, só a palavra). **Direção escolhida pelo dono
 (03/10):** seguir a marca Clubetec (verde #22C1A4, azul-petróleo #215371, letra grossa em itálico) — "Clube" em cima, no
 meio as **duas pessoas de mãos dadas do símbolo Clubetec formando um ciclo** (sempre renovando) e "Renova+" embaixo;
-ícone do app só com o ciclo. Rascunho feito; arte final com designer a partir do vetor original da Clubetec. Pesquisa: **Clube Renova+** — o "+" de sempre um pouco mais. Domínios
+ícone do app só com o ciclo. Rascunho feito; arte final com designer a partir do vetor original da Clubetec. *"Clube Renove
+Mais" (03/10):* cluberenovemais .com.br e .com livres, mas cluberenove.com.br tem dono (quem digitar sem o "mais" cai em
+outro lugar); INPI: "Clube Renove" e "Renove Mais" sem processo, porém **"RENOVE" registrada nas classes 42 e 9** (mesmo
+ramo, mais risco de oposição) — "Renova" segue mais seguro (cluberenova.com.br livre; "renova" sem software na 42). Pesquisa: **Clube Renova+** — o "+" de sempre um pouco mais. Domínios
 cluberenovamais e cluberenova (.com.br e .com) livres; INPI: "Clube Renova" sem processo; a única "renovamais" ativa é de
 suplementos (classe 5, outro ramo); "renova" na classe 42 só igrejas e projetos, nenhum software. Variações com "+" e
 domínios livres: Evolui+ e Avança+ (nenhuma marca "… mais"), Supera+ (nenhuma; mas clubesupera.com.br tem dono),
