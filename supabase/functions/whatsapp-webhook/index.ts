@@ -10,6 +10,7 @@ import { LIMITS, storeMedia } from "../_shared/media.ts";
 import { handleOptOut, instForSend, runFlow, runPostClose, withProtocol } from "../_shared/flow/executor.ts";
 import { toChatText } from "../_shared/ai-policy.ts";
 import { companyKnowledge } from "../_shared/company.ts";
+import { setContactField } from "../_shared/contact-fields.ts";
 import { readMedia, withMediaText } from "../_shared/media-read.ts";
 import { knowledgeContext } from "../_shared/knowledge.ts";
 import { forOrg, type OrgScope } from "../_shared/tenant.ts";
@@ -499,6 +500,9 @@ async function handle(req: Request, ctx: QueueCtx): Promise<Response> {
         conv = raced;
       } else {
         conv = created;
+        // Funil de vendas: o link de captação traz "(cód. ORIGEM)" na 1ª mensagem e marca a origem do contato.
+        const code = !fromMe ? String(text ?? "").match(/\(c[oó]d(?:igo)?\.?\s*:?\s*([a-z0-9_-]{2,30})\)/i)?.[1] : null;
+        if (code && conv?.contact_id) await setContactField(org, conv.contact_id, "custom:origem", code.toLowerCase());
       }
     } else {
       const update: Record<string, any> = {

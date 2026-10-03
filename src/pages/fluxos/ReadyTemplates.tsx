@@ -10,6 +10,7 @@ export const READY_TEMPLATES: { key: string; name: string; description: string }
   { key: "fora_horario", name: "Fora do horário", description: "Avisa quando a empresa está fechada." },
   { key: "faq_ia", name: "IA para dúvidas frequentes", description: "IA responde com base no Diagnóstico e passa para humano." },
   { key: "qualificacao", name: "Qualificação de lead", description: "Pede nome, e-mail e interesse e passa para o comercial." },
+  { key: "funil_vendas", name: "Funil de vendas", description: "Qualifica o lead (empresa, equipe, dificuldade, urgência), marca quente/morno/frio, move no Kanban e passa para vendas." },
   { key: "catalogo", name: "Envio de catálogo", description: "Manda o arquivo da biblioteca." },
   { key: "pesquisa", name: "Pesquisa de satisfação", description: "Nota de 1 a 5 e comentário após o atendimento." },
   { key: "followup", name: "Lembrete para quem sumiu", description: "Pergunta e lembra se o cliente não responder." },

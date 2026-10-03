@@ -34,6 +34,7 @@ import Conhecimento from "./pages/Conhecimento";
 import Clientes from "./pages/Clientes";
 import Agente from "./pages/Agente";
 import Relatorios from "./pages/Relatorios";
+import Funil from "./pages/Funil";
 import EtiquetasGrupos from "./pages/EtiquetasGrupos";
 import Chat from "./pages/Chat";
 import Fluxos from "./pages/Fluxos";
@@ -84,6 +85,7 @@ const App = () => (
             <Route path="/dashboard" element={<Navigate to="/" replace />} />
             <Route path="/agente" element={<ProtectedRoute><ModuleGate m="ia"><Agente /></ModuleGate></ProtectedRoute>} />
             <Route path="/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
+            <Route path="/funil" element={<ProtectedRoute><Funil /></ProtectedRoute>} />
             <Route path="/etiquetas" element={<ProtectedRoute><EtiquetasGrupos /></ProtectedRoute>} />
             <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
             <Route path="/inicio" element={<ProtectedRoute><Inicio /></ProtectedRoute>} />

@@ -215,6 +215,10 @@ export async function runFlow(p: {
           } else if (a.type === "tag" && conv.contact_id) {
             if (a.remove) await org.delete("contact_tags").eq("contact_id", conv.contact_id).eq("tag_id", a.tagId);
             else await org.insert("contact_tags", { contact_id: conv.contact_id, tag_id: a.tagId });
+          } else if (a.type === "stage") {
+            // Só etapa desta empresa (o publicar já confere; aqui de novo, por segurança).
+            const { data: st } = await org.select("pipeline_stages", "id").eq("id", a.stageId).maybeSingle();
+            if (st) await org.update("conversations", { stage_id: st.id }).eq("id", conv.id);
           } else if (a.type === "rating") {
             await org.update("tickets", { rating: a.value }).eq("id", ticket.id);
           } else if (a.type === "rating_comment") {
