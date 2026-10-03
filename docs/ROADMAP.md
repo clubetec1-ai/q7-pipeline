@@ -175,6 +175,30 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
   o "AI" com outra cor e um quadradinho de inteligência — ex.: **Clube RenovAI** (cluberenovai .com.br e .com livres;
   INPI: nenhuma "Renova AI"/"Clube RenovAI"; "Renovai" só num brechó, classe 35; renovai.com.br e .com indisponíveis).
 
+### Pedidos de 03/10 (2): marca no sistema, funil de vendas, Teams, manual e equipe de marketing
+- ✅ **Marca "Deixa com a IA" no sistema** *(03/10)*: logo novo (balão com IA) no cabeçalho e no login, ícone da aba,
+  cor principal no verde Clubetec, nome nas telas, e-mails, páginas legais ("Deixa com a IA (antes ClubeCRM)") e
+  instruções da IA. Falta só o **app da Meta** (trocar o nome depois da aprovação da análise).
+- ✅ **Manual da identidade da marca** *(03/10)*: página com essência, logo (versões, área de proteção, tamanho mínimo,
+  o que não fazer), cores e proporção, tipografia (Montserrat itálico + Inter), tom de voz (assim / assim não, frases
+  da marca) e exemplos (post, WhatsApp, assinatura de e-mail). Link enviado ao dono.
+- ⏳ **Funil de vendas da Clubetec, reaproveitável por outras empresas (antes da venda autoatendida):** captação
+  (página + anúncio → WhatsApp com mensagem pronta e origem marcada) → qualificação automática (tipo de empresa,
+  atendentes, dor, urgência → quente/morno/frio) → diagnóstico gratuito como isca → demonstração → proposta com o
+  plano sugerido pelo diagnóstico → follow-ups (2, 5 e 10 dias) → teste grátis com acompanhamento → fechamento
+  (cobrança) → pós-venda (implantação, pesquisa, indicação). Métricas por etapa e origem. Vira um **modelo de funil
+  instalável** (como os modelos por nicho) para os clientes.
+- ⏳ **Integração com Microsoft Teams para ramais (pesquisa 03/10):** caminhos — (1) **Direct Routing**: ligar a central
+  atual (Handphone/Nvoip) ao Teams por um SBC certificado ou "SBC como serviço" de um parceiro; (2) **Operator
+  Connect**: a operadora entrega os números direto no Teams. Licença Microsoft: **Teams Phone** a partir de ~R$ 72–74
+  por usuário/mês (mais a licença base do Microsoft 365/Teams); planos com minutos a ~R$ 126 (nacional). No nosso
+  sistema: clique-para-ligar pelo Teams e registro/identificação das ligações pelo Microsoft Graph (registro de app no
+  Azure com permissões de chamadas e consentimento do administrador do cliente). Indicado como módulo opcional para
+  clientes que já usam Microsoft 365; para os demais, o ramal no navegador/MicroSIP continua mais barato.
+- ⏳ **Equipe de marketing para o lançamento:** papéis de pesquisador de mercado, tendências de nicho, estrategista de
+  marketing, copywriter e imagem/vídeo para definir o lançamento do Deixa com a IA (público e nichos, posicionamento,
+  oferta e preço de lançamento, calendário de conteúdo, roteiros de vídeo e criativos), seguindo o manual da marca.
+
 ### 🙋 Pendências do dono (fora do código)
 - Decidir: aprovar o logo do Deixa com a IA; preços, pacotes e franquia de IA dos planos; próximo nicho; criptografia por campo; o que
   fazer com a empresa de teste sem uso "Auto Center Modelo (TESTE)".
