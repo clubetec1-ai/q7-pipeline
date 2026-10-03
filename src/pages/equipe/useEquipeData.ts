@@ -13,6 +13,7 @@ export interface Member {
 export interface Department {
   id: string; name: string; color: string | null; distribution_mode: string; max_concurrent: number;
   overflow_to: string[]; overflow_after_minutes: number | null;
+  preferred_agent: boolean; preferred_days: number;
 }
 export interface Team { id: string; name: string; department_id: string }
 export interface Link { a: string; user_id: string } // a = department_id ou team_id
@@ -43,7 +44,7 @@ export function useEquipeData(orgId: string | undefined) {
     setLoading(true);
     const [m, d, dm, t, tm] = await Promise.all([
       supabase.from("organization_members").select("user_id, role, status, display_name").eq("organization_id", orgId),
-      supabase.from("departments").select("id, name, color, distribution_mode, max_concurrent, overflow_to, overflow_after_minutes").eq("organization_id", orgId).order("name"),
+      supabase.from("departments").select("id, name, color, distribution_mode, max_concurrent, overflow_to, overflow_after_minutes, preferred_agent, preferred_days").eq("organization_id", orgId).order("name"),
       supabase.from("department_members").select("department_id, user_id").eq("organization_id", orgId),
       supabase.from("teams").select("id, name, department_id").eq("organization_id", orgId).order("name"),
       supabase.from("team_members").select("team_id, user_id").eq("organization_id", orgId),

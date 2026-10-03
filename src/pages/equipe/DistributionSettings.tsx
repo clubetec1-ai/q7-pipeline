@@ -15,7 +15,7 @@ export function DistributionSettings({
   if (!dept) return null;
   const others = all.filter((d) => d.id !== dept.id);
 
-  const save = async (patch: Partial<Pick<Department, "distribution_mode" | "max_concurrent" | "overflow_to" | "overflow_after_minutes">>) => {
+  const save = async (patch: Partial<Pick<Department, "distribution_mode" | "max_concurrent" | "overflow_to" | "overflow_after_minutes" | "preferred_agent" | "preferred_days">>) => {
     const { error } = await supabase.from("departments").update(patch).eq("id", dept.id);
     if (error) return toast({ variant: "destructive", title: "Não foi possível salvar" });
     onSaved();
@@ -51,6 +51,27 @@ export function DistributionSettings({
         </label>
       )}
     </div>
+    {(canManage || dept.preferred_agent) && (
+      <div className="rounded-md bg-muted/50 p-2 space-y-1 text-xs">
+        <label className="flex flex-wrap items-center gap-1">
+          <input type="checkbox" checked={dept.preferred_agent} disabled={!canManage}
+            onChange={(e) => save({ preferred_agent: e.target.checked })} />
+          <span>Atendente preferencial: o cliente volta para quem já o atendeu nos últimos</span>
+          <Input type="number" min={1} max={365} key={dept.preferred_days} defaultValue={dept.preferred_days}
+            disabled={!canManage || !dept.preferred_agent} className="h-7 w-16"
+            onBlur={(e) => {
+              const n = Math.min(365, Math.max(1, Number(e.target.value) || 90));
+              if (n !== dept.preferred_days) save({ preferred_days: n });
+            }} />
+          <span>dias</span>
+        </label>
+        <p className="text-muted-foreground">
+          {dept.preferred_agent
+            ? "Mensagem nova de um cliente conhecido vai direto para a mesma pessoa, se ela estiver online e com vaga; senão, segue a fila normal."
+            : "Desligado: cada atendimento novo segue a fila normal do setor."}
+        </p>
+      </div>
+    )}
     {others.length > 0 && (canManage || dept.overflow_to.length > 0) && (
       <div className="rounded-md bg-muted/50 p-2 space-y-1.5 text-xs">
         <div className="flex flex-wrap items-center gap-1">
