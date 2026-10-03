@@ -5,6 +5,7 @@
  * Groq mantém a cadeia de modelos com failover de get-ai-config.
  */
 import { getSecret } from "./secrets.ts";
+import { withPolicy } from "./ai-policy.ts";
 import { resolveModelChain, translateAIError } from "./get-ai-config.ts";
 
 export const AI_PROVIDERS: Record<string, { endpoint: string; model: string }> = {
@@ -39,7 +40,7 @@ async function once(endpoint: string, apiKey: string, model: string, messages: C
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model, messages,
+        model, messages: withPolicy(messages),
         ...(tools?.length ? { tools: tools.map((t) => ({ type: "function", function: t })), tool_choice: "auto" } : {}),
         ...(opts.jsonMode ? { response_format: { type: "json_object" } } : {}),
         ...(opts.maxTokens ? { max_tokens: opts.maxTokens } : {}),
@@ -66,7 +67,20 @@ async function once(endpoint: string, apiKey: string, model: string, messages: C
 // deno-lint-ignore no-explicit-any
 export async function providerKey(admin: any, orgId: string, provider: string): Promise<string | null> {
   if (!AI_PROVIDERS[provider]) return null;
-  return await getSecret(admin, `org:${orgId}:${provider}_api_key`);
+  const own = await getSecret(admin, `org:${orgId}:${provider}_api_key`);
+  if (own || provider !== "groq") return own;
+  return await platformGroqKey(admin, orgId);
+}
+
+/**
+ * IA da Clubetec incluída: chave Groq da plataforma, usada quando a empresa ainda
+ * não tem chave própria (a empresa pode recusar com settings.ai_platform = false).
+ */
+// deno-lint-ignore no-explicit-any
+export async function platformGroqKey(admin: any, orgId: string): Promise<string | null> {
+  const { data: o } = await admin.from("organizations").select("settings").eq("id", orgId).maybeSingle();
+  if ((o?.settings as Record<string, unknown> | null)?.ai_platform === false) return null;
+  return await getSecret(admin, "platform:groq_api_key");
 }
 
 export async function chat(apiKey: string, provider: string, model: string, messages: ChatMsg[], tools?: ToolDef[], opts: ChatOpts = {}): Promise<ChatResult> {
@@ -86,7 +100,7 @@ export interface ResolvedAI { provider: string; apiKey: string; model: string }
 
 /**
  * Provedor/modelo para um agente: o do bloco (se escolhido) → o PADRÃO DA
- * EMPRESA (settings.ai_provider / ai_model, em Fluxos → Chaves de IA) → Groq.
+ * EMPRESA (settings.ai_provider / ai_model, em Configurações → Chaves de IA) → Groq.
  * null = a empresa não tem chave para esse provedor.
  */
 // deno-lint-ignore no-explicit-any
@@ -96,7 +110,12 @@ export async function resolveAI(admin: any, orgId: string, override?: { provider
   const own = override?.provider && AI_PROVIDERS[override.provider] ? override.provider : null;
   const provider = own ?? (typeof s.ai_provider === "string" && AI_PROVIDERS[s.ai_provider] ? s.ai_provider : "groq");
   const apiKey = await providerKey(admin, orgId, provider);
-  if (!apiKey) return null;
+  if (!apiKey) {
+    // Provedor escolhido sem chave: cai na IA da Clubetec (Groq), se disponível.
+    if (provider === "groq") return null;
+    const pk = await platformGroqKey(admin, orgId);
+    return pk ? { provider: "groq", apiKey: pk, model: "auto" } : null;
+  }
   let model = String(override?.model ?? "").trim();
   if (!model && !own) model = String(s.ai_model ?? "").trim();
   if (!model && provider === "groq") {

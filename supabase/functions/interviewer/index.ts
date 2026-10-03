@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
       const b64 = String(body?.audio ?? "");
       if (!b64 || b64.length > 14_000_000) throw new HttpError(413, "Áudio vazio ou longo demais (até uns 10 minutos).");
       const key = await providerKey(admin, orgId, "groq");
-      if (!key) throw new HttpError(409, "Para usar o microfone, cadastre a chave da Groq em Fluxos → Chaves de IA.");
+      if (!key) throw new HttpError(409, "Para usar o microfone, cadastre a chave da Groq em Configurações → Chaves de IA.");
       let bytes: Uint8Array;
       try { bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)); } catch { throw new HttpError(400, "Áudio inválido"); }
       const ext = /mp4|m4a/.test(String(body?.mime ?? "")) ? "m4a" : /ogg/.test(String(body?.mime ?? "")) ? "ogg" : "webm";
@@ -77,10 +77,10 @@ Deno.serve(async (req) => {
 
     const { data: orgRow } = await admin.from("organizations").select("name, settings").eq("id", orgId).maybeSingle();
     const settings = (orgRow?.settings ?? {}) as Record<string, any>;
-    // Provedor padrão da empresa (Fluxos → Chaves de IA); consultoria pede raciocínio,
+    // Provedor padrão da empresa (Configurações → Chaves de IA); consultoria pede raciocínio,
     // então na Groq usa o modelo maior quando nenhum foi escolhido (o "auto" começa pelo 8b).
     const ai = await resolveAI(admin, orgId, { provider: settings.interviewer_provider ?? null, model: settings.interviewer_model ?? null });
-    if (!ai) throw new HttpError(409, "Configure a chave do provedor de IA (Fluxos → Chaves de IA) para usar o entrevistador.");
+    if (!ai) throw new HttpError(409, "Configure a chave do provedor de IA (Configurações → Chaves de IA) para usar o entrevistador.");
     const { provider, apiKey } = ai;
     const model = provider === "groq" && (!ai.model || ai.model === "auto") ? "llama-3.3-70b-versatile" : ai.model;
     const ask = async (system: string, user: string, long = false) => {

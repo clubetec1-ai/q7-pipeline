@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { PlatformAIPanel } from "./plataforma/PlatformAIPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AppHeader } from "@/components/AppHeader";
 import { Navigate, useNavigate } from "react-router-dom";
@@ -164,7 +165,8 @@ export default function Plataforma() {
           </TabsContent>
           <TabsContent value="modulos" className="pt-4"><ModulesPanel orgs={rows} /></TabsContent>
           <TabsContent value="ramais" className="pt-4"><RamaisPanel orgs={rows} /></TabsContent>
-          <TabsContent value="conectores" className="pt-4">
+          <TabsContent value="conectores" className="pt-4 space-y-4">
+            <PlatformAIPanel />
         <section className="space-y-2 rounded-lg border p-4">
           <h2 className="font-semibold">Aplicativo do conector Bling {apps.bling ? <Badge className="ml-2">Ativo</Badge> : <Badge variant="outline" className="ml-2">Não configurado</Badge>}</h2>
           <ol className="list-decimal pl-5 text-xs text-muted-foreground space-y-0.5">

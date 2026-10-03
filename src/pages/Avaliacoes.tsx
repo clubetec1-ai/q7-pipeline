@@ -122,7 +122,7 @@ export default function Avaliacoes() {
         </div>
         {can("org.settings") && enabled === false && (
           <p className="text-sm rounded-md bg-muted p-3">
-            Ao ligar, cada atendimento finalizado por uma pessoa é lido pela IA da empresa (Fluxos → Chaves de IA), que dá a
+            Ao ligar, cada atendimento finalizado por uma pessoa é lido pela IA da empresa (Configurações → Chaves de IA), que dá a
             nota, diz se o cliente saiu satisfeito e sugere melhorias. Só a análise fica guardada. Avise a equipe antes de ligar.
           </p>
         )}

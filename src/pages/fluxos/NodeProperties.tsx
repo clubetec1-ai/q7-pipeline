@@ -221,7 +221,7 @@ export function NodeProperties({ type, data, onChange, onDelete, lookups }: {
           <Field label="Modelo (vazio = padrão do provedor)">
             <Input value={s("model")} maxLength={80} placeholder="ex.: gpt-4o-mini" onChange={(e) => set({ model: e.target.value.trim() })} />
           </Field>
-          <p className="text-xs text-muted-foreground">A chave de cada provedor fica em Fluxos → Chaves de IA. Sem chave, o cliente vai para a fila.</p>
+          <p className="text-xs text-muted-foreground">A chave de cada provedor fica em Configurações → Chaves de IA. Sem chave, o cliente vai para a fila.</p>
           <p className="text-sm font-medium pt-2">O que a IA pode fazer sozinha</p>
           <Field label="Transferir para"><Checks options={lookups.departments} value={list(data.allow_departments)} onChange={(v) => set({ allow_departments: v })} /></Field>
           <Field label="Finalizar com o motivo"><Checks options={lookups.closeReasons} value={list(data.allow_close_reasons)} onChange={(v) => set({ allow_close_reasons: v })} /></Field>

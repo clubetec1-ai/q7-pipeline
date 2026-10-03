@@ -17,7 +17,7 @@ interface Item { key: Section; to: string; label: string; icon: LucideIcon; show
 /** Telas de instalação: ficam dentro da central de Configurações (o menu destaca "Configurações"). */
 const CONFIG_PAGES: Section[] = ["configuracoes", "numeros", "ramais", "etiquetas", "biblioteca", "agente", "fluxos", "conhecimento", "integracoes"];
 
-const base = "px-3 py-1.5 text-sm rounded-md transition inline-flex items-center gap-1.5 whitespace-nowrap";
+const base = "px-2.5 py-1.5 text-sm rounded-md transition inline-flex items-center gap-1.5 whitespace-nowrap";
 const activeCls = `${base} bg-muted font-medium`;
 const idleCls = `${base} text-muted-foreground hover:bg-muted`;
 
@@ -67,8 +67,10 @@ export function MainNav({ active }: { active: Section }) {
   ];
   const isActive = (i: Item) => active === i.key || !!i.also?.includes(active);
   const visible = groups.map((g) => ({ ...g, items: g.items.filter((i) => i.show) })).filter((g) => g.items.length);
-  const link = (i: Item) => (
-    <Link key={i.to} to={i.to} className={isActive(i) ? activeCls : idleCls}><i.icon className="w-4 h-4" />{i.label}</Link>
+  const link = (i: Item, compact = false) => (
+    <Link key={i.to} to={i.to} title={i.label} className={isActive(i) ? activeCls : idleCls}>
+      <i.icon className="w-4 h-4" /><span className={compact ? "hidden 2xl:inline" : ""}>{i.label}</span>
+    </Link>
   );
 
   return (
@@ -99,14 +101,14 @@ export function MainNav({ active }: { active: Section }) {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <nav className="hidden lg:flex items-center gap-1 ml-2">
+      <nav className="hidden lg:flex items-center gap-0.5 ml-1 min-w-0">
         {orgs.length > 1 && (
-          <select className="h-8 max-w-[180px] rounded-md border bg-background px-2 text-xs mr-1" value={org?.id ?? ""}
+          <select className="h-8 max-w-[140px] rounded-md border bg-background px-2 text-xs mr-1" value={org?.id ?? ""}
             title="Empresa" onChange={(e) => selectOrg(e.target.value)}>
             {orgs.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
           </select>
         )}
-        {top.map(link)}
+        {top.map((i) => link(i, true))}
         {visible.map((g) => {
           if (g.items.length === 1) return link(g.items[0]);
           const current = g.items.find(isActive);

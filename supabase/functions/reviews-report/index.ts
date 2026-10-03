@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
     const { data: o } = await admin.from("organizations").select("settings").eq("id", orgId).maybeSingle();
     const s = (o?.settings ?? {}) as Record<string, string>;
     const ai = await resolveAI(admin, orgId, { provider: s.review_provider ?? null, model: s.review_model ?? null });
-    if (!ai) throw new HttpError(409, "Configure a chave do provedor de IA (Fluxos → Chaves de IA).");
+    if (!ai) throw new HttpError(409, "Configure a chave do provedor de IA (Configurações → Chaves de IA).");
     const model = ai.provider === "groq" && (!ai.model || ai.model === "auto") ? "llama-3.3-70b-versatile" : ai.model;
 
     const sat = rows.filter((r) => r.satisfied === "sim").length;

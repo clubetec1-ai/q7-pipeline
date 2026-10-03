@@ -43,7 +43,7 @@ export async function runAiAgent(p: {
   const { admin, orgId, node, ticket, conv, send, sendFile, route } = p;
   const d = node.data ?? {};
   const org = forOrg(admin, orgId);
-  // Provedor do bloco, senão o padrão da empresa (Fluxos → Chaves de IA), senão Groq.
+  // Provedor do bloco, senão o padrão da empresa (Configurações → Chaves de IA), senão Groq.
   const [ai, agent] = await Promise.all([
     resolveAI(admin, orgId, { provider: typeof d.provider === "string" ? d.provider : null, model: typeof d.model === "string" ? d.model : null }),
     getAgentProfile(admin, orgId),

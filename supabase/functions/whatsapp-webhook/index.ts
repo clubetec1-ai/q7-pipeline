@@ -650,7 +650,7 @@ async function handle(req: Request, ctx: QueueCtx): Promise<Response> {
     if (await runFlow({ admin: supabase, orgId, inst: instRow, conv, ticket, text: String(text ?? "") })) {
       return ok();
     }
-    // IA padrão da empresa: provedor escolhido em Fluxos → Chaves de IA (padrão Groq).
+    // IA padrão da empresa: provedor escolhido em Configurações → Chaves de IA (padrão Groq).
     const profileAI = await getAgentProfile(supabase, orgId);
     if (!profileAI.enabled) return ok();
     const ai = await resolveAI(supabase, orgId);

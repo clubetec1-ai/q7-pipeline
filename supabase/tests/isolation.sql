@@ -1185,6 +1185,26 @@ BEGIN
   PERFORM pg_temp.expect(pg_temp.run(owner_a, format('SELECT public.unignore_email(%L, %L)', A, '@b.test')) = 'ok:1', 'dono desfaz');
   PERFORM pg_temp.expect_error(owner_a, format('INSERT INTO public.email_ignore (organization_id, pattern) VALUES (%L, %L)', A, 'x@y.com'), 'lista so pela funcao');
 
+  -- 63. Empresa nova da Clubetec: o dono convidado aceita o proprio convite; ninguem aceita por ele nem muda o papel.
+  PERFORM set_config('request.jwt.claims', '', true); -- cria como sistema (Clubetec), sem usuario logado
+  INSERT INTO public.organizations (id, name, slug, status, template_key, settings) VALUES ('cccccccc-0000-0000-0000-000000000063', 'Empresa nova 63', 'iso-org-63', 'active', 'generico', '{}');
+  INSERT INTO public.organization_members (organization_id, user_id, role, status) VALUES ('cccccccc-0000-0000-0000-000000000063', outsider, 'owner', 'invited');
+  PERFORM pg_temp.expect(pg_temp.q(outsider, 'SELECT count(*) FROM public.my_invitations()') = 1, 'dono convidado ve o convite');
+  PERFORM pg_temp.expect(pg_temp.t(owner_b, format('SELECT public.accept_invitation(%L)::text', 'cccccccc-0000-0000-0000-000000000063')) = 'false', 'outra pessoa nao aceita por ele');
+  PERFORM pg_temp.expect_denied(outsider, format('UPDATE public.organization_members SET status = %L, role = %L WHERE organization_id = %L', 'active', 'admin', 'cccccccc-0000-0000-0000-000000000063'), 'convidado nao muda o proprio papel');
+  PERFORM pg_temp.expect(pg_temp.t(outsider, format('SELECT public.accept_invitation(%L)::text', 'cccccccc-0000-0000-0000-000000000063')) = 'true', 'dono convidado aceita');
+  PERFORM pg_temp.expect((SELECT status FROM public.organization_members WHERE organization_id = 'cccccccc-0000-0000-0000-000000000063' AND user_id = outsider) = 'active', 'dono ativo');
+
+  -- 64. IA da Clubetec: so o operador grava a chave e ve se existe; a empresa so sabe se esta disponivel para ela.
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.set_platform_secret(%L, %L)', 'groq_api_key', 'gsk_x'), 'dono nao grava chave da plataforma');
+  PERFORM pg_temp.expect_error(owner_a, 'SELECT public.platform_secret_status()', 'dono nao ve segredos da plataforma');
+  PERFORM pg_temp.expect(pg_temp.run(operator, format('SELECT public.set_platform_secret(%L, %L)', 'groq_api_key', 'gsk_teste')) = 'ok:1', 'clubetec grava a chave');
+  PERFORM pg_temp.expect(pg_temp.t(operator, 'SELECT public.platform_secret_status()->>''groq_api_key''') = 'true', 'clubetec ve que existe');
+  PERFORM pg_temp.expect(pg_temp.t(agent_a, format('SELECT public.platform_ai_available(%L)::text', A)) = 'true', 'membro sabe que a IA esta disponivel');
+  PERFORM pg_temp.expect(pg_temp.t(owner_b, format('SELECT public.platform_ai_available(%L)::text', A)) = 'false', 'outra org nao consulta a empresa A');
+  UPDATE public.organizations SET settings = settings || '{"ai_platform": false}'::jsonb WHERE id = A;
+  PERFORM pg_temp.expect(pg_temp.t(agent_a, format('SELECT public.platform_ai_available(%L)::text', A)) = 'false', 'empresa que recusou nao usa');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 

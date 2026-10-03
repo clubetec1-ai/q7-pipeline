@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { AgentTester } from "./agente/AgentTester";
 import { Link, Navigate } from "react-router-dom";
 import { Bot, CheckCircle2, Clock, KeyRound, Loader2, Sparkles, TriangleAlert } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,24 +34,28 @@ export default function Agente() {
   const [followMax, setFollowMax] = useState(1);
   const [provider, setProvider] = useState("groq");
   const [model, setModel] = useState("");
-  const [hasKey, setHasKey] = useState(false);
+  const [ownKey, setOwnKey] = useState(false);
+  const [platformAI, setPlatformAI] = useState(false);
+  const hasKey = ownKey || platformAI;
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [test, setTest] = useState<{ ok: boolean; text: string } | null>(null);
 
   const load = useCallback(async () => {
     if (!org) return;
-    const [a, k, o] = await Promise.all([
+    const [a, k, o, p] = await Promise.all([
       supabase.from("agent_configs").select("system_prompt, enabled, followup_inactivity_minutes, followup_max_per_conversation")
         .eq("organization_id", org.id).maybeSingle(),
       supabase.rpc("ai_keys_status", { org: org.id }),
       supabase.from("organizations").select("settings").eq("id", org.id).maybeSingle(),
+      supabase.rpc("platform_ai_available", { org: org.id }),
     ]);
     const st = (o.data?.settings ?? {}) as Record<string, unknown>;
     const prov = typeof st.ai_provider === "string" ? st.ai_provider : "groq";
     setProvider(prov);
     setModel(typeof st.ai_model === "string" ? st.ai_model : "");
-    setHasKey(!!((k.data as Record<string, boolean> | null) ?? {})[prov]);
+    setOwnKey(!!((k.data as Record<string, boolean> | null) ?? {})[prov]);
+    setPlatformAI(p.data === true);
     if (a.data) {
       setEnabled(a.data.enabled);
       setPrompt(a.data.system_prompt ?? "");
@@ -116,9 +121,11 @@ export default function Agente() {
               <div className={`rounded-md p-2 text-sm flex flex-wrap items-center justify-between gap-2 ${hasKey ? "bg-muted/50" : "bg-amber-50 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200"}`}>
                 <span className="flex items-center gap-2">
                   {hasKey ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <TriangleAlert className="w-4 h-4" />}
-                  {hasKey ? <>IA: <b>{PROVIDER_LABEL[provider] ?? provider}</b>{model ? ` · ${model}` : ""} — chave guardada no cofre</> : "Falta cadastrar a chave da IA."}
+                  {ownKey ? <>IA: <b>{PROVIDER_LABEL[provider] ?? provider}</b>{model ? ` · ${model}` : ""} — chave guardada no cofre</>
+                    : platformAI ? <>IA: <b>IA da Clubetec</b> (incluída) — se quiser, use a sua própria chave</>
+                    : "Falta cadastrar a chave da IA."}
                 </span>
-                <Button asChild size="sm" variant="outline"><Link to="/configuracoes/ia"><KeyRound className="w-4 h-4 mr-1" /> {hasKey ? "Trocar em Configurações" : "Cadastrar a chave"}</Link></Button>
+                <Button asChild size="sm" variant="outline"><Link to="/configuracoes/ia"><KeyRound className="w-4 h-4 mr-1" /> {ownKey ? "Trocar em Configurações" : platformAI ? "Usar minha chave" : "Cadastrar a chave"}</Link></Button>
               </div>
             </section>
 
@@ -155,6 +162,8 @@ export default function Agente() {
               <Button variant="outline" disabled={testing || !hasKey} onClick={runTest}>{testing ? "Testando…" : "Testar a IA"}</Button>
               {test && <span className={`text-sm ${test.ok ? "text-emerald-700 dark:text-emerald-400" : "text-red-600"}`}>{test.ok ? "✓ " : "✗ "}{test.text}</span>}
             </div>
+
+            <AgentTester orgId={org.id} prompt={prompt} disabled={!hasKey} />
           </>
         )}
       </main>
