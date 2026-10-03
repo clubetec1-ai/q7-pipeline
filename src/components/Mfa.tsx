@@ -141,7 +141,7 @@ function Shell({ title, text, children }: { title: string; text: string; childre
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-6">
       <div className="w-full max-w-sm space-y-4 text-center">
-        <ShieldCheck className="w-10 h-10 mx-auto text-primary" />
+        <ShieldCheck className="w-10 h-10 mx-auto text-primary-text" />
         <h1 className="text-xl font-semibold">{title}</h1>
         <p className="text-sm text-muted-foreground">{text}</p>
         {children}

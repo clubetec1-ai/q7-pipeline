@@ -11,8 +11,8 @@ type State = "ok" | "pending" | "optional";
 interface Card { title: string; desc: string; to: string; icon: LucideIcon; color: string; state: State; detail?: string; show: boolean }
 
 const PILL: Record<State, [string, string]> = {
-  ok: ["✓ Configurado", "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300"],
-  pending: ["Pendente", "bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300"],
+  ok: ["✓ Configurado", "bg-success-soft text-success-text"],
+  pending: ["Pendente", "bg-warning-soft text-warning-text"],
   optional: ["Opcional", "bg-muted text-muted-foreground"],
 };
 
@@ -97,7 +97,7 @@ export default function Configuracoes() {
           {all.length > 0 && (
             <div className="min-w-[12rem]">
               <p className="text-xs text-muted-foreground mb-1">{done} de {all.length} essenciais prontos</p>
-              <div className="h-2 rounded-full bg-muted overflow-hidden"><div className="h-full bg-emerald-500 transition-all" style={{ width: `${(done / all.length) * 100}%` }} /></div>
+              <div className="h-2 rounded-full bg-muted overflow-hidden"><div className="h-full bg-success transition-all" style={{ width: `${(done / all.length) * 100}%` }} /></div>
             </div>
           )}
         </div>
@@ -118,7 +118,7 @@ export default function Configuracoes() {
                     <span className="min-w-0 flex-1 space-y-1">
                       <span className="flex items-center justify-between gap-2">
                         <span className="font-medium">{c.title}</span>
-                        <span className={`text-[11px] rounded-full px-2 py-0.5 whitespace-nowrap ${PILL[c.state][1]}`}>{PILL[c.state][0]}</span>
+                        <span className={`text-xs rounded-full px-2 py-0.5 whitespace-nowrap ${PILL[c.state][1]}`}>{PILL[c.state][0]}</span>
                       </span>
                       <span className="block text-xs text-muted-foreground">{c.desc}</span>
                       {c.detail && <span className="block text-xs">{c.detail}</span>}

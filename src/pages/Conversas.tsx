@@ -1,3 +1,4 @@
+import { StatusBadge } from "@/components/layout/StatusBadge";
 import { firstName, memberNames } from "@/lib/memberNames";
 import { AppHeader } from "@/components/AppHeader";
 import { NumberHealthBanner } from "@/components/NumberHealthBanner";
@@ -208,12 +209,12 @@ export default function Conversas() {
       <span className="flex items-center gap-1 min-w-0 overflow-hidden">
         {d && <ColorPill color={d.color} title="Setor">{d.name}</ColorPill>}
         {t?.overflow_at && t.status === "queued" && (
-          <span className="text-[10px] font-medium text-amber-600 shrink-0" title="Fila parada: outros setores podem assumir">🤝 pedindo ajuda</span>
+          <span className="text-xs font-medium text-amber-600 shrink-0" title="Fila parada: outros setores podem assumir">🤝 pedindo ajuda</span>
         )}
         {gs.slice(0, 2).map((g) => <ColorPill key={g.name} color={g.color} icon={g.icon} title="Grupo do cliente">{g.name}</ColorPill>)}
-        {gs.length > 2 && <span className="text-[10px] text-muted-foreground">+{gs.length - 2}</span>}
+        {gs.length > 2 && <span className="text-xs text-muted-foreground">+{gs.length - 2}</span>}
         {ts.slice(0, 2).map((x) => <ColorPill key={x.id} color={x.color} icon={x.icon} title="Etiqueta">{x.name}</ColorPill>)}
-        {ts.length > 2 && <span className="text-[10px] text-muted-foreground" title={ts.slice(2).map((x) => x.name).join(", ")}>+{ts.length - 2}</span>}
+        {ts.length > 2 && <span className="text-xs text-muted-foreground" title={ts.slice(2).map((x) => x.name).join(", ")}>+{ts.length - 2}</span>}
       </span>
     );
   };
@@ -221,14 +222,14 @@ export default function Conversas() {
     if (c.channel === "email") {
       const box = c.email_account_id ? mailboxes.get(c.email_account_id) : null;
       return (
-        <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground shrink-0" title="Caixa de e-mail">
+        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground shrink-0" title="Caixa de e-mail">
           <Mail className="w-3 h-3" />{multiChannel ? box ?? "E-mail" : "E-mail"}
         </span>
       );
     }
     const n = c.instance_id && multiChannel ? numbers.get(c.instance_id) : null;
     return n ? (
-      <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground shrink-0" title="Número de atendimento">
+      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground shrink-0" title="Número de atendimento">
         <span className="w-2 h-2 rounded-full" style={{ background: n.color ?? "#94A3B8" }} />{n.name}
       </span>
     ) : null;
@@ -620,9 +621,9 @@ export default function Conversas() {
                     {c.contact_name || c.contact_phone || c.contact_email}
                   </span>
                   {byConversation.get(c.id) && (
-                    <Badge variant={byConversation.get(c.id)!.status === "bot" ? "default" : "secondary"} className="text-[10px]">
+                    <StatusBadge status={byConversation.get(c.id)!.status}>
                       {STATUS_LABEL[byConversation.get(c.id)!.status]}
-                    </Badge>
+                    </StatusBadge>
                   )}
                 </div>
                 <div className="flex items-center justify-between gap-2">
@@ -695,7 +696,7 @@ export default function Conversas() {
                           key={f.id}
                           className="flex items-center gap-2 bg-background border rounded-md px-3 py-2 text-xs"
                         >
-                          <Clock className="w-4 h-4 text-primary shrink-0" />
+                          <Clock className="w-4 h-4 text-primary-text shrink-0" />
                           <div className="flex-1 min-w-0">
                             <div className="font-medium">
                               {isAuto ? "Follow-up automático (inatividade)" : "Follow-up agendado"}
@@ -849,12 +850,12 @@ export default function Conversas() {
                     }`}
                   >
                     {m.direction === "outbound" && (
-                      <div className="text-[10px] opacity-70 mb-0.5">
+                      <div className="text-xs opacity-70 mb-0.5">
                         {m.sender === "ai" ? "IA" : "Você"}
                       </div>
                     )}
                     {m.deleted_by && (
-                      <div className="text-[10px] italic opacity-70 mb-0.5">
+                      <div className="text-xs italic opacity-70 mb-0.5">
                         {m.deleted_by === "contact" ? "🗑 Apagada pelo cliente — guardada no histórico" : "🗑 Apagada no celular — guardada no histórico"}
                       </div>
                     )}

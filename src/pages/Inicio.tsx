@@ -85,12 +85,12 @@ export default function Inicio() {
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <button type="button" onClick={() => void setTeamMode("solo")} className="text-left rounded-lg border p-4 hover:border-primary hover:bg-primary/5">
-                <User className="w-5 h-5 mb-2 text-primary" />
+                <User className="w-5 h-5 mb-2 text-primary-text" />
                 <span className="block font-medium">Só eu, pelo WhatsApp</span>
                 <span className="block text-xs text-muted-foreground">A IA atende e passa para você quando precisar. Sem setores nem equipe.</span>
               </button>
               <button type="button" onClick={() => void setTeamMode("equipe")} className="text-left rounded-lg border p-4 hover:border-primary hover:bg-primary/5">
-                <Users className="w-5 h-5 mb-2 text-primary" />
+                <Users className="w-5 h-5 mb-2 text-primary-text" />
                 <span className="block font-medium">Eu e uma equipe</span>
                 <span className="block text-xs text-muted-foreground">Setores com fila e cor, distribuição dos atendimentos e convite das pessoas.</span>
               </button>
@@ -120,7 +120,7 @@ export default function Inicio() {
                   const isNext = st === next;
                   return (
                     <li key={st.title} className={`flex items-center gap-3 rounded-lg border p-3 ${isNext ? "border-primary bg-primary/5" : ""}`}>
-                      <span className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-sm font-semibold ${st.done ? "bg-emerald-500 text-white" : isNext ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                      <span className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-sm font-semibold ${st.done ? "bg-success text-white dark:text-background" : isNext ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
                         {st.done ? <Check className="w-4 h-4" /> : i + 1}
                       </span>
                       <st.icon className="w-4 h-4 text-muted-foreground shrink-0 hidden sm:block" />
@@ -139,7 +139,7 @@ export default function Inicio() {
                   <ul className="mt-2 space-y-1">
                     {later.map((st) => (
                       <li key={st.title} className="flex items-center gap-3 text-sm py-1">
-                        {st.done ? <Check className="w-4 h-4 text-emerald-600 shrink-0" /> : <st.icon className="w-4 h-4 text-muted-foreground shrink-0" />}
+                        {st.done ? <Check className="w-4 h-4 text-success shrink-0" /> : <st.icon className="w-4 h-4 text-muted-foreground shrink-0" />}
                         <span className="flex-1 min-w-0"><span className="font-medium">{st.title}</span> <span className="text-xs text-muted-foreground">· {st.why}</span></span>
                         <Button asChild size="sm" variant="ghost"><Link to={st.to}>{st.done ? "Revisar" : "Abrir"}</Link></Button>
                       </li>
@@ -150,7 +150,7 @@ export default function Inicio() {
             </section>
           ) : (
             <section className="rounded-xl border bg-card p-5 flex items-center gap-3">
-              <PartyPopper className="w-6 h-6 text-primary" />
+              <PartyPopper className="w-6 h-6 text-primary-text" />
               <div className="text-sm"><b>Tudo pronto!</b> A empresa está configurada. Acompanhe o dia a dia em Conversas e os resultados em Relatórios.</div>
             </section>
           )
@@ -161,7 +161,7 @@ export default function Inicio() {
         <section className="grid gap-3 grid-cols-2 sm:grid-cols-4">
           {shortcuts.filter((x) => x.show).map((x) => (
             <Link key={x.to} to={x.to} className="rounded-xl border bg-card p-4 flex flex-col items-center gap-2 hover:shadow-md hover:-translate-y-0.5 transition">
-              <x.icon className="w-6 h-6 text-primary" />
+              <x.icon className="w-6 h-6 text-primary-text" />
               <span className="text-sm font-medium">{x.label}</span>
             </Link>
           ))}

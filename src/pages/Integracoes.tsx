@@ -147,7 +147,7 @@ export default function Integracoes() {
               className={`w-full text-left rounded-md border p-2 text-sm hover:bg-muted ${x.id === current ? "bg-muted" : ""}`}>
               <div className="font-medium truncate">{x.system}</div>
               <div className="text-xs text-muted-foreground truncate">{x.title ?? x.goal}</div>
-              <Badge variant="outline" className="mt-1 text-[10px]">{STATUS[x.status] ?? x.status}</Badge>
+              <Badge variant="outline" className="mt-1 text-xs">{STATUS[x.status] ?? x.status}</Badge>
             </button>
           ))}
           <Button variant="ghost" className="w-full" onClick={() => setHelp("")}><LifeBuoy className="w-4 h-4 mr-1" /> Pedir ajuda ao time Clubetec</Button>

@@ -2,72 +2,102 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Q7 Educação — Light theme. Teal primary + neutral gray secondary. All HSL. */
-
+/*
+ * Deixa com a IA — sistema de cores (docs/design/01-visual-acabamento.md).
+ * Regras: a cor da empresa (--primary) só para ação e seleção; status usa as
+ * semânticas (success/warning/danger/info/status-ia); setor/etiqueta usa a paleta
+ * de 8 (src/components/ColorTag.tsx). Texto ≥ 4,5:1. Tudo em HSL.
+ * --primary, --primary-foreground, --primary-text e --brand-secondary são
+ * substituídos pelo OrgTheme quando a empresa liga as próprias cores.
+ */
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 220 15% 15%;
+    --background: 210 20% 98%;
+    --foreground: 217 33% 14%;
     --card: 0 0% 100%;
-    --card-foreground: 220 15% 15%;
+    --card-foreground: 217 33% 14%;
     --popover: 0 0% 100%;
-    --popover-foreground: 220 15% 15%;
-    --primary: 169 70% 44%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 55%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 210 20% 96%;
-    --muted-foreground: 220 10% 42%;
-    --accent: 169 55% 94%;
-    --accent-foreground: 169 60% 28%;
-    --destructive: 0 72% 50%;
+    --popover-foreground: 217 33% 14%;
+    --muted: 210 20% 95%;
+    --muted-foreground: 215 14% 40%;
+    --secondary: 210 20% 94%;
+    --secondary-foreground: 217 33% 20%;
+    --accent: 210 20% 95%;
+    --accent-foreground: 217 33% 14%;
+    --border: 214 20% 90%;
+    --input: 215 14% 60%;
+
+    /* Marca */
+    --primary: 169 70% 45%;
+    --primary-foreground: 217 69% 14%;
+    --primary-text: 170 45% 31%;
+    --brand-secondary: 203 55% 29%;
+    --ring: 169 70% 45%;
+
+    /* Semânticas: sólido (ícone/bolinha/barra) · soft (fundo) · text (texto sobre soft ou card) */
+    --success: 142 72% 29%;
+    --success-soft: 138 50% 94%;
+    --success-text: 142 64% 24%;
+    --warning: 32 95% 44%;
+    --warning-soft: 40 90% 93%;
+    --warning-text: 26 90% 30%;
+    --danger: 0 72% 51%;
+    --danger-soft: 0 86% 96%;
+    --danger-text: 0 70% 38%;
+    --info: 221 83% 53%;
+    --info-soft: 214 95% 95%;
+    --info-text: 224 70% 40%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --success: 155 60% 40%;
-    --success-foreground: 0 0% 100%;
-    --border: 220 13% 90%;
-    --input: 220 13% 92%;
-    --ring: 169 70% 44%;
+
+    /* Status do atendimento: IA (fila = warning · em atendimento = info · finalizado = muted) */
+    --status-ia: 262 83% 58%;
+    --status-ia-soft: 260 90% 96%;
+    --status-ia-text: 263 60% 42%;
+
     --radius: 0.75rem;
-    --sidebar-background: 0 0% 99%;
-    --sidebar-foreground: 220 15% 22%;
-    --sidebar-primary: 169 70% 44%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 169 55% 95%;
-    --sidebar-accent-foreground: 169 60% 28%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 169 70% 44%;
   }
 
   .dark {
-    --background: 220 15% 8%;
+    --background: 220 18% 8%;
     --foreground: 210 20% 96%;
-    --card: 220 15% 11%;
+    --card: 220 16% 11%;
     --card-foreground: 210 20% 96%;
-    --popover: 220 15% 11%;
+    --popover: 220 16% 11%;
     --popover-foreground: 210 20% 96%;
-    --primary: 169 65% 48%;
-    --primary-foreground: 220 15% 8%;
-    --secondary: 220 10% 25%;
+    --muted: 220 14% 16%;
+    --muted-foreground: 218 12% 68%;
+    --secondary: 220 14% 18%;
     --secondary-foreground: 210 20% 96%;
-    --muted: 220 13% 15%;
-    --muted-foreground: 220 10% 65%;
-    --accent: 169 40% 20%;
-    --accent-foreground: 169 60% 85%;
-    --destructive: 0 62% 50%;
-    --destructive-foreground: 210 20% 96%;
-    --success: 155 55% 45%;
-    --success-foreground: 220 15% 8%;
+    --accent: 220 14% 18%;
+    --accent-foreground: 210 20% 96%;
     --border: 220 13% 20%;
-    --input: 220 13% 18%;
+    --input: 218 12% 42%;
+
+    --primary: 169 65% 48%;
+    --primary-foreground: 217 69% 14%;
+    --primary-text: 166 55% 62%;
+    --brand-secondary: 203 45% 45%;
     --ring: 169 65% 48%;
-    --sidebar-background: 220 15% 10%;
-    --sidebar-foreground: 210 20% 90%;
-    --sidebar-primary: 169 65% 48%;
-    --sidebar-primary-foreground: 220 15% 8%;
-    --sidebar-accent: 169 40% 20%;
-    --sidebar-accent-foreground: 169 60% 85%;
-    --sidebar-border: 220 13% 20%;
-    --sidebar-ring: 169 65% 48%;
+
+    --success: 142 69% 58%;
+    --success-soft: 142 40% 14%;
+    --success-text: 142 60% 70%;
+    --warning: 43 96% 56%;
+    --warning-soft: 35 60% 14%;
+    --warning-text: 40 90% 70%;
+    --danger: 0 91% 71%;
+    --danger-soft: 0 50% 16%;
+    --danger-text: 0 90% 78%;
+    --info: 213 94% 68%;
+    --info-soft: 220 50% 17%;
+    --info-text: 213 90% 78%;
+    --destructive: 0 91% 71%;
+    --destructive-foreground: 220 18% 8%;
+
+    --status-ia: 258 90% 76%;
+    --status-ia-soft: 260 40% 18%;
+    --status-ia-text: 258 90% 80%;
   }
 }
 
@@ -77,25 +107,23 @@
   }
 
   body {
-    @apply bg-background text-foreground;
-    font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    @apply bg-background text-foreground font-sans;
+    font-feature-settings: "cv11", "ss01";
   }
 }
 
 @layer components {
-  .glass-card {
-    @apply bg-card border border-border shadow-sm;
+  /* Montserrat Black Italic: só logo, H1 de página, número grande de KPI e boas-vindas. */
+  .font-brand {
+    @apply font-display font-black italic tracking-tight;
   }
 
-  .glass-card-hover {
-    @apply glass-card hover:shadow-md hover:border-primary/40 transition-all duration-300;
+  /* Etiqueta/setor legível com qualquer cor salva: style={{ "--c": hex }}. */
+  .tag-pill {
+    background: color-mix(in oklab, var(--c, #64748b) 14%, hsl(var(--card)));
+    color: color-mix(in oklab, var(--c, #64748b) 55%, hsl(var(--foreground)));
   }
-
-  .gradient-text {
-    @apply bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent;
-  }
-
-  .btn-gradient {
-    @apply bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity;
+  .dark .tag-pill {
+    background: color-mix(in oklab, var(--c, #64748b) 22%, hsl(var(--card)));
   }
 }

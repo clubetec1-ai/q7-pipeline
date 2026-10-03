@@ -128,7 +128,7 @@ export function AddNumberDialog({
           <div className="grid gap-3">
             <button type="button" onClick={() => setStep("meta")}
               className="text-left rounded-lg border p-4 hover:bg-muted transition">
-              <div className="flex items-center gap-2 font-medium"><ShieldCheck className="w-4 h-4 text-primary" /> WhatsApp oficial (Meta) — recomendado</div>
+              <div className="flex items-center gap-2 font-medium"><ShieldCheck className="w-4 h-4 text-primary-text" /> WhatsApp oficial (Meta) — recomendado</div>
               <p className="text-sm text-muted-foreground mt-1">API oficial, sem risco de bloqueio. Precisa de conta no WhatsApp Business Platform.</p>
             </button>
             <button type="button" onClick={() => setStep("uazapi-name")}

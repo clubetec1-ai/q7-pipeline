@@ -18,9 +18,10 @@ interface Item { key: Section; to: string; label: string; icon: LucideIcon; show
 const CONFIG_PAGES: Section[] = ["configuracoes", "numeros", "ramais", "etiquetas", "biblioteca", "agente", "fluxos", "conhecimento", "integracoes",
   "diagnostico", "setores", "equipe", "seguranca"];
 
-const base = "px-2.5 py-1.5 text-sm rounded-md transition inline-flex items-center gap-1.5 whitespace-nowrap";
-const activeCls = `${base} bg-muted font-medium`;
-const idleCls = `${base} text-muted-foreground hover:bg-muted`;
+// Desktop: só o nome (sem ícone), ativo sublinhado na cor principal. Ícones só no ☰ do celular.
+const base = "relative inline-flex h-9 items-center gap-1 rounded-md px-3 text-sm font-medium whitespace-nowrap transition-colors";
+const activeCls = `${base} text-foreground after:absolute after:inset-x-3 after:-bottom-[10px] after:h-0.5 after:rounded-full after:bg-primary`;
+const idleCls = `${base} text-muted-foreground hover:bg-muted hover:text-foreground`;
 
 /**
  * Menu principal com no máximo 6 itens, sempre com nome: Início, Conversas, Funil,
@@ -63,11 +64,8 @@ export function MainNav({ active }: { active: Section }) {
   ];
   const isActive = (i: Item) => active === i.key || !!i.also?.includes(active);
   const visible = groups.map((g) => ({ ...g, items: g.items.filter((i) => i.show) })).filter((g) => g.items.length);
-  // Telas médias: só ícone (nome no title); o nome aparece a partir de telas comuns de notebook.
-  const link = (i: Item, show = "hidden xl:inline") => (
-    <Link key={i.to} to={i.to} title={i.label} className={isActive(i) ? activeCls : idleCls}>
-      <i.icon className="w-4 h-4" /><span className={show}>{i.label}</span>
-    </Link>
+  const link = (i: Item) => (
+    <Link key={i.to} to={i.to} className={isActive(i) ? activeCls : idleCls}>{i.label}</Link>
   );
   // "Conta" fica no menu da pessoa, à direita do cabeçalho (no celular, continua no ☰).
   const desktop = visible.filter((g) => g.label !== "Conta");
@@ -111,11 +109,10 @@ export function MainNav({ active }: { active: Section }) {
         {desktop.map((g) => {
           if (g.items.length === 1) return link(g.items[0]);
           const current = g.items.find(isActive);
-          const Icon = g.icon;
           return (
             <DropdownMenu key={g.label}>
-              <DropdownMenuTrigger className={current ? activeCls : idleCls} title={g.label}>
-                <Icon className="w-4 h-4" /><span className="hidden xl:inline">{g.label}</span><ChevronDown className="w-3.5 h-3.5 opacity-60" />
+              <DropdownMenuTrigger className={current ? activeCls : idleCls}>
+                {g.label}<ChevronDown className="w-3.5 h-3.5 opacity-60" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
                 {g.items.map((i) => (

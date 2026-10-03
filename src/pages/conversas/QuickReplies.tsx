@@ -83,12 +83,12 @@ export function QuickReplies({
               if (r.library_file_id && r.library_files) onFile?.({ id: r.library_file_id, name: r.library_files.name });
             }}
               className="w-full text-left px-3 py-2 hover:bg-muted border-b last:border-0">
-              <span className="font-mono text-xs text-primary">/{r.shortcut}</span>
+              <span className="font-mono text-xs text-primary-text">/{r.shortcut}</span>
               <span className="text-muted-foreground ml-2 truncate">{r.library_files ? "📎 " : ""}{fill(r.content).slice(0, 80)}</span>
             </button>
           ))}
           {can("library.manage") && matches.length > 0 && (
-            <button type="button" className="w-full text-left px-3 py-1.5 text-[11px] text-muted-foreground hover:bg-muted"
+            <button type="button" className="w-full text-left px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted"
               onClick={() => setManage(true)}>Gerenciar respostas rápidas</button>
           )}
         </div>
@@ -105,7 +105,7 @@ export function QuickReplies({
           <div className="max-h-60 overflow-y-auto space-y-2">
             {replies.map((r) => (
               <div key={r.id} className="flex items-start gap-2 rounded-md border p-2 text-sm">
-                <span className="font-mono text-xs text-primary shrink-0">/{r.shortcut}</span>
+                <span className="font-mono text-xs text-primary-text shrink-0">/{r.shortcut}</span>
                 <span className="flex-1 whitespace-pre-wrap text-muted-foreground">{r.content}</span>
                 <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Apagar" onClick={() => remove(r.id)}>
                   <Trash2 className="w-3.5 h-3.5" />

@@ -1,9 +1,13 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { TagIcon } from "./TagIcon";
 
-/** Cores para setores, etiquetas e grupos de clientes (legíveis no claro e no escuro). */
-export const PALETTE = ["#3FB8BE", "#6C8EF5", "#F59E0B", "#EF4444", "#10B981", "#8B5CF6", "#EC4899", "#64748B"];
-const FALLBACK = "#94A3B8";
+/**
+ * Paleta única de setores, etiquetas e grupos (8 + cinza): matizes espaçados, todos ≥ 3:1
+ * como bolinha nos dois temas (docs/design/01-visual-acabamento.md §2.4). Fonte única:
+ * as outras telas importam daqui.
+ */
+export const PALETTE = ["#2563EB", "#0891B2", "#16A34A", "#65A30D", "#D97706", "#E11D48", "#C026D3", "#7C3AED", "#64748B"];
+const FALLBACK = "#64748B";
 
 const safe = (c?: string | null) => (c && /^#[0-9a-f]{6}$/i.test(c) ? c : FALLBACK);
 
@@ -25,8 +29,8 @@ export function ColorDot({ color, title, onClick }: { color?: string | null; tit
 export function ColorPill({ color, children, title, icon }: { color?: string | null; children: ReactNode; title?: string; icon?: string | null }) {
   const c = safe(color);
   return (
-    <span className="inline-flex items-center gap-1 rounded-full px-1.5 text-[10px] font-medium leading-4 shrink-0 max-w-[9rem] truncate"
-      style={{ background: `${c}26`, color: c }} title={title}>
+    <span className="tag-pill inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium shrink-0 max-w-[10rem] truncate"
+      style={{ "--c": c } as CSSProperties} title={title}>
       {icon ? <TagIcon icon={icon} className="w-2.5 h-2.5" /> : <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: c }} />}{children}
     </span>
   );

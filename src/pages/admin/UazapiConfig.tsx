@@ -90,7 +90,7 @@ export default function UazapiConfig() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Plug className="w-6 h-6 text-primary" /> Uazapi
+            <Plug className="w-6 h-6 text-primary-text" /> Uazapi
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Configure o servidor e o token da instância do WhatsApp.
@@ -128,7 +128,7 @@ export default function UazapiConfig() {
             </div>
 
             <div className="rounded-md border border-border bg-muted/40 p-3 text-xs flex gap-2">
-              <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+              <Info className="w-4 h-4 text-primary-text shrink-0 mt-0.5" />
               <p className="text-muted-foreground">
                 A instância deve ser criada no painel da Uazapi. Depois de criada, copie o <strong>Instance Token</strong> dela e cole aqui.
               </p>

@@ -120,7 +120,7 @@ export default function EtiquetasGrupos() {
                 {i.name}
               </button>
               {i.sensitive && <Lock className="w-3.5 h-3.5 text-muted-foreground" aria-label="Sensível" />}
-              {i.is_default && <span className="text-[10px] rounded border px-1 text-muted-foreground" title="Etiqueta padrão do sistema: pode editar à vontade">padrão</span>}
+              {i.is_default && <span className="text-xs rounded border px-1 text-muted-foreground" title="Etiqueta padrão do sistema: pode editar à vontade">padrão</span>}
               <Input className="h-8 w-48" defaultValue={i.name} key={i.name}
                 onBlur={(e) => e.target.value.trim() && e.target.value.trim() !== i.name && save(table, i.id, { name: e.target.value.trim() })} />
               <span className="text-xs text-muted-foreground">{n} cliente(s)</span>

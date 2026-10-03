@@ -20,7 +20,7 @@ export function FlowNodeView({ id, type, data, selected }: NodeProps) {
       </div>
       <p className="px-3 py-2 text-xs text-muted-foreground whitespace-pre-wrap break-words">{def.summary(d) || "—"}</p>
       {outputs.map((o) => (
-        <div key={o.id} className="relative border-t px-3 py-1 text-[11px] text-right pr-4">
+        <div key={o.id} className="relative border-t px-3 py-1 text-xs text-right pr-4">
           {stats && <span className="float-left font-mono text-muted-foreground">{count?.[o.id] ?? 0}</span>}
           {o.label}
           <Handle id={o.id} type="source" position={Position.Right} className="!w-3 !h-3" style={{ background: def.color }} />

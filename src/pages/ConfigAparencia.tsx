@@ -8,7 +8,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useBrandKit, type Brand } from "@/components/brand/BrandKit";
-import { toHsl } from "@/components/OrgTheme";
+import { themeFor } from "@/components/OrgTheme";
 
 type Theme = { primary?: string; secondary?: string; logo?: string };
 type BrandWithTheme = Brand & { theme?: Theme };
@@ -129,11 +129,14 @@ export default function ConfigAparencia() {
           <div className="rounded-md border overflow-hidden" aria-label="Prévia">
             <div className="h-1.5" style={{ background: secondary }} />
             <div className="p-3 flex items-center gap-3">
-              <span className="rounded-md px-3 h-8 inline-flex items-center text-sm font-medium" style={{ background: primary, color: toHsl(primary).darkText ? "#111" : "#fff" }}>Botão</span>
-              <span className="text-sm" style={{ color: primary }}>Link e destaque</span>
+              <span className="rounded-md px-3 h-8 inline-flex items-center text-sm font-medium" style={{ background: primary, color: themeFor(primary).fgHex }}>Botão</span>
+              <span className="text-sm" style={{ color: `hsl(${themeFor(primary).light.text})` }}>Link e destaque</span>
               <span className="ml-auto text-xs text-muted-foreground">Prévia</span>
             </div>
           </div>
+          {!themeFor(primary).readable && (
+            <p className="text-xs text-warning-text bg-warning-soft rounded-md px-3 py-2">O texto dos botões pode ficar difícil de ler com esta cor principal. Prefira um tom mais escuro ou mais claro.</p>
+          )}
           <label className="flex items-center gap-2 text-sm cursor-pointer">
             <input type="checkbox" checked={!!brand.use_in_theme} onChange={(e) => setBrand({ ...brand, use_in_theme: e.target.checked })} />
             Usar estas cores nas telas (desligado, fica o verde do Deixa com a IA)

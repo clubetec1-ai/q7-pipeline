@@ -9,6 +9,7 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
+    "backup": "node scripts/backup-dados.mjs",
     "check": "node scripts/check-setup.mjs"
   },
   "dependencies": {

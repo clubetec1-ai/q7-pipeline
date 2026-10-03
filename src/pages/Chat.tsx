@@ -140,7 +140,7 @@ export default function Chat() {
     <button key={c.id} type="button" onClick={() => setActive(c.id)}
       className={`w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-left ${active === c.id ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>
       {icon}<span className="truncate flex-1">{label(c)}</span>
-      {!!unread.get(c.id) && active !== c.id && <span className="rounded-full bg-primary text-primary-foreground text-[10px] px-1.5">{unread.get(c.id)}</span>}
+      {!!unread.get(c.id) && active !== c.id && <span className="rounded-full bg-primary text-primary-foreground text-xs px-1.5">{unread.get(c.id)}</span>}
     </button>
   );
 
@@ -183,7 +183,7 @@ export default function Chat() {
               return (
                 <div key={m.id} className={mine ? "text-right" : ""}>
                   <div className={`inline-block max-w-[80%] rounded-lg px-3 py-2 text-sm text-left ${mine ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
-                    {!mine && <p className="text-[11px] font-medium opacity-80">{names.get(m.author_id) ?? "Alguém"}</p>}
+                    {!mine && <p className="text-xs font-medium opacity-80">{names.get(m.author_id) ?? "Alguém"}</p>}
                     {m.content && <p className="whitespace-pre-wrap">{m.content}</p>}
                     {m.attachment_path && (
                       <button type="button" className="mt-1 inline-flex items-center gap-1 underline text-xs" onClick={() => openFile(m.attachment_path!)}>
@@ -195,7 +195,7 @@ export default function Chat() {
                         <MessageSquare className="w-3 h-3" /> Abrir atendimento compartilhado
                       </button>
                     )}
-                    <p className="text-[10px] opacity-60 mt-0.5">{new Date(m.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</p>
+                    <p className="text-xs opacity-60 mt-0.5">{new Date(m.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</p>
                   </div>
                 </div>
               );

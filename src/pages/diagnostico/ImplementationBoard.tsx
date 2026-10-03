@@ -48,7 +48,7 @@ export function ImplementationBoard({ processes, sectors, priority, busy, onChan
             <p key={o.setor} className="text-xs"><b>{i + 1}º {o.setor}</b> — {o.motivo}{o.ganho ? ` Ganho: ${o.ganho}.` : ""}
               {o.primeiros.length ? <span className="text-muted-foreground"> Comece por: {o.primeiros.join(", ")}.</span> : null}</p>
           ))}
-          <p className="text-[11px] text-muted-foreground">Sugestão da IA a partir do diagnóstico — a decisão é sua.</p>
+          <p className="text-xs text-muted-foreground">Sugestão da IA a partir do diagnóstico — a decisão é sua.</p>
         </div>
       )}
 

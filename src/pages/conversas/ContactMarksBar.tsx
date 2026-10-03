@@ -72,7 +72,7 @@ export function ContactMarksBar({
                 {groups.length === 0 && <span className="text-xs text-muted-foreground">Nenhum grupo criado.</span>}
                 {groups.map((g) => item("group", g, myGroups.includes(g.id), canGroups))}
               </div>
-              {!canGroups && groups.length > 0 && <p className="text-[11px] text-muted-foreground">Só supervisor, admin ou dono muda o grupo.</p>}
+              {!canGroups && groups.length > 0 && <p className="text-xs text-muted-foreground">Só supervisor, admin ou dono muda o grupo.</p>}
             </div>
           </PopoverContent>
         </Popover>

@@ -308,7 +308,7 @@ export function RamaisPanel({ orgs }: { orgs: { id: string; name: string }[] }) 
                   <TableRow key={e.id}>
                     <TableCell title={st.hint}>
                       <span className="inline-flex items-center gap-1.5 text-xs whitespace-nowrap"><span className={`w-2.5 h-2.5 rounded-full ${st.dot}`} />{st.label}</span>
-                      {st.hint && <div className="text-[11px] text-muted-foreground max-w-[14rem]">{st.hint}</div>}
+                      {st.hint && <div className="text-xs text-muted-foreground max-w-[14rem]">{st.hint}</div>}
                     </TableCell>
                     <TableCell className="font-medium">{e.number}{e.label ? ` · ${e.label}` : ""}</TableCell>
                     <TableCell className="text-sm">{memberName(e.user_id) ?? <span className="text-muted-foreground">Livre</span>}</TableCell>

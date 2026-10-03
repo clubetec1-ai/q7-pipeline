@@ -26,7 +26,7 @@ export function AppHeader({ active, extra }: { active: ComponentProps<typeof Mai
   const { theme, toggleTheme } = useTheme();
   const orgLogo = useOrgLogo();
   return (
-    <header className="border-b px-4 h-14 flex items-center justify-between shrink-0 bg-background/95 backdrop-blur sticky top-0 z-40"
+    <header className="border-b px-4 h-14 flex items-center justify-between shrink-0 bg-card sticky top-0 z-40"
       style={{ borderTop: "3px solid hsl(var(--brand-secondary, var(--primary)))" }}>
       <div className="flex items-center gap-3 min-w-0">
         <Logo horizontal width={26} height={26} />

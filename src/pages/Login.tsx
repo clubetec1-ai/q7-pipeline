@@ -69,7 +69,7 @@ const Login = () => {
 
         <div className="rounded-2xl border-2 border-primary/40 p-6 space-y-5 bg-card">
           <div className="text-center">
-            <span className="text-sm font-bold text-primary uppercase tracking-wide">
+            <span className="text-sm font-bold text-primary-text uppercase tracking-wide">
               {mode === "signin" ? "Entrar" : "Criar conta"}
             </span>
           </div>

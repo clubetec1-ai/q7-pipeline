@@ -301,7 +301,7 @@ export function ContactSheet({
               <p className="text-xs text-muted-foreground">Só a equipe vê. Notas nunca são enviadas ao cliente.</p>
               {notes.map((n) => (
                 <div key={n.id} className="rounded-md border bg-amber-500/5 p-2 text-sm">
-                  <div className="text-[11px] text-muted-foreground mb-1">
+                  <div className="text-xs text-muted-foreground mb-1">
                     {nameOf(n.author_id)} · {new Date(n.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
                     {n.mentions.length > 0 && ` · para ${n.mentions.map(nameOf).join(", ")}`}
                   </div>
@@ -316,7 +316,7 @@ export function ContactSheet({
                   return (
                     <button key={p.id} type="button"
                       onClick={() => setMentions((cur) => (on ? cur.filter((x) => x !== p.id) : [...cur, p.id]))}
-                      className={`rounded-full border px-2 py-0.5 text-[11px] ${on ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted"}`}>
+                      className={`rounded-full border px-2 py-0.5 text-xs ${on ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted"}`}>
                       @{p.name.split(" ")[0]}
                     </button>
                   );

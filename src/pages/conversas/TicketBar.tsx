@@ -1,3 +1,4 @@
+import { StatusBadge } from "@/components/layout/StatusBadge";
 import { firstName, memberNames } from "@/lib/memberNames";
 import { useEffect, useState } from "react";
 import { ArrowRightLeft, Bot, CheckCircle2, Hand, Hash } from "lucide-react";
@@ -119,11 +120,11 @@ export function TicketBar({ ticket, onChanged, greet = true }: { ticket: Ticket 
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
-      <Badge variant={ticket.status === "bot" ? "default" : "secondary"} className="text-[10px]">
+      <StatusBadge status={ticket.status}>
         {STATUS_LABEL[ticket.status]}{ticket.external_reply && !ticket.assigned_to ? " · pelo celular" : ""}
-      </Badge>
-      <span className="text-[11px] text-muted-foreground">#{ticket.protocol}</span>
-      {owner && <span className="text-[11px] text-muted-foreground">· com {owner}</span>}
+      </StatusBadge>
+      <span className="text-xs text-muted-foreground">#{ticket.protocol}</span>
+      {owner && <span className="text-xs text-muted-foreground">· com {owner}</span>}
       {canTake && (
         <Button size="sm" variant="outline" className="h-8" disabled={busy}
           onClick={() => (ticket.assigned_to ? setDialog("take") : claim())}>

@@ -86,7 +86,7 @@ function Card({ c }: { c: Conversation }) {
         <span className="truncate">{ago(c.last_message_at)}{c.ai_enabled ? " · IA atendendo" : ""}</span>
         {c.dept && <ColorPill color={c.dept.color} title="Setor">{c.dept.name}</ColorPill>}
       </div>
-      {c.inactivity_followup_at && <div className="mt-1 text-[11px] text-primary">Retorno agendado</div>}
+      {c.inactivity_followup_at && <div className="mt-1 text-xs text-primary-text">Retorno agendado</div>}
     </div>
   );
 }

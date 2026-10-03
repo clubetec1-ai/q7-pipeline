@@ -125,7 +125,7 @@ export default function Setores() {
                         {list.slice(0, 6).map((p, i) => (
                           <li key={`${p.nome}-${i}`} className="flex items-center justify-between gap-2">
                             <span className="truncate">{p.nome}</span>
-                            {p.implementar && <span className={`rounded-full px-1.5 text-[10px] ${p.implementar === "agora" ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300" : p.implementar === "depois" ? "bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300" : "bg-muted text-muted-foreground"}`}>{p.implementar === "nao" ? "não" : p.implementar}</span>}
+                            {p.implementar && <span className={`rounded-full px-1.5 text-xs ${p.implementar === "agora" ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300" : p.implementar === "depois" ? "bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300" : "bg-muted text-muted-foreground"}`}>{p.implementar === "nao" ? "não" : p.implementar}</span>}
                           </li>
                         ))}
                         {list.length > 6 && <li className="text-muted-foreground">+{list.length - 6} processo(s)</li>}
