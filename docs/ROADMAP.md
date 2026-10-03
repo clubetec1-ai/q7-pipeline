@@ -103,6 +103,27 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
 25. 🟡 **Chat da equipe:** falta busca, reações e canais extras.
 26. ⏳ Messenger e Instagram; backup automático externo; logo e ícone da aba (com o nome novo).
 
+### Pedidos de 03/10: entrevista por voz, atendente preferencial, IA principal + 2 reservas
+- **Entrevista do Diagnóstico por voz (módulo):** o entrevistador faz as perguntas falando e o dono responde falando,
+  como numa entrevista de verdade (natural, com pausas e perguntas de complemento). A fala vira texto em cada etapa,
+  o dono confere e aprova como hoje. Precisa: voz da IA (texto → fala) e ouvir em tempo real (fala → texto), pelo mesmo
+  fornecedor de IA da plataforma; botão "Entrevista por voz" em cada etapa; tudo opcional (escrever continua valendo).
+  Cuidados: aviso de gravação/LGPD, nada de áudio guardado além do necessário, custo por minuto no plano.
+- **Atendente preferencial (roteamento):** se o cliente já foi atendido por uma pessoa e a opção estiver ligada, toda
+  nova mensagem ou ligação desse cliente vai direto para essa pessoa (se ela estiver disponível; senão segue a fila
+  normal e avisa). Liga/desliga por empresa e por setor, com o prazo de "lembrança" (ex.: últimos 90 dias); o
+  atendente aparece na ficha do cliente e pode ser trocado pelo supervisor. Vale para WhatsApp, e-mail e ramal.
+- **IA da plataforma com principal + 2 reservas (em andamento):** em Plataforma → Conectores, três posições
+  (Principal, Reserva 1, Reserva 2), cada uma com seletor do fornecedor (OpenAI, Groq, Gemini, Anthropic, OpenRouter,
+  DeepSeek), modelo e chave; se a principal falhar, a chamada passa sozinha para a reserva 1 e depois para a 2, com
+  aviso da última falha; consumo registrado por empresa (chamadas e volume de texto) para a Clubetec acompanhar e,
+  depois, para a franquia de IA dos planos. Trocar de IA vira só trocar o seletor e a chave.
+- **Nome "IntegrAI" (pesquisado em 03/10):** descartado — "Integrai" é **marca registrada em vigor na classe 42**
+  (Integrai Tecnologia Ltda, automação de e-commerce, site integrai.com.br) e "Integra.ai" e "IntegraAiCom" estão em
+  análise na 42; integrai.com.br e .com têm dono. "Clube IntegrAI" teria o mesmo conflito. Ideia aproveitada: destacar
+  o "AI" com outra cor e um quadradinho de inteligência — ex.: **Clube RenovAI** (cluberenovai .com.br e .com livres;
+  INPI: nenhuma "Renova AI"/"Clube RenovAI"; "Renovai" só num brechó, classe 35; renovai.com.br e .com indisponíveis).
+
 ### 🙋 Pendências do dono (fora do código)
 - Decidir: logo do Clube Renova+; preços, pacotes e franquia de IA dos planos; próximo nicho; criptografia por campo; o que
   fazer com a empresa de teste sem uso "Auto Center Modelo (TESTE)".
