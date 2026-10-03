@@ -84,8 +84,9 @@ pedido de cliente. Os detalhes de cada item estão nas seções abaixo; aqui fic
 25. Messenger e Instagram; backup automático externo; hospedagem própria (VPS); logo e ícone da aba.
 
 **Nome comercial e domínio (pedido em 02/10):** avaliar se "ClubeCRM" é o melhor nome para vender, mantendo a marca
-"Clube". Sugestão: **Clube Atende** (diz o que faz: atendimento com IA no WhatsApp, e-mail e telefone) — clubeatende.com.br
-e .com estavam livres em 02/10; manter "CRM" só como descrição. Antes de comprar: busca no INPI (classes 9 e 42) e
+"Clube". O dono quer um nome que passe a ideia de **melhoria contínua** (começa pelo diagnóstico e segue dando feedback
+e melhorias), não só de atendimento. Sugestão: **Clube Evolui** (clubeevolui.com.br e .com livres em 02/10), com a frase
+"diagnóstico, atendimento com IA e melhoria contínua da sua empresa"; alternativas Clube Avança, Clube Ciclo, Clube Cresce. Antes de comprar: busca no INPI (classes 9 e 42) e
 registro do domínio .com.br e .com. **Produção na VPS da Hostinger:** site (frontend) na VPS ou na Vercel; o banco e as
 funções continuam no Supabase (plano pago em produção: backups diários e sem pausa); trocar o nome nas telas, e-mails
 e no domínio dos links.
@@ -119,6 +120,12 @@ recuperação do MFA; cobrar da Nvoip a permissão do histórico (erro 403); res
   cartório pergunta quais atribuições o cartório tem e monta setores, processos, exemplos e a lista de documentos só
   com elas (Notas e Registro Civil já existe; faltam Registro de Imóveis, Protesto, Títulos e Documentos e a
   combinação Ofício Único).
+  *Entregue (02/10): três modelos de cartório — **Notas e Registro Civil**, **Registro de Imóveis** (protocolo,
+  registro e exigências, certidões de matrícula, regularização; funil Dúvida → Protocolado → Em análise → Com
+  exigência → Registrado) e **Ofício Único** (notas, registro civil, imóveis e protesto) — na Plataforma, no Diagnóstico
+  (exemplos de todas as etapas e processos) e na Base de conhecimento (documentos modelo: registro e averbação, como
+  funciona o registro e prazos, certidões de imóveis, protesto). Falta: Títulos e Documentos / Pessoas Jurídicas e
+  Protesto como cartório separado (com demanda).*
 - **Foco em ticket mais alto:** priorizar clientes em que a implantação agrega mais valor e paga mais — cartórios,
   clínicas e odontologia, escritórios de advocacia e contabilidade, imobiliárias, auto centers e concessionárias,
   escolas e redes. Para cada nicho: modelo completo (P1, item 7), pacote de implantação e caso de sucesso.
