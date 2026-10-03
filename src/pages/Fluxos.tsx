@@ -2,19 +2,14 @@ import { NumberHealthBanner } from "@/components/NumberHealthBanner";
 import { AppHeader } from "@/components/AppHeader";
 import { useCallback, useEffect, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
-import { LogOut, Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/contexts/OrgContext";
 import { useToast } from "@/hooks/use-toast";
-import { Logo } from "@/components/Logo";
-import { MainNav } from "@/components/MainNav";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -25,13 +20,8 @@ import { ReadyTemplates } from "./fluxos/ReadyTemplates";
 
 interface FlowRow { id: string; name: string; published: number | null }
 interface NumberRow { id: string; name: string; flow_id: string | null }
-type Hours = Record<string, { start: string; end: string }[]>;
 
-const WEEKDAYS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
-const DEFAULT_HOURS: Hours = Object.fromEntries([1, 2, 3, 4, 5].map((d) => [String(d), [{ start: "08:00", end: "18:00" }]]));
 const selectCls = "h-9 rounded-md border bg-background px-2 text-sm";
-const DEFAULT_OPT_OUT = ["SAIR", "PARAR"];
-const DEFAULT_OPT_OUT_REPLY = "Pronto, você não vai mais receber mensagens automáticas. Se precisar, é só mandar mensagem.";
 
 /** Fluxos de atendimento da organização (spec fluxo §5). */
 export default function Fluxos() {
@@ -97,25 +87,6 @@ export default function Fluxos() {
     const { error } = await supabase.from("whatsapp_instances").update({ flow_id: flowId || null }).eq("id", n.id);
     if (error) return toast({ variant: "destructive", title: "Sem permissão" });
     setNumbers((ns) => ns.map((x) => (x.id === n.id ? { ...x, flow_id: flowId || null } : x)));
-  };
-
-  const hours = (settings.business_hours as Hours | undefined) ?? DEFAULT_HOURS;
-  const [draftHours, setDraftHours] = useState<Hours | null>(null);
-  const h = draftHours ?? hours;
-  const setDay = (d: number, slot: { start: string; end: string } | null) =>
-    setDraftHours({ ...h, [String(d)]: slot ? [slot] : [] });
-
-  const [optWords, setOptWords] = useState<string | null>(null);
-  const [optReply, setOptReply] = useState<string | null>(null);
-  const words = optWords ?? ((settings.opt_out_words as string[] | undefined) ?? DEFAULT_OPT_OUT).join(", ");
-  const reply = optReply ?? (typeof settings.opt_out_reply === "string" ? settings.opt_out_reply : DEFAULT_OPT_OUT_REPLY);
-  const saveOptOut = async () => {
-    const list = words.split(",").map((w) => w.trim().slice(0, 30)).filter(Boolean).slice(0, 10);
-    if (!list.length) return toast({ variant: "destructive", title: "Informe ao menos uma palavra" });
-    if (!reply.trim()) return toast({ variant: "destructive", title: "Escreva a confirmação" });
-    await saveSettings({ opt_out_words: list, opt_out_reply: reply.trim().slice(0, 500) });
-    setOptWords(null);
-    setOptReply(null);
   };
 
   if (!org) return null;
@@ -192,56 +163,15 @@ export default function Fluxos() {
           </p>
         </section>
 
-        <section className="space-y-3">
-          <h2 className="font-semibold">Parar mensagens automáticas (LGPD)</h2>
-          <p className="text-xs text-muted-foreground">
-            Se o cliente mandar só uma destas palavras, deixa de receber follow-ups, esperas e pesquisas. Respostas ao que ele
-            mesmo escrever continuam. O atendente vê o aviso na ficha e pode desfazer a pedido do cliente.
-          </p>
-          <div className="space-y-1">
-            <span className="text-sm">Palavras (separe por vírgula)</span>
-            <Input value={words} maxLength={300} onChange={(e) => setOptWords(e.target.value)} />
-          </div>
-          <div className="space-y-1">
-            <span className="text-sm">Confirmação enviada ao cliente</span>
-            <Textarea rows={2} value={reply} maxLength={500} onChange={(e) => setOptReply(e.target.value)} />
-          </div>
-          <Button variant="outline" disabled={optWords === null && optReply === null} onClick={saveOptOut}>Salvar</Button>
-        </section>
 
         <section className="rounded-md border p-3 text-sm flex flex-wrap items-center justify-between gap-2">
-          <span>As <b>chaves de IA</b>, o provedor padrão e os segredos do bloco “Consultar sistema” ficam em Configurações.</span>
-          <Link to="/configuracoes/ia" className="underline">Abrir Chaves de IA</Link>
+          <span>O <b>horário de atendimento</b> (usado pelo bloco “Horário”), as palavras para parar mensagens automáticas, as <b>chaves de IA</b> e os segredos do “Consultar sistema” ficam em Configurações.</span>
+          <span className="flex gap-3">
+            <Link to="/configuracoes/atendimento" className="underline">Horário e LGPD</Link>
+            <Link to="/configuracoes/ia" className="underline">Chaves de IA</Link>
+          </span>
         </section>
 
-        <section className="space-y-3">
-          <h2 className="font-semibold">Horário de atendimento</h2>
-          <p className="text-xs text-muted-foreground">Usado pelo bloco “Horário”. Fuso: {String(settings.timezone || "America/Sao_Paulo")}.</p>
-          <div className="space-y-2">
-            {WEEKDAYS.map((w, d) => {
-              const slot = h[String(d)]?.[0] ?? null;
-              return (
-                <div key={w} className="flex items-center gap-3">
-                  <Switch checked={!!slot} onCheckedChange={(on) => setDay(d, on ? { start: "08:00", end: "18:00" } : null)} />
-                  <span className="w-20 text-sm">{w}</span>
-                  {slot ? (
-                    <>
-                      <Input type="time" className="w-28" value={slot.start} onChange={(e) => setDay(d, { ...slot, start: e.target.value })} />
-                      <span className="text-sm">às</span>
-                      <Input type="time" className="w-28" value={slot.end} onChange={(e) => setDay(d, { ...slot, end: e.target.value })} />
-                    </>
-                  ) : <span className="text-sm text-muted-foreground">Fechado</span>}
-                </div>
-              );
-            })}
-          </div>
-          <Button variant="outline" disabled={!draftHours} onClick={async () => {
-            const bad = Object.values(h).flat().some((s) => !s.start || !s.end || s.start >= s.end);
-            if (bad) return toast({ variant: "destructive", title: "Horário inicial deve ser antes do final" });
-            await saveSettings({ business_hours: h });
-            setDraftHours(null);
-          }}>Salvar horário</Button>
-        </section>
       </main>
 
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>

@@ -105,6 +105,7 @@ export default function Diagnostico() {
   const [busy, setBusy] = useState<string | null>(null);
   const [research, setResearch] = useState({ site: "", cnpj: "" });
   const [copies, setCopies] = useState(0);
+  const [orgTpl, setOrgTpl] = useState<string | null>(null);
   const [atts, setAtts] = useState<{ id: string; name: string }[]>([]);
   const [depts, setDepts] = useState<{ id: string; name: string }[]>([]);
   const [rec, setRec] = useState<{ on: boolean; secs: number }>({ on: false, secs: 0 });
@@ -122,11 +123,13 @@ export default function Diagnostico() {
       .select("sections, processes, suggestions, use_in_ai, stage, steps, public_research, plan, plan_at").eq("organization_id", org.id).maybeSingle();
     const p = data ? { ...EMPTY, ...(data as unknown as Profile) } : EMPTY;
     setProfile(p);
-    const [{ data: n }, { data: dp }] = await Promise.all([
+    const [{ data: n }, { data: dp }, { data: o }] = await Promise.all([
       supabase.rpc("company_profile_snapshots_count", { org: org.id }),
       supabase.from("departments").select("id, name").eq("organization_id", org.id),
+      supabase.from("organizations").select("template_key").eq("id", org.id).maybeSingle(),
     ]);
     setDepts(dp ?? []);
+    setOrgTpl(o?.template_key ?? null);
     setCopies((n as number | null) ?? 0);
     if (goTo !== undefined) setPage(goTo);
     return p;
@@ -149,7 +152,8 @@ export default function Diagnostico() {
     ...STEPS.filter((s) => s.afterProcs).map((s) => s.key), "plano"], [sectors]);
   const approved = (k: string) => !!profile.steps[k]?.approved_at;
   const skipped = (k: string) => !approved(k) && !!profile.steps[k]?.skipped_at;
-  const tpl = templateByKey(profile.steps.modelo?.tpl);
+  // Sem escolha no Diagnóstico, vale o modelo com que a empresa foi criada (ex.: Cartório).
+  const tpl = templateByKey(profile.steps.modelo ? profile.steps.modelo.tpl : orgTpl);
   const outdated = !!profile.plan_at && Object.values(profile.steps).some((s) => s.approved_at && s.approved_at > profile.plan_at!);
 
   // Ao trocar de página: carrega o texto que o dono escreveu (se houver) e limpa a prévia.
@@ -324,7 +328,7 @@ export default function Diagnostico() {
   // Modelo por tipo de empresa: traz exemplos prontos para cada etapa.
   const chooseTemplate = async (key: string) => {
     await ensureRow();
-    const steps = { ...profile.steps, modelo: { tpl: key || undefined } };
+    const steps = { ...profile.steps, modelo: { tpl: key } };
     const { error } = await supabase.from("company_profiles").update({ steps } as never).eq("organization_id", org.id);
     if (error) return toast({ variant: "destructive", title: "Não foi possível", description: error.message });
     await load(page);

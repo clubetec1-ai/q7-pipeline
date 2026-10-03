@@ -133,7 +133,7 @@ Deno.serve(async (req) => {
           g.link(menu, `opt:d${i}`, tr);
         });
       } else if (key === "fora_horario") {
-        if (!settings.business_hours) warnings.push("Cadastre o horário em Fluxos → Horário de atendimento antes de publicar (sem ele, o fluxo considera tudo fechado).");
+        if (!settings.business_hours) warnings.push("Cadastre o horário em Configurações → Horário e LGPD antes de publicar (sem ele, o fluxo considera tudo fechado).");
         const bh = g.add("business_hours", {});
         g.link("start", "first_contact", bh);
         g.link("start", "returning", bh);

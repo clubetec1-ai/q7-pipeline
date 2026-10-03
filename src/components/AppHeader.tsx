@@ -1,6 +1,6 @@
 import type { ComponentProps, ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Mail, Phone } from "lucide-react";
+import { Building2, LogOut, Mail, Moon, Phone, ShieldCheck, Sun, UserCog } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useOrg } from "@/contexts/OrgContext";
 import { togglePhonePanel, usePhoneState } from "@/lib/phoneBus";
@@ -8,15 +8,20 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Logo } from "@/components/Logo";
 import { MainNav } from "@/components/MainNav";
 import { NotificationsBell } from "@/components/NotificationsBell";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { useTheme } from "@/components/ThemeProvider";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 
-/** Cabeçalho único das telas: logo, menu, avisos, tema e sair (extra: ex. presença em Conversas). */
+/** Cabeçalho único das telas: logo, menu, avisos e o menu da pessoa (conta, tema, sair) (extra: ex. presença em Conversas). */
 export function AppHeader({ active, extra }: { active: ComponentProps<typeof MainNav>["active"]; extra?: ReactNode }) {
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const navigate = useNavigate();
+  const sair = async () => { await signOut(); navigate("/login"); };
   const phone = usePhoneState();
-  const { invitations } = useOrg();
+  const { invitations, isOperator } = useOrg();
+  const { theme, toggleTheme } = useTheme();
   return (
     <header className="border-b px-4 h-14 flex items-center justify-between shrink-0 bg-background/95 backdrop-blur sticky top-0 z-40">
       <div className="flex items-center gap-3 min-w-0">
@@ -25,7 +30,7 @@ export function AppHeader({ active, extra }: { active: ComponentProps<typeof Mai
       </div>
       <div className="flex items-center gap-1 shrink-0">
         {invitations.length > 0 && (
-          <Button asChild size="sm" variant="default" className="h-8"><Link to="/convite"><Mail className="w-4 h-4 mr-1" /> Convite ({invitations.length})</Link></Button>
+          <Button asChild size="sm" variant="default" className="h-8"><Link to="/convite"><Mail className="w-4 h-4 xl:mr-1" /><span className="hidden xl:inline">Convite</span>&nbsp;({invitations.length})</Link></Button>
         )}
         {extra}
         {phone.available && (
@@ -36,10 +41,22 @@ export function AppHeader({ active, extra }: { active: ComponentProps<typeof Mai
           </Button>
         )}
         <NotificationsBell />
-        <ThemeToggle />
-        <Button variant="ghost" size="icon" title="Sair" onClick={async () => { await signOut(); navigate("/login"); }}>
-          <LogOut className="w-4 h-4" />
-        </Button>
+        {/* Menu da pessoa: conta, tema e sair num lugar só (cabeçalho mais limpo). */}
+        <DropdownMenu>
+          <DropdownMenuTrigger className="h-9 w-9 inline-flex items-center justify-center rounded-md hover:bg-muted" title="Conta" aria-label="Conta">
+            <UserCog className="w-4 h-4" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            {user?.email && <DropdownMenuLabel className="text-xs font-normal text-muted-foreground truncate">{user.email}</DropdownMenuLabel>}
+            <DropdownMenuItem asChild><Link to="/seguranca" className="gap-2"><ShieldCheck className="w-4 h-4" /> Segurança</Link></DropdownMenuItem>
+            {isOperator && <DropdownMenuItem asChild><Link to="/plataforma" className="gap-2"><Building2 className="w-4 h-4" /> Plataforma</Link></DropdownMenuItem>}
+            <DropdownMenuItem className="gap-2" onSelect={(e) => { e.preventDefault(); toggleTheme(); }}>
+              {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />} {theme === "dark" ? "Tema claro" : "Tema escuro"}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="gap-2" onSelect={() => void sair()}><LogOut className="w-4 h-4" /> Sair</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

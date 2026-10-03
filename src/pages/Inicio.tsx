@@ -1,12 +1,14 @@
 import { Link } from "react-router-dom";
 import {
-  Bot, Check, ClipboardList, Layers, MessageSquare, MessagesSquare, Palette, PartyPopper, Settings2, Tags, Target, Trello, Workflow,
+  Bot, Check, ClipboardList, Clock, Layers, MessageSquare, MessagesSquare, Palette, PartyPopper, Settings2, Tags, Target, Trello, User, Users, Workflow,
   type LucideIcon,
 } from "lucide-react";
 import { useOrg } from "@/contexts/OrgContext";
 import { AppHeader } from "@/components/AppHeader";
 import { NumberHealthBanner } from "@/components/NumberHealthBanner";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { useSetupStatus } from "@/lib/useSetupStatus";
 import { Dashboard } from "@/components/dashboard/Dashboard";
 
@@ -19,17 +21,28 @@ interface Step { title: string; why: string; to: string; icon: LucideIcon; done:
  */
 export default function Inicio() {
   const { org, can, hasModule } = useOrg();
-  const { status: s, loading } = useSetupStatus(org?.id);
+  const { status: s, loading, reload } = useSetupStatus(org?.id);
+  const { toast } = useToast();
   if (!org) return null;
   const manage = can("org.settings");
+  const solo = s.teamMode === "solo";
+  // Sozinho ou com equipe: muda os Primeiros passos (dá para trocar quando quiser).
+  const setTeamMode = async (mode: "solo" | "equipe") => {
+    const { data } = await supabase.from("organizations").select("settings").eq("id", org.id).maybeSingle();
+    const next = { ...((data?.settings ?? {}) as Record<string, unknown>), team_mode: mode };
+    const { error } = await supabase.from("organizations").update({ settings: next as never }).eq("id", org.id);
+    if (error) return toast({ variant: "destructive", title: "Sem permissão" });
+    void reload();
+  };
 
   const all: (Step & { m?: Parameters<typeof hasModule>[0] })[] = [
     { title: "Diagnóstico da empresa", why: "A IA entende o seu negócio e monta o plano.", to: "/diagnostico", icon: Target, m: "diagnostico",
       done: s.diagApproved >= 1, detail: s.diagApproved ? `${s.diagApproved} etapa(s) aprovada(s)` : undefined },
     { title: "Marca", why: "Cores, logos e tom de voz — os agentes passam a escrever do seu jeito.", to: "/diagnostico?pagina=marca", icon: Palette, m: "diagnostico", done: s.brand },
     { title: "Conectar o WhatsApp", why: "O número onde os clientes falam com você.", to: "/numeros", icon: MessageSquare, done: s.whatsappOnline > 0 },
-    { title: "Setores e equipe", why: "Quem atende o quê: cada setor com sua fila e sua cor.", to: "/setores", icon: Layers,
-      done: s.departments > 0 && s.members > 1, detail: `${s.departments} setor(es) · ${s.members} pessoa(s)` },
+    { title: "Horário de atendimento", why: "Quando a empresa atende; fora dele, o cliente recebe o aviso de fechado.", to: "/configuracoes/atendimento", icon: Clock, done: s.hours },
+    ...(solo ? [] : [{ title: "Setores e equipe", why: "Quem atende o quê: cada setor com sua fila e sua cor.", to: "/setores", icon: Layers,
+      done: s.departments > 0 && s.members > 1, detail: `${s.departments} setor(es) · ${s.members} pessoa(s)` }]),
     { title: "Ligar o agente de IA", why: "A IA responde na hora e passa para uma pessoa quando precisa.", to: "/agente", icon: Bot, m: "ia", done: s.aiOn > 0 },
     { title: "Etiquetas por setor", why: "Sinalizam o cliente com cores (VIP, Urgente, Suporte…).", to: "/etiquetas", icon: Tags, done: s.tags > 0 || s.groups > 0 },
     { title: "Primeiro fluxo publicado", why: "Menu de entrada, horário e triagem automáticos.", to: "/fluxos", icon: Workflow, m: "ia", done: s.flowsLive > 0 },
@@ -56,13 +69,38 @@ export default function Inicio() {
           <p className="text-sm text-muted-foreground">{org.name}</p>
         </div>
 
-        {manage && !loading && (
+        {manage && !loading && s.teamMode === null && (
+          <section className="rounded-xl border-2 border-primary bg-card p-5 space-y-3">
+            <div>
+              <h2 className="font-semibold text-lg">Como vai ser o atendimento?</h2>
+              <p className="text-sm text-muted-foreground">Assim mostramos só os passos que fazem sentido para você. Dá para trocar depois.</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <button type="button" onClick={() => void setTeamMode("solo")} className="text-left rounded-lg border p-4 hover:border-primary hover:bg-primary/5">
+                <User className="w-5 h-5 mb-2 text-primary" />
+                <span className="block font-medium">Só eu, pelo WhatsApp</span>
+                <span className="block text-xs text-muted-foreground">A IA atende e passa para você quando precisar. Sem setores nem equipe.</span>
+              </button>
+              <button type="button" onClick={() => void setTeamMode("equipe")} className="text-left rounded-lg border p-4 hover:border-primary hover:bg-primary/5">
+                <Users className="w-5 h-5 mb-2 text-primary" />
+                <span className="block font-medium">Eu e uma equipe</span>
+                <span className="block text-xs text-muted-foreground">Setores com fila e cor, distribuição dos atendimentos e convite das pessoas.</span>
+              </button>
+            </div>
+          </section>
+        )}
+
+        {manage && !loading && s.teamMode !== null && (
           done < steps.length ? (
             <section className="rounded-xl border bg-card p-5 space-y-4">
               <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
                   <h2 className="font-semibold text-lg">Primeiros passos</h2>
                   <p className="text-sm text-muted-foreground">Siga na ordem: cada passo abre a tela certa e explica o que fazer.</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Atendimento: {solo ? "só você" : "com equipe"} ·{" "}
+                    <button type="button" className="underline" onClick={() => void setTeamMode(solo ? "equipe" : "solo")}>trocar para {solo ? "com equipe" : "só você"}</button>
+                  </p>
                 </div>
                 <div className="min-w-[12rem]">
                   <p className="text-xs text-muted-foreground mb-1">{done} de {steps.length} concluídos</p>
