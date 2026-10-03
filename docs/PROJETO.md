@@ -69,6 +69,8 @@ Criada pela Plataforma como um cliente novo (modelo Prestação de serviços), c
 | E12 | Agente respondeu com tabela (o WhatsApp não mostra tabela) | 🟡 Médio | ✅ (02/10) regra de formato de conversa no atendimento |
 | E13 | Cartório: a lista de documentos veio do conhecimento geral da IA, não da empresa | 🟠 Alto | ⏳ base de conhecimento modelo do cartório (lista oficial por ato e tabela de emolumentos) |
 | E14 | Depois de aprovar a etapa Empresa, a tela pulava para a próxima e o horário sugerido só aparecia ao voltar | 🟡 Médio | ✅ (02/10) fica na etapa com o horário pronto para usar |
+| E15 | 🔴 Aprovar Clientes e jornada, Marca e Regras e limites da IA era recusado ("seção desconhecida") — as seções novas do Diagnóstico 3.0 não estavam no banco | 🔴 Crítico | ✅ (02/10) lista completa + teste automático 65 |
+| E16 | Planejamento inverteu um número (meta "80% das escrituras com documentação completa" virou "80% chegam incompletas") | 🟡 Médio | ⏳ conferir números no planejamento (pedir à IA para citar só números ditos pelo dono) |
 
 **Agentes que precisam estar em produção desde o 1º dia (visão CEO):**
 1. **Agente de atendimento** (com Regras e limites + Testar o agente) — é o que o cliente compra.
