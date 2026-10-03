@@ -1210,6 +1210,9 @@ BEGIN
   PERFORM pg_temp.expect(pg_temp.run(owner_a, format('UPDATE public.company_profiles SET stage = %L WHERE organization_id = %L', 'marca', A)) = 'ok:1', 'etapa marca');
   PERFORM pg_temp.expect(pg_temp.run(owner_a, format('UPDATE public.company_profiles SET stage = %L WHERE organization_id = %L', 'regras', A)) = 'ok:1', 'etapa regras');
   PERFORM pg_temp.expect_error(owner_a, format('UPDATE public.company_profiles SET stage = %L WHERE organization_id = %L', 'qualquer', A), 'etapa invalida recusada');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('UPDATE public.company_profiles SET sections = sections || %L WHERE organization_id = %L',
+    '{"clientes":"c","regras_ia":"r","marca_visual":"v","marca_voz":"z"}', A)) = 'ok:1', 'secoes novas aceitas');
+  PERFORM pg_temp.expect_error(owner_a, format('UPDATE public.company_profiles SET sections = sections || %L WHERE organization_id = %L', '{"senha":"x"}', A), 'secao desconhecida recusada');
 
   RAISE NOTICE 'ISOLATION OK';
 END $$;

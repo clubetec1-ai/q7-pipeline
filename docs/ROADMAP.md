@@ -98,7 +98,11 @@ recuperação do MFA; cobrar da Nvoip a permissão do histórico (erro 403); res
   é a lista oficial do cartório).
   *Teste de ponta a ponta no "Cartório Teste" (02/10):* Diagnóstico abriu no modelo Cartório; IA organizou a etapa
   Empresa e leu o horário (seg–sex 9h–17h) — ativado com um clique; Testar o agente recusou calcular ITBI e dar
-  orientação jurídica e informou horário e plantão de óbito. Achados E11–E14 em docs/PROJETO.md §4.1.
+  orientação jurídica e informou horário e plantão de óbito. Depois, Diagnóstico completo com os exemplos do modelo:
+  Clientes, Marca, Hoje, Objetivos, Setores (5 setores do cartório viraram páginas), processos dos 5 setores, Regras e
+  Planejamento (diagnóstico, missão/visão/valores, automações sem IA primeiro); "Instalar (rascunho)" criou o fluxo
+  "Fora do horário". Achados E11–E16 em docs/PROJETO.md §4.1 (E11 e E15 críticos: o banco recusava as etapas e seções
+  novas do Diagnóstico 3.0 — corrigidos com teste automático).
 - **Foco em ticket mais alto:** priorizar clientes em que a implantação agrega mais valor e paga mais — cartórios,
   clínicas e odontologia, escritórios de advocacia e contabilidade, imobiliárias, auto centers e concessionárias,
   escolas e redes. Para cada nicho: modelo completo (P1, item 7), pacote de implantação e caso de sucesso.
