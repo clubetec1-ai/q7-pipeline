@@ -114,6 +114,9 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
   "Terminei de responder"; a resposta vira texto e a IA escolhe a próxima pergunta, aprofundando o que ficou vago (até
   ~8 perguntas); no fim, perguntas e respostas entram na caixa da etapa para conferir e "Organizar com IA". O áudio não
   é guardado; voz e transcrição contam no consumo da empresa. Falta: detectar sozinho o fim da fala (sem clicar).*
+  *Ajuste (03/10, pedido do dono): escolha "Abrir o microfone sozinho depois de cada pergunta" — desligado (padrão),
+  a pessoa pensa com calma e clica em "Responder" quando estiver pronta, e pode "Ouvir a pergunta de novo"; ligado, o
+  microfone abre logo após a pergunta. A escolha fica salva no navegador.*
 - **Atendente preferencial (roteamento):** se o cliente já foi atendido por uma pessoa e a opção estiver ligada, toda
   nova mensagem ou ligação desse cliente vai direto para essa pessoa (se ela estiver disponível; senão segue a fila
   normal e avisa). Liga/desliga por empresa e por setor, com o prazo de "lembrança" (ex.: últimos 90 dias); o
