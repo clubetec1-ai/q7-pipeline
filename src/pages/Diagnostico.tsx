@@ -299,6 +299,7 @@ export default function Diagnostico() {
     // Com horário sugerido e a empresa ainda sem horário: fica na etapa para o dono conferir e usar.
     if (page === "empresa" && horario && !orgHasHours) {
       setHoursDraft(null);
+      setDraft(null); // mostra a etapa aprovada, com o cartão do horário
       await load("empresa");
       setPage("empresa");
       return;
