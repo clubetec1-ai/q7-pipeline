@@ -65,14 +65,14 @@ export function MessageMedia({ m }: { m: MediaFields }) {
 export function DeliveryStatus({ status, error }: { status?: string | null; error?: string | null }) {
   if (!status) return null;
   if (status === "failed") {
-    return <span title={error ?? "Falhou"} className="inline-flex items-center gap-0.5 text-xs font-semibold text-red-900"><AlertTriangle className="w-3 h-3" /> falhou</span>;
+    return <span title={error ?? "Falhou"} className="inline-flex items-center gap-0.5 text-xs font-semibold text-danger-text"><AlertTriangle className="w-3 h-3" /> falhou</span>;
   }
-  // Ícone + texto: cor sozinha não basta sobre o balão colorido.
+  // Ícone + texto (cor sozinha não basta); balões claros, então cores de texto dos tokens.
   if (status === "read") {
-    return <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-blue-900"><CheckCheck className="w-3.5 h-3.5" /> lida</span>;
+    return <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-info-text"><CheckCheck className="w-3.5 h-3.5" /> lida</span>;
   }
   if (status === "delivered") {
-    return <span className="inline-flex items-center gap-0.5 text-xs opacity-90"><CheckCheck className="w-3.5 h-3.5" /> entregue</span>;
+    return <span className="inline-flex items-center gap-0.5 text-xs text-muted-foreground"><CheckCheck className="w-3.5 h-3.5" /> entregue</span>;
   }
-  return <span className="inline-flex items-center gap-0.5 text-xs opacity-80"><Check className="w-3.5 h-3.5" /> enviada</span>;
+  return <span className="inline-flex items-center gap-0.5 text-xs text-muted-foreground"><Check className="w-3.5 h-3.5" /> enviada</span>;
 }

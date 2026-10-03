@@ -138,7 +138,7 @@ export default function Chat() {
   const people = [...names].filter(([id]) => id !== user.id);
   const chBtn = (c: Channel, icon: JSX.Element) => (
     <button key={c.id} type="button" onClick={() => setActive(c.id)}
-      className={`w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-left ${active === c.id ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>
+      className={`w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-left ${active === c.id ? "bg-muted font-medium text-foreground" : "hover:bg-muted"}`}>
       {icon}<span className="truncate flex-1">{label(c)}</span>
       {!!unread.get(c.id) && active !== c.id && <span className="rounded-full bg-primary text-primary-foreground text-xs px-1.5">{unread.get(c.id)}</span>}
     </button>
@@ -182,7 +182,7 @@ export default function Chat() {
               const mine = m.author_id === user.id;
               return (
                 <div key={m.id} className={mine ? "text-right" : ""}>
-                  <div className={`inline-block max-w-[80%] rounded-lg px-3 py-2 text-sm text-left ${mine ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+                  <div className={`inline-block max-w-[80%] px-3 py-2 text-sm text-left ${mine ? "rounded-2xl rounded-br-md bg-primary/10 ring-1 ring-inset ring-primary/20" : "rounded-2xl rounded-bl-md border bg-card"}`}>
                     {!mine && <p className="text-xs font-medium opacity-80">{names.get(m.author_id) ?? "Alguém"}</p>}
                     {m.content && <p className="whitespace-pre-wrap">{m.content}</p>}
                     {m.attachment_path && (

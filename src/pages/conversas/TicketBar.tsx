@@ -1,13 +1,15 @@
 import { StatusBadge } from "@/components/layout/StatusBadge";
 import { firstName, memberNames } from "@/lib/memberNames";
 import { useEffect, useState } from "react";
-import { ArrowRightLeft, Bot, CheckCircle2, Hand, Hash } from "lucide-react";
+import { ArrowRightLeft, Bot, CheckCircle2, Hand, Hash, MoreHorizontal } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/contexts/OrgContext";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -125,34 +127,44 @@ export function TicketBar({ ticket, onChanged, greet = true }: { ticket: Ticket 
       </StatusBadge>
       <span className="text-xs text-muted-foreground">#{ticket.protocol}</span>
       {owner && <span className="text-xs text-muted-foreground">· com {owner}</span>}
+      {/* Uma ação principal visível (Assumir ou Finalizar); o resto fica em "Mais". */}
       {canTake && (
-        <Button size="sm" variant="outline" className="h-8" disabled={busy}
+        <Button size="sm" className="h-8" disabled={busy}
           onClick={() => (ticket.assigned_to ? setDialog("take") : claim())}>
           <Hand className="w-3.5 h-3.5 mr-1" /> Assumir
         </Button>
       )}
-      {mine && (
-        <Button size="sm" variant="ghost" className="h-8" disabled={busy} onClick={sendProtocol}
-          title="Envia o número do protocolo para o cliente">
-          <Hash className="w-3.5 h-3.5 mr-1" /> Enviar protocolo
+      {canAct && (
+        <Button size="sm" variant={canTake ? "outline" : "default"} className="h-8" disabled={busy} onClick={() => setDialog("close")}>
+          <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Finalizar
         </Button>
       )}
       {mine && hasModule("cobrancas") && <ChargeButton conversationId={ticket.conversation_id} />}
-      {canAct && (
-        <>
-          <Button size="sm" variant="ghost" className="h-8" disabled={busy} onClick={() => setDialog("transfer")}>
-            <ArrowRightLeft className="w-3.5 h-3.5 mr-1" /> Transferir
-          </Button>
-          {ticket.status !== "bot" && (
-            <Button size="sm" variant="ghost" className="h-8" disabled={busy}
-              onClick={() => rpc("return_ticket_to_ai", { ticket: ticket.id }, "Atendimento devolvido para a IA")}>
-              <Bot className="w-3.5 h-3.5 mr-1" /> Devolver à IA
+      {(canAct || mine) && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="sm" variant="ghost" className="h-8" disabled={busy} aria-label="Mais ações">
+              <MoreHorizontal className="w-4 h-4 mr-1" /> Mais
             </Button>
-          )}
-          <Button size="sm" className="h-8" disabled={busy} onClick={() => setDialog("close")}>
-            <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Finalizar
-          </Button>
-        </>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {canAct && (
+              <DropdownMenuItem className="gap-2" onSelect={() => setDialog("transfer")}>
+                <ArrowRightLeft className="w-4 h-4" /> Transferir
+              </DropdownMenuItem>
+            )}
+            {canAct && ticket.status !== "bot" && (
+              <DropdownMenuItem className="gap-2" onSelect={() => void rpc("return_ticket_to_ai", { ticket: ticket.id }, "Atendimento devolvido para a IA")}>
+                <Bot className="w-4 h-4" /> Devolver à IA
+              </DropdownMenuItem>
+            )}
+            {mine && (
+              <DropdownMenuItem className="gap-2" onSelect={() => void sendProtocol()}>
+                <Hash className="w-4 h-4" /> Enviar protocolo ao cliente
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       )}
 
       <Dialog open={dialog === "take"} onOpenChange={(o) => !o && setDialog(null)}>

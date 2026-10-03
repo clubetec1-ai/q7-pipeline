@@ -839,18 +839,22 @@ export default function Conversas() {
                 </div>
               </div>
 
-              <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-2">
+              <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-2 bg-muted/40">
+                {/* Bolhas: cliente (card), pessoa da equipe (cor da empresa clarinha) e IA (violeta) —
+                    dá para ver de relance quem respondeu, e o texto nunca fica sobre a cor cheia. */}
                 {messages.map((m) => (
                   <div
                     key={m.id}
-                    className={`max-w-[75%] rounded-lg px-3 py-2 text-sm ${
-                      m.direction === "outbound"
-                        ? "ml-auto bg-primary text-primary-foreground"
-                        : "bg-muted"
+                    className={`max-w-[75%] px-3 py-2 text-sm ${
+                      m.direction !== "outbound"
+                        ? "rounded-2xl rounded-bl-md border bg-card"
+                        : m.sender === "ai"
+                          ? "ml-auto rounded-2xl rounded-br-md bg-status-ia-soft ring-1 ring-inset ring-status-ia/20"
+                          : "ml-auto rounded-2xl rounded-br-md bg-primary/10 ring-1 ring-inset ring-primary/20"
                     }`}
                   >
                     {m.direction === "outbound" && (
-                      <div className="text-xs opacity-70 mb-0.5">
+                      <div className={`text-xs font-medium mb-0.5 ${m.sender === "ai" ? "text-status-ia-text" : "text-muted-foreground"}`}>
                         {m.sender === "ai" ? "IA" : "Você"}
                       </div>
                     )}
