@@ -111,6 +111,10 @@ Gerenciamento") e "i9" também (35 ativas na 42, entre elas "I9 Sistema de Gest�
 Inove CFC e INOVE TECHNOLOGY. "Clube Evolui": nenhum processo; "evolui" tem 16 ativas na 42. "Clubetec" já tem registro
 em vigor, mas o nome do produto precisa de **pedido próprio** (em nome da Clubetec). Recomendação: marca mista (nome +
 logo) nas classes 42 e 9 (e 35 se vender consultoria), com parecer de um agente de propriedade industrial.
+*Mais opções (02/10), com domínio .com.br e .com livres e busca no INPI ("Clube X" sem nenhum processo em todas):*
+**Clube +1 / Clube Mais1** ("+1 melhor todo dia"; só 1 marca "mais1" ativa na classe 42, de café) — menor risco;
+Clube Progride (0 na 42); Clube Lapida (6), Clube Espiral (5), Clube Degrau (7), Clube Infinito (10), Clube Aprimora
+(10); mais disputadas na 42: Loop (52), Escala (46), Mentor (39), Melhora (24), Sprint (17), Sinapse (17), Salto (16).
 **Produção na VPS da Hostinger:** site (frontend) na VPS ou na Vercel; o banco e as funções continuam no Supabase (plano
 pago em produção: backups diários e sem pausa); trocar o nome nas telas, e-mails e no domínio dos links.
 
