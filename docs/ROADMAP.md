@@ -114,6 +114,11 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
 **Mais ideias (02/10, "reset"):** "Clube Re7" (resete = reset) descartado — clubereset.com.br tem dono. Com
 .com.br e .com livres e "Clube X" sem processo no INPI: **Clube Virada** ("virada de chave"; "virada" com 1 marca na 42),
 **Clube Reboot** (0 na 42), Clube Set (11), Clube Rumo (7), Clube Chave (7), Clube Passo (8).
+**Ideia do dono (03/10): Clube Renova Mais / "Clube Renova+"** — o "+" de sempre um pouco mais. Domínios
+cluberenovamais e cluberenova (.com.br e .com) livres; INPI: "Clube Renova" sem processo; a única "renovamais" ativa é de
+suplementos (classe 5, outro ramo); "renova" na classe 42 só igrejas e projetos, nenhum software. Variações com "+" e
+domínios livres: Evolui+ e Avança+ (nenhuma marca "… mais"), Supera+ (nenhuma; mas clubesupera.com.br tem dono),
+Inova+ (várias "Inova Mais" em outros ramos), Cresce+ (várias).
 **Nome ainda em aberto (02/10):** "Clube Re9" (renove) foi escolhido e depois descartado — cluberenove.com.br já tem
 dono, e quem ouvir o nome vai digitar o .com.br por extenso. Regra: o nome estilizado **e** o nome por extenso precisam
 estar livres no .com.br (e no .com) e no INPI. Opções que cumprem: **Clube In9** (clubein9 e clubeinove livres; "in9" com
