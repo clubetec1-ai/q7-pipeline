@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Logo } from "@/components/Logo";
 import { MainNav } from "@/components/MainNav";
 import { NotificationsBell } from "@/components/NotificationsBell";
+import { AppAssistant } from "@/components/AppAssistant";
 import { useTheme } from "@/components/ThemeProvider";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
@@ -40,6 +41,7 @@ export function AppHeader({ active, extra }: { active: ComponentProps<typeof Mai
             <span className={`absolute top-1.5 right-1.5 w-2 h-2 rounded-full ${phone.dot}`} />
           </Button>
         )}
+        <AppAssistant />
         <NotificationsBell />
         {/* Menu da pessoa: conta, tema e sair num lugar só (cabeçalho mais limpo). */}
         <DropdownMenu>

@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSetupStatus } from "@/lib/useSetupStatus";
 import { Dashboard } from "@/components/dashboard/Dashboard";
+import { OrgHealth } from "@/components/OrgHealth";
 
 interface Step { title: string; why: string; to: string; icon: LucideIcon; done: boolean; detail?: string }
 
@@ -68,6 +69,8 @@ export default function Inicio() {
           <h1 className="text-2xl font-semibold">Olá! 👋</h1>
           <p className="text-sm text-muted-foreground">{org.name}</p>
         </div>
+
+        {manage && <OrgHealth orgId={org.id} />}
 
         {manage && !loading && s.teamMode === null && (
           <section className="rounded-xl border-2 border-primary bg-card p-5 space-y-3">

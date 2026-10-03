@@ -60,9 +60,11 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
 4. ⏳ **Segurança antes da produção:** varredura completa (security-review / claude-security), grants por coluna nas
    tabelas antigas, caso 55 intermitente, limites de login e CAPTCHA, alerta de muitas tentativas, backups e plano de
    resposta a incidente. 🙋 Decidir se criptografa campo a campo os dados sensíveis (CPF, documentos, gravações).
-5. 🟡 **Agentes do dia 1:** atendimento, entrevistador, avaliador ✅; falta o **assistente dentro do app** ("como
-   faço…?") e o **monitor de saúde ampliado** (hoje só números; falta chave de IA inválida, fila parada, fluxo com erro,
-   com botão de correção).
+5. ✅ **Agentes do dia 1:** atendimento, entrevistador, avaliador, **assistente dentro do app** e **monitor de saúde**.
+   *Entregue (03/10): botão "Como faço…?" (?) no cabeçalho de todas as telas — a IA responde dúvidas de uso com o
+   passo a passo e um botão que abre a tela certa (só o mapa do sistema, nenhum dado de cliente; respeita o papel da
+   pessoa). "Saúde do sistema" no Início (dono/admin): números, e-mails, IA, fila parada há 30 min, fluxos com erro em
+   24 h e ramais, com verde/vermelho e "Corrigir". Falta: avisar no sino/e-mail quando a saúde ficar vermelha.*
 6. ⏳ **Produção:** 🙋 nome comercial (em definição — ver "Nome comercial" abaixo; depois parecer de agente de
    propriedade industrial, pedido no INPI nas classes 42 e 9, domínios), Supabase pago (backup e sem pausa), OpenAI com
    limite mensal, site na VPS Hostinger ou Vercel, troca do nome nas telas, e-mails e links.
@@ -136,7 +138,10 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
   limite, chave inválida, modelo inexistente) em todos os agentes; última falha mostrada na posição; áudio transcrito
   pela OpenAI ou Groq (o que estiver configurado); consumo por empresa (chamadas, texto enviado/recebido, áudios) na
   mesma tela. A chave Groq antiga virou a Principal. Testes de isolamento: grupo 66. Falta: custo em reais e franquia
-  por plano (com os planos), aviso por e-mail quando trocar para a reserva.*
+  por plano (com os planos).*
+  *Ajuste (03/10, pedido do dono): bolinha verde (funcionando) / vermelha (com falha) em cada posição, botão "Testar"
+  (chamada real ao fornecedor) e teste automático ao salvar; **e-mail de segurança** quando uma IA cair e a reserva
+  assumir (no máximo 1 por posição a cada 30 min; sem e-mail configurado, vai para os operadores). Grupo de testes 68.*
 - **Mais nomes com IA/AI, auto, conexão e fluxo (03/10):** todos os "Clube…" com .com.br e .com livres e sem processo
   no INPI. Palavra-base sem nenhuma marca ativa na classe 42: **AutomatIA, AutoIA, FluxAI** (melhores); com conflito:
   Fluxo IA (1, "FLUXO IA"), Flow IA (4, inclusive "Flow iA" e "UPFLOW IA"), Autoflow (1), Auto Fluxo (2), Conexia (6),

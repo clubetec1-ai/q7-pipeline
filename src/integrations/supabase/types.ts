@@ -2544,8 +2544,10 @@ export type Database = {
       }
       platform_ai_slots: {
         Row: {
+          last_alert_at: string | null
           last_error: string | null
           last_error_at: string | null
+          last_ok_at: string | null
           model: string | null
           provider: string
           slot: string
@@ -2553,8 +2555,10 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          last_alert_at?: string | null
           last_error?: string | null
           last_error_at?: string | null
+          last_ok_at?: string | null
           model?: string | null
           provider: string
           slot: string
@@ -2562,8 +2566,10 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          last_alert_at?: string | null
           last_error?: string | null
           last_error_at?: string | null
+          last_ok_at?: string | null
           model?: string | null
           provider?: string
           slot?: string
@@ -3803,6 +3809,7 @@ export type Database = {
         }
         Returns: string
       }
+      org_health: { Args: { org: string }; Returns: Json }
       org_setup_status: { Args: { org: string }; Returns: Json }
       org_theme: { Args: { org: string }; Returns: Json }
       platform_ai_available: { Args: { org: string }; Returns: boolean }
@@ -3853,6 +3860,7 @@ export type Database = {
         }[]
       }
       platform_secret_status: { Args: never; Returns: Json }
+      platform_security_email: { Args: never; Returns: string }
       platform_set_connector_app: {
         Args: { client_id: string; client_secret: string; connector: string }
         Returns: undefined
@@ -3867,6 +3875,10 @@ export type Database = {
       }
       platform_set_request_status: {
         Args: { new_status: string; request: string }
+        Returns: undefined
+      }
+      platform_set_security_email: {
+        Args: { email: string }
         Returns: undefined
       }
       publish_flow: { Args: { flow: string }; Returns: number }
@@ -3933,10 +3945,15 @@ export type Database = {
         }
         Returns: number
       }
+      service_ai_failover_alert: {
+        Args: { slot_name: string }
+        Returns: boolean
+      }
       service_ai_slot_error: {
         Args: { err: string; slot_name: string }
         Returns: undefined
       }
+      service_ai_slot_ok: { Args: { slot_name: string }; Returns: undefined }
       service_ai_take: { Args: { org: string }; Returns: boolean }
       service_ai_usage_add: {
         Args: {
@@ -3971,6 +3988,7 @@ export type Database = {
         Returns: number
       }
       service_module_on: { Args: { m: string; org: string }; Returns: boolean }
+      service_platform_alert_recipients: { Args: never; Returns: string[] }
       service_put_secret: {
         Args: { secret_name: string; secret_value: string }
         Returns: undefined
