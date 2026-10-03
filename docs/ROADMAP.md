@@ -25,9 +25,10 @@ pedido de cliente. Os detalhes de cada item estão nas seções abaixo; aqui fic
    num lugar só), E8 (horário padrão vindo do modelo; horário e palavras de LGPD fora de Fluxos), E10 (número de teste
    de WhatsApp) e a pergunta **"vai atender sozinho ou com equipe?"** (seção de 02/10).
    *Entregue (02/10): o Diagnóstico abre sozinho no modelo com que a empresa foi criada; modelo "Software e suporte
-   técnico" também na Plataforma; horário de atendimento padrão em todos os modelos (cartório 9h–17h, demais 8h–18h,
-   seg–sex) e nas empresas já criadas; tela **Configurações → Horário e LGPD** (saiu de Fluxos) com passo próprio nos
-   Primeiros passos; pergunta "Como vai ser o atendimento? Só eu / Eu e uma equipe" no Início (sozinho: some o passo
+   técnico" também na Plataforma; **horário de atendimento sugerido pelo Diagnóstico** (pedido do dono: nada fixo) —
+   ao organizar a etapa Empresa, a IA lê o horário que o dono contou e, depois de aprovar, mostra o horário pronto
+   para ligar/desligar os dias e "Usar este horário"; tela **Configurações → Horário e LGPD** (saiu de Fluxos) já vem
+   com essa sugestão, e o passo "Horário de atendimento" entra nos Primeiros passos; pergunta "Como vai ser o atendimento? Só eu / Eu e uma equipe" no Início (sozinho: some o passo
    Setores e equipe; dá para trocar); cabeçalho mais limpo — Conta, tema e Sair num menu só da pessoa, grupos do menu
    só com ícone em telas médias (o sino não fica mais por cima do menu Conta).*
 2. **Venda autoatendida:** planos/pacotes que ligam os módulos, assinatura recorrente (Asaas), teste grátis, limites

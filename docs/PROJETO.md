@@ -62,7 +62,7 @@ Criada pela Plataforma como um cliente novo (modelo Prestação de serviços), c
 | E5 | Convite pendente não aparecia para quem já estava logado | 🟠 Médio | ✅ Botão "Convite (n)" no cabeçalho |
 | E6 | Etiquetas padrão apareciam como "Pendente" | 🟡 Baixo | ✅ Contam como configuradas |
 | E7 | Dois sistemas de "modelo" separados (Plataforma: Clínica, Escola, Loja… / Diagnóstico: Software) | 🟡 Médio | ✅ Parcial (02/10): o Diagnóstico abre sozinho no modelo da empresa; Software e Cartório nos dois lugares. Falta: etiquetas e fluxos por nicho |
-| E8 | Horário de atendimento vazio na empresa nova; configurações de horário e palavras LGPD dentro de Fluxos | 🟡 Médio | ✅ (02/10): horário padrão em todo modelo (cartório 9h–17h); tela Configurações → Horário e LGPD |
+| E8 | Horário de atendimento vazio na empresa nova; configurações de horário e palavras LGPD dentro de Fluxos | 🟡 Médio | ✅ (02/10): horário sugerido a partir da etapa Empresa do Diagnóstico (o dono só liga/desliga os dias e usa); tela Configurações → Horário e LGPD |
 | E9 | Modelos prontos de fluxo e agente dependem da IA (dependiam da chave) | 🟡 | ✅ Resolvido com E2 |
 | E10 | Sem número de WhatsApp de teste, não dá para testar o atendimento real ponta a ponta | ℹ️ | "Testar o agente" (conversa simulada) cobre a IA; WhatsApp exige um chip de teste |
 

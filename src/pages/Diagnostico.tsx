@@ -20,6 +20,7 @@ import { useInstall } from "./fluxos/ReadyTemplates";
 import { BrandKit, useBrandKit } from "@/components/brand/BrandKit";
 import { ImplementationBoard, type Priority } from "./diagnostico/ImplementationBoard";
 import { TEMPLATES, templateByKey } from "./diagnostico/templates";
+import { HoursEditor, hoursValid, type Hours } from "@/components/HoursEditor";
 
 /** Rótulo das seções (as mesmas do servidor, _shared/company.ts); 🌐 = pode ir para a IA de atendimento. */
 const SECTION_LABEL: Record<string, [string, boolean]> = {
@@ -71,7 +72,7 @@ interface Proc {
 /** Setores que quase toda empresa tem: ponto de partida para o dono editar (como as etiquetas padrão). */
 const COMMON_SECTORS = ["Vendas / Comercial", "Atendimento ao cliente", "Financeiro", "Administrativo", "Marketing",
   "Operação / Produção", "Logística / Entregas", "Compras", "RH / Pessoas"];
-interface StepState { raw?: string; approved_at?: string; skipped_at?: string; setores?: string[]; attachments?: { id: string; name: string }[]; tpl?: string }
+interface StepState { raw?: string; approved_at?: string; skipped_at?: string; setores?: string[]; attachments?: { id: string; name: string }[]; tpl?: string; horario?: Hours }
 interface Suggestion { titulo: string; tipo: "pronta" | "integracao"; modelo: string | null; sistema: string | null; instalado?: { kind: "flow" | "record_type"; id: string } }
 interface Auto { titulo: string; setor: string; tipo: "sem_ia" | "ia" | "integracao"; descricao: string; impacto: string; esforco: string; custo: { volume: number; groq: number; claude: number; claude_model: string } | null }
 interface Plan {
@@ -101,11 +102,14 @@ export default function Diagnostico() {
   const [profile, setProfile] = useState<Profile>(EMPTY);
   const [page, setPage] = useState<string>("empresa");
   const [raw, setRaw] = useState("");
-  const [draft, setDraft] = useState<{ secoes?: Record<string, string>; processos?: Proc[]; setores?: string[]; faltando: string[] } | null>(null);
+  const [draft, setDraft] = useState<{ secoes?: Record<string, string>; processos?: Proc[]; setores?: string[]; horario?: Hours; faltando: string[] } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [research, setResearch] = useState({ site: "", cnpj: "" });
   const [copies, setCopies] = useState(0);
   const [orgTpl, setOrgTpl] = useState<string | null>(null);
+  // Horário: a empresa já tem um salvo? Se não, o horário contado na etapa Empresa vira sugestão pronta.
+  const [orgHasHours, setOrgHasHours] = useState(true);
+  const [hoursDraft, setHoursDraft] = useState<Hours | null>(null);
   const [atts, setAtts] = useState<{ id: string; name: string }[]>([]);
   const [depts, setDepts] = useState<{ id: string; name: string }[]>([]);
   const [rec, setRec] = useState<{ on: boolean; secs: number }>({ on: false, secs: 0 });
@@ -126,10 +130,11 @@ export default function Diagnostico() {
     const [{ data: n }, { data: dp }, { data: o }] = await Promise.all([
       supabase.rpc("company_profile_snapshots_count", { org: org.id }),
       supabase.from("departments").select("id, name").eq("organization_id", org.id),
-      supabase.from("organizations").select("template_key").eq("id", org.id).maybeSingle(),
+      supabase.from("organizations").select("template_key, settings").eq("id", org.id).maybeSingle(),
     ]);
     setDepts(dp ?? []);
     setOrgTpl(o?.template_key ?? null);
+    setOrgHasHours(!!(o?.settings as { business_hours?: unknown } | null)?.business_hours);
     setCopies((n as number | null) ?? 0);
     if (goTo !== undefined) setPage(goTo);
     return p;
@@ -275,7 +280,8 @@ export default function Diagnostico() {
     if (!draft) return;
     setBusy("approve");
     await ensureRow();
-    const steps = { ...profile.steps, [page]: { raw, attachments: atts, approved_at: new Date().toISOString(), ...(draft.setores ? { setores: draft.setores } : {}) } };
+    const horario = page === "empresa" ? draft.horario ?? profile.steps.empresa?.horario : undefined;
+    const steps = { ...profile.steps, [page]: { raw, attachments: atts, approved_at: new Date().toISOString(), ...(draft.setores ? { setores: draft.setores } : {}), ...(horario ? { horario } : {}) } };
     const patch: Record<string, unknown> = { steps, stage: next.startsWith("proc:") ? "processos" : next === "plano" ? "plano" : next };
     if (draft.secoes) patch.sections = { ...profile.sections, ...Object.fromEntries(Object.entries(draft.secoes).filter(([, v]) => v.trim())) };
     if (setor && draft.processos) {
@@ -290,8 +296,20 @@ export default function Diagnostico() {
     setBusy(null);
     if (error) return toast({ variant: "destructive", title: "Não salvo", description: error.message });
     toast({ title: "Etapa aprovada", description: "O retrato da empresa foi atualizado." });
+    // Com horário sugerido e a empresa ainda sem horário: fica na etapa para o dono conferir e usar.
+    if (page === "empresa" && draft.horario && !orgHasHours) { setHoursDraft(null); await load("empresa"); return; }
     const nextPage = draft.setores?.length && page === "setores" ? `proc:${draft.setores[0]}` : next;
     await load(nextPage);
+  };
+
+  const applyHours = async (h: Hours) => {
+    if (!hoursValid(h)) return toast({ variant: "destructive", title: "Horário inicial deve ser antes do final" });
+    const { data } = await supabase.from("organizations").select("settings").eq("id", org.id).maybeSingle();
+    const nextSettings = { ...((data?.settings ?? {}) as Record<string, unknown>), business_hours: h };
+    const { error } = await supabase.from("organizations").update({ settings: nextSettings as never }).eq("id", org.id);
+    if (error) return toast({ variant: "destructive", title: "Sem permissão" });
+    setOrgHasHours(true);
+    toast({ title: "Horário de atendimento ativado", description: "Dá para mudar em Configurações → Horário e LGPD." });
   };
 
   // Plano de implementação: salva a escolha de cada processo (agora/depois/não + lembrete).
@@ -479,6 +497,16 @@ export default function Diagnostico() {
                   ))}
                   {setor && profile.processes.filter((p) => (p.setor || p.area) === setor).map((p, i) => <ProcCard key={i} p={p} />)}
                   {setor && <p className="text-xs text-muted-foreground">Defina o que implementar agora ou depois em <button type="button" className="underline" onClick={() => setPage("setores")}>Setores → Plano de implementação</button>.</p>}
+                  {page === "empresa" && !orgHasHours && profile.steps.empresa?.horario && (
+                    <div className="rounded-md border border-primary/40 bg-primary/5 p-3 space-y-3">
+                      <div>
+                        <p className="text-sm font-medium">Horário de atendimento sugerido</p>
+                        <p className="text-xs text-muted-foreground">Montado com o que você contou. Ligue ou desligue os dias, ajuste se precisar e clique em usar — fora desse horário, o cliente recebe o aviso de fechado.</p>
+                      </div>
+                      <HoursEditor value={hoursDraft ?? profile.steps.empresa.horario} onChange={setHoursDraft} />
+                      <Button size="sm" onClick={() => void applyHours(hoursDraft ?? profile.steps.empresa!.horario!)}><Check className="w-4 h-4 mr-1" /> Usar este horário</Button>
+                    </div>
+                  )}
                   {page === "setores" && (
                     <div className="rounded-md border border-primary/40 bg-primary/5 p-3 text-sm flex flex-wrap items-center justify-between gap-2">
                       <span>Os setores aprovados viram setores de verdade no sistema (fila, cor e equipe) em <b>Setores e processos</b>.</span>

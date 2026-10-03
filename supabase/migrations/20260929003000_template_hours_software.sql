@@ -1,10 +1,8 @@
 -- =============================================================================
 -- Teste de ponta a ponta (02/10), E7 e E8:
--- - todo modelo de empresa traz o horário de atendimento padrão (empresa nova não
---   começa "fechada" para o bloco Horário); cartório 9h–17h, os demais 8h–18h, seg–sex;
+-- - horário de atendimento sai do Diagnóstico (etapa Empresa), não do modelo;
 -- - modelo "Software e suporte técnico" também na Plataforma (mesma chave do
 --   modelo do Diagnóstico, que passa a abrir sozinho no modelo da empresa);
--- - empresas já criadas com modelo e sem horário recebem o horário do modelo.
 -- Idempotente.
 -- =============================================================================
 
@@ -24,18 +22,8 @@ INSERT INTO public.org_templates (key, name, description, payload) VALUES
 ON CONFLICT (key) DO UPDATE
   SET name = EXCLUDED.name, description = EXCLUDED.description, payload = EXCLUDED.payload;
 
--- Horário padrão em todos os modelos.
-UPDATE public.org_templates
-SET payload = jsonb_set(payload, '{settings,business_hours}',
-  CASE WHEN key = 'cartorio'
-    THEN '{"1":[{"start":"09:00","end":"17:00"}],"2":[{"start":"09:00","end":"17:00"}],"3":[{"start":"09:00","end":"17:00"}],"4":[{"start":"09:00","end":"17:00"}],"5":[{"start":"09:00","end":"17:00"}]}'::jsonb
-    ELSE '{"1":[{"start":"08:00","end":"18:00"}],"2":[{"start":"08:00","end":"18:00"}],"3":[{"start":"08:00","end":"18:00"}],"4":[{"start":"08:00","end":"18:00"}],"5":[{"start":"08:00","end":"18:00"}]}'::jsonb
-  END, true)
-WHERE payload ? 'settings';
-
--- Empresas já criadas com modelo e ainda sem horário.
-UPDATE public.organizations o
-SET settings = coalesce(o.settings, '{}'::jsonb) || jsonb_build_object('business_hours', t.payload -> 'settings' -> 'business_hours')
-FROM public.org_templates t
-WHERE t.key = o.template_key AND NOT (coalesce(o.settings, '{}'::jsonb) ? 'business_hours')
-  AND t.payload -> 'settings' ? 'business_hours';
+-- Horário de atendimento NÃO vem fixo do modelo (decisão do dono, 02/10): é
+-- sugerido a partir do que o dono conta na etapa Empresa do Diagnóstico, e ele só
+-- confere e ativa. Garante que nenhum modelo traga horário pronto.
+UPDATE public.org_templates SET payload = payload #- '{settings,business_hours}'
+WHERE payload -> 'settings' ? 'business_hours';

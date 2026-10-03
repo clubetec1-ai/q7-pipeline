@@ -8,11 +8,9 @@ import { AppHeader } from "@/components/AppHeader";
 import { NumberHealthBanner } from "@/components/NumberHealthBanner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
+import { HoursEditor, hoursValid, type Hours } from "@/components/HoursEditor";
 import { Textarea } from "@/components/ui/textarea";
 
-type Hours = Record<string, { start: string; end: string }[]>;
-const WEEKDAYS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 const DEFAULT_HOURS: Hours = Object.fromEntries([1, 2, 3, 4, 5].map((d) => [String(d), [{ start: "08:00", end: "18:00" }]]));
 const DEFAULT_OPT_OUT = ["SAIR", "PARAR"];
 const DEFAULT_OPT_OUT_REPLY = "Pronto, você não vai mais receber mensagens automáticas. Se precisar, é só mandar mensagem.";
@@ -20,6 +18,8 @@ const DEFAULT_OPT_OUT_REPLY = "Pronto, você não vai mais receber mensagens aut
 /**
  * Configurações → Horário e LGPD (dono/admin): horário de atendimento (usado pelo
  * bloco Horário dos fluxos e pela IA) e as palavras para parar mensagens automáticas.
+ * Sem horário salvo, a tela já vem com o horário que o dono contou no Diagnóstico
+ * (etapa Empresa): ele só confere, liga/desliga os dias e salva.
  * Saiu de dentro de Fluxos: é configuração da empresa, não do fluxo.
  */
 export default function ConfigAtendimento() {
@@ -29,11 +29,17 @@ export default function ConfigAtendimento() {
   const [draftHours, setDraftHours] = useState<Hours | null>(null);
   const [optWords, setOptWords] = useState<string | null>(null);
   const [optReply, setOptReply] = useState<string | null>(null);
+  const [suggested, setSuggested] = useState<Hours | null>(null);
 
   const load = useCallback(async () => {
     if (!org) return;
-    const { data } = await supabase.from("organizations").select("settings").eq("id", org.id).maybeSingle();
+    const [{ data }, { data: cp }] = await Promise.all([
+      supabase.from("organizations").select("settings").eq("id", org.id).maybeSingle(),
+      supabase.from("company_profiles").select("steps").eq("organization_id", org.id).maybeSingle(),
+    ]);
     setSettings((data?.settings ?? {}) as Record<string, unknown>);
+    const h = (cp?.steps as { empresa?: { horario?: Hours } } | null)?.empresa?.horario;
+    setSuggested(h && Object.keys(h).length ? h : null);
   }, [org]);
   useEffect(() => { void load(); }, [load]);
 
@@ -49,12 +55,10 @@ export default function ConfigAtendimento() {
     return true;
   };
 
-  const h = draftHours ?? (settings.business_hours as Hours | undefined) ?? DEFAULT_HOURS;
   const hasHours = !!settings.business_hours;
-  const setDay = (d: number, slot: { start: string; end: string } | null) => setDraftHours({ ...h, [String(d)]: slot ? [slot] : [] });
+  const h = draftHours ?? (settings.business_hours as Hours | undefined) ?? suggested ?? DEFAULT_HOURS;
   const saveHours = async () => {
-    const bad = Object.values(h).flat().some((s) => !s.start || !s.end || s.start >= s.end);
-    if (bad) return toast({ variant: "destructive", title: "Horário inicial deve ser antes do final" });
+    if (!hoursValid(h)) return toast({ variant: "destructive", title: "Horário inicial deve ser antes do final" });
     if (await saveSettings({ business_hours: h })) setDraftHours(null);
   };
 
@@ -86,26 +90,11 @@ export default function ConfigAtendimento() {
           <p className="text-xs text-muted-foreground">
             Fora deste horário, o bloco “Horário” dos fluxos segue pelo caminho “Fechado” (ex.: mensagem de fora do expediente).
             Fuso: {String(settings.timezone || "America/Sao_Paulo")}.
-            {!hasHours && " Ainda não salvo: confira e clique em Salvar horário."}
+            {!hasHours && (suggested
+              ? " Sugerido a partir do que você contou no Diagnóstico: confira, ligue ou desligue os dias e clique em Salvar horário."
+              : " Ainda não salvo: ajuste e clique em Salvar horário (ou conte o horário na etapa Empresa do Diagnóstico).")}
           </p>
-          <div className="space-y-2">
-            {WEEKDAYS.map((w, d) => {
-              const slot = h[String(d)]?.[0] ?? null;
-              return (
-                <div key={d} className="flex flex-wrap items-center gap-2">
-                  <Switch checked={!!slot} onCheckedChange={(on) => setDay(d, on ? { start: "08:00", end: "18:00" } : null)} />
-                  <span className="w-20 text-sm">{w}</span>
-                  {slot ? (
-                    <>
-                      <Input type="time" className="w-28" value={slot.start} onChange={(e) => setDay(d, { ...slot, start: e.target.value })} />
-                      <span className="text-sm">às</span>
-                      <Input type="time" className="w-28" value={slot.end} onChange={(e) => setDay(d, { ...slot, end: e.target.value })} />
-                    </>
-                  ) : <span className="text-sm text-muted-foreground">Fechado</span>}
-                </div>
-              );
-            })}
-          </div>
+          <HoursEditor value={h} onChange={setDraftHours} />
           <Button variant={hasHours ? "outline" : "default"} disabled={hasHours && !draftHours} onClick={saveHours}>Salvar horário</Button>
         </section>
 
