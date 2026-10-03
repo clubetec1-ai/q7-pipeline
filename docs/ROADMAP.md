@@ -50,7 +50,7 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
    transcrição de áudio e imagem com uma chave só; Anthropic tem a melhor qualidade em seguir regras, mas não transcreve
    áudio (precisaria de um 2º fornecedor só para isso); Gemini é o mais barato e cobre tudo. Para trocar: chave da
    plataforma por fornecedor (hoje só Groq) e transcrição de áudio pelo fornecedor escolhido (hoje fixa na Groq).
-   🙋 Decidir o fornecedor depois de testar as mesmas perguntas do cartório no "Testar o agente".
+   ✅ *Decidido e feito (03/10): OpenAI como Principal, Groq como Reserva 1 (Plataforma → Conectores).*
    **Principal + reserva (pedido em 02/10):** OpenAI como principal (confirmado: transcreve áudio pela API) e um
    fornecedor de **reserva semi-pronto** para emergência — chave já guardada no cofre, desligada no dia a dia; se a
    principal cair (fora do ar, limite, chave inválida), a chamada passa sozinha para a reserva (conversa e áudio), a
@@ -63,9 +63,9 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
 5. 🟡 **Agentes do dia 1:** atendimento, entrevistador, avaliador ✅; falta o **assistente dentro do app** ("como
    faço…?") e o **monitor de saúde ampliado** (hoje só números; falta chave de IA inválida, fila parada, fluxo com erro,
    com botão de correção).
-6. ⏳ **Produção:** 🙋 nome comercial (Clube Inove/i9 — parecer de agente de propriedade industrial, pedido no INPI nas
-   classes 42 e 9, domínios), Supabase pago (backup e sem pausa), Groq pago, site na VPS Hostinger ou Vercel, troca do
-   nome nas telas, e-mails e links.
+6. ⏳ **Produção:** 🙋 nome comercial (em definição — ver "Nome comercial" abaixo; depois parecer de agente de
+   propriedade industrial, pedido no INPI nas classes 42 e 9, domínios), Supabase pago (backup e sem pausa), OpenAI com
+   limite mensal, site na VPS Hostinger ou Vercel, troca do nome nas telas, e-mails e links.
 7. ⏳ **Zerar a Clubetec** e configurar do zero (listar o que será apagado e confirmar antes) — por último.
 
 ### P1 — ticket alto e franquias
