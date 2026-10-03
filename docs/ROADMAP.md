@@ -45,6 +45,12 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
 2. ⏳ **Venda autoatendida:** planos que ligam os módulos, assinatura recorrente (Asaas), teste grátis, cadastro público
    → Diagnóstico → implantação guiada; **franquia de conversas com IA por plano** (alerta em 80% e pacotes extras).
    🙋 Definir preços, pacotes e a franquia de IA de cada plano.
+   **IA da plataforma (revisto em 02/10):** **um fornecedor só**, com vários modelos dele (mais simples no atendimento,
+   mais forte no Diagnóstico); prioridade qualidade, depois custo. Comparação de 02/10: OpenAI cobre conversa,
+   transcrição de áudio e imagem com uma chave só; Anthropic tem a melhor qualidade em seguir regras, mas não transcreve
+   áudio (precisaria de um 2º fornecedor só para isso); Gemini é o mais barato e cobre tudo. Para trocar: chave da
+   plataforma por fornecedor (hoje só Groq) e transcrição de áudio pelo fornecedor escolhido (hoje fixa na Groq).
+   🙋 Decidir o fornecedor depois de testar as mesmas perguntas do cartório no "Testar o agente".
 3. 🟡 **Contrato e LGPD:** existe a página de termos e exclusão de dados; falta termos de uso e política de privacidade
    revisados, contrato de tratamento de dados (cliente como controlador, Clubetec como operadora) e aceite no cadastro.
 4. ⏳ **Segurança antes da produção:** varredura completa (security-review / claude-security), grants por coluna nas
@@ -94,19 +100,17 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
 26. ⏳ Messenger e Instagram; backup automático externo; logo e ícone da aba (com o nome novo).
 
 ### 🙋 Pendências do dono (fora do código)
-- Decidir: preços, pacotes e franquia de IA dos planos; próximo nicho; criptografia por campo; o que
+- Decidir: nome comercial; preços, pacotes e franquia de IA dos planos; próximo nicho; criptografia por campo; o que
   fazer com a empresa de teste sem uso "Auto Center Modelo (TESTE)".
 - Fazer: parecer de propriedade industrial e pedido no INPI; comprar os domínios; gerar os códigos de recuperação do MFA;
   número de teste de WhatsApp; cobrar da Nvoip a permissão do histórico (403); respostas da Handphone; número fixo na
   Meta; validar o Bling com conta real; contas pagas (Supabase, Groq) antes do 1º cliente.
 
 ### Nome comercial e domínio (pedido em 02/10)
-**✅ Decidido em 02/10: o produto se chama Clube Re9** (lê-se "renove": a empresa se renovando sempre — diagnóstico,
-atendimento com IA e melhoria contínua). Logo: "Re" + um 9 cuja cauda vira seta circular (o ciclo). Domínios livres em
-02/10: clubere9.com.br e clubere9.com; por extenso, cluberenove.com (o cluberenove.com.br já tem dono). INPI: "Clube Re9"
-sem nenhum processo; "re9" com 6 marcas ativas na classe 42. Próximos passos: 🙋 comprar os domínios, parecer de
-agente de propriedade industrial e pedido de marca mista em nome da Clubetec (classes 42 e 9; 35 se vender
-consultoria); depois, trocar "ClubeCRM" por "Clube Re9" nas telas, e-mails, links e documentação.
+**Nome ainda em aberto (02/10):** "Clube Re9" (renove) foi escolhido e depois descartado — cluberenove.com.br já tem
+dono, e quem ouvir o nome vai digitar o .com.br por extenso. Regra: o nome estilizado **e** o nome por extenso precisam
+estar livres no .com.br (e no .com) e no INPI. Opções que cumprem: **Clube In9** (clubein9 e clubeinove livres; "in9" com
+2 marcas ativas na classe 42), **Clube +1** (clubemais1 e clubemaisum livres), Clube Up1 (clubeup1 e clubeupum livres).
 Avaliar se "ClubeCRM" é o melhor nome para vender, mantendo a marca "Clube". O dono quer um nome que passe a ideia de
 **melhoria contínua** (começa pelo diagnóstico e segue dando feedback e melhorias). Sugestão: **Clube Evolui**; ideia do
 dono: **Clube Inove**, logo "Clube i9" (i de inteligência, 9 = "nove"); clubeinove e clubei9 (.com.br e .com) livres em
