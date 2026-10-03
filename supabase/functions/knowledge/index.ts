@@ -65,7 +65,9 @@ Deno.serve(async (req) => {
         created_by: ctx.user.id,
       }).select("id").single();
       if (error || !doc) throw new HttpError(400, "Não foi possível criar o documento");
-      const path = `${orgId}/${doc.id}/${fileName}`;
+      // O armazenamento recusa acentos no caminho ("Política.pdf"): o caminho vai sem acento; o nome exibido continua igual.
+      const storageName = fileName.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9._() -]/g, "_");
+      const path = `${orgId}/${doc.id}/${storageName}`;
       const up = await admin.storage.from("knowledge").upload(path, bytes, { contentType: mime, upsert: false });
       if (up.error) {
         await org.delete("knowledge_docs").eq("id", doc.id);

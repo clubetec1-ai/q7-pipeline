@@ -83,6 +83,13 @@ pedido de cliente. Os detalhes de cada item estão nas seções abaixo; aqui fic
 24. Chat da equipe: busca, reações e canais extras.
 25. Messenger e Instagram; backup automático externo; hospedagem própria (VPS); logo e ícone da aba.
 
+**Nome comercial e domínio (pedido em 02/10):** avaliar se "ClubeCRM" é o melhor nome para vender, mantendo a marca
+"Clube". Sugestão: **Clube Atende** (diz o que faz: atendimento com IA no WhatsApp, e-mail e telefone) — clubeatende.com.br
+e .com estavam livres em 02/10; manter "CRM" só como descrição. Antes de comprar: busca no INPI (classes 9 e 42) e
+registro do domínio .com.br e .com. **Produção na VPS da Hostinger:** site (frontend) na VPS ou na Vercel; o banco e as
+funções continuam no Supabase (plano pago em produção: backups diários e sem pausa); trocar o nome nas telas, e-mails
+e no domínio dos links.
+
 **Ações do dono (fora do código):** colar a chave Groq da plataforma (Plataforma → Conectores); gerar os códigos de
 recuperação do MFA; cobrar da Nvoip a permissão do histórico (erro 403); respostas da Handphone; número fixo na Meta.
 

@@ -114,7 +114,10 @@ export default function Conhecimento() {
       if (r.ok) ok++;
     }
     setBusy(null);
-    toast({ title: `${ok} documento(s) modelo na base`, description: "Revise cada um e corrija o que for diferente no seu cartório." });
+    const failed = missingModels.length - ok;
+    toast(failed
+      ? { variant: "destructive", title: `${ok} de ${missingModels.length} documento(s) adicionados`, description: "Clique de novo para tentar os que faltaram." }
+      : { title: `${ok} documento(s) modelo na base`, description: "Revise cada um e corrija o que for diferente na sua empresa." });
     await load();
   };
   const act = async (action: string, d: Doc, extra: Record<string, unknown> = {}) => {
