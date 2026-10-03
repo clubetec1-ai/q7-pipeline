@@ -141,6 +141,10 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
   no INPI. Palavra-base sem nenhuma marca ativa na classe 42: **AutomatIA, AutoIA, FluxAI** (melhores); com conflito:
   Fluxo IA (1, "FLUXO IA"), Flow IA (4, inclusive "Flow iA" e "UPFLOW IA"), Autoflow (1), Auto Fluxo (2), Conexia (6),
   ConectAI (10, "Conecta…"), IA Flow (8, "ViaFlow", "NIAflow"), IAuto (47).
+- **Nomes "mais vendáveis" (03/10, o dono achou os anteriores pouco comerciais):** linha de benefício para o dono,
+  com .com.br e .com livres e "Clube X" sem processo no INPI: **Clube Braço Direito** (0 marcas "braço direito" na 42),
+  Clube Copiloto (8 na 42, ex.: "Copiloto de Vendas"), Clube Impulsa (5), Clube Gerente (23), Clube Decola (16, Decolar),
+  Clube Assistente (45). Ocupados: Clube Sócio, Gestor, Parceiro, Smart, Fácil, Pro, Acelera (.com.br com dono).
 - **Nome "IntegrAI" (pesquisado em 03/10):** descartado — "Integrai" é **marca registrada em vigor na classe 42**
   (Integrai Tecnologia Ltda, automação de e-commerce, site integrai.com.br) e "Integra.ai" e "IntegraAiCom" estão em
   análise na 42; integrai.com.br e .com têm dono. "Clube IntegrAI" teria o mesmo conflito. Ideia aproveitada: destacar
