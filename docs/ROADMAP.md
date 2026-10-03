@@ -51,6 +51,10 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
    áudio (precisaria de um 2º fornecedor só para isso); Gemini é o mais barato e cobre tudo. Para trocar: chave da
    plataforma por fornecedor (hoje só Groq) e transcrição de áudio pelo fornecedor escolhido (hoje fixa na Groq).
    🙋 Decidir o fornecedor depois de testar as mesmas perguntas do cartório no "Testar o agente".
+   **Principal + reserva (pedido em 02/10):** OpenAI como principal (confirmado: transcreve áudio pela API) e um
+   fornecedor de **reserva semi-pronto** para emergência — chave já guardada no cofre, desligada no dia a dia; se a
+   principal cair (fora do ar, limite, chave inválida), a chamada passa sozinha para a reserva (conversa e áudio), a
+   Clubetec é avisada na Plataforma e pode trocar manualmente. Reserva sugerida: Groq (já integrada e barata).
 3. 🟡 **Contrato e LGPD:** existe a página de termos e exclusão de dados; falta termos de uso e política de privacidade
    revisados, contrato de tratamento de dados (cliente como controlador, Clubetec como operadora) e aceite no cadastro.
 4. ⏳ **Segurança antes da produção:** varredura completa (security-review / claude-security), grants por coluna nas
@@ -107,6 +111,9 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
   Meta; validar o Bling com conta real; contas pagas (Supabase, Groq) antes do 1º cliente.
 
 ### Nome comercial e domínio (pedido em 02/10)
+**Mais ideias (02/10, "reset"):** "Clube Re7" (resete = reset) descartado — clubereset.com.br tem dono. Com
+.com.br e .com livres e "Clube X" sem processo no INPI: **Clube Virada** ("virada de chave"; "virada" com 1 marca na 42),
+**Clube Reboot** (0 na 42), Clube Set (11), Clube Rumo (7), Clube Chave (7), Clube Passo (8).
 **Nome ainda em aberto (02/10):** "Clube Re9" (renove) foi escolhido e depois descartado — cluberenove.com.br já tem
 dono, e quem ouvir o nome vai digitar o .com.br por extenso. Regra: o nome estilizado **e** o nome por extenso precisam
 estar livres no .com.br (e no .com) e no INPI. Opções que cumprem: **Clube In9** (clubein9 e clubeinove livres; "in9" com
