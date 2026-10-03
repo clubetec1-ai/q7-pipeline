@@ -6,7 +6,7 @@
  */
 export interface ModelDoc { title: string; kind: string; visibility: "interno" | "atendimento" | "enviavel"; sector: string | null; text: string }
 
-const AVISO = "MODELO ClubeCRM — revise com o tabelião antes de usar. As exigências podem variar conforme o estado (Código de Normas da Corregedoria) e o caso; em dúvida, o escrevente confirma.";
+const AVISO = "MODELO Deixa com a IA — revise com o tabelião antes de usar. As exigências podem variar conforme o estado (Código de Normas da Corregedoria) e o caso; em dúvida, o escrevente confirma.";
 
 export const MODEL_DOCS: Record<string, { label: string; tip: string; docs: ModelDoc[] }> = {
   cartorio: {
@@ -126,7 +126,7 @@ COMO FUNCIONA O PEDIDO A DISTÂNCIA
 };
 
 // Registro de Imóveis e Ofício Único (cidade pequena, várias atribuições).
-const AVISO_RI = "MODELO ClubeCRM — revise com o oficial antes de usar. As exigências e os prazos podem variar conforme o estado (Código de Normas da Corregedoria) e o caso; em dúvida, o escrevente confirma.";
+const AVISO_RI = "MODELO Deixa com a IA — revise com o oficial antes de usar. As exigências e os prazos podem variar conforme o estado (Código de Normas da Corregedoria) e o caso; em dúvida, o escrevente confirma.";
 const RI_DOCS: ModelDoc[] = [
   {
     title: "Como informar valores (regra do registro de imóveis)", kind: "politica", visibility: "atendimento", sector: null,

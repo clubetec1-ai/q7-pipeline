@@ -245,7 +245,7 @@ export function EmailAccounts({ orgId }: { orgId: string }) {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir a caixa “{deleting?.name}”?</AlertDialogTitle>
             <AlertDialogDescription>
-              As conversas e mensagens de e-mail desta caixa são apagadas do ClubeCRM (os e-mails continuam no seu provedor). Para só parar de receber, use “Desativar”.
+              As conversas e mensagens de e-mail desta caixa são apagadas do sistema (os e-mails continuam no seu provedor). Para só parar de receber, use “Desativar”.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

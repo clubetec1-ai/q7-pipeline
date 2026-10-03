@@ -63,7 +63,7 @@ export default function Seguranca() {
     setCodes(r.data.codes);
   };
   const download = () => {
-    const txt = `ClubeCRM — códigos de recuperação (cada um funciona uma vez)\n\n${codes!.join("\n")}\n\nGuarde em lugar seguro, longe do celular.\n`;
+    const txt = `Deixa com a IA — códigos de recuperação (cada um funciona uma vez)\n\n${codes!.join("\n")}\n\nGuarde em lugar seguro, longe do celular.\n`;
     const url = URL.createObjectURL(new Blob([txt], { type: "text/plain" }));
     Object.assign(document.createElement("a"), { href: url, download: "clubecrm-codigos-recuperacao.txt" }).click();
     URL.revokeObjectURL(url);

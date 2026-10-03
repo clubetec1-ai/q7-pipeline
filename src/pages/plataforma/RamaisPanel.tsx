@@ -209,7 +209,7 @@ export function RamaisPanel({ orgs }: { orgs: { id: string; name: string }[] }) 
           <li><b>Cadastre o ramal</b> com os mesmos dados que você põe no MicroSIP: número, usuário, <b>servidor/domínio</b> (ex.: Nvoip:
             <code> app.nvoip.com.br</code>) e senha. A senha vai para o cofre e não aparece mais.</li>
           <li><b>Telefone no navegador (opcional):</b> informe o <b>endereço WebRTC</b> (<code>wss://…</code>) que a central fornece.
-            Sem ele, o ramal funciona no <b>MicroSIP/aparelho</b> e o ClubeCRM identifica o cliente pelo número.</li>
+            Sem ele, o ramal funciona no <b>MicroSIP/aparelho</b> e o sistema identifica o cliente pelo número.</li>
           <li><b>Teste</b> antes de salvar: com a senha digitada, o botão Testar registra na central e diz se está tudo certo.</li>
           <li><b>Associe o atendente</b> já no cadastro — ou, para muitos ramais, <b>baixe o modelo da planilha</b> (vem com os e-mails da equipe),
             preencha número e senha, e <b>importe</b>. Ou use <b>Associar automaticamente</b> (ramais livres → pessoas sem ramal).
