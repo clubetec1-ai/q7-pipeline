@@ -1,6 +1,6 @@
 import { Link, Navigate } from "react-router-dom";
 import {
-  Bot, BookOpen, Clock, KeyRound, Library, Mail, MessageSquare, PhoneCall, Plug, Server, Settings2, ShieldCheck, Shuffle, Tags, Wallet, Workflow, type LucideIcon,
+  Bot, BookOpen, Clock, KeyRound, Library, Mail, MessageSquare, Palette, PhoneCall, Plug, Server, Settings2, ShieldCheck, Shuffle, Tags, Wallet, Workflow, type LucideIcon,
 } from "lucide-react";
 import { useOrg } from "@/contexts/OrgContext";
 import { AppHeader } from "@/components/AppHeader";
@@ -67,6 +67,8 @@ export default function Configuracoes() {
         state: s.integrations ? "ok" : "optional", detail: s.integrations ? `${s.integrations} integração(ões)` : undefined, show: manage },
       { title: "Uazapi — servidor global (Clubetec)", desc: "Servidor e token de administrador do WhatsApp por QR de toda a plataforma. Só a equipe Clubetec vê.",
         to: "/admin/uazapi", icon: Server, color: "#0EA5E9", state: "optional", show: isOperator },
+      { title: "Aparência", desc: "Logo da sua empresa no topo das telas e as cores principal e secundária da marca.", to: "/configuracoes/aparencia",
+        icon: Palette, color: "#22C1A4", state: "optional", show: manage },
       { title: "Segurança", desc: "Verificação em duas etapas (MFA) e códigos de recuperação.", to: "/seguranca", icon: ShieldCheck, color: "#EF4444",
         state: "optional", show: true },
     ] },

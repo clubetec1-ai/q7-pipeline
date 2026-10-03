@@ -20,7 +20,6 @@ import { EmailIgnoreButton } from "./conversas/EmailIgnoreButton";
 import { QuickReplies } from "./conversas/QuickReplies";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { ConfigDrawer } from "@/components/ConfigDrawer";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import {
   Popover,
@@ -53,7 +52,6 @@ import {
 } from "@/components/ui/collapsible";
 import { BookOpen, Mail, ChevronDown, CheckCircle2, XCircle, AlertCircle, Paperclip } from "lucide-react";
 import { LibraryPicker, type LibraryPick } from "./conversas/LibraryPicker";
-import { getActiveOrgId } from "@/lib/org";
 import { useTickets, STATUS_LABEL, TicketTab } from "./conversas/useTickets";
 import { TicketBar } from "./conversas/TicketBar";
 import { DeliveryStatus, MessageMedia } from "./conversas/MessageMedia";
@@ -134,8 +132,6 @@ export default function Conversas() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
-  const [configOpen, setConfigOpen] = useState(false);
-  const [needsSetup, setNeedsSetup] = useState(false);
   const [stages, setStages] = useState<Stage[]>([]);
   const [followups, setFollowups] = useState<Followup[]>([]);
   const [followupHistory, setFollowupHistory] = useState<FollowupHistoryItem[]>([]);
@@ -270,12 +266,14 @@ export default function Conversas() {
   );
 
   // Load conversations + realtime
+  // Só a empresa selecionada: quem participa de várias não mistura as conversas.
   useEffect(() => {
-    if (!user) return;
+    if (!user || !org) return;
     const load = async () => {
       const { data } = await supabase
         .from("conversations")
         .select("*")
+        .eq("organization_id", org.id)
         .order("last_message_at", { ascending: false });
       setConversations((data as Conversation[]) || []);
       const openParam = searchParams.get("open");
@@ -288,27 +286,28 @@ export default function Conversas() {
     load();
 
     const ch = supabase
-      .channel("conversations-list")
+      .channel(`conversations-list-${org.id}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "conversations" },
+        { event: "*", schema: "public", table: "conversations", filter: `organization_id=eq.${org.id}` },
         () => load(),
       )
       .subscribe();
     return () => {
       supabase.removeChannel(ch);
     };
-  }, [user]);
+  }, [user, org?.id]);
 
   // Load stages
   useEffect(() => {
-    if (!user) return;
+    if (!user || !org) return;
     supabase
       .from("pipeline_stages")
       .select("*")
+      .eq("organization_id", org.id)
       .order("position", { ascending: true })
       .then(({ data }) => setStages((data as Stage[]) || []));
-  }, [user]);
+  }, [user, org?.id]);
 
   // Load followups for active conversation
   useEffect(() => {
@@ -394,24 +393,6 @@ export default function Conversas() {
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [messages]);
-
-  // Detect setup completion (Groq key configured)
-  useEffect(() => {
-    if (!user) return;
-    const check = async () => {
-      // Só saber SE a chave existe: o valor fica no Vault.
-      const orgId = await getActiveOrgId(user.id);
-      if (!orgId) return;
-      const { data: status } = await supabase.rpc("org_setup_status" as any, { org: orgId });
-      setNeedsSetup(!(status as { groq_api_key?: boolean } | null)?.groq_api_key);
-    };
-    check();
-  }, [user, configOpen]);
-
-  const handleLogout = async () => {
-    await signOut();
-    navigate("/login");
-  };
 
   const toggleAI = async (enabled: boolean) => {
     if (!active) return;
@@ -586,7 +567,6 @@ export default function Conversas() {
       <AppHeader active="conversas" extra={<PresenceControl />} />
       <NumberHealthBanner />
 
-      <ConfigDrawer open={configOpen} onOpenChange={setConfigOpen} />
 
       {/* Main */}
       <div className="flex-1 grid grid-cols-1 md:grid-cols-[320px_1fr] gap-0 overflow-hidden">
@@ -596,20 +576,6 @@ export default function Conversas() {
             <MessageSquare className="w-4 h-4" /> Conversas
           </div>
           <div className="flex-1 overflow-y-auto">
-            {needsSetup && (
-              <button
-                onClick={() => navigate("/inicio")}
-                className="w-full text-left p-4 border-b bg-primary/5 hover:bg-primary/10 transition"
-              >
-                <div className="flex items-center gap-2 font-medium text-sm">
-                  <Sparkles className="w-4 h-4 text-primary" />
-                  Configure em 2 passos
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Cole sua chave da Groq e conecte o WhatsApp para começar.
-                </p>
-              </button>
-            )}
             {conversations.length === 0 && (
               <div className="p-6 text-sm text-muted-foreground text-center">
                 Nenhuma conversa ainda. Quando o WhatsApp receber mensagens, elas aparecem aqui.

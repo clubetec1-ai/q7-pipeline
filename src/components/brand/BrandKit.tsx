@@ -106,7 +106,7 @@ export function BrandKit({ orgId, editable = false, kit, onSaved }: { orgId: str
       {editable && colors.length > 0 && (
         <label className="flex items-center gap-2 text-sm cursor-pointer">
           <input type="checkbox" checked={!!brand.use_in_theme} onChange={(e) => save({ ...brand, use_in_theme: e.target.checked })} />
-          Usar a primeira cor ({colors[0]?.name || colors[0]?.hex}) como cor principal nas telas do Deixa com a IA
+          Usar as cores da marca nas telas do Deixa com a IA (logo e cores em Configurações → Aparência)
         </label>
       )}
 
