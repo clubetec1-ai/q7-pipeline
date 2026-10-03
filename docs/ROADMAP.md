@@ -146,6 +146,11 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
   no INPI. Palavra-base sem nenhuma marca ativa na classe 42: **AutomatIA, AutoIA, FluxAI** (melhores); com conflito:
   Fluxo IA (1, "FLUXO IA"), Flow IA (4, inclusive "Flow iA" e "UPFLOW IA"), Autoflow (1), Auto Fluxo (2), Conexia (6),
   ConectAI (10, "Conecta…"), IA Flow (8, "ViaFlow", "NIAflow"), IAuto (47).
+- **Nomes que explicam o software e ajudam a vender (03/10):** .com.br e .com livres e "Clube X" sem processo no INPI:
+  **Clube Autopiloto** ("sua empresa no piloto automático"; "autopiloto" com 0 marcas na classe 42 — só um slogan "Sua
+  clínica no piloto automático"), Clube Empresa Inteligente (0, mas descritivo demais para registrar), Clube Organiza
+  (5), Clube Comando (5), Clube Desenrola (8), Clube Método (11), Clube Maestro (24). Ocupados: Clube Central e Clube
+  Resolve (.com.br com dono).
 - **Nomes "mais vendáveis" (03/10, o dono achou os anteriores pouco comerciais):** linha de benefício para o dono,
   com .com.br e .com livres e "Clube X" sem processo no INPI: **Clube Braço Direito** (0 marcas "braço direito" na 42),
   Clube Copiloto (8 na 42, ex.: "Copiloto de Vendas"), Clube Impulsa (5), Clube Gerente (23), Clube Decola (16, Decolar),
