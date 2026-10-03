@@ -199,8 +199,8 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
   sistema: clique-para-ligar pelo Teams e registro/identificação das ligações pelo Microsoft Graph (registro de app no
   Azure com permissões de chamadas e consentimento do administrador do cliente). Indicado como módulo opcional para
   clientes que já usam Microsoft 365; para os demais, o ramal no navegador/MicroSIP continua mais barato.
-- 🔄 **Equipe de marketing para o lançamento** *(pesquisa de mercado e nichos pronta em `docs/marketing/01-pesquisa-mercado-nichos.md`;
-  plano de lançamento em andamento)*: papéis de pesquisador de mercado, tendências de nicho, estrategista de
+- ✅ **Equipe de marketing para o lançamento** *(03/10: pesquisa `docs/marketing/01`, estratégia e metas de 90 dias `02`, copy `03`, criativos e vídeo `04`;
+  falta o dono decidir preços e Condição de Fundador; validar com 10 entrevistas)*: papéis de pesquisador de mercado, tendências de nicho, estrategista de
   marketing, copywriter e imagem/vídeo para definir o lançamento do Deixa com a IA (público e nichos, posicionamento,
   oferta e preço de lançamento, calendário de conteúdo, roteiros de vídeo e criativos), seguindo o manual da marca.
 
