@@ -1205,6 +1205,12 @@ BEGIN
   UPDATE public.organizations SET settings = settings || '{"ai_platform": false}'::jsonb WHERE id = A;
   PERFORM pg_temp.expect(pg_temp.t(agent_a, format('SELECT public.platform_ai_available(%L)::text', A)) = 'false', 'empresa que recusou nao usa');
 
+  -- 65. Diagnostico 3.0: o dono avanca por todas as etapas novas (clientes, marca, regras); valor fora da lista e recusado.
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('UPDATE public.company_profiles SET stage = %L WHERE organization_id = %L', 'clientes', A)) = 'ok:1', 'etapa clientes');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('UPDATE public.company_profiles SET stage = %L WHERE organization_id = %L', 'marca', A)) = 'ok:1', 'etapa marca');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('UPDATE public.company_profiles SET stage = %L WHERE organization_id = %L', 'regras', A)) = 'ok:1', 'etapa regras');
+  PERFORM pg_temp.expect_error(owner_a, format('UPDATE public.company_profiles SET stage = %L WHERE organization_id = %L', 'qualquer', A), 'etapa invalida recusada');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 

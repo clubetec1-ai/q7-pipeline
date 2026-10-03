@@ -93,7 +93,12 @@ recuperação do MFA; cobrar da Nvoip a permissão do histórico (erro 403); res
   e pedidos a distância e Financeiro; e o modelo "Cartório" ao criar empresa em Plataforma (funil Novo pedido →
   Documentação → Orçamento e pagamento → Assinatura agendada → Ato concluído, 4 setores e agente que nunca dá
   orientação jurídica, nunca calcula imposto e só informa valores da tabela oficial).* Falta: base de conhecimento
-  modelo (lista de documentos por ato, tabela de emolumentos do estado) e fluxos prontos do cartório.
+  modelo (lista de documentos por ato, tabela de emolumentos do estado) e fluxos prontos do cartório — **prioridade**:
+  no teste de 02/10 o agente listou documentos de escritura pelo conhecimento geral da IA (correto no geral, mas não
+  é a lista oficial do cartório).
+  *Teste de ponta a ponta no "Cartório Teste" (02/10):* Diagnóstico abriu no modelo Cartório; IA organizou a etapa
+  Empresa e leu o horário (seg–sex 9h–17h) — ativado com um clique; Testar o agente recusou calcular ITBI e dar
+  orientação jurídica e informou horário e plantão de óbito. Achados E11–E14 em docs/PROJETO.md §4.1.
 - **Foco em ticket mais alto:** priorizar clientes em que a implantação agrega mais valor e paga mais — cartórios,
   clínicas e odontologia, escritórios de advocacia e contabilidade, imobiliárias, auto centers e concessionárias,
   escolas e redes. Para cada nicho: modelo completo (P1, item 7), pacote de implantação e caso de sucesso.
