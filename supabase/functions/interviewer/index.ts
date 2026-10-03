@@ -2,7 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { requireModule } from "../_shared/modules.ts";
 import { HttpError, requirePermission, requireUser, resolveOrg } from "../_shared/auth.ts";
 import { forOrg } from "../_shared/tenant.ts";
-import { audioAI, chatAI, type ChatMsg, recordUsage, resolveAI } from "../_shared/ai-chat.ts";
+import { audioAI, chatAI, type ChatMsg, platformChain, providerKey, recordUsage, resolveAI, type ResolvedAI } from "../_shared/ai-chat.ts";
 import { SECTIONS, STAGES } from "../_shared/company.ts";
 import { fetchSiteText, lookupCnpj, monthlyCost, USD_BRL } from "../_shared/consulting.ts";
 import { knowledgeContext } from "../_shared/knowledge.ts";
@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const action = String(body?.action ?? "");
-    if (!["message", "suggest", "research", "plan", "format", "transcribe", "brand_write", "sector_priority"].includes(action)) throw new HttpError(400, "Ação inválida");
+    if (!["message", "suggest", "research", "plan", "format", "transcribe", "brand_write", "sector_priority", "voice_turn", "speak"].includes(action)) throw new HttpError(400, "Ação inválida");
     const ctx = await requireUser(req);
     const orgId = await resolveOrg(ctx, body?.organization_id);
     await requirePermission(ctx, orgId, "org.settings");
@@ -89,6 +89,34 @@ Deno.serve(async (req) => {
       return json({ ok: true, text });
     }
 
+    // Entrevista por voz: a pergunta da IA vira fala. Voz natural da OpenAI quando houver chave
+    // (própria ou da IA da Clubetec); senão o navegador fala com a voz dele (audio: null).
+    if (action === "speak") {
+      const text = clip(body?.text, 600);
+      if (!text) throw new HttpError(400, "Texto vazio");
+      const own = await providerKey(admin, orgId, "openai");
+      const tts: ResolvedAI | undefined = own
+        ? { provider: "openai", apiKey: own, model: "", source: "propria", orgId, admin }
+        : (await platformChain(admin, orgId)).find((a) => a.provider === "openai");
+      if (!tts) return json({ ok: true, audio: null });
+      const res = await fetch("https://api.openai.com/v1/audio/speech", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${tts.apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "gpt-4o-mini-tts", voice: "coral", input: text, response_format: "mp3",
+          instructions: "Fale em português do Brasil, com tom acolhedor, calmo e natural, como um consultor numa entrevista." }),
+        signal: AbortSignal.timeout(30_000),
+      }).catch(() => null);
+      if (!res?.ok) {
+        console.error("[interviewer] voz falhou", { status: res?.status });
+        return json({ ok: true, audio: null });
+      }
+      const bytes = new Uint8Array(await res.arrayBuffer());
+      let bin = "";
+      for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+      await recordUsage(tts, undefined, 1);
+      return json({ ok: true, audio: btoa(bin), mime: "audio/mpeg" });
+    }
+
     const { data: orgRow } = await admin.from("organizations").select("name, settings").eq("id", orgId).maybeSingle();
     const settings = (orgRow?.settings ?? {}) as Record<string, any>;
     // Provedor padrão da empresa (Configurações → Chaves de IA); consultoria pede raciocínio,
@@ -105,6 +133,28 @@ Deno.serve(async (req) => {
       if (!Object.keys(out).length) console.warn("[interviewer] resposta fora do JSON", { chars: r.reply.length });
       return out;
     };
+
+    // Entrevista por voz: uma pergunta curta por vez, aprofundando o que ficou vago, até cobrir a etapa.
+    if (action === "voice_turn") {
+      const stage = STAGES.find((s) => s.key === String(body?.step ?? ""));
+      if (!stage) throw new HttpError(400, "Etapa inválida");
+      const setor = clip(body?.setor, 80);
+      const qa = (Array.isArray(body?.qa) ? body.qa : []).slice(-12)
+        .map((x: { q?: string; a?: string }) => ({ q: clip(x?.q, 400), a: clip(x?.a, 2000) })).filter((x: { a: string }) => x.a);
+      const tema = stage.key === "processos" && setor ? `${stage.label} — setor "${setor}"` : stage.label;
+      const out = await ask(
+        `Você é um consultor entrevistando o dono da empresa POR VOZ, na etapa "${tema}" de um diagnóstico. Objetivo da etapa: ${stage.guide} ` +
+        "Faça UMA pergunta por vez, curta (no máximo 2 frases), natural como numa conversa falada em português do Brasil, sem listas, sem símbolos e sem emojis. " +
+        "Na primeira pergunta, cumprimente e diga em uma frase o tema. Use as respostas anteriores para aprofundar só o que ficou vago ou faltou; não repita o que ele já disse. " +
+        "Quando tiver o suficiente para a etapa (ou depois de 7 perguntas), encerre agradecendo e dizendo que vai organizar as respostas para ele conferir. " +
+        'Responda SOMENTE com JSON: {"pergunta":"","terminou":false}',
+        `Empresa: ${orgRow?.name ?? ""}\nRespostas até agora:\n` +
+          (qa.map((x: { q: string; a: string }, i: number) => `${i + 1}. Pergunta: ${x.q}\nResposta: ${x.a}`).join("\n") || "(nenhuma ainda)"),
+      );
+      const question = clip(out.pergunta, 500);
+      if (!question) throw new HttpError(502, "A IA não formulou a pergunta. Tente de novo.");
+      return json({ ok: true, question, done: !!out.terminou || qa.length >= 8 });
+    }
 
     // Retrato atual + o que já está no CRM (para não perguntar de novo).
     let { data: profile } = await org.select("company_profiles").maybeSingle();

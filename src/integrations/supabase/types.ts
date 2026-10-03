@@ -1017,6 +1017,8 @@ export type Database = {
           organization_id: string
           overflow_after_minutes: number | null
           overflow_to: string[]
+          preferred_agent: boolean
+          preferred_days: number
           queue_alert_minutes: number
           reply_alert_minutes: number
           updated_at: string
@@ -1032,6 +1034,8 @@ export type Database = {
           organization_id: string
           overflow_after_minutes?: number | null
           overflow_to?: string[]
+          preferred_agent?: boolean
+          preferred_days?: number
           queue_alert_minutes?: number
           reply_alert_minutes?: number
           updated_at?: string
@@ -1047,6 +1051,8 @@ export type Database = {
           organization_id?: string
           overflow_after_minutes?: number | null
           overflow_to?: string[]
+          preferred_agent?: boolean
+          preferred_days?: number
           queue_alert_minutes?: number
           reply_alert_minutes?: number
           updated_at?: string

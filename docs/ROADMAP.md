@@ -109,10 +109,20 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
   o dono confere e aprova como hoje. Precisa: voz da IA (texto → fala) e ouvir em tempo real (fala → texto), pelo mesmo
   fornecedor de IA da plataforma; botão "Entrevista por voz" em cada etapa; tudo opcional (escrever continua valendo).
   Cuidados: aviso de gravação/LGPD, nada de áudio guardado além do necessário, custo por minuto no plano.
+  *Entregue (03/10): botão "Entrevista por voz" em cada etapa e em cada setor do Diagnóstico — a IA faz uma pergunta
+  por vez (voz natural da OpenAI, ou a voz do navegador se não houver OpenAI), o dono responde falando e clica em
+  "Terminei de responder"; a resposta vira texto e a IA escolhe a próxima pergunta, aprofundando o que ficou vago (até
+  ~8 perguntas); no fim, perguntas e respostas entram na caixa da etapa para conferir e "Organizar com IA". O áudio não
+  é guardado; voz e transcrição contam no consumo da empresa. Falta: detectar sozinho o fim da fala (sem clicar).*
 - **Atendente preferencial (roteamento):** se o cliente já foi atendido por uma pessoa e a opção estiver ligada, toda
   nova mensagem ou ligação desse cliente vai direto para essa pessoa (se ela estiver disponível; senão segue a fila
   normal e avisa). Liga/desliga por empresa e por setor, com o prazo de "lembrança" (ex.: últimos 90 dias); o
   atendente aparece na ficha do cliente e pode ser trocado pelo supervisor. Vale para WhatsApp, e-mail e ramal.
+  *Entregue (03/10) para WhatsApp e e-mail: em Equipe → Departamentos, por setor, "Atendente preferencial: o cliente
+  volta para quem já o atendeu nos últimos N dias" (padrão 90) — vale na fila manual e na automática; se a pessoa não
+  estiver online ou estiver no limite, segue a fila normal; registrado no histórico do atendimento ("preferencial").
+  Testes de isolamento: grupo 67. Falta: ligações (precisa de a central encaminhar para o ramal — Handphone/Nvoip) e
+  mostrar o atendente preferencial na ficha do cliente.*
 - **IA da plataforma com principal + 2 reservas:** em Plataforma → Conectores, três posições
   (Principal, Reserva 1, Reserva 2), cada uma com seletor do fornecedor (OpenAI, Groq, Gemini, Anthropic, OpenRouter,
   DeepSeek), modelo e chave; se a principal falhar, a chamada passa sozinha para a reserva 1 e depois para a 2, com
@@ -124,6 +134,10 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
   pela OpenAI ou Groq (o que estiver configurado); consumo por empresa (chamadas, texto enviado/recebido, áudios) na
   mesma tela. A chave Groq antiga virou a Principal. Testes de isolamento: grupo 66. Falta: custo em reais e franquia
   por plano (com os planos), aviso por e-mail quando trocar para a reserva.*
+- **Mais nomes com IA/AI, auto, conexão e fluxo (03/10):** todos os "Clube…" com .com.br e .com livres e sem processo
+  no INPI. Palavra-base sem nenhuma marca ativa na classe 42: **AutomatIA, AutoIA, FluxAI** (melhores); com conflito:
+  Fluxo IA (1, "FLUXO IA"), Flow IA (4, inclusive "Flow iA" e "UPFLOW IA"), Autoflow (1), Auto Fluxo (2), Conexia (6),
+  ConectAI (10, "Conecta…"), IA Flow (8, "ViaFlow", "NIAflow"), IAuto (47).
 - **Nome "IntegrAI" (pesquisado em 03/10):** descartado — "Integrai" é **marca registrada em vigor na classe 42**
   (Integrai Tecnologia Ltda, automação de e-commerce, site integrai.com.br) e "Integra.ai" e "IntegraAiCom" estão em
   análise na 42; integrai.com.br e .com têm dono. "Clube IntegrAI" teria o mesmo conflito. Ideia aproveitada: destacar

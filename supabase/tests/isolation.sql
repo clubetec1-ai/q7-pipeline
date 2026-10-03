@@ -1233,6 +1233,27 @@ BEGIN
   PERFORM pg_temp.expect(pg_temp.run(operator, format('SELECT public.platform_ai_clear(%L)', 'reserva1')) = 'ok:1', 'operador esvazia reserva');
   PERFORM pg_temp.expect_error(operator, format('SELECT public.platform_ai_clear(%L)', 'principal'), 'principal nao some');
 
+  -- 67. Atendente preferencial: o cliente volta para quem o atendeu, se estiver online; senao, fila normal.
+  INSERT INTO public.conversations (id, instance_id, contact_phone, department_id) VALUES
+    ('aaaaaaaa-0000-0000-0067-000000000001', 'aaaaaaaa-0000-0000-0003-000000000001', '5511900000067', 'aaaaaaaa-0000-0000-0001-000000000001');
+  INSERT INTO public.tickets (id, organization_id, conversation_id, protocol, status, department_id, assigned_to, opened_at, closed_at) VALUES
+    ('aaaaaaaa-0000-0000-0067-000000000002', A, 'aaaaaaaa-0000-0000-0067-000000000001', 'ISO-67A', 'closed',
+     'aaaaaaaa-0000-0000-0001-000000000001', agent_a, now() - interval '2 hours', now() - interval '1 hour');
+  PERFORM pg_temp.expect_denied(agent2_a, format('UPDATE public.departments SET preferred_agent = true WHERE id = %L', 'aaaaaaaa-0000-0000-0001-000000000001'), 'atendente nao liga preferencial');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('UPDATE public.departments SET preferred_agent = true, distribution_mode = %L WHERE id = %L', 'manual', 'aaaaaaaa-0000-0000-0001-000000000001')) = 'ok:1', 'dono liga preferencial');
+  PERFORM pg_temp.expect_error(owner_a, format('UPDATE public.departments SET preferred_days = 0 WHERE id = %L', 'aaaaaaaa-0000-0000-0001-000000000001'), 'prazo invalido recusado');
+  INSERT INTO public.agent_presence (organization_id, user_id, status, last_seen_at, max_concurrent) VALUES (A, agent_a, 'online', now(), 100)
+    ON CONFLICT (organization_id, user_id) DO UPDATE SET status = 'online', last_seen_at = now(), max_concurrent = 100;
+  INSERT INTO public.tickets (id, organization_id, conversation_id, protocol, status, department_id, queued_at) VALUES
+    ('aaaaaaaa-0000-0000-0067-000000000003', A, 'aaaaaaaa-0000-0000-0067-000000000001', 'ISO-67B', 'queued', 'aaaaaaaa-0000-0000-0001-000000000001', now());
+  PERFORM pg_temp.expect((SELECT assigned_to = agent_a FROM public.tickets WHERE id = 'aaaaaaaa-0000-0000-0067-000000000003'), 'cliente volta para quem atendeu (mesmo na fila manual)');
+  PERFORM pg_temp.expect(EXISTS (SELECT 1 FROM public.ticket_events WHERE ticket_id = 'aaaaaaaa-0000-0000-0067-000000000003' AND type = 'assigned' AND (meta->>'preferred')::boolean), 'registrado como preferencial');
+  UPDATE public.tickets SET status = 'closed', closed_at = now() WHERE id = 'aaaaaaaa-0000-0000-0067-000000000003';
+  UPDATE public.agent_presence SET status = 'offline' WHERE organization_id = A AND user_id = agent_a;
+  INSERT INTO public.tickets (id, organization_id, conversation_id, protocol, status, department_id, queued_at) VALUES
+    ('aaaaaaaa-0000-0000-0067-000000000004', A, 'aaaaaaaa-0000-0000-0067-000000000001', 'ISO-67C', 'queued', 'aaaaaaaa-0000-0000-0001-000000000001', now());
+  PERFORM pg_temp.expect((SELECT assigned_to IS NULL AND status = 'queued' FROM public.tickets WHERE id = 'aaaaaaaa-0000-0000-0067-000000000004'), 'preferido offline: fica na fila');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 
