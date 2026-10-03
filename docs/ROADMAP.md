@@ -237,6 +237,12 @@ Outubro = só estabilidade, segurança, visual e melhorias, com a Clubetec usand
 - ⏳ **Telefonia genérica** *(pedido 03/10)*: o ramal no navegador já é SIP padrão (qualquer central com WebRTC/wss); o
   que é específico da Nvoip/Handphone é só o histórico de ligações. Trocar por um modelo genérico: qualquer central
   SIP + histórico por webhook/API aberta (o mesmo das integrações), sem código por fornecedor.
+- 💰 **Custo operacional (análise 03/10):** piloto Clubetec (out–nov) com **custo fixo zero**: Supabase Free (uso
+  medido: banco 52 MB de 500 MB, ~25 mil chamadas de funções/mês de 500 mil), Vercel grátis, IA pela API da OpenAI
+  paga por uso (estimativa US$ 1–5/mês no piloto; pôr limite de gasto na OpenAI). ChatGPT Plus não é custo do produto.
+  Backup semanal gratuito (dump do banco) até assinar o Pro. **No lançamento:** Supabase Pro (US$ 25 ≈ R$ 140) + VPS
+  (R$ 90, também hospeda o site, porque o plano grátis da Vercel não permite uso comercial) ≈ R$ 230/mês fixos + IA
+  por uso (repassada nos planos). Gatilho para o Pro: 1º cliente pagante, banco > 400 MB ou ir para produção.
 - ⏳ Próximas rodadas da varredura: teste visual tela a tela (claro/escuro, celular), erros no console, e-mails
   automáticos (noreply, cobrança, cadastro) não deveriam virar lead no Kanban, avisos de saúde por sino/e-mail,
   revisão final com o agente revisor antes de produção.
