@@ -185,7 +185,12 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
 ### Nome comercial e domínio (pedido em 02/10)
 **✅ Nome fechado em 03/10: Deixa com a IA** (substitui o Clube Renova+). Frase de venda: "Atendimento, organização e
 melhoria da sua empresa? Deixa com a IA." Domínios livres em 03/10: **deixacomaia.com.br** e **.com**, e também
-**deixecomaia.com.br** e **.com** (para quem digitar "deixe"); INPI: nenhuma marca "deixa com a IA". Logo (rascunho de
+**deixecomaia.com.br** e **.com** (para quem digitar "deixe"); INPI: nenhuma marca "deixa com a IA".
+*Busca completa no INPI (03/10):* **nenhum processo** para "Deixa com a IA", "Deixe com a IA", "Deixa com IA", "Deixe
+com IA", "DeixaComaIA" e "DeixeComaIA". Mais próximos: "DeixaComigo.guru" (classe 42, em exame), "Deixa Comigo"
+(classe 35 e outras, de serviços) e "Deixa Comigo Assistente Pessoal e Virtual" (classe 35, pedido) — expressões
+diferentes ("comigo" × "com a IA"), mas cite no parecer do agente de propriedade industrial, sobretudo se pedir a
+classe 35. Nas classes 9 e 42 (software), nada com "deixe com". Logo (rascunho de
 03/10): "Deixa com a" em azul-petróleo e o **"IA" dentro de um quadradinho verde em forma de balão de conversa**, com
 três pontinhos (a IA pensando); assinatura "uma solução Clubetec"; versões clara, escura, empilhada e ícone do app (o
 balão com IA). 🙋 Próximos passos: comprar os 4 domínios, parecer de agente de propriedade industrial e pedido de marca
