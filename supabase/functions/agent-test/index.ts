@@ -5,6 +5,7 @@ import { forOrg } from "../_shared/tenant.ts";
 import { getAgentProfile } from "../_shared/get-ai-config.ts";
 import { chat as aiChat, resolveAI } from "../_shared/ai-chat.ts";
 import { withProtocol } from "../_shared/flow/executor.ts";
+import { toChatText } from "../_shared/ai-policy.ts";
 import { companyKnowledge } from "../_shared/company.ts";
 import { knowledgeContext } from "../_shared/knowledge.ts";
 
@@ -55,7 +56,7 @@ Deno.serve(async (req) => {
     const r = await aiChat(ai.apiKey, ai.provider, ai.model, [{ role: "system", content: system }, ...msgs]);
     if (!r.ok || !r.reply) throw new HttpError(502, r.error ?? "A IA não respondeu. Tente de novo.");
     return json({
-      ok: true, reply: String(r.reply).slice(0, 4000), provider: ai.provider, model: ai.model,
+      ok: true, reply: toChatText(String(r.reply)).slice(0, 4000), provider: ai.provider, model: ai.model,
       used: { empresa: !!company, base: !!knowledge },
     });
   } catch (e) {

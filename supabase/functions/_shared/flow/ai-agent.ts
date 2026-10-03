@@ -7,6 +7,7 @@
 import { forOrg } from "../tenant.ts";
 import { getAgentProfile } from "../get-ai-config.ts";
 import { chat, type ChatMsg, resolveAI, type ToolDef } from "../ai-chat.ts";
+import { toChatText } from "../ai-policy.ts";
 import { validate } from "./engine.ts";
 import { aiContactContext, contactFieldDefs, setContactField } from "../contact-fields.ts";
 import { companyKnowledge } from "../company.ts";
@@ -156,11 +157,11 @@ export async function runAiAgent(p: {
     results.push({ role: "tool", tool_call_id: c.id, content: outcome });
   }
 
-  if (r.reply) await send(r.reply);
+  if (r.reply) await send(toChatText(r.reply));
   else if (results.length && !terminal) {
     // Só ferramentas, sem texto: pede a resposta ao cliente já sabendo o resultado.
     const again = await chat(apiKey, provider, model, [...messages, r.raw, ...results]);
-    if (again.ok && again.reply) await send(again.reply);
+    if (again.ok && again.reply) await send(toChatText(again.reply));
   }
   if (terminal) { await route(terminal); return { ended: true }; }
   return { ended: false };

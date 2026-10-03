@@ -86,7 +86,8 @@ pedido de cliente. Os detalhes de cada item estão nas seções abaixo; aqui fic
 **Nome comercial e domínio (pedido em 02/10):** avaliar se "ClubeCRM" é o melhor nome para vender, mantendo a marca
 "Clube". O dono quer um nome que passe a ideia de **melhoria contínua** (começa pelo diagnóstico e segue dando feedback
 e melhorias), não só de atendimento. Sugestão: **Clube Evolui** (clubeevolui.com.br e .com livres em 02/10), com a frase
-"diagnóstico, atendimento com IA e melhoria contínua da sua empresa"; alternativas Clube Avança, Clube Ciclo, Clube Cresce. Antes de comprar: busca no INPI (classes 9 e 42) e
+"diagnóstico, atendimento com IA e melhoria contínua da sua empresa"; alternativas Clube Avança, Clube Ciclo, Clube Cresce. **Ideia do dono: Clube Inove** — logo "Clube i9" (i de inteligência,
+9 = "nove"); clubeinove e clubei9 (.com.br e .com) livres em 02/10: registrar os dois e apontar clubei9 para clubeinove. Antes de comprar: busca no INPI (classes 9 e 42) e
 registro do domínio .com.br e .com. **Produção na VPS da Hostinger:** site (frontend) na VPS ou na Vercel; o banco e as
 funções continuam no Supabase (plano pago em produção: backups diários e sem pausa); trocar o nome nas telas, e-mails
 e no domínio dos links.
@@ -125,7 +126,9 @@ recuperação do MFA; cobrar da Nvoip a permissão do histórico (erro 403); res
   exigência → Registrado) e **Ofício Único** (notas, registro civil, imóveis e protesto) — na Plataforma, no Diagnóstico
   (exemplos de todas as etapas e processos) e na Base de conhecimento (documentos modelo: registro e averbação, como
   funciona o registro e prazos, certidões de imóveis, protesto). Falta: Títulos e Documentos / Pessoas Jurídicas e
-  Protesto como cartório separado (com demanda).*
+  Protesto como cartório separado (com demanda).* *Teste (02/10) com "Registro de Imóveis Teste": modelo na
+  Plataforma, Diagnóstico com exemplos, horário sugerido, 4 documentos modelo de primeira e agente respondendo pela
+  base (baixa de financiamento, nota devolutiva, recusa de mostrar matrícula, sem garantir prazo). Achados E17–E19.*
 - **Foco em ticket mais alto:** priorizar clientes em que a implantação agrega mais valor e paga mais — cartórios,
   clínicas e odontologia, escritórios de advocacia e contabilidade, imobiliárias, auto centers e concessionárias,
   escolas e redes. Para cada nicho: modelo completo (P1, item 7), pacote de implantação e caso de sucesso.

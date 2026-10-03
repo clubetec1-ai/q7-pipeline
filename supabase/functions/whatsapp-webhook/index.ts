@@ -8,6 +8,7 @@ import * as providers from "../_shared/providers/index.ts";
 import { transcribeAudio } from "../_shared/transcribe.ts";
 import { LIMITS, storeMedia } from "../_shared/media.ts";
 import { handleOptOut, instForSend, runFlow, runPostClose, withProtocol } from "../_shared/flow/executor.ts";
+import { toChatText } from "../_shared/ai-policy.ts";
 import { companyKnowledge } from "../_shared/company.ts";
 import { readMedia, withMediaText } from "../_shared/media-read.ts";
 import { knowledgeContext } from "../_shared/knowledge.ts";
@@ -679,6 +680,7 @@ async function handle(req: Request, ctx: QueueCtx): Promise<Response> {
       console.error("[webhook] groq failed", groq.error);
       return ok();
     }
+    groq.reply = toChatText(groq.reply);
 
     // Acabamos de RECEBER mensagem do contato: a janela de 24h está aberta.
     const enviado = await providers.sendText(instRow, phone, groq.reply);

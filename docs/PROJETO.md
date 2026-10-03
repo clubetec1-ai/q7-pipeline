@@ -71,6 +71,9 @@ Criada pela Plataforma como um cliente novo (modelo Prestação de serviços), c
 | E14 | Depois de aprovar a etapa Empresa, a tela pulava para a próxima e o horário sugerido só aparecia ao voltar | 🟡 Médio | ✅ (02/10) fica na etapa com o horário pronto para usar |
 | E15 | 🔴 Aprovar Clientes e jornada, Marca e Regras e limites da IA era recusado ("seção desconhecida") — as seções novas do Diagnóstico 3.0 não estavam no banco | 🔴 Crítico | ✅ (02/10) lista completa + teste automático 65 |
 | E16 | Planejamento inverteu um número (meta "80% das escrituras com documentação completa" virou "80% chegam incompletas") | 🟡 Médio | ✅ (02/10) o planejamento copia números e percentuais exatamente como o dono escreveu, sem inverter |
+| E17 | Base de conhecimento recusava arquivo com acento no nome ("Política.pdf") — só 1 de 5 documentos modelo entrou | 🟠 Alto | ✅ (02/10) caminho do arquivo sem acento |
+| E18 | Depois de aprovar a etapa Empresa, a tela continuava no rascunho e o horário sugerido não aparecia | 🟡 Médio | ✅ (02/10) mostra a etapa aprovada com o horário |
+| E19 | IA escrevia negrito com dois asteriscos (aparece literal no WhatsApp) e inventou um caminho de site | 🟡 Médio | ✅ (02/10) formato convertido no servidor antes de enviar; política proíbe inventar sites, telas e menus |
 
 **Agentes que precisam estar em produção desde o 1º dia (visão CEO):**
 1. **Agente de atendimento** (com Regras e limites + Testar o agente) — é o que o cliente compra.
