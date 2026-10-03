@@ -96,6 +96,11 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
     whatsapp_business_management e whatsapp_business_messaging enviado em 24/09, "Análise em andamento" (a Meta diz até
     ~20 dias); nenhum alerta pedindo ação. O Embedded Signup depende dessa aprovação. Manter no ar a política de
     privacidade cadastrada no app (também ao trocar o nome/domínio).*
+    **Monitoramento ativo (pedido em 03/10):** tarefa agendada "Monitorar análise do app ClubeCRM na Meta" confere a
+    análise e os alertas todo dia às 9h e 17h (pelo navegador logado do dono, só leitura) e avisa: aprovado, ação
+    necessária ou ainda em análise — com destaque a partir de 12/10 (previsão ~14/10). **Quando aprovar:** ligar o
+    cadastro de número em poucos cliques (Embedded Signup) e seguir com a subida para produção na VPS (item 6), e
+    desligar o monitoramento.
 20. 🟡 **Relatórios:** existem; falta PDF, período personalizado e envio automático por e-mail.
 
 ### P3 — canais, voz e extras (quando o fornecedor liberar ou o cliente pedir)
@@ -150,6 +155,11 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
   no INPI. Palavra-base sem nenhuma marca ativa na classe 42: **AutomatIA, AutoIA, FluxAI** (melhores); com conflito:
   Fluxo IA (1, "FLUXO IA"), Flow IA (4, inclusive "Flow iA" e "UPFLOW IA"), Autoflow (1), Auto Fluxo (2), Conexia (6),
   ConectAI (10, "Conecta…"), IA Flow (8, "ViaFlow", "NIAflow"), IAuto (47).
+- **Nomes sem "Clube", de impacto (03/10; o dono não gostou do Autopiloto e liberou tirar o "Clube"):** palavras
+  comuns (Iara, Folga, Sossego, DáConta, Lia, Nina, Fluxa, Kora, Pilota…) já têm .com.br com dono. Livres (.com.br e
+  .com) e fortes: **Deixa com a IA** (deixacomaia; "deixa com a ia" sem nenhuma marca no INPI), **Dá Conta IA**
+  (dacontaia; "da conta" 2 marcas na 42, de contabilidade), **Folga IA** (folgaia; 1 "Com Folga" na 42), **Mão na
+  Roda IA** (maonarodaia; 1 de massas).
 - **Nomes que explicam o software e ajudam a vender (03/10):** .com.br e .com livres e "Clube X" sem processo no INPI:
   **Clube Autopiloto** ("sua empresa no piloto automático"; "autopiloto" com 0 marcas na classe 42 — só um slogan "Sua
   clínica no piloto automático"), Clube Empresa Inteligente (0, mas descritivo demais para registrar), Clube Organiza
