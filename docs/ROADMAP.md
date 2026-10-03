@@ -204,6 +204,39 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
   marketing, copywriter e imagem/vídeo para definir o lançamento do Deixa com a IA (público e nichos, posicionamento,
   oferta e preço de lançamento, calendário de conteúdo, roteiros de vídeo e criativos), seguindo o manual da marca.
 
+### 🧭 PLANO ATÉ O LANÇAMENTO — sequência aprovada pelo dono em 03/10 (ler isto primeiro ao retomar)
+Lançamento entre novembro e dezembro de 2026. **Tudo das fases 1, 2 e 3 precisa estar no software antes de lançar**;
+só o Microsoft Teams (item 20) pode ficar para depois. O **cérebro** tem que estar "bem redondo e completo"
+(arquitetura em `docs/design/03-cerebro.md`).
+
+**Fase 1 — piloto (outubro), autorizada ("pode fazer todos"):**
+1. Configurar e testar de ponta a ponta. **A Clubetec o dono vai zerar e montar sozinho, do zero, depois** (para testar
+   o passo a passo); os testes de agora usam as empresas de teste **Cartório Teste**, **Registro de Imóveis Teste**
+   (e um modelo de franquia). Número real no painel: 19 99100-6831 ("Clubetec chip 2", API oficial da Meta).
+2. Design P2 (docs/design/01 e 02): barra da conversa enxuta (Assumir/Finalizar + "Mais") ✅ em andamento; bolhas IA ×
+   pessoa; Resultados e Clientes com abas; Kanban com etiquetas e "Mover para…"; instalar funil reordena etapas;
+   cabeçalho de página/estado vazio/filtros padronizados; Clientes em tabela; trocar cores cruas restantes.
+3. Funil de vendas 2ª parte: follow-ups de 2, 5 e 10 dias em "Proposta enviada"; proposta gerada pelo diagnóstico.
+4. E-mail completo: IA e fluxos respondendo e-mail; cópia em "Enviados".
+5. Regras dos bots visíveis na tela (o que a IA nunca faz).
+6. Varredura final: tela a tela (claro/escuro/celular), console, revisão de segurança completa antes da produção.
+
+**Fase 2 — pré-lançamento:** 7. venda autoatendida (planos, assinatura Asaas, teste grátis, cadastro público,
+franquia de IA; 🙋 preços — sugestão em docs/marketing/02); 8. contrato e LGPD (termos, privacidade, contrato de
+tratamento de dados; 🙋 revisão jurídica); 9. Meta: Embedded Signup e nome do app (análise prevista ~14/10);
+10. produção: VPS (site), Supabase Pro, domínio próprio; 11. modelo de cartório completo (fluxos e etiquetas por
+nicho); 12. API aberta + webhooks (n8n/Make/Zapier); 13. executar o plano de marketing (fim de outubro).
+
+**Fase 3 — também antes do lançamento:** 14. Messenger e Instagram; 15. telefonia genérica pré-configurada;
+16. relatórios em PDF, período livre e envio por e-mail; 17. rede de franquias, white label e implantação como pacote;
+18. Diagnóstico 2ª parte + **cérebro com delegação por área** (prioridade do dono); 19. Campanhas e Chat da equipe
+(busca, reações) e Google Agenda. **Depois do lançamento:** 20. Microsoft Teams para ramais.
+
+**Decisões e fatos de 03/10:** domínios comprados pelo dono ✅ (falta o pedido no INPI com agente de propriedade
+industrial); limite de gasto de US$ 20 na OpenAI ✅; Supabase continua Free no piloto (Pro no lançamento); backup
+semanal local ✅; dados de teste da Clubetec apagados ✅; Bling fora de foco; integrações e telefonia genéricas;
+ordem dos canais: WhatsApp e e-mail → Facebook/Instagram → telefonia.
+
 ### 🎯 Outubro/2026: deixar 100% funcional e seguro rodando na Clubetec (decisão do dono em 03/10)
 Outubro = só estabilidade, segurança, visual e melhorias, com a Clubetec usando de verdade como piloto. Marketing
 (docs/marketing 01–04) fica para o fim de outubro; lançamentos em novembro (vitrine: congresso ANOREG 17–19/11).
