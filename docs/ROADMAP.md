@@ -87,7 +87,14 @@ pedido de cliente. Os detalhes de cada item estão nas seções abaixo; aqui fic
 "Clube". O dono quer um nome que passe a ideia de **melhoria contínua** (começa pelo diagnóstico e segue dando feedback
 e melhorias), não só de atendimento. Sugestão: **Clube Evolui** (clubeevolui.com.br e .com livres em 02/10), com a frase
 "diagnóstico, atendimento com IA e melhoria contínua da sua empresa"; alternativas Clube Avança, Clube Ciclo, Clube Cresce. **Ideia do dono: Clube Inove** — logo "Clube i9" (i de inteligência,
-9 = "nove"); clubeinove e clubei9 (.com.br e .com) livres em 02/10: registrar os dois e apontar clubei9 para clubeinove. Antes de comprar: busca no INPI (classes 9 e 42) e
+9 = "nove"); clubeinove e clubei9 (.com.br e .com) livres em 02/10: registrar os dois e apontar clubei9 para clubeinove.
+  *Busca no INPI (pePI, 02/10):* "Clube Inove", "ClubeInove", "Clube i9" e "Clubei9" — **nenhum processo**. Porém
+  "INOVE" é muito usado na classe 42 (45 marcas ativas, entre elas INOVE em vigor, Inove Sistemas e "Inove CFC - Sistema
+  de Gerenciamento") e "i9" também (35 ativas na 42, entre elas "I9 Sistema de Gestão Empresarial" e "i9 INOV"); na
+  classe 9, Inove CFC e INOVE TECHNOLOGY. "Clube Evolui": nenhum processo; "evolui" tem 16 ativas na 42 (ex.: Evolui TI,
+  Web Evolui). "Clubetec" já tem registro em vigor. Recomendação: pedir como marca mista (nome + logo) em nome da
+  Clubetec nas classes 42 e 9 (e 35, se for vender consultoria), com parecer de um agente de propriedade industrial
+  sobre o risco de oposição dos titulares de "INOVE" e "I9". Antes de comprar: busca no INPI (classes 9 e 42) e
 registro do domínio .com.br e .com. **Produção na VPS da Hostinger:** site (frontend) na VPS ou na Vercel; o banco e as
 funções continuam no Supabase (plano pago em produção: backups diários e sem pausa); trocar o nome nas telas, e-mails
 e no domínio dos links.
