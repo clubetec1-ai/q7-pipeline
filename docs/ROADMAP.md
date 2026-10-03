@@ -103,6 +103,12 @@ recuperação do MFA; cobrar da Nvoip a permissão do histórico (erro 403); res
   Planejamento (diagnóstico, missão/visão/valores, automações sem IA primeiro); "Instalar (rascunho)" criou o fluxo
   "Fora do horário". Achados E11–E16 em docs/PROJETO.md §4.1 (E11 e E15 críticos: o banco recusava as etapas e seções
   novas do Diagnóstico 3.0 — corrigidos com teste automático).
+- **Tipos de cartório (observação do dono, 02/10):** existem cartórios de **Registro de Imóveis** e outros de
+  **registro de pessoas** (Registro Civil), além de Notas, Protesto e Títulos e Documentos/Pessoas Jurídicas. Em
+  cidades pequenas, um mesmo cartório pode acumular várias atribuições (o "Ofício Único"). Proposta: o modelo de
+  cartório pergunta quais atribuições o cartório tem e monta setores, processos, exemplos e a lista de documentos só
+  com elas (Notas e Registro Civil já existe; faltam Registro de Imóveis, Protesto, Títulos e Documentos e a
+  combinação Ofício Único).
 - **Foco em ticket mais alto:** priorizar clientes em que a implantação agrega mais valor e paga mais — cartórios,
   clínicas e odontologia, escritórios de advocacia e contabilidade, imobiliárias, auto centers e concessionárias,
   escolas e redes. Para cada nicho: modelo completo (P1, item 7), pacote de implantação e caso de sucesso.
