@@ -16,7 +16,7 @@ import { runRecord } from "../records.ts";
 import { runConnectorAction } from "../connectors.ts";
 
 /** A IA sabe o protocolo e informa se o cliente pedir. */
-const CHAT_FORMAT = "Formato: mensagem de conversa (WhatsApp/e-mail) — curta e direta, sem tabelas e sem títulos com #; se precisar listar, use linhas simples com hífen.";
+const CHAT_FORMAT = "Formato: mensagem de conversa (WhatsApp/e-mail) — curta e direta, sem tabelas e sem títulos com #; se precisar listar, use linhas simples com hífen; para destacar, use *um asterisco* de cada lado (negrito do WhatsApp), nunca **dois**.";
 
 export function withProtocol(prompt: string, protocol?: string | null) {
   return protocol ? `${prompt}
