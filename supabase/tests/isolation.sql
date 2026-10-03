@@ -1254,6 +1254,19 @@ BEGIN
     ('aaaaaaaa-0000-0000-0067-000000000004', A, 'aaaaaaaa-0000-0000-0067-000000000001', 'ISO-67C', 'queued', 'aaaaaaaa-0000-0000-0001-000000000001', now());
   PERFORM pg_temp.expect((SELECT assigned_to IS NULL AND status = 'queued' FROM public.tickets WHERE id = 'aaaaaaaa-0000-0000-0067-000000000004'), 'preferido offline: fica na fila');
 
+  -- 68. Saude da empresa (so dono/admin da propria) e e-mail de seguranca da plataforma (so operador).
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, format('SELECT jsonb_array_length(public.org_health(%L))', A)) = 6, 'dono ve a saude da empresa');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.org_health(%L)', A), 'atendente nao ve saude');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.org_health(%L)', A), 'outra org nao ve saude de A');
+  PERFORM pg_temp.expect_error(owner_a, 'SELECT public.platform_security_email()', 'dono nao le e-mail de seguranca');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.platform_set_security_email(%L)', 'x@y.com'), 'dono nao grava e-mail de seguranca');
+  PERFORM pg_temp.expect_error(operator, format('SELECT public.platform_set_security_email(%L)', 'nao-e-email'), 'e-mail invalido recusado');
+  PERFORM pg_temp.expect(pg_temp.run(operator, format('SELECT public.platform_set_security_email(%L)', 'seg@clubetec.test')) = 'ok:1', 'operador grava');
+  PERFORM pg_temp.expect(pg_temp.t(operator, 'SELECT public.platform_security_email()') = 'seg@clubetec.test', 'operador le');
+  PERFORM pg_temp.expect_error(owner_a, 'SELECT public.service_platform_alert_recipients()', 'navegador nao lista destinatarios');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_ai_failover_alert(%L)', 'principal'), 'navegador nao dispara aviso');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_ai_slot_ok(%L)', 'principal'), 'navegador nao marca ok');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 

@@ -50,7 +50,7 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
    transcrição de áudio e imagem com uma chave só; Anthropic tem a melhor qualidade em seguir regras, mas não transcreve
    áudio (precisaria de um 2º fornecedor só para isso); Gemini é o mais barato e cobre tudo. Para trocar: chave da
    plataforma por fornecedor (hoje só Groq) e transcrição de áudio pelo fornecedor escolhido (hoje fixa na Groq).
-   🙋 Decidir o fornecedor depois de testar as mesmas perguntas do cartório no "Testar o agente".
+   ✅ *Decidido e feito (03/10): OpenAI como Principal, Groq como Reserva 1 (Plataforma → Conectores).*
    **Principal + reserva (pedido em 02/10):** OpenAI como principal (confirmado: transcreve áudio pela API) e um
    fornecedor de **reserva semi-pronto** para emergência — chave já guardada no cofre, desligada no dia a dia; se a
    principal cair (fora do ar, limite, chave inválida), a chamada passa sozinha para a reserva (conversa e áudio), a
@@ -60,12 +60,14 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
 4. ⏳ **Segurança antes da produção:** varredura completa (security-review / claude-security), grants por coluna nas
    tabelas antigas, caso 55 intermitente, limites de login e CAPTCHA, alerta de muitas tentativas, backups e plano de
    resposta a incidente. 🙋 Decidir se criptografa campo a campo os dados sensíveis (CPF, documentos, gravações).
-5. 🟡 **Agentes do dia 1:** atendimento, entrevistador, avaliador ✅; falta o **assistente dentro do app** ("como
-   faço…?") e o **monitor de saúde ampliado** (hoje só números; falta chave de IA inválida, fila parada, fluxo com erro,
-   com botão de correção).
-6. ⏳ **Produção:** 🙋 nome comercial (Clube Inove/i9 — parecer de agente de propriedade industrial, pedido no INPI nas
-   classes 42 e 9, domínios), Supabase pago (backup e sem pausa), Groq pago, site na VPS Hostinger ou Vercel, troca do
-   nome nas telas, e-mails e links.
+5. ✅ **Agentes do dia 1:** atendimento, entrevistador, avaliador, **assistente dentro do app** e **monitor de saúde**.
+   *Entregue (03/10): botão "Como faço…?" (?) no cabeçalho de todas as telas — a IA responde dúvidas de uso com o
+   passo a passo e um botão que abre a tela certa (só o mapa do sistema, nenhum dado de cliente; respeita o papel da
+   pessoa). "Saúde do sistema" no Início (dono/admin): números, e-mails, IA, fila parada há 30 min, fluxos com erro em
+   24 h e ramais, com verde/vermelho e "Corrigir". Falta: avisar no sino/e-mail quando a saúde ficar vermelha.*
+6. ⏳ **Produção:** 🙋 nome comercial (em definição — ver "Nome comercial" abaixo; depois parecer de agente de
+   propriedade industrial, pedido no INPI nas classes 42 e 9, domínios), Supabase pago (backup e sem pausa), OpenAI com
+   limite mensal, site na VPS Hostinger ou Vercel, troca do nome nas telas, e-mails e links.
 7. ⏳ **Zerar a Clubetec** e configurar do zero (listar o que será apagado e confirmar antes) — por último.
 
 ### P1 — ticket alto e franquias
@@ -114,6 +116,9 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
   "Terminei de responder"; a resposta vira texto e a IA escolhe a próxima pergunta, aprofundando o que ficou vago (até
   ~8 perguntas); no fim, perguntas e respostas entram na caixa da etapa para conferir e "Organizar com IA". O áudio não
   é guardado; voz e transcrição contam no consumo da empresa. Falta: detectar sozinho o fim da fala (sem clicar).*
+  *Ajuste (03/10, pedido do dono): escolha "Abrir o microfone sozinho depois de cada pergunta" — desligado (padrão),
+  a pessoa pensa com calma e clica em "Responder" quando estiver pronta, e pode "Ouvir a pergunta de novo"; ligado, o
+  microfone abre logo após a pergunta. A escolha fica salva no navegador.*
 - **Atendente preferencial (roteamento):** se o cliente já foi atendido por uma pessoa e a opção estiver ligada, toda
   nova mensagem ou ligação desse cliente vai direto para essa pessoa (se ela estiver disponível; senão segue a fila
   normal e avisa). Liga/desliga por empresa e por setor, com o prazo de "lembrança" (ex.: últimos 90 dias); o
@@ -133,11 +138,18 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
   limite, chave inválida, modelo inexistente) em todos os agentes; última falha mostrada na posição; áudio transcrito
   pela OpenAI ou Groq (o que estiver configurado); consumo por empresa (chamadas, texto enviado/recebido, áudios) na
   mesma tela. A chave Groq antiga virou a Principal. Testes de isolamento: grupo 66. Falta: custo em reais e franquia
-  por plano (com os planos), aviso por e-mail quando trocar para a reserva.*
+  por plano (com os planos).*
+  *Ajuste (03/10, pedido do dono): bolinha verde (funcionando) / vermelha (com falha) em cada posição, botão "Testar"
+  (chamada real ao fornecedor) e teste automático ao salvar; **e-mail de segurança** quando uma IA cair e a reserva
+  assumir (no máximo 1 por posição a cada 30 min; sem e-mail configurado, vai para os operadores). Grupo de testes 68.*
 - **Mais nomes com IA/AI, auto, conexão e fluxo (03/10):** todos os "Clube…" com .com.br e .com livres e sem processo
   no INPI. Palavra-base sem nenhuma marca ativa na classe 42: **AutomatIA, AutoIA, FluxAI** (melhores); com conflito:
   Fluxo IA (1, "FLUXO IA"), Flow IA (4, inclusive "Flow iA" e "UPFLOW IA"), Autoflow (1), Auto Fluxo (2), Conexia (6),
   ConectAI (10, "Conecta…"), IA Flow (8, "ViaFlow", "NIAflow"), IAuto (47).
+- **Nomes "mais vendáveis" (03/10, o dono achou os anteriores pouco comerciais):** linha de benefício para o dono,
+  com .com.br e .com livres e "Clube X" sem processo no INPI: **Clube Braço Direito** (0 marcas "braço direito" na 42),
+  Clube Copiloto (8 na 42, ex.: "Copiloto de Vendas"), Clube Impulsa (5), Clube Gerente (23), Clube Decola (16, Decolar),
+  Clube Assistente (45). Ocupados: Clube Sócio, Gestor, Parceiro, Smart, Fácil, Pro, Acelera (.com.br com dono).
 - **Nome "IntegrAI" (pesquisado em 03/10):** descartado — "Integrai" é **marca registrada em vigor na classe 42**
   (Integrai Tecnologia Ltda, automação de e-commerce, site integrai.com.br) e "Integra.ai" e "IntegraAiCom" estão em
   análise na 42; integrai.com.br e .com têm dono. "Clube IntegrAI" teria o mesmo conflito. Ideia aproveitada: destacar

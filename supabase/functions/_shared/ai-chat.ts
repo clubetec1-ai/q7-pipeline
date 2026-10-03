@@ -6,6 +6,7 @@
  */
 import { getSecret } from "./secrets.ts";
 import { withPolicy } from "./ai-policy.ts";
+import { esc, sendSystemEmail } from "./email.ts";
 import { resolveModelChain, translateAIError } from "./get-ai-config.ts";
 
 export const AI_PROVIDERS: Record<string, { endpoint: string; model: string }> = {
@@ -112,6 +113,7 @@ export async function audioAI(admin: any, orgId: string): Promise<ResolvedAI | n
 /** Soma o consumo do dia da empresa (nunca derruba a chamada). */
 export async function recordUsage(ai: ResolvedAI, usage: { in: number; out: number } | undefined, audio = 0) {
   if (!ai.admin || !ai.orgId) return;
+  if (ai.slot) { try { await ai.admin.rpc("service_ai_slot_ok", { slot_name: ai.slot }); } catch { /* informativo */ } }
   try {
     await ai.admin.rpc("service_ai_usage_add", {
       org: ai.orgId, provider_name: ai.provider, source_name: ai.source ?? "propria",
@@ -124,6 +126,34 @@ export async function recordUsage(ai: ResolvedAI, usage: { in: number; out: numb
 async function markSlotError(ai: ResolvedAI, err?: string) {
   if (!ai.slot || !ai.admin) return;
   try { await ai.admin.rpc("service_ai_slot_error", { slot_name: ai.slot, err: err ?? "falha" }); } catch { /* informativo */ }
+}
+
+const SLOT_LABEL: Record<string, string> = { principal: "Principal", reserva1: "Reserva 1", reserva2: "Reserva 2" };
+
+/** E-mail de segurança quando a IA da plataforma troca para a reserva (no máximo 1 a cada 30 min por posição). */
+async function alertFailover(from: ResolvedAI, to: ResolvedAI, err?: string) {
+  if (!from.slot || !from.admin) return;
+  try {
+    const { data: go } = await from.admin.rpc("service_ai_failover_alert", { slot_name: from.slot });
+    if (go !== true) return;
+    const { data: to_ } = await from.admin.rpc("service_platform_alert_recipients");
+    const what = `${SLOT_LABEL[from.slot] ?? from.slot} (${from.provider}) falhou; usando ${SLOT_LABEL[to.slot ?? ""] ?? "reserva"} (${to.provider})`;
+    const text = `A IA da plataforma trocou para a reserva.
+
+${what}.
+Erro: ${err ?? "sem detalhe"}
+Horário: ${new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
+
+Confira em Plataforma → Conectores → IA da Clubetec.`;
+    for (const addr of ((to_ as string[] | null) ?? []).slice(0, 5)) {
+      await sendSystemEmail(from.admin, {
+        to: addr, subject: `[ClubeCRM] IA: ${what}`, text,
+        html: `<p>A IA da plataforma trocou para a reserva.</p><p><b>${esc(what)}</b><br>Erro: ${esc(err ?? "sem detalhe")}</p><p>Confira em Plataforma → Conectores → IA da Clubetec.</p>`,
+      });
+    }
+  } catch (e) {
+    console.error("[ia] aviso de troca falhou", e instanceof Error ? e.message : e);
+  }
 }
 
 // Falhas que justificam tentar a reserva (fora do ar, limite, chave inválida, modelo inexistente, sem resposta).
@@ -140,6 +170,7 @@ export async function chatAI(ai: ResolvedAI, messages: ChatMsg[], tools?: ToolDe
     if (r.status && !SWITCH.has(r.status)) break;
     await markSlotError(ai, r.error);
     console.error("[ia] trocando para a reserva", { de: ai.slot, para: next.slot, status: r.status });
+    await alertFailover(ai, next, r.error);
     ai = next;
     r = await chat(next.apiKey, next.provider, next.model, messages, tools, opts);
     if (r.ok) { await recordUsage(next, r.usage); return r; }

@@ -1,9 +1,9 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { callGroq, listChatModels, resolveModelChain } from "../_shared/get-ai-config.ts";
-import { HttpError, requirePermission, requireUser, resolveOrg } from "../_shared/auth.ts";
+import { HttpError, isPlatformOperator, requirePermission, requireUser, resolveOrg } from "../_shared/auth.ts";
 import { forOrg } from "../_shared/tenant.ts";
 import { getSecret } from "../_shared/secrets.ts";
-import { chatAI, providerKey, resolveAI } from "../_shared/ai-chat.ts";
+import { AI_PROVIDERS, chat, chatAI, providerKey, resolveAI } from "../_shared/ai-chat.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,6 +17,25 @@ Deno.serve(async (req) => {
     let ctx;
     let orgId: string;
     const body = await req.json().catch(() => ({}));
+
+    // Clubetec testa uma posição da IA da plataforma (Plataforma → Conectores): verde ou vermelho.
+    if (body?.platform_slot) {
+      const op = await requireUser(req).catch(() => null);
+      if (!op || !(await isPlatformOperator(op))) return json({ ok: false, error: "Apenas operadores da plataforma" }, 403);
+      const slot = String(body.platform_slot);
+      if (!["principal", "reserva1", "reserva2"].includes(slot)) return json({ ok: false, error: "Posição inválida" }, 400);
+      const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      const { data: row } = await admin.from("platform_ai_slots").select("provider, model").eq("slot", slot).maybeSingle();
+      const key = row ? await getSecret(admin, `platform:ai:${slot}`) : null;
+      if (!row || !key || !AI_PROVIDERS[row.provider]) return json({ ok: false, error: "Posição sem fornecedor ou chave" }, 200);
+      const r = await chat(key, row.provider, row.model || AI_PROVIDERS[row.provider].model, [
+        { role: "system", content: "Responda apenas com a palavra: OK" }, { role: "user", content: "Teste de conexão" },
+      ], undefined, { timeoutMs: 20_000 });
+      if (r.ok) await admin.rpc("service_ai_slot_ok", { slot_name: slot });
+      else await admin.rpc("service_ai_slot_error", { slot_name: slot, err: r.error ?? "falha" });
+      return json(r.ok ? { ok: true, data: { reply: String(r.reply ?? "").slice(0, 60) } } : { ok: false, error: r.error ?? "A IA não respondeu" }, 200);
+    }
+
     try {
       ctx = await requireUser(req);
       orgId = await resolveOrg(ctx, body?.organization_id);

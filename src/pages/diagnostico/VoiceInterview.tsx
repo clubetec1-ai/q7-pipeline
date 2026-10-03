@@ -3,7 +3,9 @@ import { Mic, MicVocal, Square, X } from "lucide-react";
 import { callFunction } from "@/lib/callFunction";
 import { Button } from "@/components/ui/button";
 
-type Phase = "pensando" | "falando" | "ouvindo" | "transcrevendo" | "fim";
+type Phase = "pensando" | "falando" | "pronto" | "ouvindo" | "transcrevendo" | "fim";
+const AUTO_KEY = "clubecrm:voz-auto";
+const readAuto = () => { try { return localStorage.getItem(AUTO_KEY) === "1"; } catch { return false; } };
 interface QA { q: string; a: string }
 
 const toBase64 = (b: Blob) => new Promise<string>((res, rej) => {
@@ -28,6 +30,13 @@ export function VoiceInterview({ orgId, step, setor, onDone }: {
   const [question, setQuestion] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [secs, setSecs] = useState(0);
+  // Microfone abre sozinho depois da pergunta (ágil) ou só quando a pessoa clica em Responder (dá tempo de pensar).
+  const [auto, setAuto] = useState(readAuto);
+  const autoRef = useRef(auto);
+  const toggleAuto = (v: boolean) => {
+    setAuto(v); autoRef.current = v;
+    try { localStorage.setItem(AUTO_KEY, v ? "1" : "0"); } catch { /* preferência só deste navegador */ }
+  };
   const rec = useRef<MediaRecorder | null>(null);
   const audio = useRef<HTMLAudioElement | null>(null);
   const alive = useRef(false);
@@ -98,18 +107,23 @@ export function VoiceInterview({ orgId, step, setor, onDone }: {
     await speak(r.data.question);
     if (!alive.current) return;
     if (r.data.done) { finish(history); return; }
-    await listen();
+    if (autoRef.current) await listen();
+    else setPhase("pronto");
   };
 
   const answer = async (blob: Blob) => {
     if (!alive.current) return;
-    if (blob.size < 2000) { setErr("Não ouvi nada. Clique em Responder de novo e fale perto do microfone."); setPhase("ouvindo"); return void listen(); }
+    if (blob.size < 2000) { setErr("Não ouvi nada. Clique em Responder e fale perto do microfone."); return setPhase("pronto"); }
     setPhase("transcrevendo");
     const r = await callFunction<{ text: string }>("interviewer", {
       action: "transcribe", organization_id: orgId, audio: await toBase64(blob), mime: blob.type,
     });
     if (!alive.current) return;
-    if (!r.ok || !r.data.text?.trim()) { setErr(r.ok ? "Não entendi. Vamos de novo?" : r.message); return void listen(); }
+    if (!r.ok || !r.data.text?.trim()) {
+      setErr(r.ok ? "Não entendi. Vamos de novo?" : r.message);
+      if (autoRef.current) return void listen();
+      return setPhase("pronto");
+    }
     const next = [...qaRef.current, { q: qRef.current, a: r.data.text.trim() }];
     qaRef.current = next;
     setQa(next);
@@ -150,6 +164,13 @@ export function VoiceInterview({ orgId, step, setor, onDone }: {
       <div className="flex flex-wrap items-center gap-2 text-sm">
         {phase === "pensando" && <span className="text-muted-foreground">Pensando na próxima pergunta…</span>}
         {phase === "falando" && <span className="text-muted-foreground">A IA está perguntando…</span>}
+        {phase === "pronto" && (
+          <>
+            <span className="text-muted-foreground">Pense com calma. Quando estiver pronto:</span>
+            <Button type="button" size="sm" onClick={() => { setErr(null); void listen(); }}><Mic className="w-4 h-4 mr-1" /> Responder</Button>
+            <Button type="button" size="sm" variant="ghost" onClick={() => void speak(qRef.current)}>Ouvir a pergunta de novo</Button>
+          </>
+        )}
         {phase === "transcrevendo" && <span className="text-muted-foreground">Entendendo sua resposta…</span>}
         {phase === "ouvindo" && (
           <>
@@ -169,6 +190,10 @@ export function VoiceInterview({ orgId, step, setor, onDone }: {
           <ol className="mt-2 space-y-2 list-decimal pl-5">{qa.map((x, i) => <li key={i}><b>{x.q}</b><br />{x.a}</li>)}</ol>
         </details>
       )}
+      <label className="flex items-center gap-2 text-xs">
+        <input type="checkbox" checked={auto} onChange={(e) => toggleAuto(e.target.checked)} />
+        Abrir o microfone sozinho depois de cada pergunta (desligado: você clica em “Responder” quando estiver pronto)
+      </label>
       <p className="text-xs text-muted-foreground">Fale à vontade, como numa conversa. O áudio não fica guardado: só o texto das respostas, que você confere antes de aprovar.</p>
     </div>
   );
