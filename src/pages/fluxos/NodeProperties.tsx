@@ -356,6 +356,9 @@ export function NodeProperties({ type, data, onChange, onDelete, lookups }: {
           </div>
         </>
       )}
+      {type === "stage" && (
+        <Field label="Etapa do funil (Kanban)"><Pick value={s("stage_id")} onChange={(v) => set({ stage_id: v })} empty="Escolha" options={lookups.stages} /></Field>
+      )}
       {type === "transfer" && (
         <>
           <Field label="Departamento">

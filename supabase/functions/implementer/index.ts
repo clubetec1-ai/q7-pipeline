@@ -29,6 +29,7 @@ export const TEMPLATES: Record<string, { name: string; texts: string }> = {
   followup: { name: "Lembrete para quem parou de responder", texts: '{"pergunta":"pergunta curta para entender o que o cliente precisa","lembrete":"lembrete gentil para quem não respondeu, sem pressão"}' },
   dados_ficha: { name: "Coleta de dados do cliente", texts: '{"saudacao":"boas-vindas curta explicando que vai pedir alguns dados para agilizar o atendimento"}' },
   registros: { name: "Registros de pedidos", texts: "{}" },
+  funil_vendas: { name: "Funil de vendas — qualificação", texts: '{"saudacao":"boas-vindas curta e animada para quem chegou interessado","oferta":"convite curto para um diagnóstico gratuito ou uma demonstração, dizendo que um especialista vai continuar a conversa","frio":"mensagem curta e gentil para quem só está pesquisando, oferecendo enviar materiais e dizendo que um especialista pode tirar dúvidas"}' },
   email: { name: "Atendimento de e-mail", texts: "{}" },
 };
 
@@ -184,6 +185,37 @@ Deno.serve(async (req) => {
         const tr = g.add("transfer", { department_id: null, text: "" }, 60);
         g.link("start", "first_contact", q); g.link("start", "returning", q);
         g.link(q, "ok", tr); g.link(q, "invalid", tr); g.link(q, "timeout", remind);
+      } else if (key === "funil_vendas") {
+        // Prepara etapas, etiquetas de temperatura e campos do cliente; depois monta a qualificação.
+        await admin.rpc("service_install_sales_funnel", { org: orgId });
+        const [{ data: tagRows }, { data: stageRows }] = await Promise.all([
+          org.select("tags", "id, name").in("name", ["Lead quente", "Lead morno", "Lead frio"]),
+          org.select("pipeline_stages", "id, name"),
+        ]);
+        const tagId = (n: string) => (tagRows ?? []).find((r: { name: string }) => r.name === n)?.id ?? "";
+        const stageId = (n: string) => (stageRows ?? []).find((r: { name: string }) => r.name.toLowerCase() === n.toLowerCase())?.id ?? "";
+        const hi = g.add("message", { text: s(t.saudacao, "Olá {nome}! Que bom que você chegou. Vou te fazer 4 perguntas rápidas para te ajudar melhor.") });
+        const q1 = g.add("question", { text: "Qual é o tipo da sua empresa? (ex.: cartório, clínica, loja, escritório)", kind: "text", save_to: "custom:segmento", max_attempts: 2 });
+        const q2 = g.add("question", { text: "Quantas pessoas atendem clientes hoje?", kind: "text", save_to: "custom:equipe", max_attempts: 2 });
+        const q3 = g.add("question", { text: "Qual é a maior dificuldade no atendimento hoje?", kind: "text", save_to: "custom:dor", max_attempts: 2 });
+        const when = g.add("menu", { text: "Para quando você quer resolver isso?", options: [
+          { id: "agora", label: "Agora / ainda este mês" }, { id: "breve", label: "Nos próximos meses" }, { id: "pesquisa", label: "Só estou pesquisando" },
+        ], max_attempts: 2 });
+        const hot = g.add("tag", { tag_id: tagId("Lead quente"), remove: false }, 40);
+        const warm = g.add("tag", { tag_id: tagId("Lead morno"), remove: false }, 200);
+        const cold = g.add("tag", { tag_id: tagId("Lead frio"), remove: false }, 360);
+        const qualified = g.add("stage", { stage_id: stageId("Qualificado") }, 120);
+        const offer = g.add("message", { text: s(t.oferta, "Perfeito! Posso fazer um diagnóstico gratuito da sua empresa ou te mostrar o sistema funcionando. Um especialista já vai continuar com você.") }, 120);
+        const coldMsg = g.add("message", { text: s(t.frio, "Sem problema! Vou te mandar alguns materiais e um especialista fica à disposição para tirar dúvidas.") }, 360);
+        const tr = g.add("transfer", { department_id: sales?.id ?? null, text: "" }, 200);
+        g.link("start", "first_contact", hi); g.link(hi, "next", q1);
+        g.link(q1, "ok", q2); g.link(q1, "invalid", q2); g.link(q2, "ok", q3); g.link(q2, "invalid", q3);
+        g.link(q3, "ok", when); g.link(q3, "invalid", when);
+        g.link(when, "opt:agora", hot); g.link(when, "opt:breve", warm); g.link(when, "opt:pesquisa", cold); g.link(when, "invalid", warm);
+        g.link(hot, "next", qualified); g.link(warm, "next", qualified); g.link(qualified, "next", offer); g.link(offer, "next", tr);
+        g.link(cold, "next", coldMsg); g.link(coldMsg, "next", tr);
+        if (!sales) warnings.push("Crie o setor de Vendas (ou Comercial) e escolha-o no bloco Transferir.");
+        warnings.push("Etapas, etiquetas (quente, morno, frio) e campos do cliente do funil foram criados. Publique o fluxo e escolha-o no número de vendas.");
       } else if (key === "dados_ficha") {
         const hi = g.add("message", { text: s(t.saudacao, "Olá! Para agilizar, vou pedir alguns dados rapidinho.") });
         const q1 = g.add("question", { text: "Qual é o seu nome completo?", kind: "text", save_to: "name", max_attempts: 2 });

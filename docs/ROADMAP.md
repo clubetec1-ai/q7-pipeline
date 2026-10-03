@@ -182,12 +182,16 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
 - ✅ **Manual da identidade da marca** *(03/10)*: página com essência, logo (versões, área de proteção, tamanho mínimo,
   o que não fazer), cores e proporção, tipografia (Montserrat itálico + Inter), tom de voz (assim / assim não, frases
   da marca) e exemplos (post, WhatsApp, assinatura de e-mail). Link enviado ao dono.
-- ⏳ **Funil de vendas da Clubetec, reaproveitável por outras empresas (antes da venda autoatendida):** captação
-  (página + anúncio → WhatsApp com mensagem pronta e origem marcada) → qualificação automática (tipo de empresa,
-  atendentes, dor, urgência → quente/morno/frio) → diagnóstico gratuito como isca → demonstração → proposta com o
-  plano sugerido pelo diagnóstico → follow-ups (2, 5 e 10 dias) → teste grátis com acompanhamento → fechamento
-  (cobrança) → pós-venda (implantação, pesquisa, indicação). Métricas por etapa e origem. Vira um **modelo de funil
-  instalável** (como os modelos por nicho) para os clientes.
+- ✅ **Funil de vendas instalável, 1ª parte** *(03/10)*: tela **Gestão → Funil de vendas** com botão "Instalar funil"
+  (etapas Novo lead → Qualificado → Diagnóstico ou demonstração → Proposta enviada → Teste grátis → Cliente / Perdido;
+  etiquetas Lead quente/morno/frio; campos origem, tipo de empresa, equipe e maior dificuldade; fluxo de qualificação
+  pronto em rascunho com 4 perguntas → classifica → move para "Qualificado" → passa para vendas), contatos por etapa e
+  por origem com conversão (7/30/90 dias) e **gerador de link de captação** do WhatsApp que marca a origem sozinho
+  ("(cód. instagram)" na mensagem). Bloco novo nos fluxos: **"Mover no funil"** (só aceita etapa da própria empresa).
+  Serve para a Clubetec e para qualquer cliente. Teste de isolamento 69.
+- ⏳ **Funil de vendas, 2ª parte:** follow-ups automáticos de 2, 5 e 10 dias em "Proposta enviada"; proposta gerada com o
+  plano sugerido pelo diagnóstico; acompanhamento do teste grátis; pós-venda (implantação, pesquisa, indicação);
+  página de captação (site) com o link do WhatsApp.
 - ⏳ **Integração com Microsoft Teams para ramais (pesquisa 03/10):** caminhos — (1) **Direct Routing**: ligar a central
   atual (Handphone/Nvoip) ao Teams por um SBC certificado ou "SBC como serviço" de um parceiro; (2) **Operator
   Connect**: a operadora entrega os números direto no Teams. Licença Microsoft: **Teams Phone** a partir de ~R$ 72–74
@@ -195,7 +199,8 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
   sistema: clique-para-ligar pelo Teams e registro/identificação das ligações pelo Microsoft Graph (registro de app no
   Azure com permissões de chamadas e consentimento do administrador do cliente). Indicado como módulo opcional para
   clientes que já usam Microsoft 365; para os demais, o ramal no navegador/MicroSIP continua mais barato.
-- ⏳ **Equipe de marketing para o lançamento:** papéis de pesquisador de mercado, tendências de nicho, estrategista de
+- 🔄 **Equipe de marketing para o lançamento** *(pesquisa de mercado e nichos pronta em `docs/marketing/01-pesquisa-mercado-nichos.md`;
+  plano de lançamento em andamento)*: papéis de pesquisador de mercado, tendências de nicho, estrategista de
   marketing, copywriter e imagem/vídeo para definir o lançamento do Deixa com a IA (público e nichos, posicionamento,
   oferta e preço de lançamento, calendário de conteúdo, roteiros de vídeo e criativos), seguindo o manual da marca.
 

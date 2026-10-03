@@ -34,6 +34,7 @@ export type FlowAction =
   | { type: "send"; text: string; fileId?: string }
   | { type: "set_field"; field: string; value: string } // name | email | document | custom:<chave>
   | { type: "tag"; tagId: string; remove: boolean }
+  | { type: "stage"; stageId: string }
   | { type: "ai"; nodeId: string }
   | { type: "transfer"; departmentId: string | null; userId: string | null }
   | { type: "close"; reasonId: string | null }
@@ -316,6 +317,10 @@ export function advance(graph: FlowGraph, nodeId: string, input: string | null, 
       }
       case "tag":
         if (d.tag_id) actions.push({ type: "tag", tagId: d.tag_id, remove: !!d.remove });
+        handle = "next";
+        break;
+      case "stage":
+        if (d.stage_id) actions.push({ type: "stage", stageId: String(d.stage_id) });
         handle = "next";
         break;
       case "transfer":

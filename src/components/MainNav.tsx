@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import {
-  Activity, BarChart3, Building2, ChevronDown, ClipboardCheck, ClipboardList, Contact, Home, Layers, Megaphone, Menu,
+  Activity, BarChart3, Building2, ChevronDown, ClipboardCheck, ClipboardList, Contact, Filter, Home, Layers, Megaphone, Menu,
   MessageSquare, MessagesSquare, Palette, RefreshCw, Settings2, ShieldCheck, Target, Trello, UserCog, UsersRound, Wallet,
   type LucideIcon,
 } from "lucide-react";
@@ -11,7 +11,7 @@ import {
 
 type Section = "inicio" | "conversas" | "kanban" | "registros" | "cobrancas" | "integracoes" | "equipe" | "numeros" | "fluxos" | "biblioteca"
   | "diagnostico" | "supervisor" | "avaliacoes" | "campanhas" | "seguranca" | "melhorias" | "conhecimento" | "clientes" | "agente"
-  | "relatorios" | "etiquetas" | "chat" | "ramais" | "setores" | "configuracoes" | "plataforma";
+  | "relatorios" | "etiquetas" | "chat" | "ramais" | "setores" | "configuracoes" | "plataforma" | "funil";
 interface Item { key: Section; to: string; label: string; icon: LucideIcon; show: boolean; also?: Section[] }
 
 /** Telas de instalação: ficam dentro da central de Configurações (o menu destaca "Configurações"). */
@@ -47,6 +47,7 @@ export function MainNav({ active }: { active: Section }) {
     ] },
     { label: "Gestão", icon: Activity, items: [
       { key: "relatorios", to: "/relatorios", label: "Relatórios", icon: BarChart3, show: manage || reports || attend },
+      { key: "funil", to: "/funil", label: "Funil de vendas", icon: Filter, show: manage || reports },
       { key: "supervisor", to: "/supervisor", label: "Supervisor", icon: Activity, show: reports && hasModule("gestao") },
       { key: "avaliacoes", to: "/avaliacoes", label: "Avaliações", icon: ClipboardCheck, show: (reports || attend) && hasModule("gestao") },
       { key: "melhorias", to: "/melhorias", label: "Melhorias", icon: RefreshCw, show: (manage || reports) && hasModule("gestao") },

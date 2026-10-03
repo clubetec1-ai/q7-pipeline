@@ -1267,6 +1267,30 @@ BEGIN
   PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_ai_failover_alert(%L)', 'principal'), 'navegador nao dispara aviso');
   PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_ai_slot_ok(%L)', 'principal'), 'navegador nao marca ok');
 
+  -- 69. Funil de vendas: relatorio so de quem ve relatorios da propria org; instalacao so pelo servidor;
+  --     bloco "Mover no funil" so aceita etapa da propria empresa.
+  PERFORM pg_temp.expect(pg_temp.t(owner_a, format('SELECT (public.sales_funnel_report(%L, current_date - 30)) ? %L', A, 'stages')) = 'true', 'dono ve relatorio do funil');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.sales_funnel_report(%L, current_date)', A), 'atendente nao ve relatorio do funil');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.sales_funnel_report(%L, current_date)', A), 'outra org nao ve funil de A');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_install_sales_funnel(%L)', A), 'navegador nao instala funil');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT private.install_sales_funnel(%L)', A), 'navegador nao chama a funcao privada');
+  PERFORM public.service_install_sales_funnel(A);
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.pipeline_stages WHERE organization_id = A AND name IN ('Qualificado', 'Cliente', 'Perdido')) = 3, 'funil cria etapas');
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.tags WHERE organization_id = A AND name LIKE 'Lead %') = 3, 'funil cria etiquetas');
+  PERFORM public.service_install_sales_funnel(A);
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.pipeline_stages WHERE organization_id = A AND name = 'Qualificado') = 1, 'instalar de novo nao duplica');
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.pipeline_stages WHERE organization_id = 'bbbbbbbb-0000-0000-0000-000000000001' AND name = 'Qualificado') = 0, 'funil de A nao mexe em B');
+  INSERT INTO public.flows (id, organization_id, name) VALUES ('aaaaaaaa-0000-0000-0069-000000000001', A, 'funil-a');
+  INSERT INTO public.flow_versions (organization_id, flow_id, status, graph) VALUES (A, 'aaaaaaaa-0000-0000-0069-000000000001', 'draft',
+    jsonb_build_object('nodes', jsonb_build_array(jsonb_build_object('id', 's', 'type', 'start', 'data', '{}'::jsonb),
+      jsonb_build_object('id', 'st', 'type', 'stage', 'data', jsonb_build_object('stage_id', (SELECT id FROM public.pipeline_stages WHERE organization_id = 'bbbbbbbb-0000-0000-0000-000000000001' LIMIT 1)))),
+      'edges', jsonb_build_array(jsonb_build_object('id', 'e', 'source', 's', 'target', 'st'))));
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.publish_flow(%L)', 'aaaaaaaa-0000-0000-0069-000000000001'), 'etapa de outra org recusada no fluxo');
+  UPDATE public.flow_versions SET graph = jsonb_set(graph, '{nodes,1,data,stage_id}',
+    to_jsonb((SELECT id FROM public.pipeline_stages WHERE organization_id = A AND name = 'Qualificado')::text))
+  WHERE flow_id = 'aaaaaaaa-0000-0000-0069-000000000001' AND status = 'draft';
+  PERFORM pg_temp.expect(pg_temp.t(owner_a, format('SELECT public.publish_flow(%L)', 'aaaaaaaa-0000-0000-0069-000000000001')) = '1', 'etapa propria publicada');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 

@@ -106,6 +106,12 @@ export const BLOCKS: BlockDef[] = [
     summary: (d) => (d.remove ? "Remove etiqueta" : "Adiciona etiqueta"),
   },
   {
+    type: "stage", label: "Mover no funil", color: "#8B5CF6",
+    outputs: () => [{ id: "next", label: "Depois" }],
+    defaults: () => ({ stage_id: "" }),
+    summary: () => "Move a conversa para uma etapa do Kanban",
+  },
+  {
     type: "transfer", label: "Transferir", color: "#0EA5E9",
     outputs: () => [],
     defaults: () => ({ department_id: "", text: "Vou te passar para um atendente." }),
