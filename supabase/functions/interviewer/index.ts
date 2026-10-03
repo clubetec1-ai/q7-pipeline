@@ -239,7 +239,7 @@ Deno.serve(async (req) => {
         "Prioridade de custo: toda automação possível SEM IA (fluxo, regra, resposta rápida, registro, lembrete, conector) vem PRIMEIRO; use IA só onde precisa entender texto livre ou conversar.",
         `Automações prontas no ClubeCRM (use a chave em "modelo" quando servir): ${JSON.stringify(READY)}.`,
         'Tipo "integracao" só quando depende de OUTRO sistema (ERP, banco, agenda externa). Tudo que o ClubeCRM já faz (registros personalizados para chamados, pedidos e contas; fluxos; e-mail; biblioteca; follow-up) é "sem_ia" ou "ia", nunca integração.',
-        "Missão, visão e valores: use o que o dono definiu; se faltar, proponha e comece o texto com \"Proposta:\". Nunca invente números; se estimar volume, diga que é estimativa.",
+        "Missão, visão e valores: use o que o dono definiu; se faltar, proponha e comece o texto com \"Proposta:\". Nunca invente números; se estimar volume, diga que é estimativa. Números e percentuais: copie exatamente como o dono escreveu e com o mesmo sentido (meta é meta, situação atual é situação atual; nunca inverta, ex.: \"meta de 80% completos\" não vira \"80% incompletos\").",
         'Responda SOMENTE com JSON: {"diagnostico":"onde a empresa está (3 a 6 frases)","missao":"","visao":"","valores":[""],',
         '"objetivos":[{"objetivo":"","indicador":"","prazo":""}],',
         '"melhorias":[{"titulo":"","setor":"","problema":"","como":"passo a passo curto","impacto":"alto|medio|baixo"}],',

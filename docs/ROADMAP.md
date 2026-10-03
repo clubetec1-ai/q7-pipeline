@@ -92,8 +92,11 @@ recuperação do MFA; cobrar da Nvoip a permissão do histórico (erro 403); res
   objetivos, setores, regras da IA) e processos de Atendimento e balcão, Escrituras e notas, Registro Civil, Certidões
   e pedidos a distância e Financeiro; e o modelo "Cartório" ao criar empresa em Plataforma (funil Novo pedido →
   Documentação → Orçamento e pagamento → Assinatura agendada → Ato concluído, 4 setores e agente que nunca dá
-  orientação jurídica, nunca calcula imposto e só informa valores da tabela oficial).* Falta: base de conhecimento
-  modelo (lista de documentos por ato, tabela de emolumentos do estado) e fluxos prontos do cartório — **prioridade**:
+  orientação jurídica, nunca calcula imposto e só informa valores da tabela oficial).* *Entregue (02/10): na Base de
+  conhecimento, "Documentos modelo — Cartório de Notas e Registro Civil" (1 clique, 5 documentos marcados "revise com o
+  tabelião": regra de valores, documentos para escrituras, procurações/firma/autenticação/apostila, registro civil e
+  certidões), cada um no setor certo; aviso para enviar a tabela oficial de emolumentos do estado.* Falta: fluxos
+  prontos do cartório — antes, **prioridade**:
   no teste de 02/10 o agente listou documentos de escritura pelo conhecimento geral da IA (correto no geral, mas não
   é a lista oficial do cartório).
   *Teste de ponta a ponta no "Cartório Teste" (02/10):* Diagnóstico abriu no modelo Cartório; IA organizou a etapa
@@ -103,6 +106,12 @@ recuperação do MFA; cobrar da Nvoip a permissão do histórico (erro 403); res
   Planejamento (diagnóstico, missão/visão/valores, automações sem IA primeiro); "Instalar (rascunho)" criou o fluxo
   "Fora do horário". Achados E11–E16 em docs/PROJETO.md §4.1 (E11 e E15 críticos: o banco recusava as etapas e seções
   novas do Diagnóstico 3.0 — corrigidos com teste automático).
+- **Tipos de cartório (observação do dono, 02/10):** existem cartórios de **Registro de Imóveis** e outros de
+  **registro de pessoas** (Registro Civil), além de Notas, Protesto e Títulos e Documentos/Pessoas Jurídicas. Em
+  cidades pequenas, um mesmo cartório pode acumular várias atribuições (o "Ofício Único"). Proposta: o modelo de
+  cartório pergunta quais atribuições o cartório tem e monta setores, processos, exemplos e a lista de documentos só
+  com elas (Notas e Registro Civil já existe; faltam Registro de Imóveis, Protesto, Títulos e Documentos e a
+  combinação Ofício Único).
 - **Foco em ticket mais alto:** priorizar clientes em que a implantação agrega mais valor e paga mais — cartórios,
   clínicas e odontologia, escritórios de advocacia e contabilidade, imobiliárias, auto centers e concessionárias,
   escolas e redes. Para cada nicho: modelo completo (P1, item 7), pacote de implantação e caso de sucesso.

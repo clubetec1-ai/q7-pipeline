@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { FilePicker } from "@/components/FilePicker";
 import { AppHeader } from "@/components/AppHeader";
 import { Navigate, useNavigate } from "react-router-dom";
-import { BookOpen, Download, LogOut, Search, Trash2, Upload } from "lucide-react";
+import { BookOpen, Download, FileText, LogOut, Search, Trash2, Upload } from "lucide-react";
+import { MODEL_DOCS } from "./conhecimento/modelDocs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/contexts/OrgContext";
@@ -48,15 +49,18 @@ export default function Conhecimento() {
   const [q, setQ] = useState("");
   const [scope, setScope] = useState<"interno" | "cliente">("cliente");
   const [results, setResults] = useState<{ title: string; content: string }[] | null>(null);
+  const [orgTpl, setOrgTpl] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!org || !user) return;
-    const [d, dp, dm] = await Promise.all([
+    const [d, dp, dm, o] = await Promise.all([
       supabase.from("knowledge_docs").select("id, department_id, title, kind, visibility, file_name, size, status, error, chunks, created_at")
         .eq("organization_id", org.id).order("created_at", { ascending: false }),
       supabase.from("departments").select("id, name, color").eq("organization_id", org.id).order("name"),
       supabase.from("department_members").select("department_id").eq("user_id", user.id),
+      supabase.from("organizations").select("template_key").eq("id", org.id).maybeSingle(),
     ]);
+    setOrgTpl(o.data?.template_key ?? null);
     setDocs((d.data as Doc[]) ?? []);
     setDepts(dp.data ?? []);
     setMine((dm.data ?? []).map((r) => r.department_id));
@@ -93,6 +97,26 @@ export default function Conhecimento() {
     setForm((f) => ({ ...f, title: "" }));
     await load();
   };
+  // Documentos modelo do tipo de empresa: entram pelo mesmo envio (texto), no setor de mesmo nome (ou empresa toda).
+  const model = orgTpl ? MODEL_DOCS[orgTpl] : undefined;
+  const missingModels = model ? model.docs.filter((m) => !docs.some((d) => d.title === m.title)) : [];
+  const addModels = async () => {
+    setBusy("models");
+    let ok = 0;
+    for (const m of missingModels) {
+      const dept = m.sector ? depts.find((d) => d.name.toLowerCase().startsWith(m.sector!.toLowerCase())) : undefined;
+      const bytes = new TextEncoder().encode(m.text);
+      const data = btoa(Array.from(bytes, (b) => String.fromCharCode(b)).join(""));
+      const r = await callFunction("knowledge", {
+        action: "upload", organization_id: org.id, title: m.title, kind: m.kind, visibility: m.visibility,
+        department_id: dept?.id ?? null, file_name: `${m.title.replace(/[^\w À-ú-]/g, "").slice(0, 60)}.txt`, mime: "text/plain", data,
+      });
+      if (r.ok) ok++;
+    }
+    setBusy(null);
+    toast({ title: `${ok} documento(s) modelo na base`, description: "Revise cada um e corrija o que for diferente no seu cartório." });
+    await load();
+  };
   const act = async (action: string, d: Doc, extra: Record<string, unknown> = {}) => {
     const r = await callFunction<{ url?: string }>("knowledge", { action, organization_id: org.id, doc_id: d.id, ...extra });
     if (!r.ok) return fail(r.message);
@@ -121,6 +145,16 @@ export default function Conhecimento() {
           <h1 className="text-2xl font-semibold flex items-center gap-2"><BookOpen className="w-6 h-6" /> Base de conhecimento</h1>
           <p className="text-sm text-muted-foreground">Contratos, orçamentos, planilhas, manuais e políticas por setor. Os agentes consultam só os trechos que importam para cada pergunta.</p>
         </div>
+
+        {manage && model && missingModels.length > 0 && (
+          <section className="rounded-lg border border-primary/40 bg-primary/5 p-4 space-y-2">
+            <p className="font-medium flex items-center gap-2"><FileText className="w-4 h-4" /> Documentos modelo — {model.label}</p>
+            <p className="text-sm text-muted-foreground">Prontos para os agentes responderem desde o primeiro dia. Depois de adicionar, revise e corrija o que for diferente na sua empresa.</p>
+            <ul className="text-sm list-disc pl-5">{missingModels.map((m) => <li key={m.title}>{m.title}</li>)}</ul>
+            <p className="text-xs text-muted-foreground">{model.tip}</p>
+            <Button size="sm" disabled={busy === "models"} onClick={addModels}>{busy === "models" ? "Adicionando..." : `Adicionar ${missingModels.length} documento(s) modelo`}</Button>
+          </section>
+        )}
 
         <section className="rounded-lg border p-4 space-y-3">
           <p className="font-medium">Anexar documento</p>
