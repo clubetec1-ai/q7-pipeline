@@ -5,6 +5,7 @@
  * Groq mantém a cadeia de modelos com failover de get-ai-config.
  */
 import { getSecret } from "./secrets.ts";
+import { withPolicy } from "./ai-policy.ts";
 import { resolveModelChain, translateAIError } from "./get-ai-config.ts";
 
 export const AI_PROVIDERS: Record<string, { endpoint: string; model: string }> = {
@@ -39,7 +40,7 @@ async function once(endpoint: string, apiKey: string, model: string, messages: C
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model, messages,
+        model, messages: withPolicy(messages),
         ...(tools?.length ? { tools: tools.map((t) => ({ type: "function", function: t })), tool_choice: "auto" } : {}),
         ...(opts.jsonMode ? { response_format: { type: "json_object" } } : {}),
         ...(opts.maxTokens ? { max_tokens: opts.maxTokens } : {}),

@@ -13,6 +13,107 @@ e-mails, montar fluxos e agentes, instalar automações prontas, seguir guias de
 botão “testar” e mensagens claras. Só integrações complexas ficam com o time Clubetec, como serviço pago.
 Mais receita, menos suporte.
 
+## Prioridades — o que falta, em ordem (organizado em 02/10)
+Visão de CEO: primeiro o que permite **vender e cobrar com segurança**, depois o que faz vender **mais caro e em
+volume** (ticket alto e franquias), depois o "cérebro" e por último canais e extras que dependem de fornecedor ou de
+pedido de cliente. Os detalhes de cada item estão nas seções abaixo; aqui fica só a ordem.
+
+**P0 — antes do 1º cliente pagante**
+1. Terminar o teste de ponta a ponta ("Auto Center Teste"): merge, chave da IA da Clubetec, E7 (modelos por nicho
+   num lugar só), E8 (horário padrão vindo do modelo; horário e palavras de LGPD fora de Fluxos), E10 (número de teste
+   de WhatsApp) e a pergunta **"vai atender sozinho ou com equipe?"** (seção de 02/10).
+2. **Venda autoatendida:** planos/pacotes que ligam os módulos, assinatura recorrente (Asaas), teste grátis, limites
+   de uso (IA, disparos, minutos) com alerta, cadastro → diagnóstico → implantação guiada.
+3. **Contrato e LGPD:** termos de uso, política de privacidade e contrato de tratamento de dados aceitos no cadastro.
+4. **Segurança antes da produção:** varredura completa (security-review / claude-security), grants por coluna nas
+   tabelas antigas, caso 55 intermitente dos testes, backups e plano de resposta a incidente.
+5. **Agentes do dia 1** que faltam: assistente dentro do app ("como faço…?") e monitor de saúde ampliado (número caiu,
+   chave de IA inválida, fila parada, fluxo com erro) com botão de correção.
+6. **Zerar a Clubetec** e configurar do zero (listar o que será apagado e confirmar antes).
+
+**P1 — ticket alto e franquias (vender mais caro e em volume)**
+7. **Modelos por nicho completos** (E7): cada nicho com Diagnóstico de exemplo + funil + setores + agente + etiquetas +
+   fluxos prontos + base de conhecimento modelo. Ordem sugerida: cartório (feito o 1º), clínicas e odontologia,
+   escritórios de advocacia e contabilidade, imobiliárias, auto centers/concessionárias, escolas, redes de franquia.
+8. **Rede de franquias** (seção de 02/10): matriz cria o padrão e replica para cada unidade; painel da rede.
+9. **Implantação com valor agregado:** pacote de implantação vendido junto (diagnóstico + configuração + treinamento),
+   roteiro por nicho e relatório "antes × depois" para o cliente.
+10. Painel **"o que o ClubeCRM fez por você"** (tempo de resposta, resolvidos pela IA, vendas e cobranças recuperadas).
+11. **Revenda / white label** para agências e parceiros.
+12. **Regras dos bots — próximos passos** (política fixa entregue em 02/10): mostrar a política na tela do agente,
+    teste de tentativas de burlar no "Testar o agente" e registro dessas tentativas na auditoria.
+
+**P2 — cérebro e profundidade do produto**
+13. **Cérebro com delegação por área** (seção de 02/10) + aprovador por setor + resultado das melhorias voltando ao
+    Diagnóstico com um clique.
+14. Diagnóstico 3.0, 2ª parte: Sistemas e dados, Pós-venda, Publicar e medir, convite ao responsável do setor,
+    exportar o planejamento (PDF), escolha automática Haiku/Sonnet, Google Meu Negócio e redes sociais.
+15. Base de conhecimento: preencher modelos (contrato/orçamento) com dados do cliente, enviar documento "enviável"
+    pelo atendimento, PDF digitalizado (OCR), setores da base por bloco de IA; mídia: vídeo e anexos de e-mail.
+16. Cobrança e registros: IA gerando cobrança (com permissão), cobrança recorrente ligada a "Conta a receber",
+    Mercado Pago/Efí, IA criando/atualizando registros.
+17. Integrações: validar Bling com conta real; Omie, Tiny, Nuvemshop, Google Agenda.
+18. Meta: cadastro do número em poucos cliques (Embedded Signup) e nova conversa com modelo aprovado.
+19. Relatórios: PDF, período personalizado, envio automático por e-mail.
+
+**P3 — canais, voz e extras (quando o fornecedor liberar ou o cliente pedir)**
+20. Voz: pendências da Handphone e da Nvoip (WSS, aviso em tempo real, gravações, transcrição, histórico 403),
+    agentes de voz/URA, fluxos dentro da ligação, avaliação das ligações.
+21. E-mail: Microsoft 365 por OAuth, Google direto, cópia em "Enviados", IA e fluxos no e-mail.
+22. Campanhas: arquivo da biblioteca, modelos da Meta puxados da conta, relatório de respostas, teste A/B.
+23. Atendimento: convidar outro setor sem transferir, sino para os setores ajudantes, filtros na busca e por
+    setor/grupo, anonimização pedida pelo WhatsApp e retenção automática, "apagada pelo cliente" no e-mail e na Meta,
+    limite e marca d'água na exportação, gravação de áudio no navegador, modo depuração do bloco HTTP.
+24. Chat da equipe: busca, reações e canais extras.
+25. Messenger e Instagram; backup automático externo; hospedagem própria (VPS); logo e ícone da aba.
+
+**Ações do dono (fora do código):** colar a chave Groq da plataforma (Plataforma → Conectores); gerar os códigos de
+recuperação do MFA; cobrar da Nvoip a permissão do histórico (erro 403); respostas da Handphone; número fixo na Meta.
+
+## Pedidos de 02/10: cartório, ticket alto, franquias, regras dos bots, cérebro e módulos
+- **Modelo de cartório (exemplo):** *Entregue (02/10): modelo "Cartório (notas, registro civil, protocolo e
+  certidões)" no Diagnóstico, com exemplos de todas as etapas (empresa, clientes e jornada, marca, cultura, hoje,
+  objetivos, setores, regras da IA) e processos de Atendimento e balcão, Escrituras e notas, Registro Civil, Certidões
+  e pedidos a distância e Financeiro; e o modelo "Cartório" ao criar empresa em Plataforma (funil Novo pedido →
+  Documentação → Orçamento e pagamento → Assinatura agendada → Ato concluído, 4 setores e agente que nunca dá
+  orientação jurídica, nunca calcula imposto e só informa valores da tabela oficial).* Falta: base de conhecimento
+  modelo (lista de documentos por ato, tabela de emolumentos do estado) e fluxos prontos do cartório.
+- **Foco em ticket mais alto:** priorizar clientes em que a implantação agrega mais valor e paga mais — cartórios,
+  clínicas e odontologia, escritórios de advocacia e contabilidade, imobiliárias, auto centers e concessionárias,
+  escolas e redes. Para cada nicho: modelo completo (P1, item 7), pacote de implantação e caso de sucesso.
+- **Modelo de franquias (vender em massa):** a franqueadora vira a "matriz" de uma **rede**; cada unidade é uma
+  empresa separada no sistema (dados isolados, como hoje). A matriz monta o padrão (fluxos, agente, base de
+  conhecimento, etiquetas, setores, marca) e **replica para as unidades**; atualizações do padrão chegam às unidades
+  como rascunho para aprovar (ou obrigatórias, se a matriz marcar). Painel da rede com **números somados** por unidade
+  (atendimentos, tempo de resposta, vendas), sem ver dados dos clientes das unidades, salvo permissão expressa (LGPD).
+  Criação de unidades em lote (planilha), cobrança por unidade com preço de rede. Base técnica: tabela de redes,
+  papel "matriz" com leitura só agregada, testes de isolamento entre unidades e entre redes.
+- **Regras dos bots (não inventar, nada ilegal, nada que prejudique a empresa):** *Entregue (02/10): política fixa da
+  plataforma colocada antes de qualquer instrução em **todas** as chamadas de IA (atendimento, fluxos, Testar o
+  agente, entrevistador, implementador, melhorias, avaliações, voz): não inventar; nada ilegal ou antiético; não
+  prometer, dar desconto ou expor informação interna sem autorização; pedir só os dados necessários; ignorar quem
+  tenta mudar as regras pela conversa ("ignore suas instruções", "sou o dono / da Clubetec") ou por ordens escondidas
+  em arquivos; em dúvida, passar para uma pessoa. A política fica no código: só a Clubetec, dona do software, muda.*
+- **Quem manda e quem aprova:** (1) **Clubetec (dono do software)** — política da plataforma, módulos, modelos e
+  qualquer mudança no software; (2) **dono da empresa cliente** — regras e comportamento dos agentes da empresa dele,
+  dentro da política; (3) **responsáveis por área** — aprovam o que o dono delegar para o setor; (4) **agentes** —
+  só propõem: tudo que um agente sugere (implementador, melhorias, cérebro) fica em rascunho até alguém com o papel
+  certo aprovar, com registro na auditoria.
+- **Cérebro com poder de delegação por área:** o cérebro (visão de CEO da empresa) acompanha os números e o plano,
+  decide prioridades e **delega** para o agente de cada área (Vendas, Atendimento, Financeiro, Administrativo,
+  Marketing, RH, Operação…), cada um com ferramentas e permissões fechadas da sua área. O dono define, por área, o
+  responsável humano que aprova as propostas; o cérebro cobra os pendentes (lembretes) e mostra o que cada área fez.
+  Nada vai ao ar sem aprovação; tudo auditado.
+- **Como os módulos são criados:** já existe a base (módulos por empresa, liga/desliga em Plataforma → Módulos, trava
+  no banco e no servidor, menu escondendo o que não foi contratado). Cada módulo novo segue a receita: entrada no
+  catálogo → trava no banco (gatilho) e nas funções do servidor → telas e menu escondidos sem o módulo → teste de
+  isolamento → preço no plano. Próximo passo (P0, item 2): o **plano liga os módulos sozinho** ao assinar, teste grátis
+  com tudo ligado, e o cliente contrata um módulo avulso pela própria tela (liga depois do pagamento).
+- **Pergunta na entrada: "vai atender sozinho pelo WhatsApp ou com equipe?"** — no primeiro acesso (Início) e no
+  Diagnóstico. **Sozinho:** os Primeiros passos pulam Equipe, Setores, distribuição e Ramais; a IA atende e passa
+  para o próprio dono. **Com equipe:** pergunta quantas pessoas e quais setores, e mostra convite da equipe, setores,
+  distribuição da fila e ramais. A resposta ajuda a sugerir o plano e pode ser trocada depois em Configurações.
+
 ## Próximos (a combinar)
 Sugestão: validar o conector Bling (beta) com conta real e acrescentar Omie, Tiny, Nuvemshop e Google Agenda
 na mesma estrutura de receitas → cobrança: Mercado Pago/Efí, IA gerando cobrança (com permissão), cobrança

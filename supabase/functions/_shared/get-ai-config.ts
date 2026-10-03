@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
+import { withPolicy } from "./ai-policy.ts";
 import { providerKey } from "./ai-chat.ts";
 import { forOrg } from "./tenant.ts";
 import { getSecret } from "./secrets.ts";
@@ -134,7 +135,7 @@ export async function callGroqOnce(
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ model, messages }),
+      body: JSON.stringify({ model, messages: withPolicy(messages) }),
     });
     const text = await res.text();
     if (!res.ok) {
