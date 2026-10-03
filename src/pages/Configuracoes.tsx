@@ -1,6 +1,6 @@
 import { Link, Navigate } from "react-router-dom";
 import {
-  Bot, BookOpen, KeyRound, Library, Mail, MessageSquare, PhoneCall, Plug, Server, Settings2, ShieldCheck, Shuffle, Tags, Wallet, Workflow, type LucideIcon,
+  Bot, BookOpen, Clock, KeyRound, Library, Mail, MessageSquare, PhoneCall, Plug, Server, Settings2, ShieldCheck, Shuffle, Tags, Wallet, Workflow, type LucideIcon,
 } from "lucide-react";
 import { useOrg } from "@/contexts/OrgContext";
 import { AppHeader } from "@/components/AppHeader";
@@ -42,6 +42,8 @@ export default function Configuracoes() {
     { title: "Atendimento", cards: [
       { title: "Distribuição e saudação", desc: "Setores, fila e quem recebe cada atendimento. As mensagens automáticas (saudação e protocolo) ficam na aba Mensagens.", to: "/equipe?tab=departamentos", icon: Shuffle, color: "#F59E0B",
         state: s.departments ? "ok" : "pending", detail: s.departments ? `${s.departments} setor(es) · ${s.members} pessoa(s)` : "Nenhum setor", show: team },
+      { title: "Horário e LGPD", desc: "Dias e horas de atendimento (fora deles, o fluxo avisa que está fechado) e as palavras para parar mensagens automáticas.",
+        to: "/configuracoes/atendimento", icon: Clock, color: "#0EA5E9", state: s.hours ? "ok" : "pending", detail: s.hours ? "Horário definido" : "Sem horário", show: manage },
       { title: "Etiquetas e grupos", desc: "Etiquetas por setor, grupos de clientes, cores e ícones.", to: "/etiquetas", icon: Tags, color: "#EC4899",
         state: s.tags || s.groups ? "ok" : "pending", detail: `${s.tags} etiqueta(s) · ${s.groups} grupo(s)`, show: lib || can("contacts.groups_manage") },
       { title: "Biblioteca e respostas", desc: "Arquivos e textos prontos para enviar no atendimento.", to: "/biblioteca", icon: Library, color: "#8B5CF6",

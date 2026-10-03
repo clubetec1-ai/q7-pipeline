@@ -45,6 +45,19 @@ const parseJson = (reply: string): Record<string, unknown> => {
 };
 const PROC_KEYS = ["nome", "setor", "quem_faz", "frequencia", "tempo", "dificuldade", "passo_a_passo", "como_deveria"] as const;
 
+/** Horário que a IA leu do texto da etapa Empresa → formato de settings.business_hours (só o que for válido). */
+function hoursFrom(v: unknown): Record<string, { start: string; end: string }[]> | undefined {
+  if (!v || typeof v !== "object") return undefined;
+  const ok = (t: unknown) => typeof t === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(t);
+  const out: Record<string, { start: string; end: string }[]> = {};
+  for (const [d, r] of Object.entries(v as Record<string, unknown>)) {
+    if (!/^[0-6]$/.test(d) || !Array.isArray(r)) continue;
+    const [start, end] = r;
+    if (ok(start) && ok(end) && String(start) < String(end)) out[d] = [{ start: String(start), end: String(end) }];
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
@@ -329,7 +342,8 @@ Deno.serve(async (req) => {
         `Distribua nas seções: ${keys.map((k) => `${k} (${SECTIONS[k].label})`).join(", ")}; deixe vazia a seção sem informação. ` +
         "Em faltando, até 3 perguntas curtas sobre o que ficou vago ou faltou para esta etapa. " +
         (stepKey === "setores" ? 'Em "setores_lista", liste só os nomes dos setores citados. ' : "") +
-        `Responda SOMENTE com JSON: {"secoes":{${keys.map((k) => `"${k}":""`).join(",")}},${stepKey === "setores" ? '"setores_lista":[""],' : ""}"faltando":[""]}`,
+        (stepKey === "empresa" ? 'Em "horario", o horário de atendimento que o dono contou, por dia da semana (0=domingo, 1=segunda ... 6=sábado), no formato {"1":["08:00","18:00"]}; dia fechado fica de fora; se ele não contou o horário, use {}. ' : "") +
+        `Responda SOMENTE com JSON: {"secoes":{${keys.map((k) => `"${k}":""`).join(",")}},${stepKey === "setores" ? '"setores_lista":[""],' : ""}${stepKey === "empresa" ? '"horario":{},' : ""}"faltando":[""]}`,
         `Empresa: ${orgRow?.name ?? ""}\n${stepKey === "empresa" && profile.public_research?.resumo ? `Dados públicos encontrados: ${profile.public_research.resumo}\n` : ""}\nO que o dono escreveu:\n${raw}${extra}`,
       );
       const secoes: Record<string, string> = {};
@@ -338,6 +352,7 @@ Deno.serve(async (req) => {
       return json({
         ok: true, secoes,
         setores: stepKey === "setores" ? (Array.isArray(out.setores_lista) ? out.setores_lista : []).slice(0, 20).map((s) => clip(s, 80)).filter(Boolean) : undefined,
+        horario: stepKey === "empresa" ? hoursFrom(out.horario) : undefined,
         faltando: (Array.isArray(out.faltando) ? out.faltando : []).slice(0, 3).map((f) => clip(f, 200)).filter(Boolean),
       });
     }

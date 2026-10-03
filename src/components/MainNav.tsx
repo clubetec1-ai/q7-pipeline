@@ -67,11 +67,14 @@ export function MainNav({ active }: { active: Section }) {
   ];
   const isActive = (i: Item) => active === i.key || !!i.also?.includes(active);
   const visible = groups.map((g) => ({ ...g, items: g.items.filter((i) => i.show) })).filter((g) => g.items.length);
-  const link = (i: Item, compact = false) => (
+  // Telas médias: só ícone (nome no title); o nome aparece em telas largas.
+  const link = (i: Item, show = "hidden 2xl:inline") => (
     <Link key={i.to} to={i.to} title={i.label} className={isActive(i) ? activeCls : idleCls}>
-      <i.icon className="w-4 h-4" /><span className={compact ? "hidden 2xl:inline" : ""}>{i.label}</span>
+      <i.icon className="w-4 h-4" /><span className={show}>{i.label}</span>
     </Link>
   );
+  // "Conta" fica no menu da pessoa, à direita do cabeçalho (no celular, continua no ☰).
+  const desktop = visible.filter((g) => g.label !== "Conta");
 
   return (
     <>
@@ -108,15 +111,15 @@ export function MainNav({ active }: { active: Section }) {
             {orgs.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
           </select>
         )}
-        {top.map((i) => link(i, true))}
-        {visible.map((g) => {
-          if (g.items.length === 1) return link(g.items[0]);
+        {top.map((i) => link(i))}
+        {desktop.map((g) => {
+          if (g.items.length === 1) return link(g.items[0], "hidden xl:inline");
           const current = g.items.find(isActive);
           const Icon = g.icon;
           return (
             <DropdownMenu key={g.label}>
-              <DropdownMenuTrigger className={current ? activeCls : idleCls}>
-                <Icon className="w-4 h-4" />{g.label}<ChevronDown className="w-3.5 h-3.5 opacity-60" />
+              <DropdownMenuTrigger className={current ? activeCls : idleCls} title={g.label}>
+                <Icon className="w-4 h-4" /><span className="hidden xl:inline">{g.label}</span><ChevronDown className="w-3.5 h-3.5 opacity-60" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
                 {g.items.map((i) => (

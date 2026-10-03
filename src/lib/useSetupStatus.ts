@@ -10,10 +10,13 @@ export interface SetupStatus {
   whatsapp: number; whatsappOnline: number; email: number; emailNoDept: number; ramais: number; nvoip: boolean;
   tags: number; tagScopes: number; groups: number; library: number; aiOn: number; flowsLive: number; knowledge: number;
   integrations: number; payments: boolean; aiKeys: number; platformAI: boolean; departments: number; members: number; diagApproved: number; brand: boolean; processes: number; planned: number;
+  /** Horário de atendimento salvo; quem atende: só o dono ou com equipe (null = ainda não respondeu). */
+  hours: boolean; teamMode: "solo" | "equipe" | null;
 }
 const EMPTY: SetupStatus = {
   whatsapp: 0, whatsappOnline: 0, email: 0, emailNoDept: 0, ramais: 0, nvoip: false, tags: 0, tagScopes: 0, groups: 0, library: 0, aiOn: 0,
   flowsLive: 0, knowledge: 0, integrations: 0, payments: false, aiKeys: 0, platformAI: false, departments: 0, members: 0, diagApproved: 0, brand: false, processes: 0, planned: 0,
+  hours: false, teamMode: null,
 };
 
 export function useSetupStatus(orgId: string | undefined) {
@@ -56,6 +59,8 @@ export function useSetupStatus(orgId: string | undefined) {
       brand: !!(p?.sections?.marca_voz?.trim() || (p?.brand?.colors?.length ?? 0) > 0),
       processes: (p?.processes ?? []).length,
       planned: (p?.processes ?? []).filter((x) => x.implementar).length,
+      hours: !!(orgRow.data?.settings as { business_hours?: unknown } | null)?.business_hours,
+      teamMode: ((m) => (m === "solo" || m === "equipe" ? m : null))((orgRow.data?.settings as { team_mode?: string } | null)?.team_mode),
     });
     setLoading(false);
   }, [orgId]);

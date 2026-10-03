@@ -24,14 +24,22 @@ pedido de cliente. Os detalhes de cada item estão nas seções abaixo; aqui fic
    outros nichos de alto valor e as franquias). Terminar também o que veio do "Auto Center Teste": merge, chave da IA da Clubetec, E7 (modelos por nicho
    num lugar só), E8 (horário padrão vindo do modelo; horário e palavras de LGPD fora de Fluxos), E10 (número de teste
    de WhatsApp) e a pergunta **"vai atender sozinho ou com equipe?"** (seção de 02/10).
+   *Entregue (02/10): o Diagnóstico abre sozinho no modelo com que a empresa foi criada; modelo "Software e suporte
+   técnico" também na Plataforma; **horário de atendimento sugerido pelo Diagnóstico** (pedido do dono: nada fixo) —
+   ao organizar a etapa Empresa, a IA lê o horário que o dono contou e, depois de aprovar, mostra o horário pronto
+   para ligar/desligar os dias e "Usar este horário"; tela **Configurações → Horário e LGPD** (saiu de Fluxos) já vem
+   com essa sugestão, e o passo "Horário de atendimento" entra nos Primeiros passos; pergunta "Como vai ser o atendimento? Só eu / Eu e uma equipe" no Início (sozinho: some o passo
+   Setores e equipe; dá para trocar); cabeçalho mais limpo — Conta, tema e Sair num menu só da pessoa, grupos do menu
+   só com ícone em telas médias (o sino não fica mais por cima do menu Conta).*
 2. **Venda autoatendida:** planos/pacotes que ligam os módulos, assinatura recorrente (Asaas), teste grátis, limites
    de uso (IA, disparos, minutos) com alerta, cadastro → diagnóstico → implantação guiada.
    **IA com valor fixo no plano (pedido em 02/10):** cada plano inclui uma franquia de atendimentos com IA por mês
    (contada em conversas, não em tokens, para o cliente entender), alerta em 80% e pacotes extras; planos maiores
-   com franquia maior. Modelos: Claude Haiku no atendimento (segue melhor as regras e inventa menos), Groq/Gemini
-   Flash para tarefas simples e baratas (classificar, resumir, transcrever) e Claude Sonnet só no planejamento do
-   Diagnóstico; troca automática de provedor quando um falhar. A IA da Clubetec precisa de conta paga (o plano
-   gratuito da Groq tem limite baixo por minuto e por dia).
+   com franquia maior. **Uma IA só para o sistema todo (decisão do dono, 02/10):** um único provedor com bom
+   custo-benefício, uma chave da Clubetec para todos os clientes, para simplificar custo e gestão. Escolha atual:
+   **Groq** (conversa, transcrição de áudio e leitura de imagem com a mesma chave, já integrado e o mais barato);
+   se a qualidade não bastar, trocar o provedor único (ex.: Gemini Flash), sem somar outro. Para os testes, a conta
+   gratuita da Groq basta; para clientes, conta paga (o plano gratuito tem limite baixo por minuto e por dia).
 3. **Contrato e LGPD:** termos de uso, política de privacidade e contrato de tratamento de dados aceitos no cadastro.
 4. **Segurança antes da produção:** varredura completa (security-review / claude-security), grants por coluna nas
    tabelas antigas, caso 55 intermitente dos testes, backups e plano de resposta a incidente.
