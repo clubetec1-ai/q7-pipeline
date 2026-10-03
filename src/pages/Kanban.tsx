@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ColorPill } from "@/components/ColorTag";
 import { toast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { formatDistanceToNowStrict } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -22,7 +23,10 @@ import {
   useDroppable,
   useDraggable,
 } from "@dnd-kit/core";
-import { Plus, Trash2 } from "lucide-react";
+import { MoreHorizontal, Plus, Trash2 } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -53,7 +57,9 @@ type Conversation = {
   last_message_at: string;
   inactivity_followup_at: string | null;
   department_id?: string | null;
+  contact_id?: string | null;
   dept?: { name: string; color: string | null } | null;
+  tags?: { name: string; color: string | null; icon: string | null }[];
 };
 
 const DEFAULT_STAGES = [
@@ -66,8 +72,8 @@ const ago = (iso: string) => {
   try { return formatDistanceToNowStrict(new Date(iso), { locale: ptBR, addSuffix: true }); } catch { return ""; }
 };
 
-/** Card enxuto: quem é, há quanto tempo falou e o setor. Clique abre a conversa; arraste muda a etapa. */
-function Card({ c }: { c: Conversation }) {
+/** Card enxuto: quem é, há quanto tempo falou, setor e etiquetas. Clique abre a conversa; arraste ou "⋯" muda a etapa. */
+function Card({ c, stages = [], onMove }: { c: Conversation; stages?: Stage[]; onMove?: (convId: string, stageId: string) => void }) {
   const navigate = useNavigate();
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: c.id });
   const who = c.contact_name || c.contact_phone || c.contact_email || "Sem nome";
@@ -81,11 +87,34 @@ function Card({ c }: { c: Conversation }) {
         isDragging ? "opacity-40" : ""
       }`}
     >
-      <div className="font-medium text-sm truncate">{who}</div>
+      <div className="flex items-center gap-1">
+        <div className="font-medium text-sm truncate flex-1">{who}</div>
+        {onMove && stages.length > 1 && (
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              className="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+              aria-label="Mover para outra etapa" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+              <MoreHorizontal className="w-4 h-4" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+              <DropdownMenuLabel className="text-xs text-muted-foreground">Mover para…</DropdownMenuLabel>
+              {stages.filter((st) => st.id !== c.stage_id).map((st) => (
+                <DropdownMenuItem key={st.id} onSelect={() => onMove(c.id, st.id)}>{st.name}</DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </div>
       <div className="mt-0.5 flex items-center justify-between gap-2 text-xs text-muted-foreground">
         <span className="truncate">{ago(c.last_message_at)}{c.ai_enabled ? " · IA atendendo" : ""}</span>
         {c.dept && <ColorPill color={c.dept.color} title="Setor">{c.dept.name}</ColorPill>}
       </div>
+      {!!c.tags?.length && (
+        <div className="mt-1 flex flex-wrap gap-1">
+          {c.tags.slice(0, 3).map((t) => <ColorPill key={t.name} color={t.color} icon={t.icon} title="Etiqueta">{t.name}</ColorPill>)}
+          {c.tags.length > 3 && <span className="text-xs text-muted-foreground">+{c.tags.length - 3}</span>}
+        </div>
+      )}
       {c.inactivity_followup_at && <div className="mt-1 text-xs text-primary-text">Retorno agendado</div>}
     </div>
   );
@@ -94,13 +123,17 @@ function Card({ c }: { c: Conversation }) {
 function Column({
   stage,
   cards,
+  stages,
   editing,
   onRename,
   onDelete,
+  onMove,
 }: {
   stage: Stage;
   cards: Conversation[];
+  stages: Stage[];
   editing: boolean;
+  onMove: (convId: string, stageId: string) => void;
   onRename: (id: string, name: string) => void;
   onDelete: (id: string) => void;
 }) {
@@ -135,7 +168,8 @@ function Column({
         ref={setNodeRef}
         className={`flex-1 p-2 space-y-2 min-h-[120px] overflow-y-auto transition ${isOver ? "bg-primary/5" : ""}`}
       >
-        {cards.map((c) => <Card key={c.id} c={c} />)}
+        {cards.map((c) => <Card key={c.id} c={c} stages={stages} onMove={onMove} />)}
+        {!cards.length && !editing && <p className="text-xs text-muted-foreground text-center py-6">Arraste um card para cá</p>}
       </div>
     </div>
   );
@@ -168,16 +202,23 @@ export default function Kanban() {
   };
   const loadConvs = async () => {
     if (!org) return;
-    const [{ data }, { data: depts }] = await Promise.all([
+    const [{ data }, { data: depts }, { data: tags }, { data: links }] = await Promise.all([
       supabase
         .from("conversations")
-        .select("id, contact_name, contact_phone, contact_email, channel, stage_id, ai_enabled, last_message_at, inactivity_followup_at, department_id")
+        .select("id, contact_id, contact_name, contact_phone, contact_email, channel, stage_id, ai_enabled, last_message_at, inactivity_followup_at, department_id")
         .eq("organization_id", org.id)
         .order("last_message_at", { ascending: false }),
       supabase.from("departments").select("id, name, color").eq("organization_id", org.id),
+      supabase.from("tags").select("id, name, color, icon").eq("organization_id", org.id),
+      supabase.from("contact_tags").select("contact_id, tag_id").eq("organization_id", org.id),
     ]);
     const byId = new Map((depts ?? []).map((d) => [d.id, { name: d.name, color: d.color }]));
-    setConversations(((data as Conversation[]) || []).map((c) => ({ ...c, dept: c.department_id ? byId.get(c.department_id) ?? null : null })));
+    const tagById = new Map((tags ?? []).map((t) => [t.id, { name: t.name, color: t.color, icon: t.icon }]));
+    const tagsOf = new Map<string, { name: string; color: string | null; icon: string | null }[]>();
+    (links ?? []).forEach((l) => { const t = tagById.get(l.tag_id); if (t) tagsOf.set(l.contact_id, [...(tagsOf.get(l.contact_id) ?? []), t]); });
+    setConversations(((data as Conversation[]) || []).map((c) => ({
+      ...c, dept: c.department_id ? byId.get(c.department_id) ?? null : null, tags: c.contact_id ? tagsOf.get(c.contact_id) ?? [] : [],
+    })));
   };
 
   useEffect(() => {
@@ -215,10 +256,13 @@ export default function Kanban() {
     if (!e.over) return;
     const overId = String(e.over.id);
     if (!overId.startsWith("stage-")) return;
-    const newStageId = overId.replace("stage-", "");
-    const convId = String(e.active.id);
+    await moveTo(String(e.active.id), overId.replace("stage-", ""));
+  };
+
+  const moveTo = async (convId: string, newStageId: string, undo = true) => {
     const conv = conversations.find((c) => c.id === convId);
     if (!conv || conv.stage_id === newStageId) return;
+    const from = conv.stage_id;
 
     // optimistic
     setConversations((prev) =>
@@ -231,6 +275,14 @@ export default function Kanban() {
     if (error) {
       toast({ variant: "destructive", title: "Não foi possível mover", description: error.message });
       loadConvs();
+      return;
+    }
+    if (undo && from) {
+      const name = stages.find((st) => st.id === newStageId)?.name ?? "outra etapa";
+      toast({
+        title: `Movido para ${name}`,
+        action: <ToastAction altText="Desfazer" onClick={() => void moveTo(convId, from, false)}>Desfazer</ToastAction>,
+      });
     }
   };
 
@@ -349,12 +401,12 @@ export default function Kanban() {
             aria-label="Buscar contato"
           />
           {hasEmail && (
-            <div className="flex rounded-md border overflow-hidden text-sm" role="group" aria-label="Canal">
+            <div className="inline-flex h-9 items-center rounded-lg bg-muted p-1 text-sm" role="group" aria-label="Canal">
               {([["all", "Todos"], ["whatsapp", "WhatsApp"], ["email", "E-mail"]] as const).map(([k, label]) => (
                 <button
                   key={k}
                   onClick={() => setChannel(k)}
-                  className={`px-3 h-8 ${channel === k ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}
+                  className={`h-7 rounded-md px-3 font-medium transition-colors ${channel === k ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
                 >
                   {label}
                 </button>
@@ -407,6 +459,8 @@ export default function Kanban() {
                 key={s.id}
                 stage={s}
                 cards={visible.filter((c) => c.stage_id === s.id)}
+                stages={stages}
+                onMove={(id, st) => void moveTo(id, st)}
                 editing={editing}
                 onRename={renameStage}
                 onDelete={requestDeleteStage}

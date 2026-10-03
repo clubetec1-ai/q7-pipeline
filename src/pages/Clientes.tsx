@@ -1,3 +1,4 @@
+import { SectionTabs } from "@/components/layout/SectionTabs";
 import { useCallback, useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { useNavigate } from "react-router-dom";
@@ -64,33 +65,61 @@ export default function Clientes() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <AppHeader active="clientes" />
+      <SectionTabs group="clientes" active="clientes" />
       <NumberHealthBanner />
 
-      <main className="flex-1 w-full max-w-5xl mx-auto p-4 sm:p-6 space-y-4">
+      <main className="flex-1 w-full max-w-6xl mx-auto px-4 py-6 sm:px-6 space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold flex items-center gap-2"><Users className="w-6 h-6" /> Clientes</h1>
+            <h1 className="font-brand text-2xl leading-tight">Clientes</h1>
             <p className="text-sm text-muted-foreground">Clique no cliente para abrir a ficha (dados, grupos, registros e notas).</p>
           </div>
           <Input className="w-72" placeholder="Buscar nome, telefone ou e-mail" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
 
-        <div className="rounded-lg border divide-y">
-          {!rows.length && <p className="p-4 text-sm text-muted-foreground">Nenhum cliente encontrado.</p>}
-          {rows.map((r) => {
-            const conv = convOf.get(r.id);
-            return (
-              <div key={r.id} className="flex flex-wrap items-center gap-3 p-3 text-sm hover:bg-muted/50">
-                <button type="button" className="text-left min-w-0 flex-1" onClick={() => setOpen({ contact: r.id, conv: conv ?? "" })}>
-                  <p className="font-medium truncate">{r.name || r.phone || r.email}</p>
-                  <p className="text-xs text-muted-foreground truncate">{[r.phone, r.email].filter(Boolean).join(" · ")}{r.opted_out_at ? " · não recebe mensagens automáticas" : ""}</p>
-                </button>
-                <div className="flex flex-wrap gap-1">{(groups.get(r.id) ?? []).slice(0, 3).map((g) => <ColorPill key={g.name} color={g.color} icon={g.icon}>{g.name}</ColorPill>)}</div>
-                <Button size="sm" variant="outline" onClick={() => setOpen({ contact: r.id, conv: conv ?? "" })}>Ver ficha</Button>
-                {conv && <Button size="icon" variant="ghost" title="Abrir conversa" onClick={() => navigate(`/?open=${conv}`)}><MessageSquare className="w-4 h-4" /></Button>}
-              </div>
-            );
-          })}
+        <div className="rounded-xl border bg-card overflow-hidden">
+          {!rows.length ? (
+            <div className="p-10 text-center">
+              <p className="font-medium">Nenhum cliente encontrado</p>
+              <p className="text-sm text-muted-foreground mt-1">{q ? "Tente outro nome, telefone ou e-mail." : "Os clientes aparecem aqui assim que escreverem pelo WhatsApp ou e-mail."}</p>
+            </div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 text-left">
+                <tr className="text-xs text-muted-foreground">
+                  <th className="px-4 py-2.5 font-medium">Cliente</th>
+                  <th className="px-4 py-2.5 font-medium hidden md:table-cell">Contato</th>
+                  <th className="px-4 py-2.5 font-medium hidden sm:table-cell">Grupos</th>
+                  <th className="px-4 py-2.5 w-12"><span className="sr-only">Conversa</span></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {rows.map((r) => {
+                  const conv = convOf.get(r.id);
+                  return (
+                    <tr key={r.id} className="group cursor-pointer hover:bg-muted/50" onClick={() => setOpen({ contact: r.id, conv: conv ?? "" })}>
+                      <td className="px-4 py-3 min-w-0">
+                        <p className="font-medium truncate max-w-[16rem]">{r.name || r.phone || r.email}</p>
+                        {r.opted_out_at && <p className="text-xs text-muted-foreground">Não recebe mensagens automáticas</p>}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground hidden md:table-cell truncate max-w-[18rem]">{[r.phone, r.email].filter(Boolean).join(" · ")}</td>
+                      <td className="px-4 py-3 hidden sm:table-cell">
+                        <div className="flex flex-wrap gap-1">{(groups.get(r.id) ?? []).slice(0, 3).map((g) => <ColorPill key={g.name} color={g.color} icon={g.icon}>{g.name}</ColorPill>)}</div>
+                      </td>
+                      <td className="px-2 py-3 text-right">
+                        {conv && (
+                          <Button size="icon" variant="ghost" className="opacity-60 group-hover:opacity-100" title="Abrir conversa" aria-label="Abrir conversa"
+                            onClick={(e) => { e.stopPropagation(); navigate(`/?open=${conv}`); }}>
+                            <MessageSquare className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </div>
         {rows.length === 200 && <p className="text-xs text-muted-foreground">Mostrando os 200 mais recentes. Use a busca para achar outros.</p>}
       </main>

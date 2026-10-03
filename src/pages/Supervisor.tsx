@@ -1,3 +1,4 @@
+import { SectionTabs } from "@/components/layout/SectionTabs";
 import { NumberHealthBanner } from "@/components/NumberHealthBanner";
 import { AppHeader } from "@/components/AppHeader";
 import { useCallback, useEffect, useState } from "react";
@@ -93,6 +94,7 @@ export default function Supervisor() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <AppHeader active="supervisor" />
+      <SectionTabs group="resultados" active="supervisor" />
       <NumberHealthBanner />
 
       <main className="flex-1 w-full max-w-6xl mx-auto p-4 sm:p-6 space-y-6">

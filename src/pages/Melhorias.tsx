@@ -1,3 +1,4 @@
+import { SectionTabs } from "@/components/layout/SectionTabs";
 import { useCallback, useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { Navigate, useNavigate } from "react-router-dom";
@@ -176,6 +177,7 @@ export default function Melhorias() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <AppHeader active="melhorias" />
+      <SectionTabs group="resultados" active="melhorias" />
       <NumberHealthBanner />
 
       <main className="flex-1 w-full max-w-7xl mx-auto p-4 sm:p-6 space-y-4">

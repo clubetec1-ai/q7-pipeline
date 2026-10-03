@@ -1,3 +1,4 @@
+import { SectionTabs } from "@/components/layout/SectionTabs";
 import { useCallback, useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { Copy, Filter, Link2, Sparkles } from "lucide-react";
@@ -74,6 +75,7 @@ export default function Funil() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <AppHeader active="funil" />
+      <SectionTabs group="resultados" active="funil" />
       <NumberHealthBanner />
       <main className="flex-1 w-full max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-3">

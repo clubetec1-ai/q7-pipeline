@@ -1279,6 +1279,8 @@ BEGIN
   PERFORM pg_temp.expect((SELECT count(*) FROM public.tags WHERE organization_id = A AND name LIKE 'Lead %') = 3, 'funil cria etiquetas');
   PERFORM public.service_install_sales_funnel(A);
   PERFORM pg_temp.expect((SELECT count(*) FROM public.pipeline_stages WHERE organization_id = A AND name = 'Qualificado') = 1, 'instalar de novo nao duplica');
+  PERFORM pg_temp.expect((SELECT string_agg(name, '|' ORDER BY position) FROM public.pipeline_stages WHERE organization_id = A)
+    = 'Novo lead|Qualificado|Diagnóstico ou demonstração|Proposta enviada|Teste grátis|Cliente|Perdido|Novo', 'funil na ordem, etapa antiga no fim');
   PERFORM pg_temp.expect((SELECT count(*) FROM public.pipeline_stages WHERE organization_id = 'bbbbbbbb-0000-0000-0000-000000000001' AND name = 'Qualificado') = 0, 'funil de A nao mexe em B');
   INSERT INTO public.flows (id, organization_id, name) VALUES ('aaaaaaaa-0000-0000-0069-000000000001', A, 'funil-a');
   INSERT INTO public.flow_versions (organization_id, flow_id, status, graph) VALUES (A, 'aaaaaaaa-0000-0000-0069-000000000001', 'draft',

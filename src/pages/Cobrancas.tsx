@@ -1,3 +1,4 @@
+import { SectionTabs } from "@/components/layout/SectionTabs";
 import { useCallback, useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { Navigate, useNavigate } from "react-router-dom";
@@ -96,6 +97,7 @@ export default function Cobrancas() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <AppHeader active="cobrancas" />
+      <SectionTabs group="clientes" active="cobrancas" />
       <NumberHealthBanner />
 
       <main className="flex-1 w-full max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
