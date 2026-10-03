@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/contexts/OrgContext";
 
 /** #RRGGBB → "H S% L%" (formato das variáveis do tema) e se o texto por cima deve ser escuro. */
-function toHsl(hex: string) {
+export function toHsl(hex: string) {
   const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
   const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2;
   let h = 0, s = 0;
@@ -17,15 +17,25 @@ function toHsl(hex: string) {
   return { hsl: `${Math.round(h)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`, darkText: lum > 0.6 };
 }
 
-const VARS = ["--primary", "--primary-foreground", "--ring"];
+const HEX = /^#[0-9a-f]{6}$/i;
+const VARS = ["--primary", "--primary-foreground", "--ring", "--brand-secondary"];
+
+/** Logo da empresa (link temporário) para o cabeçalho; muda junto com a empresa selecionada. */
+let logoUrl: string | null = null;
+const listeners = new Set<() => void>();
+const setLogo = (u: string | null) => { if (u !== logoUrl) { logoUrl = u; listeners.forEach((l) => l()); } };
+export function useOrgLogo() {
+  return useSyncExternalStore((cb) => { listeners.add(cb); return () => listeners.delete(cb); }, () => logoUrl);
+}
 
 /**
- * Cor da marca da empresa como cor principal das telas, quando o dono ligar no
- * kit da marca (Diagnóstico → Marca). Troca de empresa ou desligar volta ao padrão.
+ * Aparência da empresa (Configurações → Aparência): cor principal e secundária nas
+ * telas, quando o dono ligar, e o logo no cabeçalho. Trocar de empresa ou desligar
+ * volta ao padrão do Deixa com a IA.
  */
 export function OrgTheme() {
   const { org } = useOrg();
-  // O kit da marca avisa quando o dono liga/desliga ou troca a cor: aplica de novo.
+  // A tela de aparência avisa quando o dono muda algo: aplica de novo.
   const [tick, setTick] = useState(0);
   useEffect(() => {
     const bump = () => setTick((t) => t + 1);
@@ -34,17 +44,23 @@ export function OrgTheme() {
   }, []);
   useEffect(() => {
     const root = document.documentElement;
-    const reset = () => VARS.forEach((v) => root.style.removeProperty(v));
+    const reset = () => { VARS.forEach((v) => root.style.removeProperty(v)); setLogo(null); };
     if (!org) { reset(); return; }
     let alive = true;
-    void supabase.rpc("org_theme", { org: org.id }).then(({ data }) => {
+    void supabase.rpc("org_theme", { org: org.id }).then(async ({ data }) => {
       if (!alive) return;
-      const hex = (data as { primary?: string } | null)?.primary;
-      if (!hex || !/^#[0-9a-f]{6}$/i.test(hex)) { reset(); return; }
-      const { hsl, darkText } = toHsl(hex);
-      root.style.setProperty("--primary", hsl);
-      root.style.setProperty("--ring", hsl);
-      root.style.setProperty("--primary-foreground", darkText ? "220 15% 8%" : "0 0% 100%");
+      const t = (data ?? {}) as { primary?: string; secondary?: string; logo?: string };
+      VARS.forEach((v) => root.style.removeProperty(v));
+      if (t.primary && HEX.test(t.primary)) {
+        const { hsl, darkText } = toHsl(t.primary);
+        root.style.setProperty("--primary", hsl);
+        root.style.setProperty("--ring", hsl);
+        root.style.setProperty("--primary-foreground", darkText ? "220 15% 8%" : "0 0% 100%");
+      }
+      if (t.secondary && HEX.test(t.secondary)) root.style.setProperty("--brand-secondary", toHsl(t.secondary).hsl);
+      if (!t.logo) { setLogo(null); return; }
+      const { data: signed } = await supabase.storage.from("brand").createSignedUrl(t.logo, 3600);
+      if (alive) setLogo(signed?.signedUrl ?? null);
     });
     return () => { alive = false; };
   }, [org, tick]);

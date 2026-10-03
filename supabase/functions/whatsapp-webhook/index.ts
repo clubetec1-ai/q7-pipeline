@@ -212,10 +212,9 @@ async function resolveCloud(admin: any, req: Request, raw: string, phoneNumberId
     (await getSecret(admin, `instance:${inst.id}:app_secret`)) ||
     (await getSecret(admin, "platform:meta_app_secret"));
   if (!secret) {
-    // Transição: sem App Secret configurado não há como validar. Registrado no
-    // plano 1C; configurar platform:meta_app_secret fecha este caminho.
-    console.error("[webhook] ATENCAO: App Secret da Meta nao configurado; assinatura nao validada");
-    return { inst };
+    // Sem App Secret não há como provar que veio da Meta: recusa (nunca aceita sem assinatura).
+    console.error("[webhook] App Secret da Meta nao configurado; mensagem recusada");
+    return { deny: "App Secret da Meta nao configurado" };
   }
   const header = req.headers.get("x-hub-signature-256") ?? "";
   const expected = "sha256=" + (await hmacSha256Hex(secret, raw));

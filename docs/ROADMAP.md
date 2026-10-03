@@ -204,6 +204,39 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
   marketing, copywriter e imagem/vídeo para definir o lançamento do Deixa com a IA (público e nichos, posicionamento,
   oferta e preço de lançamento, calendário de conteúdo, roteiros de vídeo e criativos), seguindo o manual da marca.
 
+### 🎯 Outubro/2026: deixar 100% funcional e seguro rodando na Clubetec (decisão do dono em 03/10)
+Outubro = só estabilidade, segurança, visual e melhorias, com a Clubetec usando de verdade como piloto. Marketing
+(docs/marketing 01–04) fica para o fim de outubro; lançamentos em novembro (vitrine: congresso ANOREG 17–19/11).
+- ✅ **Varredura de segurança 1 (03/10):**
+  - 82 funções do banco chamáveis pelo navegador conferidas, e todas checam permissão;
+  - as funções sem login (webhooks e crons) exigem assinatura ou segredo;
+  - webhook da Meta passa a **recusar** mensagem quando falta o App Secret (antes aceitava sem conferir);
+  - **trava "mesma empresa" no banco** para etapa do funil, número, notas, mensagens e follow-ups (antes uma
+    conversa podia apontar para a etapa ou o número de outra empresa de quem participa das duas), teste 70;
+  - cabeçalhos de segurança no site (CSP, anti-clickjacking, HSTS, nosniff, permissões só de microfone);
+  - dependência do navegador com falha (react-router) atualizada.
+- ✅ **Kanban e Conversas só da empresa selecionada** *(03/10)*: antes, quem participa de várias empresas via tudo
+  misturado.
+- ✅ **Kanban mais limpo para vender** *(pedido 03/10)*: sem lápis/lixeira em cada coluna (botão único "Editar
+  etapas", só para quem gerencia), busca, filtro WhatsApp/E-mail, cards com nome + "há quanto tempo" + setor, sem
+  ícones; "Criar etapas padrão" corrigido (dava erro).
+- ✅ **Aparência por empresa** *(pedido 03/10)*: Configurações → Aparência com logo da empresa no topo das telas, cor
+  principal e secundária, prévia e "voltar ao padrão". Todo membro vê o logo; o resto do kit da marca segue
+  restrito. Teste 71.
+- ✅ Limpeza: painel antigo de configuração (código morto) e o aviso "cole sua chave da Groq" (a IA agora é da
+  plataforma) removidos.
+- ⏳ **Integrações: API aberta + webhooks em vez de conectores um a um** *(pedido 03/10; Bling deixa de ser foco)*:
+  (1) **webhooks de saída** assinados (novo contato, mudou de etapa, atendimento finalizado, mensagem recebida);
+  (2) **API com chave por empresa** e permissões (enviar mensagem, criar/atualizar contato, mover no funil, consultar
+  conversa); (3) guia pronto para **n8n, Make e Zapier**, que já ligam com milhares de sistemas sem a gente construir
+  cada conector; (4) conector nativo só onde há mercado: **Google Agenda** (agendamento) e sistemas de cartório via
+  parceria. O bloco "Consultar sistema" dos fluxos continua para chamar qualquer API.
+- ⏳ Próximas rodadas da varredura: teste visual tela a tela (claro/escuro, celular), erros no console, e-mails
+  automáticos (noreply, cobrança, cadastro) não deveriam virar lead no Kanban, avisos de saúde por sino/e-mail,
+  revisão final com o agente revisor antes de produção.
+- 🙋 **Dono:** ligar no Supabase a proteção contra senhas vazadas (Authentication → Policies/Passwords →
+  "Leaked password protection"; exige o plano Pro).
+
 ### 🙋 Pendências do dono (fora do código)
 - Decidir: aprovar o logo do Deixa com a IA; preços, pacotes e franquia de IA dos planos; próximo nicho; criptografia por campo; o que
   fazer com a empresa de teste sem uso "Auto Center Modelo (TESTE)".

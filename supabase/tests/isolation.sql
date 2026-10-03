@@ -1291,6 +1291,31 @@ BEGIN
   WHERE flow_id = 'aaaaaaaa-0000-0000-0069-000000000001' AND status = 'draft';
   PERFORM pg_temp.expect(pg_temp.t(owner_a, format('SELECT public.publish_flow(%L)', 'aaaaaaaa-0000-0000-0069-000000000001')) = '1', 'etapa propria publicada');
 
+  -- 70. Referencias so dentro da mesma organizacao (mesmo para quem participa de varias).
+  PERFORM pg_temp.expect_error(NULL, format('UPDATE public.conversations SET stage_id = (SELECT id FROM public.pipeline_stages WHERE organization_id = %L LIMIT 1) WHERE id = %L',
+    'bbbbbbbb-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0004-000000000001'), 'conversa de A nao vai para etapa de B');
+  PERFORM pg_temp.expect_error(NULL, format('UPDATE public.conversations SET instance_id = %L WHERE id = %L',
+    'bbbbbbbb-0000-0000-0003-000000000001', 'aaaaaaaa-0000-0000-0004-000000000001'), 'conversa de A nao usa numero de B');
+  PERFORM pg_temp.expect_error(NULL, format('INSERT INTO public.messages (organization_id, user_id, conversation_id, direction, sender, content) VALUES (%L, %L, %L, %L, %L, %L)',
+    'bbbbbbbb-0000-0000-0000-000000000001', owner_b, 'aaaaaaaa-0000-0000-0004-000000000001', 'inbound', 'contact', 'x'), 'mensagem de B nao entra em conversa de A');
+  PERFORM pg_temp.expect(pg_temp.run(NULL, format('INSERT INTO public.messages (organization_id, user_id, conversation_id, direction, sender, content) VALUES (%L, %L, %L, %L, %L, %L)',
+    A, owner_a, 'aaaaaaaa-0000-0000-0004-000000000001', 'inbound', 'contact', 'x')) = 'ok:1', 'mensagem da propria org aceita');
+
+  -- 71. Aparencia: todo membro ve o logo das telas da propria empresa (so ele); outra org nada.
+  INSERT INTO storage.objects (bucket_id, name) VALUES ('brand', A::text || '/logo-telas-1.png'), ('brand', A::text || '/manual.pdf');
+  UPDATE public.company_profiles SET brand = jsonb_build_object('use_in_theme', true,
+    'theme', jsonb_build_object('primary', '#112233', 'secondary', '#445566', 'logo', A::text || '/logo-telas-1.png'))
+  WHERE organization_id = A;
+  PERFORM pg_temp.expect(pg_temp.t(agent_a, format('SELECT public.org_theme(%L) ->> %L', A, 'secondary')) = '#445566', 'membro recebe as cores');
+  PERFORM pg_temp.expect(pg_temp.t(owner_b, format('SELECT coalesce(public.org_theme(%L)::text, %L)', A, 'nada')) = 'nada', 'outra org nao recebe tema de A');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, format('SELECT count(*) FROM storage.objects WHERE name = %L', A::text || '/logo-telas-1.png')) = 1, 'atendente ve o logo das telas');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, format('SELECT count(*) FROM storage.objects WHERE name = %L', A::text || '/manual.pdf')) = 0, 'atendente nao ve o resto da marca');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, format('SELECT count(*) FROM storage.objects WHERE name = %L', A::text || '/logo-telas-1.png')) = 0, 'outra org nao ve o logo de A');
+  UPDATE public.company_profiles SET brand = jsonb_set(brand, '{theme,logo}', to_jsonb('bbbbbbbb-0000-0000-0000-000000000001/x.png'::text)) WHERE organization_id = A;
+  PERFORM pg_temp.expect(pg_temp.t(agent_a, format('SELECT coalesce(public.org_theme(%L) ->> %L, %L)', A, 'logo', 'sem')) = 'sem', 'logo fora da pasta da empresa ignorado');
+  PERFORM pg_temp.expect(pg_temp.run(NULL, format('UPDATE public.conversations SET stage_id = (SELECT id FROM public.pipeline_stages WHERE organization_id = %L AND name = %L) WHERE id = %L',
+    A, 'Qualificado', 'aaaaaaaa-0000-0000-0004-000000000001')) = 'ok:1', 'etapa da propria org aceita');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 
