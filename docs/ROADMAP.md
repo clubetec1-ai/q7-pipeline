@@ -94,13 +94,19 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
 26. ⏳ Messenger e Instagram; backup automático externo; logo e ícone da aba (com o nome novo).
 
 ### 🙋 Pendências do dono (fora do código)
-- Decidir: nome comercial; preços, pacotes e franquia de IA dos planos; próximo nicho; criptografia por campo; o que
+- Decidir: preços, pacotes e franquia de IA dos planos; próximo nicho; criptografia por campo; o que
   fazer com a empresa de teste sem uso "Auto Center Modelo (TESTE)".
 - Fazer: parecer de propriedade industrial e pedido no INPI; comprar os domínios; gerar os códigos de recuperação do MFA;
   número de teste de WhatsApp; cobrar da Nvoip a permissão do histórico (403); respostas da Handphone; número fixo na
   Meta; validar o Bling com conta real; contas pagas (Supabase, Groq) antes do 1º cliente.
 
 ### Nome comercial e domínio (pedido em 02/10)
+**✅ Decidido em 02/10: o produto se chama Clube Re9** (lê-se "renove": a empresa se renovando sempre — diagnóstico,
+atendimento com IA e melhoria contínua). Logo: "Re" + um 9 cuja cauda vira seta circular (o ciclo). Domínios livres em
+02/10: clubere9.com.br, clubere9.com e cluberenove.com.br/.com (por extenso, para quem ouvir o nome). INPI: "Clube Re9"
+sem nenhum processo; "re9" com 6 marcas ativas na classe 42. Próximos passos: 🙋 comprar os domínios, parecer de
+agente de propriedade industrial e pedido de marca mista em nome da Clubetec (classes 42 e 9; 35 se vender
+consultoria); depois, trocar "ClubeCRM" por "Clube Re9" nas telas, e-mails, links e documentação.
 Avaliar se "ClubeCRM" é o melhor nome para vender, mantendo a marca "Clube". O dono quer um nome que passe a ideia de
 **melhoria contínua** (começa pelo diagnóstico e segue dando feedback e melhorias). Sugestão: **Clube Evolui**; ideia do
 dono: **Clube Inove**, logo "Clube i9" (i de inteligência, 9 = "nove"); clubeinove e clubei9 (.com.br e .com) livres em
