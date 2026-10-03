@@ -9,7 +9,7 @@ const root = createRoot(document.getElementById("root")!);
 // com tela branca, mostramos exatamente o que está faltando.
 if (!isConfigured) {
   console.error(
-    "[ClubeCRM] Configuração do Supabase ausente ou inválida:",
+    "[Deixa com a IA] Configuração do Supabase ausente ou inválida:",
     envProblems.map((p) => `${p.variable}: ${p.message}`).join(" | ")
   );
   root.render(<SetupRequired problems={envProblems} />);

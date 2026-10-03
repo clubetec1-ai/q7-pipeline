@@ -107,7 +107,7 @@ export default function Plataforma() {
         <div className="flex items-start justify-between gap-3">
           <div>
             <h1 className="text-2xl font-semibold">Plataforma</h1>
-            <p className="text-sm text-muted-foreground">Empresas clientes do ClubeCRM. Aqui só aparecem contagens; para ver dados de uma empresa, abra um acesso de suporte com motivo e prazo.</p>
+            <p className="text-sm text-muted-foreground">Empresas clientes do Deixa com a IA. Aqui só aparecem contagens; para ver dados de uma empresa, abra um acesso de suporte com motivo e prazo.</p>
           </div>
           <Button onClick={() => setCreating({ name: "", template: "generico", email: "" })}><Plus className="w-4 h-4 mr-1" /> Nova empresa</Button>
         </div>
@@ -170,7 +170,7 @@ export default function Plataforma() {
         <section className="space-y-2 rounded-lg border p-4">
           <h2 className="font-semibold">Aplicativo do conector Bling {apps.bling ? <Badge className="ml-2">Ativo</Badge> : <Badge variant="outline" className="ml-2">Não configurado</Badge>}</h2>
           <ol className="list-decimal pl-5 text-xs text-muted-foreground space-y-0.5">
-            <li>Entre em developer.bling.com.br com a conta Bling da Clubetec e crie um aplicativo “ClubeCRM” (tipo: aplicativo público/para terceiros).</li>
+            <li>Entre em developer.bling.com.br com a conta Bling da Clubetec e crie um aplicativo “Deixa com a IA” (tipo: aplicativo público/para terceiros).</li>
             <li>Em “Link de redirecionamento”, use: <code className="select-all">{`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connectors-callback`}</code></li>
             <li>Escopos: contatos, pedidos de venda e situações (leitura).</li>
             <li>Copie o Client ID e o Client Secret e cole abaixo (vão para o cofre; não aparecem de novo).</li>

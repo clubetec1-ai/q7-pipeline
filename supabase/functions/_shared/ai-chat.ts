@@ -147,7 +147,7 @@ Horário: ${new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }
 Confira em Plataforma → Conectores → IA da Clubetec.`;
     for (const addr of ((to_ as string[] | null) ?? []).slice(0, 5)) {
       await sendSystemEmail(from.admin, {
-        to: addr, subject: `[ClubeCRM] IA: ${what}`, text,
+        to: addr, subject: `[Deixa com a IA] IA: ${what}`, text,
         html: `<p>A IA da plataforma trocou para a reserva.</p><p><b>${esc(what)}</b><br>Erro: ${esc(err ?? "sem detalhe")}</p><p>Confira em Plataforma → Conectores → IA da Clubetec.</p>`,
       });
     }

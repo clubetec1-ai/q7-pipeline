@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
       const { data: base } = await admin.from("app_settings").select("value").eq("key", "functions_base_url").maybeSingle();
       const tok = token();
       const hook = await asaas(cfg, "POST", "/webhooks", {
-        name: "ClubeCRM", url: `${base?.value}/payments-webhook?org=${orgId}`, email: ctx.user.email ?? undefined,
+        name: "Deixa com a IA", url: `${base?.value}/payments-webhook?org=${orgId}`, email: ctx.user.email ?? undefined,
         enabled: true, interrupted: false, authToken: tok, sendType: "SEQUENTIALLY", events: WEBHOOK_EVENTS,
       });
       let warning: string | null = null;

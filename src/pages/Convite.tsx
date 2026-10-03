@@ -76,7 +76,7 @@ export default function Convite() {
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Crie sua senha</CardTitle>
-              <CardDescription>Você vai usar esta senha para entrar no ClubeCRM com o e-mail {user?.email}.</CardDescription>
+              <CardDescription>Você vai usar esta senha para entrar no Deixa com a IA com o e-mail {user?.email}.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="space-y-1.5">
@@ -121,7 +121,7 @@ export default function Convite() {
             )}
             <div className="flex justify-between pt-2">
               {orgs.length > 0 ? (
-                <Button variant="ghost" size="sm" onClick={() => navigate("/")}>Ir para o ClubeCRM</Button>
+                <Button variant="ghost" size="sm" onClick={() => navigate("/")}>Entrar no sistema</Button>
               ) : <span />}
               <Button variant="ghost" size="sm" onClick={() => signOut()}>Sair</Button>
             </div>

@@ -53,9 +53,9 @@ Deno.serve(async (req) => {
       return (data?.factors ?? []).filter((f: { status: string }) => f.status === "verified");
     };
     const mail = (subject: string, line: string) => sendSystemEmail(admin, {
-      to: ctx.user.email ?? "", subject: `[ClubeCRM] ${subject}`,
-      text: `Olá!\n\n${line}\n\nSe não foi você, troque a senha agora e fale com o responsável pela sua empresa.\n\nClubeCRM`,
-      html: `<p>Olá!</p><p>${esc(line)}</p><p><b>Se não foi você</b>, troque a senha agora e fale com o responsável pela sua empresa.</p><p>ClubeCRM</p>`,
+      to: ctx.user.email ?? "", subject: `[Deixa com a IA] ${subject}`,
+      text: `Olá!\n\n${line}\n\nSe não foi você, troque a senha agora e fale com o responsável pela sua empresa.\n\nDeixa com a IA`,
+      html: `<p>Olá!</p><p>${esc(line)}</p><p><b>Se não foi você</b>, troque a senha agora e fale com o responsável pela sua empresa.</p><p>Deixa com a IA</p>`,
     });
 
     if (action === "generate") {

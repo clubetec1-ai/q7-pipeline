@@ -34,7 +34,7 @@ O que perguntam antes de comprar: preço, se a IA realmente atende, se dá para 
 Objeções: "é caro", "já uso outro CRM", "tenho medo da IA responder errado", "minha equipe não vai saber usar", "e se o WhatsApp for bloqueado?".
 Etapas até fechar: 1) primeiro contato → 2) diagnóstico gratuito → 3) demonstração com o plano da empresa → 4) proposta → 5) teste de 7 dias → 6) fechamento e implantação → 7) acompanhamento no 1º mês → 8) renovação e novos módulos.`,
       marca:
-`Cores: Azul-petróleo #3FB8BE (principal), Grafite #1F2937, Branco.
+`Cores: Verde Clubetec #22C1A4 (principal), Azul-petróleo #215371, Azul-marinho #0B1E3D, Branco.
 Tom de voz: próximo e confiável, sem termos técnicos; trata por "você"; frases curtas; emoji com moderação (no máximo um por mensagem); sempre mostra o próximo passo.
 Usa: "vamos resolver juntos", "em poucos minutos", "passo a passo".
 Evita: jargão técnico (API, servidor) sem explicar, promessas de prazo que dependem de terceiros, "infelizmente não podemos".

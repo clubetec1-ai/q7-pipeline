@@ -257,11 +257,11 @@ Deno.serve(async (req) => {
     // ------------------------------------------------------------------ suggest
     if (action === "suggest") {
       const prompt = [
-        "Você é consultor de automação do ClubeCRM (atendimento por WhatsApp e e-mail com IA, fluxos, registros, biblioteca).",
+        "Você é consultor de automação do Deixa com a IA (atendimento por WhatsApp e e-mail com IA, fluxos, registros, biblioteca).",
         "A partir do retrato da empresa, sugira até 12 automações priorizadas por impacto e esforço.",
         `Automações PRONTAS no CRM (tipo "pronta", use a chave em "modelo"): ${JSON.stringify(READY)}.`,
         'Automações que dependem de outro sistema (ERP, agenda, banco...) têm tipo "integracao", com "sistema" e "passos" (3 a 6 passos simples para o dono seguir; chaves e tokens vão em Fluxos → Segredos, nunca no chat).',
-        'O próprio ClubeCRM nunca é "sistema" de integração: tudo que o CRM já faz (horário de atendimento, fluxos, IA, registros, biblioteca, pesquisa, follow-up, e-mail) é tipo "pronta". Não repita sugestões.',
+        'O próprio sistema nunca é "sistema" de integração: tudo que o CRM já faz (horário de atendimento, fluxos, IA, registros, biblioteca, pesquisa, follow-up, e-mail) é tipo "pronta". Não repita sugestões.',
         'Responda SOMENTE com JSON: {"sugestoes":[{"titulo":"","area":"","tipo":"pronta|integracao","impacto":"alto|medio|baixo","esforco":"baixo|medio|alto","descricao":"","modelo":"","sistema":"","passos":[""]}]}',
       ].join("\n");
       const out = await ask(prompt, `O que já existe no CRM:\n${crm}\n\nRetrato da empresa:\n${retrato(20_000)}`);
@@ -288,8 +288,8 @@ Deno.serve(async (req) => {
         "Você é consultor de gestão e automação. Com o retrato da empresa (cultura, situação, objetivos, setores e processos descritos passo a passo),",
         "faça o PLANEJAMENTO ESTRATÉGICO e o PLANO DE AÇÃO. Separe o que é MELHORIA DE PROCESSO (organização, regra, treinamento) do que é AUTOMAÇÃO.",
         "Prioridade de custo: toda automação possível SEM IA (fluxo, regra, resposta rápida, registro, lembrete, conector) vem PRIMEIRO; use IA só onde precisa entender texto livre ou conversar.",
-        `Automações prontas no ClubeCRM (use a chave em "modelo" quando servir): ${JSON.stringify(READY)}.`,
-        'Tipo "integracao" só quando depende de OUTRO sistema (ERP, banco, agenda externa). Tudo que o ClubeCRM já faz (registros personalizados para chamados, pedidos e contas; fluxos; e-mail; biblioteca; follow-up) é "sem_ia" ou "ia", nunca integração.',
+        `Automações prontas no sistema (use a chave em "modelo" quando servir): ${JSON.stringify(READY)}.`,
+        'Tipo "integracao" só quando depende de OUTRO sistema (ERP, banco, agenda externa). Tudo que o sistema já faz (registros personalizados para chamados, pedidos e contas; fluxos; e-mail; biblioteca; follow-up) é "sem_ia" ou "ia", nunca integração.',
         "Missão, visão e valores: use o que o dono definiu; se faltar, proponha e comece o texto com \"Proposta:\". Nunca invente números; se estimar volume, diga que é estimativa. Números e percentuais: copie exatamente como o dono escreveu e com o mesmo sentido (meta é meta, situação atual é situação atual; nunca inverta, ex.: \"meta de 80% completos\" não vira \"80% incompletos\").",
         'Responda SOMENTE com JSON: {"diagnostico":"onde a empresa está (3 a 6 frases)","missao":"","visao":"","valores":[""],',
         '"objetivos":[{"objetivo":"","indicador":"","prazo":""}],',

@@ -37,11 +37,11 @@ Deno.serve(async (req) => {
   const problem = security ? "tentou exportar os contatos sem permissão (bloqueado)"
     : r.error || STATUS[r.status] || "precisa de atenção";
   const link = appUrl?.value ? `${String(appUrl.value).replace(/\/$/, "")}/${security ? "supervisor" : "numeros"}` : "";
-  const subject = `[ClubeCRM] ${what} ${r.name ?? ""}: ${problem}`;
+  const subject = `[Deixa com a IA] ${what} ${r.name ?? ""}: ${problem}`;
   const text = `Olá!\n\n${what} "${r.name ?? ""}" da empresa ${o?.name ?? ""}: ${problem}\n` +
-    `Veja os detalhes em ${page}${link ? `: ${link}` : " no ClubeCRM"}.\n\nClubeCRM`;
+    `Veja os detalhes em ${page}${link ? `: ${link}` : " no sistema"}.\n\nDeixa com a IA`;
   const html = `<p>Olá!</p><p>${what} <b>${esc(r.name)}</b> da empresa ${esc(o?.name)}: <b>${esc(problem)}</b>.</p>` +
-    `<p>${link ? `<a href="${esc(link)}">Ver em ${esc(page)}</a>` : `Veja os detalhes em ${esc(page)} no ClubeCRM.`}</p><p>ClubeCRM</p>`;
+    `<p>${link ? `<a href="${esc(link)}">Ver em ${esc(page)}</a>` : `Veja os detalhes em ${esc(page)} no sistema.`}</p><p>Deixa com a IA</p>`;
 
   const res = await sendSystemEmail(admin, { to: String(p?.email ?? ""), subject, text, html });
   if (res.ok) await admin.from("notifications").update({ emailed_at: new Date().toISOString() }).eq("id", n.id);

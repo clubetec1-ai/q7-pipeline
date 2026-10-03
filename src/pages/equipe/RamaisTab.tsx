@@ -69,8 +69,8 @@ export function RamaisTab({ orgId, data }: { orgId: string; data: EquipeData }) 
           ))}
         </TableBody>
       </Table>
-      <p className="text-xs text-muted-foreground mt-2">Cada pessoa tem um ramal e vê o botão 📞 no canto da tela. <b>Navegador</b>: liga e atende dentro do ClubeCRM
-        (precisa do endereço WebRTC da central). <b>MicroSIP/aparelho</b>: liga pelo MicroSIP; o ClubeCRM identifica o cliente pelo número e continua o
+      <p className="text-xs text-muted-foreground mt-2">Cada pessoa tem um ramal e vê o botão 📞 no canto da tela. <b>Navegador</b>: liga e atende dentro do sistema
+        (precisa do endereço WebRTC da central). <b>MicroSIP/aparelho</b>: liga pelo MicroSIP; o sistema identifica o cliente pelo número e continua o
         atendimento no WhatsApp. 🟢 online · 🔴 erro · ⚪ desconectado · 🔵 MicroSIP (fora do navegador).</p>
     </div>
   );
