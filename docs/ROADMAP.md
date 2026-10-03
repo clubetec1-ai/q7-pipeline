@@ -68,7 +68,7 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
 6. ⏳ **Produção:** 🙋 nome comercial (em definição — ver "Nome comercial" abaixo; depois parecer de agente de
    propriedade industrial, pedido no INPI nas classes 42 e 9, domínios), Supabase pago (backup e sem pausa), OpenAI com
    limite mensal, site na VPS Hostinger ou Vercel, troca do nome nas telas, e-mails e links.
-7. ⏳ **Zerar a Clubetec** e configurar do zero (listar o que será apagado e confirmar antes) — por último.
+7. 🟡 **Zerar a Clubetec** *(03/10: conversas, mensagens, protocolos e contatos de teste apagados com autorização do dono; configurações mantidas)* — falta configurar do zero e testar o piloto.
 
 ### P1 — ticket alto e franquias
 8. 🟡 **Modelos por nicho completos:** prontos Software e 3 de cartório; faltam fluxos prontos e etiquetas por nicho, e
@@ -112,7 +112,7 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
     pedida pelo WhatsApp e retenção automática, "apagada pelo cliente" no e-mail e na Meta, limite e marca d'água na
     exportação, gravação de áudio no navegador, depuração do bloco HTTP.
 25. 🟡 **Chat da equipe:** falta busca, reações e canais extras.
-26. ⏳ Messenger e Instagram; backup automático externo; logo e ícone da aba (com o nome novo).
+26. 🟡 Messenger e Instagram ⏳ (depois de WhatsApp e e-mail); backup semanal local ✅ (externo/nuvem quando assinar o Supabase Pro); logo e ícone da aba ✅.
 
 ### Pedidos de 03/10: entrevista por voz, atendente preferencial, IA principal + 2 reservas
 - **Entrevista do Diagnóstico por voz (módulo):** o entrevistador faz as perguntas falando e o dono responde falando,
