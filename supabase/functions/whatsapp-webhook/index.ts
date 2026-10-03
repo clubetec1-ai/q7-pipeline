@@ -1,8 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { moduleOn } from "../_shared/modules.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
-import { getAgentConfig, getAgentProfile } from "../_shared/get-ai-config.ts";
-import { chat as aiChat, resolveAI } from "../_shared/ai-chat.ts";
+import { getAgentProfile } from "../_shared/get-ai-config.ts";
+import { audioAI, chatAI, recordUsage, resolveAI } from "../_shared/ai-chat.ts";
 import { cancelPendingFollowups, scheduleInactivityFollowup } from "../_shared/followups.ts";
 import * as providers from "../_shared/providers/index.ts";
 import { transcribeAudio } from "../_shared/transcribe.ts";
@@ -586,10 +586,11 @@ async function handle(req: Request, ctx: QueueCtx): Promise<Response> {
     }
 
     // Áudio vira texto antes de ser gravado; falha aqui cai no rótulo "[áudio]".
-    const agent = await getAgentConfig(orgId);
-    if (mediaKind === "audio" && mediaBytes && agent?.apiKey) {
-      const falado = await transcribeAudio(agent.apiKey, mediaBytes);
+    const stt = mediaKind === "audio" && mediaBytes ? await audioAI(supabase, orgId) : null;
+    if (mediaKind === "audio" && mediaBytes && stt) {
+      const falado = await transcribeAudio(stt.apiKey, mediaBytes, "audio.ogg", stt.provider);
       if (falado) {
+        await recordUsage(stt, undefined, 1);
         text = "🎤 " + falado;
         console.log("[webhook] audio transcrito", { chars: falado.length });
       }
@@ -675,7 +676,7 @@ async function handle(req: Request, ctx: QueueCtx): Promise<Response> {
       })),
     ];
 
-    const groq = await aiChat(ai.apiKey, ai.provider, ai.model, chat);
+    const groq = await chatAI(ai, chat);
     if (!groq.ok || !groq.reply) {
       console.error("[webhook] groq failed", groq.error);
       return ok();

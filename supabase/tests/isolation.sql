@@ -1214,6 +1214,25 @@ BEGIN
     '{"clientes":"c","regras_ia":"r","marca_visual":"v","marca_voz":"z"}', A)) = 'ok:1', 'secoes novas aceitas');
   PERFORM pg_temp.expect_error(owner_a, format('UPDATE public.company_profiles SET sections = sections || %L WHERE organization_id = %L', '{"senha":"x"}', A), 'secao desconhecida recusada');
 
+  -- 66. IA da plataforma (principal + reservas) e consumo: só o operador configura e vê; empresa nenhuma vê consumo; servidor soma.
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.platform_ai_set(%L, %L, %L, %L)', 'principal', 'openai', '', 'sk-teste-123456789012345'), 'dono nao configura IA da plataforma');
+  PERFORM pg_temp.expect_error(owner_a, 'SELECT public.platform_ai_status()', 'dono nao ve as posicoes');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT * FROM public.platform_ai_usage(%L)', current_date - 30), 'dono nao ve consumo de todos');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_ai_usage_add(%L, %L, %L, 1, 10, 10, 0)', A, 'openai', 'plataforma'), 'navegador nao soma consumo');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_ai_slot_error(%L, %L)', 'principal', 'x'), 'navegador nao marca falha');
+  PERFORM pg_temp.expect_error(operator, format('SELECT public.platform_ai_set(%L, %L, %L, %L)', 'principal', 'inventado', '', 'k'), 'fornecedor invalido recusado');
+  PERFORM pg_temp.expect_error(operator, format('SELECT public.platform_ai_set(%L, %L, %L, %L)', 'reserva2', 'gemini', 'x y;drop', 'chave-teste-1234567890'), 'modelo invalido recusado');
+  PERFORM pg_temp.expect(pg_temp.run(operator, format('SELECT public.platform_ai_set(%L, %L, %L, %L)', 'reserva1', 'openai', 'gpt-4o-mini', 'sk-teste-123456789012345')) = 'ok:1', 'operador configura reserva');
+  PERFORM pg_temp.expect(pg_temp.t(operator, 'SELECT (SELECT e->>''has_key'' FROM jsonb_array_elements(public.platform_ai_status()) e WHERE e->>''slot'' = ''reserva1'')') = 'true', 'operador ve que tem chave');
+  PERFORM pg_temp.expect(pg_temp.t(operator, 'SELECT public.platform_ai_status()::text') NOT LIKE '%sk-teste%', 'chave nunca volta');
+  PERFORM public.service_ai_usage_add(A, 'openai', 'plataforma', 1, 100, 50, 0);
+  PERFORM public.service_ai_usage_add(A, 'openai', 'plataforma', 1, 10, 5, 0);
+  PERFORM pg_temp.expect(pg_temp.q(operator, format('SELECT sum(tokens_in) FROM public.platform_ai_usage(%L) WHERE organization_id = %L', current_date - 1, A)) = 110, 'consumo somado por empresa');
+  PERFORM pg_temp.expect_error(owner_a, 'SELECT count(*) FROM public.ai_usage_daily', 'tabela de consumo fechada para o navegador');
+  PERFORM pg_temp.expect_error(owner_a, 'SELECT count(*) FROM public.platform_ai_slots', 'tabela de posicoes fechada para o navegador');
+  PERFORM pg_temp.expect(pg_temp.run(operator, format('SELECT public.platform_ai_clear(%L)', 'reserva1')) = 'ok:1', 'operador esvazia reserva');
+  PERFORM pg_temp.expect_error(operator, format('SELECT public.platform_ai_clear(%L)', 'principal'), 'principal nao some');
+
   RAISE NOTICE 'ISOLATION OK';
 END $$;
 

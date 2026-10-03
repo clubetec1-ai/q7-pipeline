@@ -3,7 +3,7 @@ import { HttpError, requirePermission, requireUser, resolveOrg } from "../_share
 import { requireModule } from "../_shared/modules.ts";
 import { forOrg } from "../_shared/tenant.ts";
 import { getAgentProfile } from "../_shared/get-ai-config.ts";
-import { chat as aiChat, resolveAI } from "../_shared/ai-chat.ts";
+import { chatAI, resolveAI } from "../_shared/ai-chat.ts";
 import { withProtocol } from "../_shared/flow/executor.ts";
 import { toChatText } from "../_shared/ai-policy.ts";
 import { companyKnowledge } from "../_shared/company.ts";
@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
       knowledgeContext(admin, orgId, lastUser, "cliente", null),
     ]);
     const system = [withProtocol(draft || profile.systemPrompt, "TESTE"), company, knowledge].filter(Boolean).join("\n\n");
-    const r = await aiChat(ai.apiKey, ai.provider, ai.model, [{ role: "system", content: system }, ...msgs]);
+    const r = await chatAI(ai, [{ role: "system", content: system }, ...msgs]);
     if (!r.ok || !r.reply) throw new HttpError(502, r.error ?? "A IA não respondeu. Tente de novo.");
     return json({
       ok: true, reply: toChatText(String(r.reply)).slice(0, 4000), provider: ai.provider, model: ai.model,

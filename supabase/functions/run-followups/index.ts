@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { getAgentProfile } from "../_shared/get-ai-config.ts";
-import { chat as aiChat, resolveAI } from "../_shared/ai-chat.ts";
+import { chatAI, resolveAI } from "../_shared/ai-chat.ts";
 import { getUazapiConfig } from "../_shared/get-uazapi-config.ts";
 import * as providers from "../_shared/providers/index.ts";
 import { forOrg } from "../_shared/tenant.ts";
@@ -139,7 +139,7 @@ serve(async (req) => {
               "[sistema] O cliente não respondeu. Escreva agora a mensagem de reengajamento, só ela.",
           },
         ];
-        const groq = await aiChat(ai.apiKey, ai.provider, ai.model, chat);
+        const groq = await chatAI(ai, chat);
         if (groq.ok && groq.reply && groq.reply.trim()) {
           text = groq.reply.trim();
         } else {

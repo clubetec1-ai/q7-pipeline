@@ -1,7 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { getUazapiConfig } from "../_shared/get-uazapi-config.ts";
-import { callGroq, getAgentConfig } from "../_shared/get-ai-config.ts";
+import { getAgentProfile } from "../_shared/get-ai-config.ts";
+import { chatAI, resolveAI } from "../_shared/ai-chat.ts";
 import * as providers from "../_shared/providers/index.ts";
 import { HttpError, permissionsIn, requirePermission, requireUser, resolveOrg } from "../_shared/auth.ts";
 import { forOrg } from "../_shared/tenant.ts";
@@ -327,15 +328,16 @@ async function diagnose(inst: any, orgId: string, baseUrl: string | null, token:
     uazapi: { ok: false },
   };
 
-  const agent = await getAgentConfig(orgId);
-  checks.agent.has_key = !!agent?.apiKey;
-  checks.agent.enabled = !!agent?.enabled;
+  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  const [ai, profile] = await Promise.all([resolveAI(admin, orgId), getAgentProfile(admin, orgId)]);
+  checks.agent.has_key = !!ai;
+  checks.agent.enabled = !!profile?.enabled;
   checks.agent.ok = checks.agent.has_key && checks.agent.enabled;
-  if (!checks.agent.has_key) checks.agent.error = "Chave da Groq não configurada";
+  if (!checks.agent.has_key) checks.agent.error = "IA não configurada (chave própria ou IA da Clubetec)";
   else if (!checks.agent.enabled) checks.agent.error = "Agente não está ativo";
 
-  if (agent?.apiKey) {
-    const r = await callGroq(agent.apiKey, agent.model, [
+  if (ai) {
+    const r = await chatAI(ai, [
       { role: "system", content: "Responda apenas: ok" },
       { role: "user", content: "ping" },
     ]);
