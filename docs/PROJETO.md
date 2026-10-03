@@ -67,10 +67,10 @@ Criada pela Plataforma como um cliente novo (modelo Prestação de serviços), c
 | E10 | Sem número de WhatsApp de teste, não dá para testar o atendimento real ponta a ponta | ℹ️ | "Testar o agente" (conversa simulada) cobre a IA; WhatsApp exige um chip de teste |
 | E11 | 🔴 Aprovar a etapa Empresa do Diagnóstico era recusado pelo banco (etapas novas Clientes, Marca e Regras fora da lista permitida) — nenhuma empresa nova passava do 1º passo | 🔴 Crítico | ✅ (02/10) lista corrigida + teste automático 65 |
 | E12 | Agente respondeu com tabela (o WhatsApp não mostra tabela) | 🟡 Médio | ✅ (02/10) regra de formato de conversa no atendimento |
-| E13 | Cartório: a lista de documentos veio do conhecimento geral da IA, não da empresa | 🟠 Alto | ⏳ base de conhecimento modelo do cartório (lista oficial por ato e tabela de emolumentos) |
+| E13 | Cartório: a lista de documentos veio do conhecimento geral da IA, não da empresa | 🟠 Alto | ✅ (02/10) documentos modelo do cartório na Base de conhecimento (1 clique) + regra de só informar valor da tabela oficial enviada pela empresa |
 | E14 | Depois de aprovar a etapa Empresa, a tela pulava para a próxima e o horário sugerido só aparecia ao voltar | 🟡 Médio | ✅ (02/10) fica na etapa com o horário pronto para usar |
 | E15 | 🔴 Aprovar Clientes e jornada, Marca e Regras e limites da IA era recusado ("seção desconhecida") — as seções novas do Diagnóstico 3.0 não estavam no banco | 🔴 Crítico | ✅ (02/10) lista completa + teste automático 65 |
-| E16 | Planejamento inverteu um número (meta "80% das escrituras com documentação completa" virou "80% chegam incompletas") | 🟡 Médio | ⏳ conferir números no planejamento (pedir à IA para citar só números ditos pelo dono) |
+| E16 | Planejamento inverteu um número (meta "80% das escrituras com documentação completa" virou "80% chegam incompletas") | 🟡 Médio | ✅ (02/10) o planejamento copia números e percentuais exatamente como o dono escreveu, sem inverter |
 
 **Agentes que precisam estar em produção desde o 1º dia (visão CEO):**
 1. **Agente de atendimento** (com Regras e limites + Testar o agente) — é o que o cliente compra.

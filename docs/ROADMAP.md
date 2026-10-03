@@ -92,8 +92,11 @@ recuperação do MFA; cobrar da Nvoip a permissão do histórico (erro 403); res
   objetivos, setores, regras da IA) e processos de Atendimento e balcão, Escrituras e notas, Registro Civil, Certidões
   e pedidos a distância e Financeiro; e o modelo "Cartório" ao criar empresa em Plataforma (funil Novo pedido →
   Documentação → Orçamento e pagamento → Assinatura agendada → Ato concluído, 4 setores e agente que nunca dá
-  orientação jurídica, nunca calcula imposto e só informa valores da tabela oficial).* Falta: base de conhecimento
-  modelo (lista de documentos por ato, tabela de emolumentos do estado) e fluxos prontos do cartório — **prioridade**:
+  orientação jurídica, nunca calcula imposto e só informa valores da tabela oficial).* *Entregue (02/10): na Base de
+  conhecimento, "Documentos modelo — Cartório de Notas e Registro Civil" (1 clique, 5 documentos marcados "revise com o
+  tabelião": regra de valores, documentos para escrituras, procurações/firma/autenticação/apostila, registro civil e
+  certidões), cada um no setor certo; aviso para enviar a tabela oficial de emolumentos do estado.* Falta: fluxos
+  prontos do cartório — antes, **prioridade**:
   no teste de 02/10 o agente listou documentos de escritura pelo conhecimento geral da IA (correto no geral, mas não
   é a lista oficial do cartório).
   *Teste de ponta a ponta no "Cartório Teste" (02/10):* Diagnóstico abriu no modelo Cartório; IA organizou a etapa
