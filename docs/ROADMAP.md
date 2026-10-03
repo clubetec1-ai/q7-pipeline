@@ -13,87 +13,142 @@ e-mails, montar fluxos e agentes, instalar automações prontas, seguir guias de
 botão “testar” e mensagens claras. Só integrações complexas ficam com o time Clubetec, como serviço pago.
 Mais receita, menos suporte.
 
-## Prioridades — o que falta, em ordem (organizado em 02/10)
+## Situação geral e prioridades (revisado em 02/10)
 Visão de CEO: primeiro o que permite **vender e cobrar com segurança**, depois o que faz vender **mais caro e em
 volume** (ticket alto e franquias), depois o "cérebro" e por último canais e extras que dependem de fornecedor ou de
-pedido de cliente. Os detalhes de cada item estão nas seções abaixo; aqui fica só a ordem.
+pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não começado · 🙋 depende do dono. Detalhes nas seções abaixo.
 
-**P0 — antes do 1º cliente pagante**
-1. **Empresa de teste principal = cartório fictício (pedido em 02/10):** o cartório é o primeiro cliente que o dono
-   vai abordar, então o teste completo passa a ser feito num "Cartório Teste" criado com o modelo Cartório (depois os
-   outros nichos de alto valor e as franquias). Terminar também o que veio do "Auto Center Teste": merge, chave da IA da Clubetec, E7 (modelos por nicho
-   num lugar só), E8 (horário padrão vindo do modelo; horário e palavras de LGPD fora de Fluxos), E10 (número de teste
-   de WhatsApp) e a pergunta **"vai atender sozinho ou com equipe?"** (seção de 02/10).
-   *Entregue (02/10): o Diagnóstico abre sozinho no modelo com que a empresa foi criada; modelo "Software e suporte
-   técnico" também na Plataforma; **horário de atendimento sugerido pelo Diagnóstico** (pedido do dono: nada fixo) —
-   ao organizar a etapa Empresa, a IA lê o horário que o dono contou e, depois de aprovar, mostra o horário pronto
-   para ligar/desligar os dias e "Usar este horário"; tela **Configurações → Horário e LGPD** (saiu de Fluxos) já vem
-   com essa sugestão, e o passo "Horário de atendimento" entra nos Primeiros passos; pergunta "Como vai ser o atendimento? Só eu / Eu e uma equipe" no Início (sozinho: some o passo
-   Setores e equipe; dá para trocar); cabeçalho mais limpo — Conta, tema e Sair num menu só da pessoa, grupos do menu
-   só com ícone em telas médias (o sino não fica mais por cima do menu Conta).*
-2. **Venda autoatendida:** planos/pacotes que ligam os módulos, assinatura recorrente (Asaas), teste grátis, limites
-   de uso (IA, disparos, minutos) com alerta, cadastro → diagnóstico → implantação guiada.
-   **IA com valor fixo no plano (pedido em 02/10):** cada plano inclui uma franquia de atendimentos com IA por mês
-   (contada em conversas, não em tokens, para o cliente entender), alerta em 80% e pacotes extras; planos maiores
-   com franquia maior. **Uma IA só para o sistema todo (decisão do dono, 02/10):** um único provedor com bom
-   custo-benefício, uma chave da Clubetec para todos os clientes, para simplificar custo e gestão. Escolha atual:
-   **Groq** (conversa, transcrição de áudio e leitura de imagem com a mesma chave, já integrado e o mais barato);
-   se a qualidade não bastar, trocar o provedor único (ex.: Gemini Flash), sem somar outro. Para os testes, a conta
-   gratuita da Groq basta; para clientes, conta paga (o plano gratuito tem limite baixo por minuto e por dia).
-3. **Contrato e LGPD:** termos de uso, política de privacidade e contrato de tratamento de dados aceitos no cadastro.
-4. **Segurança antes da produção:** varredura completa (security-review / claude-security), grants por coluna nas
-   tabelas antigas, caso 55 intermitente dos testes, backups e plano de resposta a incidente.
-5. **Agentes do dia 1** que faltam: assistente dentro do app ("como faço…?") e monitor de saúde ampliado (número caiu,
-   chave de IA inválida, fila parada, fluxo com erro) com botão de correção.
-6. **Zerar a Clubetec** e configurar do zero (listar o que será apagado e confirmar antes).
+### ✅ Concluído desde o início (resumo)
+- **Base e segurança:** multiempresa com isolamento no banco (65 grupos de testes automáticos), cofre de segredos,
+  MFA com códigos de recuperação, conversas que ninguém apaga, exportação só com permissão (e alerta), anonimização LGPD,
+  módulos por empresa com trava no servidor, política fixa para todos os agentes de IA (não inventar, nada ilegal,
+  nada que prejudique a empresa; só a Clubetec muda).
+- **Canais:** vários números de WhatsApp (QR e oficial da Meta), e-mail IMAP/SMTP (com filtro de e-mails automáticos),
+  ramal no navegador ou MicroSIP, Nvoip (clique-para-ligar e histórico), protocolo em WhatsApp e e-mail.
+- **Atendimento:** setores com cor e fila, ajuda entre setores, etiquetas padrão e por setor, grupos, busca, ficha do
+  cliente, biblioteca e respostas rápidas, chat da equipe, presença.
+- **IA e automação:** agente de atendimento, fluxos sem código, leitura de áudio, imagem e PDF, base de conhecimento,
+  Diagnóstico 3.0 (1ª parte, com Marca, horário sugerido e planejamento), implementador (rascunhos), ciclo de melhorias,
+  avaliação automática dos atendimentos, Testar o agente, IA da Clubetec incluída (uma chave Groq para todos).
+- **Gestão:** relatórios, painel Resultados no Início, supervisor, campanhas, cobranças pelo Asaas, registros
+  personalizados, guia de integrações e conectores (Bling beta).
+- **Layout e cliente guiado:** menu novo, central de Configurações, Primeiros passos, "Horário e LGPD", "sozinho ou com
+  equipe", cabeçalho limpo, Plataforma em abas.
+- **Nichos:** Software e suporte técnico; Cartório — Notas e Registro Civil, Registro de Imóveis e Ofício Único (Plataforma,
+  Diagnóstico e documentos modelo na base).
+- **Testes de ponta a ponta:** Auto Center Teste, Cartório Teste e Registro de Imóveis Teste — 19 achados (E1–E19),
+  todos corrigidos menos E7 (parte) e E10.
 
-**P1 — ticket alto e franquias (vender mais caro e em volume)**
-7. **Modelos por nicho completos** (E7): cada nicho com Diagnóstico de exemplo + funil + setores + agente + etiquetas +
-   fluxos prontos + base de conhecimento modelo. Ordem sugerida: cartório (feito o 1º), clínicas e odontologia,
-   escritórios de advocacia e contabilidade, imobiliárias, auto centers/concessionárias, escolas, redes de franquia.
-8. **Rede de franquias** (seção de 02/10): matriz cria o padrão e replica para cada unidade; painel da rede.
-9. **Implantação com valor agregado:** pacote de implantação vendido junto (diagnóstico + configuração + treinamento),
-   roteiro por nicho e relatório "antes × depois" para o cliente.
-10. Painel **"o que o ClubeCRM fez por você"** (tempo de resposta, resolvidos pela IA, vendas e cobranças recuperadas).
-11. **Revenda / white label** para agências e parceiros.
-12. **Regras dos bots — próximos passos** (política fixa entregue em 02/10): mostrar a política na tela do agente,
-    teste de tentativas de burlar no "Testar o agente" e registro dessas tentativas na auditoria.
+### P0 — antes do 1º cliente pagante
+1. 🟡 **Teste de ponta a ponta:** falta E7 (etiquetas e fluxos prontos por nicho), E10 (testar pelo WhatsApp real com um
+   número de teste 🙋) e um teste completo com a equipe (convidar atendente, setores, fila).
+2. ⏳ **Venda autoatendida:** planos que ligam os módulos, assinatura recorrente (Asaas), teste grátis, cadastro público
+   → Diagnóstico → implantação guiada; **franquia de conversas com IA por plano** (alerta em 80% e pacotes extras).
+   🙋 Definir preços, pacotes e a franquia de IA de cada plano.
+   **IA da plataforma (revisto em 02/10):** **um fornecedor só**, com vários modelos dele (mais simples no atendimento,
+   mais forte no Diagnóstico); prioridade qualidade, depois custo. Comparação de 02/10: OpenAI cobre conversa,
+   transcrição de áudio e imagem com uma chave só; Anthropic tem a melhor qualidade em seguir regras, mas não transcreve
+   áudio (precisaria de um 2º fornecedor só para isso); Gemini é o mais barato e cobre tudo. Para trocar: chave da
+   plataforma por fornecedor (hoje só Groq) e transcrição de áudio pelo fornecedor escolhido (hoje fixa na Groq).
+   🙋 Decidir o fornecedor depois de testar as mesmas perguntas do cartório no "Testar o agente".
+   **Principal + reserva (pedido em 02/10):** OpenAI como principal (confirmado: transcreve áudio pela API) e um
+   fornecedor de **reserva semi-pronto** para emergência — chave já guardada no cofre, desligada no dia a dia; se a
+   principal cair (fora do ar, limite, chave inválida), a chamada passa sozinha para a reserva (conversa e áudio), a
+   Clubetec é avisada na Plataforma e pode trocar manualmente. Reserva sugerida: Groq (já integrada e barata).
+3. 🟡 **Contrato e LGPD:** existe a página de termos e exclusão de dados; falta termos de uso e política de privacidade
+   revisados, contrato de tratamento de dados (cliente como controlador, Clubetec como operadora) e aceite no cadastro.
+4. ⏳ **Segurança antes da produção:** varredura completa (security-review / claude-security), grants por coluna nas
+   tabelas antigas, caso 55 intermitente, limites de login e CAPTCHA, alerta de muitas tentativas, backups e plano de
+   resposta a incidente. 🙋 Decidir se criptografa campo a campo os dados sensíveis (CPF, documentos, gravações).
+5. 🟡 **Agentes do dia 1:** atendimento, entrevistador, avaliador ✅; falta o **assistente dentro do app** ("como
+   faço…?") e o **monitor de saúde ampliado** (hoje só números; falta chave de IA inválida, fila parada, fluxo com erro,
+   com botão de correção).
+6. ⏳ **Produção:** 🙋 nome comercial (Clube Inove/i9 — parecer de agente de propriedade industrial, pedido no INPI nas
+   classes 42 e 9, domínios), Supabase pago (backup e sem pausa), Groq pago, site na VPS Hostinger ou Vercel, troca do
+   nome nas telas, e-mails e links.
+7. ⏳ **Zerar a Clubetec** e configurar do zero (listar o que será apagado e confirmar antes) — por último.
 
-**P2 — cérebro e profundidade do produto**
-13. **Cérebro com delegação por área** (seção de 02/10) + aprovador por setor + resultado das melhorias voltando ao
-    Diagnóstico com um clique.
-14. Diagnóstico 3.0, 2ª parte: Sistemas e dados, Pós-venda, Publicar e medir, convite ao responsável do setor,
-    exportar o planejamento (PDF), escolha automática Haiku/Sonnet, Google Meu Negócio e redes sociais.
-15. Base de conhecimento: preencher modelos (contrato/orçamento) com dados do cliente, enviar documento "enviável"
-    pelo atendimento, PDF digitalizado (OCR), setores da base por bloco de IA; mídia: vídeo e anexos de e-mail.
-16. Cobrança e registros: IA gerando cobrança (com permissão), cobrança recorrente ligada a "Conta a receber",
-    Mercado Pago/Efí, IA criando/atualizando registros.
-17. Integrações: validar Bling com conta real; Omie, Tiny, Nuvemshop, Google Agenda.
-18. Meta: cadastro do número em poucos cliques (Embedded Signup) e nova conversa com modelo aprovado.
-19. Relatórios: PDF, período personalizado, envio automático por e-mail.
+### P1 — ticket alto e franquias
+8. 🟡 **Modelos por nicho completos:** prontos Software e 3 de cartório; faltam fluxos prontos e etiquetas por nicho, e
+   os nichos clínicas/odontologia, advocacia/contabilidade, imobiliária (hoje só funil simples), auto center, escolas.
+   🙋 Escolher o próximo nicho depois do cartório.
+9. ⏳ **Rede de franquias:** matriz cria o padrão e replica para as unidades; painel da rede só com números somados.
+10. ⏳ **Implantação com valor agregado:** pacote vendido junto, roteiro por nicho e relatório "antes × depois".
+11. 🟡 **Painel "o que o sistema fez por você":** o painel Resultados existe; falta vendas, cobranças recuperadas e
+    horas economizadas, em linguagem de dono.
+12. ⏳ **Revenda / white label** para agências e parceiros.
+13. 🟡 **Regras dos bots:** política fixa, formato de WhatsApp e recusas testadas ✅; falta mostrar a política na tela do
+    agente, recusar com mais educação oferecendo uma pessoa, teste de tentativas de burlar e registro delas na auditoria.
 
-**P3 — canais, voz e extras (quando o fornecedor liberar ou o cliente pedir)**
-20. Voz: pendências da Handphone e da Nvoip (WSS, aviso em tempo real, gravações, transcrição, histórico 403),
-    agentes de voz/URA, fluxos dentro da ligação, avaliação das ligações.
-21. E-mail: Microsoft 365 por OAuth, Google direto, cópia em "Enviados", IA e fluxos no e-mail.
-22. Campanhas: arquivo da biblioteca, modelos da Meta puxados da conta, relatório de respostas, teste A/B.
-23. Atendimento: convidar outro setor sem transferir, sino para os setores ajudantes, filtros na busca e por
-    setor/grupo, anonimização pedida pelo WhatsApp e retenção automática, "apagada pelo cliente" no e-mail e na Meta,
-    limite e marca d'água na exportação, gravação de áudio no navegador, modo depuração do bloco HTTP.
-24. Chat da equipe: busca, reações e canais extras.
-25. Messenger e Instagram; backup automático externo; hospedagem própria (VPS); logo e ícone da aba.
+### P2 — cérebro e profundidade do produto
+14. ⏳ **Cérebro com delegação por área** + aprovador por setor + resultado das melhorias voltando ao Diagnóstico.
+15. ⏳ **Diagnóstico, 2ª parte:** Sistemas e dados, Pós-venda, Publicar e medir, convite ao responsável do setor,
+    planejamento em PDF, Google Meu Negócio e redes sociais. (A escolha Haiku/Sonnet saiu: decisão de uma IA só.)
+16. 🟡 **Base de conhecimento:** preencher contrato/orçamento com dados do cliente, enviar documento "enviável" pelo
+    atendimento, PDF digitalizado (OCR), setores da base por bloco de IA, vídeo e anexos de e-mail.
+17. 🟡 **Cobrança e registros:** Asaas ✅; falta IA gerando cobrança (com permissão), cobrança recorrente ligada a
+    "Conta a receber", Mercado Pago/Efí, IA criando registros.
+18. 🟡 **Integrações:** Bling beta ✅ (validar com conta real 🙋); faltam Omie, Tiny, Nuvemshop, Google Agenda.
+19. ⏳ **Meta:** número em poucos cliques (Embedded Signup) e nova conversa com modelo aprovado.
+20. 🟡 **Relatórios:** existem; falta PDF, período personalizado e envio automático por e-mail.
 
-**Nome comercial e domínio (pedido em 02/10):** avaliar se "ClubeCRM" é o melhor nome para vender, mantendo a marca
-"Clube". O dono quer um nome que passe a ideia de **melhoria contínua** (começa pelo diagnóstico e segue dando feedback
-e melhorias), não só de atendimento. Sugestão: **Clube Evolui** (clubeevolui.com.br e .com livres em 02/10), com a frase
-"diagnóstico, atendimento com IA e melhoria contínua da sua empresa"; alternativas Clube Avança, Clube Ciclo, Clube Cresce. **Ideia do dono: Clube Inove** — logo "Clube i9" (i de inteligência,
-9 = "nove"); clubeinove e clubei9 (.com.br e .com) livres em 02/10: registrar os dois e apontar clubei9 para clubeinove. Antes de comprar: busca no INPI (classes 9 e 42) e
-registro do domínio .com.br e .com. **Produção na VPS da Hostinger:** site (frontend) na VPS ou na Vercel; o banco e as
-funções continuam no Supabase (plano pago em produção: backups diários e sem pausa); trocar o nome nas telas, e-mails
-e no domínio dos links.
+### P3 — canais, voz e extras (quando o fornecedor liberar ou o cliente pedir)
+21. 🟡 **Voz:** ramal e Nvoip ✅; falta WSS, aviso em tempo real, gravações e transcrição (🙋 respostas da Handphone e
+    da Nvoip, histórico com erro 403), agente de voz/URA, fluxos na ligação, avaliação das ligações.
+22. 🟡 **E-mail:** IMAP/SMTP ✅; falta Microsoft 365 por OAuth, Google direto, cópia em "Enviados", IA e fluxos no e-mail.
+23. 🟡 **Campanhas:** existem; falta arquivo da biblioteca, modelos da Meta puxados da conta, relatório de respostas, A/B.
+24. 🟡 **Atendimento:** falta convidar outro setor sem transferir, sino para os ajudantes, filtros na busca, anonimização
+    pedida pelo WhatsApp e retenção automática, "apagada pelo cliente" no e-mail e na Meta, limite e marca d'água na
+    exportação, gravação de áudio no navegador, depuração do bloco HTTP.
+25. 🟡 **Chat da equipe:** falta busca, reações e canais extras.
+26. ⏳ Messenger e Instagram; backup automático externo; logo e ícone da aba (com o nome novo).
 
-**Ações do dono (fora do código):** colar a chave Groq da plataforma (Plataforma → Conectores); gerar os códigos de
-recuperação do MFA; cobrar da Nvoip a permissão do histórico (erro 403); respostas da Handphone; número fixo na Meta.
+### 🙋 Pendências do dono (fora do código)
+- Decidir: logo do Clube Renova+; preços, pacotes e franquia de IA dos planos; próximo nicho; criptografia por campo; o que
+  fazer com a empresa de teste sem uso "Auto Center Modelo (TESTE)".
+- Fazer: parecer de propriedade industrial e pedido no INPI; comprar os domínios; gerar os códigos de recuperação do MFA;
+  número de teste de WhatsApp; cobrar da Nvoip a permissão do histórico (403); respostas da Handphone; número fixo na
+  Meta; validar o Bling com conta real; contas pagas (Supabase, Groq) antes do 1º cliente.
+
+### Nome comercial e domínio (pedido em 02/10)
+**Mais ideias (02/10, "reset"):** "Clube Re7" (resete = reset) descartado — clubereset.com.br tem dono. Com
+.com.br e .com livres e "Clube X" sem processo no INPI: **Clube Virada** ("virada de chave"; "virada" com 1 marca na 42),
+**Clube Reboot** (0 na 42), Clube Set (11), Clube Rumo (7), Clube Chave (7), Clube Passo (8).
+**✅ Nome fechado em 03/10: Clube Renova+** (falado e no domínio: Clube Renova Mais). Antes de trocar no sistema, o dono
+quer aprovar o logo (4 propostas mostradas em 03/10: ciclo com +, ícone R+, + de setas, só a palavra). **Direção escolhida pelo dono
+(03/10):** seguir a marca Clubetec (verde #22C1A4, azul-petróleo #215371, letra grossa em itálico) — "Clube" em cima, no
+meio as **duas pessoas de mãos dadas do símbolo Clubetec formando um ciclo** (sempre renovando) e "Renova+" embaixo;
+ícone do app só com o ciclo. Rascunho feito; arte final com designer a partir do vetor original da Clubetec. **Ajuste do dono
+(03/10):** manter o **símbolo da Clubetec do jeito que está** (as duas pessoas), com um **"+" entre elas** (no aperto de
+mão), "Clube" em cima e "Renova" ou "Renova+" embaixo — limpo e no padrão Clubetec. Prévia feita com o símbolo recortado
+do logo oficial (versões A Renova, B Renova+, C fundo escuro e ícone). *"Clube Renove
+Mais" (03/10):* cluberenovemais .com.br e .com livres, mas cluberenove.com.br tem dono (quem digitar sem o "mais" cai em
+outro lugar); INPI: "Clube Renove" e "Renove Mais" sem processo, porém **"RENOVE" registrada nas classes 42 e 9** (mesmo
+ramo, mais risco de oposição) — "Renova" segue mais seguro (cluberenova.com.br livre; "renova" sem software na 42). Pesquisa: **Clube Renova+** — o "+" de sempre um pouco mais. Domínios
+cluberenovamais e cluberenova (.com.br e .com) livres; INPI: "Clube Renova" sem processo; a única "renovamais" ativa é de
+suplementos (classe 5, outro ramo); "renova" na classe 42 só igrejas e projetos, nenhum software. Variações com "+" e
+domínios livres: Evolui+ e Avança+ (nenhuma marca "… mais"), Supera+ (nenhuma; mas clubesupera.com.br tem dono),
+Inova+ (várias "Inova Mais" em outros ramos), Cresce+ (várias).
+**Nome ainda em aberto (02/10):** "Clube Re9" (renove) foi escolhido e depois descartado — cluberenove.com.br já tem
+dono, e quem ouvir o nome vai digitar o .com.br por extenso. Regra: o nome estilizado **e** o nome por extenso precisam
+estar livres no .com.br (e no .com) e no INPI. Opções que cumprem: **Clube In9** (clubein9 e clubeinove livres; "in9" com
+2 marcas ativas na classe 42), **Clube +1** (clubemais1 e clubemaisum livres), Clube Up1 (clubeup1 e clubeupum livres).
+Avaliar se "ClubeCRM" é o melhor nome para vender, mantendo a marca "Clube". O dono quer um nome que passe a ideia de
+**melhoria contínua** (começa pelo diagnóstico e segue dando feedback e melhorias). Sugestão: **Clube Evolui**; ideia do
+dono: **Clube Inove**, logo "Clube i9" (i de inteligência, 9 = "nove"); clubeinove e clubei9 (.com.br e .com) livres em
+02/10 — registrar os dois e apontar clubei9 para clubeinove.
+*Busca no INPI (pePI, 02/10):* "Clube Inove", "ClubeInove", "Clube i9" e "Clubei9" — **nenhum processo**. Porém "INOVE" é
+muito usado na classe 42 (45 marcas ativas, entre elas INOVE em vigor, Inove Sistemas e "Inove CFC - Sistema de
+Gerenciamento") e "i9" também (35 ativas na 42, entre elas "I9 Sistema de Gestão Empresarial" e "i9 INOV"); na classe 9,
+Inove CFC e INOVE TECHNOLOGY. "Clube Evolui": nenhum processo; "evolui" tem 16 ativas na 42. "Clubetec" já tem registro
+em vigor, mas o nome do produto precisa de **pedido próprio** (em nome da Clubetec). Recomendação: marca mista (nome +
+logo) nas classes 42 e 9 (e 35 se vender consultoria), com parecer de um agente de propriedade industrial.
+*Mais opções (02/10), com domínio .com.br e .com livres e busca no INPI ("Clube X" sem nenhum processo em todas):*
+**Clube +1 / Clube Mais1** ("+1 melhor todo dia"; só 1 marca "mais1" ativa na classe 42, de café) — menor risco;
+Clube Progride (0 na 42); Clube Lapida (6), Clube Espiral (5), Clube Degrau (7), Clube Infinito (10), Clube Aprimora
+(10); mais disputadas na 42: Loop (52), Escala (46), Mentor (39), Melhora (24), Sprint (17), Sinapse (17), Salto (16).
+**Produção na VPS da Hostinger:** site (frontend) na VPS ou na Vercel; o banco e as funções continuam no Supabase (plano
+pago em produção: backups diários e sem pausa); trocar o nome nas telas, e-mails e no domínio dos links.
 
 ## Pedidos de 02/10: cartório, ticket alto, franquias, regras dos bots, cérebro e módulos
 - **Modelo de cartório (exemplo):** *Entregue (02/10): modelo "Cartório (notas, registro civil, protocolo e
