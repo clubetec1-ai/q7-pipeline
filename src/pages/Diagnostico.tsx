@@ -21,6 +21,7 @@ import { BrandKit, useBrandKit } from "@/components/brand/BrandKit";
 import { ImplementationBoard, type Priority } from "./diagnostico/ImplementationBoard";
 import { TEMPLATES, templateByKey } from "./diagnostico/templates";
 import { HoursEditor, hoursValid, type Hours } from "@/components/HoursEditor";
+import { VoiceInterview } from "./diagnostico/VoiceInterview";
 
 /** Rótulo das seções (as mesmas do servidor, _shared/company.ts); 🌐 = pode ir para a IA de atendimento. */
 const SECTION_LABEL: Record<string, [string, boolean]> = {
@@ -567,6 +568,8 @@ export default function Diagnostico() {
                     <Button type="button" variant="outline" size="sm" disabled={busy === "attach"} onClick={() => fileInput.current?.click()} title="Anexar contrato, planilha, manual...">
                       <Paperclip className="w-4 h-4 mr-1" /> {busy === "attach" ? "Lendo..." : "Anexar materiais"}
                     </Button>
+                    <VoiceInterview key={page} orgId={org.id} step={setor ? "processos" : page} setor={setor}
+                      onDone={(text) => setRaw((r) => (r.trim() ? `${r.trim()}\n\n` : "") + text)} />
                     <input ref={fileInput} type="file" className="hidden" accept=".pdf,.docx,.xlsx,.csv,.txt,.md"
                       onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void attach(f); }} />
                     {atts.map((a) => (
