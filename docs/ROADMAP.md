@@ -113,11 +113,17 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
   nova mensagem ou ligação desse cliente vai direto para essa pessoa (se ela estiver disponível; senão segue a fila
   normal e avisa). Liga/desliga por empresa e por setor, com o prazo de "lembrança" (ex.: últimos 90 dias); o
   atendente aparece na ficha do cliente e pode ser trocado pelo supervisor. Vale para WhatsApp, e-mail e ramal.
-- **IA da plataforma com principal + 2 reservas (em andamento):** em Plataforma → Conectores, três posições
+- **IA da plataforma com principal + 2 reservas:** em Plataforma → Conectores, três posições
   (Principal, Reserva 1, Reserva 2), cada uma com seletor do fornecedor (OpenAI, Groq, Gemini, Anthropic, OpenRouter,
   DeepSeek), modelo e chave; se a principal falhar, a chamada passa sozinha para a reserva 1 e depois para a 2, com
   aviso da última falha; consumo registrado por empresa (chamadas e volume de texto) para a Clubetec acompanhar e,
   depois, para a franquia de IA dos planos. Trocar de IA vira só trocar o seletor e a chave.
+  *Entregue (03/10): Plataforma → Conectores → "IA da Clubetec" com Principal, Reserva 1 e Reserva 2 (fornecedor,
+  modelo e chave no cofre; a chave nunca volta para a tela); troca automática para a reserva em falha (fora do ar,
+  limite, chave inválida, modelo inexistente) em todos os agentes; última falha mostrada na posição; áudio transcrito
+  pela OpenAI ou Groq (o que estiver configurado); consumo por empresa (chamadas, texto enviado/recebido, áudios) na
+  mesma tela. A chave Groq antiga virou a Principal. Testes de isolamento: grupo 66. Falta: custo em reais e franquia
+  por plano (com os planos), aviso por e-mail quando trocar para a reserva.*
 - **Nome "IntegrAI" (pesquisado em 03/10):** descartado — "Integrai" é **marca registrada em vigor na classe 42**
   (Integrai Tecnologia Ltda, automação de e-commerce, site integrai.com.br) e "Integra.ai" e "IntegraAiCom" estão em
   análise na 42; integrai.com.br e .com têm dono. "Clube IntegrAI" teria o mesmo conflito. Ideia aproveitada: destacar

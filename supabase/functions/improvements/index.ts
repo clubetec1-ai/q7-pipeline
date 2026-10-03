@@ -2,7 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { requireModule } from "../_shared/modules.ts";
 import { HttpError, permissionsIn, requireUser, resolveOrg } from "../_shared/auth.ts";
 import { forOrg } from "../_shared/tenant.ts";
-import { chat, resolveAI } from "../_shared/ai-chat.ts";
+import { chatAI, resolveAI } from "../_shared/ai-chat.ts";
 import { knowledgeContext } from "../_shared/knowledge.ts";
 
 /**
@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
     if (!ai) throw new HttpError(409, "Configure a chave do provedor de IA (Configurações → Chaves de IA).");
     const model = ai.provider === "groq" && (!ai.model || ai.model === "auto") ? "llama-3.3-70b-versatile" : ai.model;
     const ask = async (system: string, user: string) => {
-      const r = await chat(ai.apiKey, ai.provider, model, [{ role: "system", content: system }, { role: "user", content: user }], undefined, { json: true, timeoutMs: 60_000 });
+      const r = await chatAI({ ...ai, model }, [{ role: "system", content: system }, { role: "user", content: user }], undefined, { json: true, timeoutMs: 60_000 });
       if (!r.ok || !r.reply) throw new HttpError(502, "A IA não respondeu. Tente de novo.");
       try { return JSON.parse(r.reply.match(/\{[\s\S]*\}/)?.[0] ?? "{}"); } catch { return {}; }
     };

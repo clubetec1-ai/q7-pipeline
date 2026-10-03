@@ -13,17 +13,23 @@
  */
 
 export const WHISPER_MODEL = "whisper-large-v3-turbo";
-const ENDPOINT = "https://api.groq.com/openai/v1/audio/transcriptions";
+// Groq (Whisper) ou OpenAI: a IA da plataforma escolhe quem transcreve (Plataforma → Conectores).
+const STT: Record<string, { endpoint: string; model: string }> = {
+  groq: { endpoint: "https://api.groq.com/openai/v1/audio/transcriptions", model: WHISPER_MODEL },
+  openai: { endpoint: "https://api.openai.com/v1/audio/transcriptions", model: "gpt-4o-mini-transcribe" },
+};
 
 /** Limite prático do Whisper. Acima disso nem tentamos. */
 export const MAX_AUDIO_BYTES = 20 * 1024 * 1024;
 
 export async function transcribeAudio(
-  groqKey: string,
+  apiKey: string,
   bytes: Uint8Array,
   fileName = "audio.ogg",
+  provider = "groq",
 ): Promise<string | null> {
-  if (!groqKey) return null;
+  const stt = STT[provider];
+  if (!apiKey || !stt) return null;
   if (!bytes?.length) return null;
   if (bytes.length > MAX_AUDIO_BYTES) {
     console.log("[transcribe] audio grande demais, ignorado", { bytes: bytes.length });
@@ -33,18 +39,18 @@ export async function transcribeAudio(
   try {
     const form = new FormData();
     form.append("file", new Blob([bytes as unknown as BlobPart]), fileName);
-    form.append("model", WHISPER_MODEL);
+    form.append("model", stt.model);
     form.append("language", "pt");
     form.append("response_format", "json");
 
-    const res = await fetch(ENDPOINT, {
+    const res = await fetch(stt.endpoint, {
       method: "POST",
-      headers: { Authorization: `Bearer ${groqKey}` },
+      headers: { Authorization: `Bearer ${apiKey}` },
       body: form,
     });
 
     if (!res.ok) {
-      console.error("[transcribe] groq respondeu", res.status, (await res.text()).slice(0, 200));
+      console.error("[transcribe] provedor respondeu", { provider }, res.status, (await res.text()).slice(0, 200));
       return null;
     }
 

@@ -134,6 +134,47 @@ export type Database = {
           },
         ]
       }
+      ai_usage_daily: {
+        Row: {
+          audio_calls: number
+          calls: number
+          day: string
+          organization_id: string
+          provider: string
+          source: string
+          tokens_in: number
+          tokens_out: number
+        }
+        Insert: {
+          audio_calls?: number
+          calls?: number
+          day?: string
+          organization_id: string
+          provider: string
+          source: string
+          tokens_in?: number
+          tokens_out?: number
+        }
+        Update: {
+          audio_calls?: number
+          calls?: number
+          day?: string
+          organization_id?: string
+          provider?: string
+          source?: string
+          tokens_in?: number
+          tokens_out?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_usage_daily_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_settings: {
         Row: {
           id: string
@@ -2495,6 +2536,36 @@ export type Database = {
           },
         ]
       }
+      platform_ai_slots: {
+        Row: {
+          last_error: string | null
+          last_error_at: string | null
+          model: string | null
+          provider: string
+          slot: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          last_error?: string | null
+          last_error_at?: string | null
+          model?: string | null
+          provider: string
+          slot: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          last_error?: string | null
+          last_error_at?: string | null
+          model?: string | null
+          provider?: string
+          slot?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       platform_operators: {
         Row: {
           created_at: string
@@ -3729,6 +3800,30 @@ export type Database = {
       org_setup_status: { Args: { org: string }; Returns: Json }
       org_theme: { Args: { org: string }; Returns: Json }
       platform_ai_available: { Args: { org: string }; Returns: boolean }
+      platform_ai_clear: { Args: { slot_name: string }; Returns: undefined }
+      platform_ai_set: {
+        Args: {
+          model_name: string
+          provider_name: string
+          secret_value: string
+          slot_name: string
+        }
+        Returns: undefined
+      }
+      platform_ai_status: { Args: never; Returns: Json }
+      platform_ai_usage: {
+        Args: { since: string }
+        Returns: {
+          audio_calls: number
+          calls: number
+          organization_id: string
+          organization_name: string
+          provider: string
+          source: string
+          tokens_in: number
+          tokens_out: number
+        }[]
+      }
       platform_close_support: { Args: { org: string }; Returns: undefined }
       platform_open_support: {
         Args: { minutes?: number; org: string; reason: string }
@@ -3832,7 +3927,23 @@ export type Database = {
         }
         Returns: number
       }
+      service_ai_slot_error: {
+        Args: { err: string; slot_name: string }
+        Returns: undefined
+      }
       service_ai_take: { Args: { org: string }; Returns: boolean }
+      service_ai_usage_add: {
+        Args: {
+          n_audio: number
+          n_calls: number
+          n_in: number
+          n_out: number
+          org: string
+          provider_name: string
+          source_name: string
+        }
+        Returns: undefined
+      }
       service_anonymize_contact: {
         Args: { actor: string; contact: string; org: string; reason: string }
         Returns: Json

@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { getSecret, safeEqual } from "../_shared/secrets.ts";
-import { chat, resolveAI } from "../_shared/ai-chat.ts";
+import { chatAI, resolveAI } from "../_shared/ai-chat.ts";
 import { forOrg } from "../_shared/tenant.ts";
 import { parseReview, redact, REVIEW_PROMPT } from "../_shared/review.ts";
 
@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
     if (!ai) { await fail("sem chave de IA (Configurações → Chaves de IA)"); continue; }
     const model = ai.provider === "groq" && (!ai.model || ai.model === "auto") ? "llama-3.3-70b-versatile" : ai.model;
 
-    const res = await chat(ai.apiKey, ai.provider, model, [
+    const res = await chatAI({ ...ai, model }, [
       { role: "system", content: REVIEW_PROMPT },
       { role: "user", content: `${facts}\n\nHistórico:\n${transcript}` },
     ]);

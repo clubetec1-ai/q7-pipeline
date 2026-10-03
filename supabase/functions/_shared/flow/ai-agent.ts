@@ -6,7 +6,7 @@
  */
 import { forOrg } from "../tenant.ts";
 import { getAgentProfile } from "../get-ai-config.ts";
-import { chat, type ChatMsg, resolveAI, type ToolDef } from "../ai-chat.ts";
+import { chatAI, type ChatMsg, resolveAI, type ToolDef } from "../ai-chat.ts";
 import { toChatText } from "../ai-policy.ts";
 import { validate } from "./engine.ts";
 import { aiContactContext, contactFieldDefs, setContactField } from "../contact-fields.ts";
@@ -50,7 +50,7 @@ export async function runAiAgent(p: {
     getAgentProfile(admin, orgId),
   ]);
   if (!ai) { await route({ action: "queue" }); return { ended: true }; }
-  const { provider, apiKey, model } = ai;
+  const { provider } = ai;
 
   const [depts, reasons, stages, files] = await Promise.all([
     allowed(org, "departments", ids(d.allow_departments)),
@@ -118,7 +118,7 @@ export async function runAiAgent(p: {
     })),
   ];
 
-  const r = await chat(apiKey, provider, model, messages, tools);
+  const r = await chatAI(ai, messages, tools);
   if (!r.ok) {
     console.error("[flow/ia] falhou", { provider, status: r.status, error: r.error });
     await route({ action: "queue" }); // IA fora → humano
@@ -160,7 +160,7 @@ export async function runAiAgent(p: {
   if (r.reply) await send(toChatText(r.reply));
   else if (results.length && !terminal) {
     // Só ferramentas, sem texto: pede a resposta ao cliente já sabendo o resultado.
-    const again = await chat(apiKey, provider, model, [...messages, r.raw, ...results]);
+    const again = await chatAI(ai, [...messages, r.raw, ...results]);
     if (again.ok && again.reply) await send(toChatText(again.reply));
   }
   if (terminal) { await route(terminal); return { ended: true }; }

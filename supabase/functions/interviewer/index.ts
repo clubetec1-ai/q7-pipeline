@@ -2,7 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { requireModule } from "../_shared/modules.ts";
 import { HttpError, requirePermission, requireUser, resolveOrg } from "../_shared/auth.ts";
 import { forOrg } from "../_shared/tenant.ts";
-import { chat, type ChatMsg, providerKey, resolveAI } from "../_shared/ai-chat.ts";
+import { audioAI, chatAI, type ChatMsg, recordUsage, resolveAI } from "../_shared/ai-chat.ts";
 import { SECTIONS, STAGES } from "../_shared/company.ts";
 import { fetchSiteText, lookupCnpj, monthlyCost, USD_BRL } from "../_shared/consulting.ts";
 import { knowledgeContext } from "../_shared/knowledge.ts";
@@ -78,12 +78,13 @@ Deno.serve(async (req) => {
     if (action === "transcribe") {
       const b64 = String(body?.audio ?? "");
       if (!b64 || b64.length > 14_000_000) throw new HttpError(413, "Áudio vazio ou longo demais (até uns 10 minutos).");
-      const key = await providerKey(admin, orgId, "groq");
-      if (!key) throw new HttpError(409, "Para usar o microfone, cadastre a chave da Groq em Configurações → Chaves de IA.");
+      const stt = await audioAI(admin, orgId);
+      if (!stt) throw new HttpError(409, "Para usar o microfone, a IA precisa de um fornecedor que transcreva áudio (OpenAI ou Groq).");
       let bytes: Uint8Array;
       try { bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)); } catch { throw new HttpError(400, "Áudio inválido"); }
       const ext = /mp4|m4a/.test(String(body?.mime ?? "")) ? "m4a" : /ogg/.test(String(body?.mime ?? "")) ? "ogg" : "webm";
-      const text = await transcribeAudio(key, bytes, `fala.${ext}`);
+      const text = await transcribeAudio(stt.apiKey, bytes, `fala.${ext}`, stt.provider);
+      if (text) await recordUsage(stt, undefined, 1);
       if (!text) throw new HttpError(502, "Não consegui entender o áudio. Tente falar de novo, mais perto do microfone.");
       return json({ ok: true, text });
     }
@@ -94,10 +95,10 @@ Deno.serve(async (req) => {
     // então na Groq usa o modelo maior quando nenhum foi escolhido (o "auto" começa pelo 8b).
     const ai = await resolveAI(admin, orgId, { provider: settings.interviewer_provider ?? null, model: settings.interviewer_model ?? null });
     if (!ai) throw new HttpError(409, "Configure a chave do provedor de IA (Configurações → Chaves de IA) para usar o entrevistador.");
-    const { provider, apiKey } = ai;
-    const model = provider === "groq" && (!ai.model || ai.model === "auto") ? "llama-3.3-70b-versatile" : ai.model;
+    const model = ai.provider === "groq" && (!ai.model || ai.model === "auto") ? "llama-3.3-70b-versatile" : ai.model;
+    const aiM = { ...ai, model };
     const ask = async (system: string, user: string, long = false) => {
-      const r = await chat(apiKey, provider, model, [{ role: "system", content: system }, { role: "user", content: user }], undefined,
+      const r = await chatAI(aiM, [{ role: "system", content: system }, { role: "user", content: user }], undefined,
         { json: true, ...(long ? { timeoutMs: 90_000, maxTokens: 8000 } : {}) });
       if (!r.ok || !r.reply) throw new HttpError(502, r.status === 429 ? "A IA está no limite de uso agora. Tente de novo em 1 minuto." : "A IA não respondeu. Tente de novo.");
       const out = parseJson(r.reply);
@@ -274,7 +275,7 @@ Deno.serve(async (req) => {
         plano_acao: list(out.plano_acao, 25).map((p: any) => ({ acao: clip(p?.acao, 300), responsavel: clip(p?.responsavel, 80), prazo: clip(p?.prazo, 60) })).filter((p) => p.acao),
         custo: { groq_mes: sum("groq"), claude_mes: sum("claude"), dolar: USD_BRL,
           premissas: "Estimativa por resposta de IA: simples ≈ 1.500 tokens de entrada e 200 de saída; complexa ≈ 4.000 e 600. Automações sem IA não têm custo de IA." },
-        modelo: `${provider}:${model}`,
+        modelo: `${ai.provider}:${model}`,
       };
       if (!plan.diagnostico && !autos.length) throw new HttpError(502, "Não consegui montar o planejamento. Tente de novo.");
       // Compatível com o implementador: automações viram sugestões instaláveis.
@@ -390,7 +391,7 @@ Deno.serve(async (req) => {
     ];
     if (!hist?.length) messages.push({ role: "user", content: "Olá! Vamos começar." });
 
-    const r = await chat(apiKey, provider, model, messages, undefined, { json: true });
+    const r = await chatAI(aiM, messages, undefined, { json: true });
     if (!r.ok || !r.reply) throw new HttpError(502, r.status === 429 ? "A IA está no limite de uso agora. Tente de novo em 1 minuto." : "A IA não respondeu. Tente de novo.");
     const out = parseJson(r.reply) as { secoes?: Record<string, unknown>; processos?: unknown[]; resposta?: unknown; etapa_concluida?: unknown };
 
