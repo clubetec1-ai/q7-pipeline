@@ -65,6 +65,10 @@ Criada pela Plataforma como um cliente novo (modelo Prestação de serviços), c
 | E8 | Horário de atendimento vazio na empresa nova; configurações de horário e palavras LGPD dentro de Fluxos | 🟡 Médio | ✅ (02/10): horário sugerido a partir da etapa Empresa do Diagnóstico (o dono só liga/desliga os dias e usa); tela Configurações → Horário e LGPD |
 | E9 | Modelos prontos de fluxo e agente dependem da IA (dependiam da chave) | 🟡 | ✅ Resolvido com E2 |
 | E10 | Sem número de WhatsApp de teste, não dá para testar o atendimento real ponta a ponta | ℹ️ | "Testar o agente" (conversa simulada) cobre a IA; WhatsApp exige um chip de teste |
+| E11 | 🔴 Aprovar a etapa Empresa do Diagnóstico era recusado pelo banco (etapas novas Clientes, Marca e Regras fora da lista permitida) — nenhuma empresa nova passava do 1º passo | 🔴 Crítico | ✅ (02/10) lista corrigida + teste automático 65 |
+| E12 | Agente respondeu com tabela (o WhatsApp não mostra tabela) | 🟡 Médio | ✅ (02/10) regra de formato de conversa no atendimento |
+| E13 | Cartório: a lista de documentos veio do conhecimento geral da IA, não da empresa | 🟠 Alto | ⏳ base de conhecimento modelo do cartório (lista oficial por ato e tabela de emolumentos) |
+| E14 | Depois de aprovar a etapa Empresa, a tela pulava para a próxima e o horário sugerido só aparecia ao voltar | 🟡 Médio | ✅ (02/10) fica na etapa com o horário pronto para usar |
 
 **Agentes que precisam estar em produção desde o 1º dia (visão CEO):**
 1. **Agente de atendimento** (com Regras e limites + Testar o agente) — é o que o cliente compra.

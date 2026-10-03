@@ -16,10 +16,16 @@ import { runRecord } from "../records.ts";
 import { runConnectorAction } from "../connectors.ts";
 
 /** A IA sabe o protocolo e informa se o cliente pedir. */
+const CHAT_FORMAT = "Formato: mensagem de conversa (WhatsApp/e-mail) — curta e direta, sem tabelas e sem títulos com #; se precisar listar, use linhas simples com hífen.";
+
 export function withProtocol(prompt: string, protocol?: string | null) {
   return protocol ? `${prompt}
 
-Protocolo deste atendimento: ${protocol}. Informe ao cliente se ele pedir.` : prompt;
+${CHAT_FORMAT}
+
+Protocolo deste atendimento: ${protocol}. Informe ao cliente se ele pedir.` : `${prompt}
+
+${CHAT_FORMAT}`;
 }
 
 const ACTIVE = ["running", "waiting_input", "waiting_timer", "ai"];

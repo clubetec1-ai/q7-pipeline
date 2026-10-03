@@ -297,7 +297,12 @@ export default function Diagnostico() {
     if (error) return toast({ variant: "destructive", title: "Não salvo", description: error.message });
     toast({ title: "Etapa aprovada", description: "O retrato da empresa foi atualizado." });
     // Com horário sugerido e a empresa ainda sem horário: fica na etapa para o dono conferir e usar.
-    if (page === "empresa" && draft.horario && !orgHasHours) { setHoursDraft(null); await load("empresa"); return; }
+    if (page === "empresa" && horario && !orgHasHours) {
+      setHoursDraft(null);
+      await load("empresa");
+      setPage("empresa");
+      return;
+    }
     const nextPage = draft.setores?.length && page === "setores" ? `proc:${draft.setores[0]}` : next;
     await load(nextPage);
   };
