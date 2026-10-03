@@ -124,3 +124,118 @@ COMO FUNCIONA O PEDIDO A DISTÂNCIA
     ],
   },
 };
+
+// Registro de Imóveis e Ofício Único (cidade pequena, várias atribuições).
+const AVISO_RI = "MODELO ClubeCRM — revise com o oficial antes de usar. As exigências e os prazos podem variar conforme o estado (Código de Normas da Corregedoria) e o caso; em dúvida, o escrevente confirma.";
+const RI_DOCS: ModelDoc[] = [
+  {
+    title: "Como informar valores (regra do registro de imóveis)", kind: "politica", visibility: "atendimento", sector: null,
+    text: `${AVISO_RI}
+
+Valores (emolumentos) seguem a tabela oficial do Tribunal de Justiça do estado e dependem do valor do imóvel e do tipo de ato.
+- Só informe valores que estiverem na tabela oficial cadastrada nesta base de conhecimento.
+- Sem a tabela cadastrada, não informe valores e não prometa "verificar e retornar": diga que um escrevente confirma o valor e passe para uma pessoa.
+- No protocolo pode ser cobrado um depósito prévio; o acerto final é feito no registro.
+- Impostos (ITBI, ITCMD) são da prefeitura ou do estado; o cartório não calcula imposto pelo WhatsApp.`,
+  },
+  {
+    title: "Documentos para registro e averbação (modelo)", kind: "manual", visibility: "atendimento", sector: "Protocolo e atendimento",
+    text: `${AVISO_RI}
+
+REGISTRO DE COMPRA E VENDA (ESCRITURA)
+- Traslado ou certidão da escritura pública.
+- Comprovante de pagamento do ITBI.
+- Documentos que o tabelionato não tenha arquivado, quando pedidos (ex.: certidão de casamento atualizada).
+
+REGISTRO DE FINANCIAMENTO (CONTRATO DO BANCO COM ALIENAÇÃO FIDUCIÁRIA)
+- Contrato do banco em via original ou digital assinada, com todas as páginas.
+- Comprovante de pagamento do ITBI.
+- Documentos das partes indicados no contrato.
+
+DOAÇÃO E FORMAL DE PARTILHA (INVENTÁRIO)
+- Escritura de doação ou formal de partilha / escritura de inventário.
+- Comprovante do ITCMD.
+
+AVERBAÇÃO DE CONSTRUÇÃO
+- Requerimento do proprietário, habite-se da prefeitura e certidão negativa de débitos do INSS da obra (CND), quando exigida.
+
+AVERBAÇÃO DE CASAMENTO, DIVÓRCIO OU ÓBITO
+- Certidão atualizada do casamento, do divórcio (com partilha, se houver) ou do óbito, e requerimento.
+
+BAIXA DE FINANCIAMENTO / CANCELAMENTO DE ALIENAÇÃO FIDUCIÁRIA OU HIPOTECA
+- Termo de quitação do banco (original ou eletrônico) e requerimento do proprietário.
+
+COMO ENTREGAR
+- No balcão do cartório ou pela central eletrônica de registro (e-protocolo), quando o título for digital.`,
+  },
+  {
+    title: "Como funciona o registro: protocolo, análise, exigências e prazos (modelo)", kind: "manual", visibility: "atendimento", sector: "Registro e exigências",
+    text: `${AVISO_RI}
+
+ETAPAS
+1. Protocolo (prenotação): o título recebe um número de protocolo, que garante a prioridade.
+2. Análise (qualificação): o escrevente confere o título e os documentos.
+3. Resultado: o título é registrado na matrícula ou volta com uma nota devolutiva (exigências) explicando o que falta ou o que corrigir.
+4. Exigência: o cliente apresenta o que foi pedido dentro do prazo da prenotação; depois disso, a análise continua.
+5. Registro feito: o cliente recebe o aviso e pode pedir a certidão da matrícula atualizada.
+
+PRAZOS
+- Os prazos de análise e registro são definidos em lei (alguns atos mais simples têm prazo menor) e contam a partir do protocolo.
+- Com exigência, o prazo volta a contar quando o cliente apresenta o que faltava.
+- Informe prazos só desta forma; para um caso específico, o escrevente confirma.
+
+SITUAÇÃO DO PROTOCOLO
+- Peça o número do protocolo. Se não tiver acesso à situação, diga que um escrevente informa e passe para uma pessoa.
+- Nunca explique uma exigência de forma diferente do que está escrito na nota devolutiva; em dúvida, passe para um escrevente.`,
+  },
+  {
+    title: "Certidões do Registro de Imóveis (modelo)", kind: "manual", visibility: "atendimento", sector: "Certidões de imóveis",
+    text: `${AVISO_RI}
+
+TIPOS
+- Certidão da matrícula (inteiro teor): mostra todo o histórico do imóvel.
+- Certidão de ônus reais: mostra se há financiamento, hipoteca, penhora ou outras restrições.
+- Certidão vintenária: histórico do imóvel nos últimos 20 anos (pedida em alguns casos, como usucapião).
+
+COMO PEDIR
+- Informe o número da matrícula (está na escritura ou no IPTU) ou, se não tiver, o endereço completo e o nome do proprietário.
+- Pode ser pedida no balcão, pelo WhatsApp do cartório (pedido com protocolo) ou pela central eletrônica de registro (certidão digital).
+- Qualquer pessoa pode pedir certidão de matrícula; o conteúdo é enviado só na certidão oficial, nunca pelo WhatsApp.
+- O prazo de emissão segue a lei e conta a partir da confirmação do pagamento.`,
+  },
+];
+
+const PROTESTO_DOC: ModelDoc = {
+  title: "Protesto de títulos: pagar, cancelar e consultar (modelo)", kind: "manual", visibility: "atendimento", sector: "Protesto de títulos",
+  text: `${AVISO}
+
+CONSULTAR SE HÁ PROTESTO
+- Informe o CPF ou CNPJ; a consulta também pode ser feita gratuitamente na central nacional de protesto pela internet.
+
+PAGAR UM TÍTULO QUE FOI PARA PROTESTO (ANTES DE PROTESTAR)
+- Quem recebeu a intimação pode pagar no cartório dentro do prazo indicado nela; o valor é repassado ao credor.
+
+CANCELAR UM PROTESTO
+- Carta de anuência do credor (com firma reconhecida ou assinatura digital) ou o título original.
+- Documento de quem pede o cancelamento.
+- Pagamento dos emolumentos do cancelamento, conforme a tabela oficial.
+
+O QUE O CARTÓRIO NÃO FAZ
+- Não negocia a dívida nem dá desconto em nome do credor: o acordo é feito diretamente com o credor.`,
+};
+
+MODEL_DOCS.cartorio.label = "Cartório — Notas e Registro Civil";
+MODEL_DOCS.cartorio_imoveis = {
+  label: "Cartório — Registro de Imóveis",
+  tip: "Envie também a tabela oficial de emolumentos do seu estado (PDF do Tribunal de Justiça) como “Tabela de preços”. Sem ela, o agente não informa valores.",
+  docs: RI_DOCS,
+};
+MODEL_DOCS.cartorio_unico = {
+  label: "Cartório — Ofício Único",
+  tip: MODEL_DOCS.cartorio.tip,
+  docs: [
+    ...MODEL_DOCS.cartorio.docs,
+    ...RI_DOCS.slice(1).map((d) => ({ ...d, sector: "Registro de Imóveis" })),
+    PROTESTO_DOC,
+  ],
+};

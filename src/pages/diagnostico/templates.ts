@@ -108,7 +108,7 @@ Onde trava: cobrança manual e inadimplência sem acompanhamento.`,
   },
   {
     key: "cartorio",
-    label: "Cartório (notas, registro civil, protocolo e certidões)",
+    label: "Cartório — Notas e Registro Civil",
     steps: {
       empresa:
 `Cartório de Notas e Registro Civil, numa cidade média. Atende pessoas, empresas, imobiliárias, bancos e escritórios de advocacia.
@@ -194,5 +194,133 @@ Onde trava: pagamento por PIX sem identificação; conferência manual.`,
     },
   },
 ];
+
+// Cartório de Registro de Imóveis (ticket mais alto) e Ofício Único (cidade pequena: várias atribuições num cartório só).
+const IMOVEIS: NicheTemplate = {
+  key: "cartorio_imoveis",
+  label: "Cartório — Registro de Imóveis",
+  steps: {
+    empresa:
+`Cartório de Registro de Imóveis da comarca. Atende compradores e vendedores, bancos (financiamento), construtoras e incorporadoras, imobiliárias, advogados, despachantes e outros cartórios.
+Atendimento: balcão de segunda a sexta, das 9h às 17h; WhatsApp e e-mail no mesmo horário; títulos também chegam pela central eletrônica (e-protocolo).
+Serviços: registro de escrituras e contratos (compra e venda, financiamento com alienação fiduciária, doação, formal de partilha), averbações (construção, casamento ou divórcio, cancelamento de ônus e baixa de financiamento), certidões (matrícula, ônus reais, vintenária), abertura de matrícula, retificação de área, usucapião extrajudicial e regularização fundiária.
+Valores: emolumentos pela tabela oficial do Tribunal de Justiça do estado, conforme o valor do imóvel e o tipo de ato; o orçamento é feito pelo cartório.
+Como funciona: o título é protocolado (prenotação), passa pela análise (qualificação) e é registrado ou volta com exigências (nota devolutiva) para corrigir; os prazos seguem a lei.
+Dúvidas frequentes: "quanto custa registrar?", "quanto tempo demora?", "o que é a nota devolutiva?", "como tiro a certidão da matrícula?", "como dou baixa no financiamento?", "posso mandar pela internet?"`,
+    clientes:
+`Quem procura: quem comprou imóvel (com ou sem financiamento), bancos e correspondentes, construtoras e incorporadoras (registro de incorporação e de unidades), imobiliárias, advogados (inventário, usucapião), despachantes e tabelionatos.
+Como chegam: indicação de bancos, imobiliárias e tabelionatos; Google; já são clientes de registros anteriores.
+O que perguntam antes: valor do registro, prazo, documentos, se o título tem exigência, como acompanhar o protocolo.
+Objeções e medos: "é caro", "demora", "a nota devolutiva não explica o que fazer", "tive que voltar várias vezes".
+Etapas de um registro: 1) dúvidas e orçamento → 2) entrega do título (balcão ou e-protocolo) → 3) prenotação com número de protocolo → 4) análise → 5) registro ou nota devolutiva com exigências → 6) correção e reapresentação (se houver) → 7) registro feito e certidão da matrícula atualizada.
+Clientes recorrentes (bancos, construtoras, imobiliárias) valem atenção especial: muito volume e indicações.`,
+    marca:
+`Cores: Verde-escuro #1F4D3A (principal), Dourado #B8935A, Branco.
+Tom de voz: formal, claro e paciente; trata por "o senhor / a senhora" até o cliente pedir "você"; explica o termo técnico quando usar (prenotação, nota devolutiva, matrícula); sem emoji.
+Usa: "seu protocolo é", "o próximo passo é", "segue o que falta para registrar".
+Evita: opinião jurídica, garantir que o título será registrado antes da análise, informar valor fora da tabela oficial.
+Exemplo: "Bom dia, Sra. Ana! O título do protocolo 12.345 voltou com uma exigência: falta a certidão de casamento atualizada da vendedora. Assim que a senhora apresentar, a análise continua."`,
+    cultura:
+`Missão: garantir a segurança jurídica da propriedade, com registro correto, rápido e transparente.
+Visão: ser o registro de imóveis mais ágil e fácil de acompanhar da região, com a maior parte dos pedidos pela internet.
+Valores: fé pública, segurança jurídica, transparência nos prazos e exigências, proteção de dados, respeito ao cidadão.`,
+    situacao:
+`Equipe: 1 oficial (titular), 1 substituto, 8 escreventes (protocolo, análise e registro), 2 atendentes, 1 financeiro.
+Volumes por mês: ~600 títulos protocolados, ~1.200 certidões, ~150 averbações, ~2.000 mensagens no WhatsApp.
+Hoje: ~35% dos títulos voltam com exigência; muitas ligações perguntando "em que pé está o protocolo"; tempo de 1ª resposta no WhatsApp ~3 horas.
+Sistemas: sistema do cartório (protocolo, matrículas e selos), central eletrônica de registro (e-protocolo e certidões online), planilha de exigências.
+Dores: notas devolutivas difíceis de entender e reapresentação demorada; cliente sem notícia do protocolo; mesma dúvida de valores e documentos o dia todo.
+O que funciona: análise técnica bem feita e parceria com bancos e tabelionatos.`,
+    objetivos:
+`1) Responder todo WhatsApp em até 15 minutos no horário de atendimento (medir: tempo de 1ª resposta).
+2) Reduzir títulos com exigência de 35% para 20% em 6 meses, com lista de documentos clara antes do protocolo (medir: % de notas devolutivas).
+3) Cliente avisado em cada etapa do protocolo, sem precisar ligar (medir: ligações "em que pé está").
+4) 60% das dúvidas de documentos, prazos e situação do protocolo resolvidas pela IA (medir: % resolvido pela IA).
+5) Dobrar as certidões e protocolos pela internet em 12 meses.`,
+    setores:
+`Protocolo e atendimento — responsável: coordenadora de atendimento — pessoas: 3
+Registro e exigências — responsável: oficial substituto — pessoas: 6
+Certidões de imóveis — responsável: escrevente — pessoas: 2
+Regularização de imóveis — responsável: escrevente sênior — pessoas: 1
+Financeiro (emolumentos e repasses) — responsável: financeiro — pessoas: 1`,
+    regras:
+`A IA pode: informar horários, endereço e serviços; enviar a lista de documentos de cada tipo de registro e averbação; explicar as etapas (protocolo, análise, registro ou exigência) e os prazos legais; informar a situação de um protocolo pelo número; orientar como pedir certidão pela internet; informar valores SOMENTE da tabela oficial cadastrada na base de conhecimento.
+A IA nunca pode: dar orientação ou opinião jurídica; garantir que um título será registrado antes da análise; calcular emolumentos sem a tabela ou impostos (ITBI, ITCMD); informar o conteúdo de matrículas pelo WhatsApp (o documento oficial é a certidão); explicar uma exigência diferente do que está escrito na nota devolutiva.
+Passar para uma pessoa quando: dúvida sobre nota devolutiva, usucapião, retificação ou regularização; reclamação; pedido de humano; a IA não resolver em 2 tentativas.
+Horário: fora do expediente a IA informa situação de protocolo e envia listas; dúvidas técnicas ficam para o próximo dia útil.
+Dados sensíveis: pedir documentos só pelo canal oficial; nunca repetir CPF completo; avisar que os documentos são tratados conforme a lei e a LGPD.`,
+  },
+  sectors: ["Protocolo e atendimento", "Registro e exigências", "Certidões de imóveis", "Regularização de imóveis", "Financeiro (emolumentos e repasses)"],
+  processes: {
+    "Protocolo e atendimento":
+`1. Cliente pergunta pelo WhatsApp; a IA identifica o tipo de ato (registro, averbação, certidão) e envia a lista de documentos.
+2. Título entregue no balcão ou pelo e-protocolo: o atendente confere o básico e faz a prenotação (número de protocolo).
+3. Envia ao cliente o número do protocolo, o prazo legal e como acompanhar.
+4. Avisos automáticos: em análise, com exigência, registrado.
+Onde trava: título entregue sem documento; cliente liga para saber a situação.`,
+    "Registro e exigências":
+`1. Escrevente analisa o título (qualificação) dentro do prazo legal.
+2. Tudo certo: registra na matrícula, calcula os emolumentos finais e avisa o cliente.
+3. Falta algo: emite a nota devolutiva com as exigências, em linguagem clara, e avisa o cliente.
+4. Cliente reapresenta com as correções dentro do prazo da prenotação; nova análise.
+Onde trava: nota devolutiva difícil de entender; reapresentação fora do prazo.`,
+    "Certidões de imóveis":
+`1. Pedido pelo balcão, WhatsApp ou central eletrônica: número da matrícula ou endereço e proprietário.
+2. Emissão do pagamento; com a confirmação, emite a certidão (matrícula, ônus reais, vintenária) no prazo legal.
+3. Envio da certidão digital ou aviso de retirada.
+Onde trava: pedido sem o número da matrícula; pagamento não identificado.`,
+    "Regularização de imóveis":
+`1. Atendimento inicial para usucapião extrajudicial, retificação de área ou regularização fundiária: explica o caminho e a necessidade de advogado e de planta.
+2. Recebe o requerimento e os documentos; faz as notificações exigidas.
+3. Análise, exigências e decisão; registro ao final.
+Onde trava: processos longos sem retorno ao cliente; documentos técnicos incompletos.`,
+    "Financeiro (emolumentos e repasses)":
+`1. Atualizar a tabela de emolumentos todo início de ano (base de conhecimento).
+2. Depósito prévio no protocolo e acerto final no registro; devolução da diferença quando houver.
+3. Conferir pagamentos de pedidos pela internet; recolher repasses obrigatórios; fechar o caixa diário.
+Onde trava: depósito prévio sem identificação; acerto final manual.`,
+  },
+};
+TEMPLATES.push(IMOVEIS);
+
+const NOTAS = TEMPLATES.find((t) => t.key === "cartorio")!;
+TEMPLATES.push({
+  key: "cartorio_unico",
+  label: "Cartório — Ofício Único (notas, registro civil, imóveis e protesto)",
+  steps: {
+    ...NOTAS.steps,
+    empresa:
+`Cartório de Ofício Único numa cidade pequena: um só cartório com Notas, Registro Civil, Registro de Imóveis e Protesto de Títulos. Atende toda a população da cidade, produtores rurais, comércio, bancos e advogados.
+Atendimento: balcão de segunda a sexta, das 9h às 17h; WhatsApp e e-mail no mesmo horário; plantão do Registro Civil para óbitos nos fins de semana e feriados.
+Serviços: escrituras e procurações, reconhecimento de firma e autenticação; registro de nascimento, casamento e óbito; registro de imóveis (compra e venda, financiamento, averbações, certidões de matrícula, imóveis rurais); protesto de títulos (cheques, notas promissórias, boletos) e cancelamento de protesto.
+Valores: emolumentos pela tabela oficial do Tribunal de Justiça do estado; escrituras e registros dependem do valor do bem, por isso o orçamento é feito por um escrevente.
+Dúvidas frequentes: "quais documentos preciso?", "quanto custa?", "quanto tempo demora?", "como tiro a certidão?", "como cancelo um protesto?", "vocês atendem sábado?"`,
+    setores:
+`Atendimento e balcão — responsável: coordenadora de atendimento — pessoas: 2
+Escrituras e notas — responsável: tabelião substituto — pessoas: 2
+Registro Civil — responsável: escrevente — pessoas: 1
+Registro de Imóveis — responsável: oficial substituto — pessoas: 2
+Protesto de títulos — responsável: escrevente — pessoas: 1
+Financeiro (emolumentos, guias e repasses) — responsável: financeiro — pessoas: 1`,
+    regras:
+`${NOTAS.steps.regras}
+Registro de Imóveis: nunca garantir que um título será registrado antes da análise; não informar o conteúdo de matrículas pelo WhatsApp (o documento oficial é a certidão); dúvidas sobre nota devolutiva vão para uma pessoa.
+Protesto: informar como pagar ou cancelar um protesto e os documentos necessários; nunca negociar dívida em nome do credor.`,
+  },
+  sectors: ["Atendimento e balcão", "Escrituras e notas", "Registro Civil", "Registro de Imóveis", "Protesto de títulos", "Financeiro (emolumentos, guias e repasses)"],
+  processes: {
+    "Atendimento e balcão": NOTAS.processes["Atendimento e balcão"],
+    "Escrituras e notas": NOTAS.processes["Escrituras e notas"],
+    "Registro Civil": NOTAS.processes["Registro Civil"],
+    "Registro de Imóveis": `${IMOVEIS.processes["Protocolo e atendimento"]}\n\n${IMOVEIS.processes["Registro e exigências"]}`,
+    "Protesto de títulos":
+`1. Credor (comércio, banco) apresenta o título; o cartório confere e intima o devedor.
+2. Devedor intimado pode pagar no cartório dentro do prazo; pago, o valor é repassado ao credor.
+3. Sem pagamento, o título é protestado; o cartório informa os órgãos de crédito.
+4. Para cancelar: devedor traz a carta de anuência do credor (ou o título original) e paga os emolumentos do cancelamento.
+Onde trava: devedor sem saber como pagar ou cancelar; muitas ligações perguntando o valor.`,
+    "Financeiro (emolumentos, guias e repasses)": NOTAS.processes["Financeiro (emolumentos, guias e repasses)"],
+  },
+});
 
 export const templateByKey = (k?: string | null) => TEMPLATES.find((t) => t.key === k) ?? null;
