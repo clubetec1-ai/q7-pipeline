@@ -279,6 +279,12 @@ nicho); 12. API aberta + webhooks (n8n/Make/Zapier); 13. executar o plano de mar
 e-mail) → 18 Diagnóstico 2ª parte (o cérebro com delegação já ficou pronto nas fatias 1–7) → 19a Chat da equipe e
 Campanhas → 15 telefonia genérica → 17 franquias, white label e implantação → 14 Messenger/Instagram (testar quando a
 Meta liberar as permissões) → 19b Google Agenda (🙋 precisa de credencial OAuth do Google criada pelo dono).
+**Clubetec zerada para recomeçar como cliente (05/10, pedido do dono):** backup antes; ficaram a empresa, o dono
+(thifpaz) e o admin (clubetec1), o número oficial 19 99100-6831, a caixa de e-mail, o Asaas de teste e o MFA obrigatório;
+saíram conversas/contatos de teste, etapas, setores, etiquetas, fluxos, instruções do assistente, ramal de teste, grupos,
+tipo de registro, motivos de encerramento e textos automáticos; recriado o que toda empresa nova recebe (modelo Genérico,
+etiquetas e motivos padrão, IA desligada). 🙋 Dono: refazer a configuração pelos Primeiros passos e anotar o que travar.
+
 **Fase 3 — andamento (05/10):** ✅ 16 relatórios · ✅ 18 Diagnóstico 2ª parte · ✅ 19a Chat e Campanhas · ✅ 15 telefonia
 genérica · ✅ 17 franquias, white label e antes × depois (testes 87–93, todos no ar). Faltam 14 Messenger/Instagram e 19b
 Google Agenda, que dependem de liberação externa: 🙋 (a) na Meta, pedir as permissões pages_messaging,
