@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Mic, MicVocal, Play, Square, X } from "lucide-react";
+import { Mic, MicVocal, Paperclip, Play, Square, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { callFunction } from "@/lib/callFunction";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,22 @@ const VOICES: [string, string][] = [
 const read = (k: string, d: string) => { try { return localStorage.getItem(k) ?? d; } catch { return d; } };
 const write = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch { /* preferência só deste navegador */ } };
 interface QA { q: string; a: string }
+
+/** Materiais que costumam ajudar em cada etapa (sugeridos no fim da entrevista). */
+const MATERIALS: Record<string, string> = {
+  empresa: "apresentação da empresa, tabela de preços, modelo de orçamento, políticas de troca e entrega",
+  clientes: "perfil dos clientes, pesquisa com clientes, roteiro de vendas",
+  posvenda: "pesquisa de satisfação, termo de garantia, roteiro de pós-venda",
+  marca: "manual da marca, guia de comunicação, textos institucionais",
+  cultura: "missão, visão e valores, código de conduta, manual do colaborador",
+  situacao: "relatório de vendas, indicadores, planilha de metas",
+  sistemas: "planilhas do dia a dia, relatórios exportados dos sistemas",
+  objetivos: "planejamento estratégico, metas do ano",
+  setores: "organograma, lista de pessoas por setor",
+  processos: "fluxograma, checklist, modelo de orçamento, roteiro de atendimento",
+  regras: "roteiro de atendimento, perguntas frequentes, o que não pode ser prometido ao cliente",
+  publicar: "relatórios de anúncios e das redes sociais",
+};
 
 const toBase64 = (b: Blob) => new Promise<string>((res, rej) => {
   const r = new FileReader();
@@ -37,8 +53,10 @@ function browserVoice(): SpeechSynthesisVoice | null {
  * respostas entram na caixa da etapa para conferir e "Organizar com IA".
  * Nada de áudio fica guardado.
  */
-export function VoiceInterview({ orgId, step, setor, onDone }: {
+export function VoiceInterview({ orgId, step, setor, onDone, onAttach, attached = [] }: {
   orgId: string; step: string; setor?: string | null; onDone: (text: string) => void;
+  /** Abre o anexo da etapa (mesmo "Anexar materiais" da página). */
+  onAttach?: () => void; attached?: string[];
 }) {
   const key = setor ? `proc:${setor}` : step;
   const [open, setOpen] = useState(false);
@@ -46,6 +64,10 @@ export function VoiceInterview({ orgId, step, setor, onDone }: {
   const [qa, setQa] = useState<QA[]>([]);
   const [saved, setSaved] = useState<QA[]>([]);
   const [question, setQuestion] = useState("");
+  // Material que a pessoa citou na última resposta (a IA convida a anexar na hora).
+  const [material, setMaterial] = useState("");
+  const attachedRef = useRef(attached);
+  attachedRef.current = attached; // lido dentro de callbacks antigos (gravação)
   const [err, setErr] = useState<string | null>(null);
   const [secs, setSecs] = useState(0);
   const [voice, setVoice] = useState(() => read(VOICE_KEY, "nova"));
@@ -130,8 +152,8 @@ export function VoiceInterview({ orgId, step, setor, onDone }: {
 
   const ask = async (history: QA[]) => {
     setPhase("pensando"); setErr(null);
-    const r = await callFunction<{ question: string; done: boolean; audio: string | null }>("interviewer", {
-      action: "voice_turn", organization_id: orgId, step, setor: setor ?? undefined, qa: history, voice: voiceRef.current,
+    const r = await callFunction<{ question: string; done: boolean; audio: string | null; material?: string }>("interviewer", {
+      action: "voice_turn", organization_id: orgId, step, setor: setor ?? undefined, qa: history, voice: voiceRef.current, anexos: attachedRef.current,
     });
     if (!alive.current) return;
     if (!r.ok) { setErr(r.message); setPhase("pronto"); return; }
@@ -139,6 +161,7 @@ export function VoiceInterview({ orgId, step, setor, onDone }: {
     lastAudio.current = null;
     // Texto e voz ao mesmo tempo.
     setQuestion(r.data.question);
+    setMaterial(r.data.material ?? "");
     setPhase("falando");
     await sayQuestion(r.data.question, r.data.audio);
     if (!alive.current) return;
@@ -228,11 +251,43 @@ export function VoiceInterview({ orgId, step, setor, onDone }: {
             <Button type="button" size="sm" onClick={() => rec.current?.stop()}><Square className="w-4 h-4 mr-1" /> Terminei de responder</Button>
           </>
         )}
-        {phase === "fim" && <span className="text-emerald-700 dark:text-emerald-400">Pronto! As respostas foram para a caixa acima. Confira e clique em “Organizar com IA”.</span>}
+        {phase === "fim" && (
+          <>
+            <span className="text-emerald-700 dark:text-emerald-400">Pronto! As respostas foram para a caixa acima. Confira e clique em “Organizar com IA”.</span>
+            {/* Se a última fala ainda era uma pergunta (ou faltou algo), dá para responder mais. */}
+            <Button type="button" size="sm" variant="outline" onClick={() => {
+              if (!question.includes("?")) { qRef.current = "Algo mais que você queira acrescentar?"; setQuestion(qRef.current); }
+              setErr(null); alive.current = true; setPhase("pronto");
+            }}>
+              <Mic className="w-4 h-4 mr-1" /> {question.includes("?") ? "Responder esta pergunta" : "Quero responder mais"}
+            </Button>
+          </>
+        )}
+        {phase !== "fim" && onAttach && (
+          <Button type="button" size="sm" variant={material ? "default" : "ghost"} onClick={onAttach}
+            title="Anexe documentos desta etapa a qualquer momento (modelos, planilhas, manuais)">
+            <Paperclip className="w-4 h-4 mr-1" /> {material ? `Anexar: ${material}` : "Anexar arquivo"}
+          </Button>
+        )}
         {phase !== "fim" && qa.length > 0 && (
           <Button type="button" size="sm" variant="outline" onClick={() => finish()}>Encerrar e usar as respostas</Button>
         )}
       </div>
+      {phase === "fim" && onAttach && (
+        <div className="rounded-md border border-dashed bg-background p-3 space-y-2 text-sm">
+          <p>📎 <b>Tem algum material desta etapa?</b> Ex.: {MATERIALS[step] ?? "modelos, planilhas, manuais"}. A IA lê junto com as suas respostas.</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" size="sm" variant="outline" onClick={onAttach}><Paperclip className="w-4 h-4 mr-1" /> Anexar arquivo</Button>
+            {attached.map((n) => <span key={n} className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs"><Paperclip className="w-3 h-3" />{n}</span>)}
+            <span className="text-xs text-muted-foreground">PDF, Word, Excel, CSV ou texto, até 10 MB.</span>
+          </div>
+        </div>
+      )}
+      {phase !== "fim" && attached.length > 0 && (
+        <p className="text-xs text-muted-foreground flex flex-wrap items-center gap-1">Anexados nesta etapa:
+          {attached.map((n) => <span key={n} className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5"><Paperclip className="w-3 h-3" />{n}</span>)}
+        </p>
+      )}
       {err && <p className="text-sm text-red-600">{err}</p>}
       {qa.length > 0 && (
         <details className="text-xs text-muted-foreground">

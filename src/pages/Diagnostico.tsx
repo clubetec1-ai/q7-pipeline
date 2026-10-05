@@ -22,6 +22,7 @@ import { ImplementationBoard, type Priority } from "./diagnostico/Implementation
 import { TEMPLATES, templateByKey } from "./diagnostico/templates";
 import { HoursEditor, hoursValid, type Hours } from "@/components/HoursEditor";
 import { VoiceInterview } from "./diagnostico/VoiceInterview";
+import { HowItWorks } from "./diagnostico/HowItWorks";
 import { PresenceTexts, SectorDelegation } from "./diagnostico/Part2";
 
 /** Rótulo das seções (as mesmas do servidor, _shared/company.ts); 🌐 = pode ir para a IA de atendimento. */
@@ -472,6 +473,7 @@ export default function Diagnostico() {
             })}
           </nav>
           <div className="pt-2 space-y-1 border-t">
+            <HowItWorks />
             <Button size="sm" variant="ghost" className="w-full justify-start" onClick={resetAll}><Eraser className="w-4 h-4 mr-2" /> Recomeçar tudo</Button>
             {copies > 0 && <Button size="sm" variant="ghost" className="w-full justify-start" onClick={restorePrev}><Undo2 className="w-4 h-4 mr-2" /> Desfazer recomeço</Button>}
           </div>
@@ -596,7 +598,8 @@ export default function Diagnostico() {
                       <Paperclip className="w-4 h-4 mr-1" /> {busy === "attach" ? "Lendo..." : "Anexar materiais"}
                     </Button>
                     <VoiceInterview key={page} orgId={org.id} step={setor ? "processos" : page} setor={setor}
-                      onDone={(text) => setRaw((r) => (r.trim() ? `${r.trim()}\n\n` : "") + text)} />
+                      onDone={(text) => setRaw((r) => (r.trim() ? `${r.trim()}\n\n` : "") + text)}
+                      onAttach={() => fileInput.current?.click()} attached={atts.map((a) => a.name)} />
                     <input ref={fileInput} type="file" className="hidden" accept=".pdf,.docx,.xlsx,.csv,.txt,.md"
                       onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void attach(f); }} />
                     {atts.map((a) => (

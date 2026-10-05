@@ -14,7 +14,7 @@ function ok(body: unknown = { ok: true }, status = 200) {
 }
 
 const STATUS: Record<string, string> = { disconnected: "desconectado" };
-const KINDS = ["number_health", "email_health", "security_alert", "brain_weekly", "brain_goal", "brain_reminder", "inpi", "inpi_conflict"];
+const KINDS = ["number_health", "email_health", "security_alert", "brain_weekly", "brain_goal", "brain_reminder"];
 
 Deno.serve(async (req) => {
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -36,24 +36,7 @@ Deno.serve(async (req) => {
   const r = (n.ref ?? {}) as Record<string, string>;
   let subject: string, text: string, html: string;
 
-  if (n.kind === "inpi" || n.kind === "inpi_conflict") {
-    // Marca da Clubetec no INPI (só operadores da plataforma recebem).
-    const link = base ? `${base}/plataforma` : "";
-    let titulo: string, corpo: string;
-    if (n.kind === "inpi") {
-      titulo = `${r.nivel === "urgente" ? "URGENTE — " : ""}INPI: ${r.despacho ?? "novo despacho"} (${r.label ?? r.numero ?? ""})`;
-      corpo = `Processo ${r.numero ?? ""} (${r.label ?? ""}) na RPI ${r.rpi ?? ""}: ${r.despacho ?? ""}.` +
-        (r.prazo ? `\nPrazo estimado para agir: ${r.prazo}.` : "");
-    } else {
-      titulo = `INPI: marca parecida com a nossa — ${r.marca ?? ""}`;
-      corpo = `Na RPI ${r.rpi ?? ""} saiu a marca "${r.marca ?? ""}" (processo ${r.numero ?? ""}, titular ${r.titulares ?? "?"}, classe ${r.classes ?? "?"}): ${r.despacho ?? ""}.` +
-        "\nSe for do mesmo ramo, há 60 dias da publicação para apresentar oposição.";
-    }
-    subject = `[Deixa com a IA] ${titulo}`;
-    text = `Olá!\n\n${corpo}\n\n${link ? `Detalhes em Plataforma → Planos → Marca no INPI: ${link}` : "Veja em Plataforma → Planos → Marca no INPI."}\n\nDeixa com a IA`;
-    html = `<p>Olá!</p><p>${esc(corpo).replace(/\n/g, "<br>")}</p>` +
-      `<p>${link ? `<a href="${esc(link)}">Ver em Plataforma → Marca no INPI</a>` : "Veja em Plataforma → Planos → Marca no INPI."}</p><p>Deixa com a IA</p>`;
-  } else if (n.kind.startsWith("brain_")) {
+  if (n.kind.startsWith("brain_")) {
     const link = base ? `${base}/cerebro` : "";
     const empresa = o?.name ?? "";
     let titulo: string, corpo: string;

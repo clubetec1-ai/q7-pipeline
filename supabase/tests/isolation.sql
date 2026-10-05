@@ -1548,6 +1548,9 @@ BEGIN
   PERFORM pg_temp.expect(pg_temp.q(operator, 'SELECT count(*) FROM public.inpi_processes') >= 3, 'operador ve os processos');
   PERFORM pg_temp.expect_error(owner_a, 'SELECT public.platform_inpi_save_process(''123456789'', ''x'', NULL, NULL)', 'cliente nao cadastra processo');
   PERFORM pg_temp.expect_error(owner_a, 'SELECT public.platform_inpi_set_watch(ARRAY[''abcd''], ARRAY[''abcd''])', 'cliente nao muda a vigilancia');
+  PERFORM pg_temp.expect_error(owner_a, 'SELECT public.platform_inpi_set_email(true, ARRAY[''x@y.com''])', 'cliente nao muda o e-mail do INPI');
+  PERFORM pg_temp.expect_error(operator, 'SELECT public.service_inpi_recipients()', 'navegador nao le os destinatarios');
+  PERFORM pg_temp.expect_error(operator, 'SELECT public.platform_inpi_set_email(true, ARRAY[''nao-e-email''])', 'e-mail invalido recusado');
   PERFORM pg_temp.expect_error(operator, 'SELECT public.service_inpi_record(1, current_date, ''[]'', ''[]'', NULL)', 'navegador nao grava revista');
   PERFORM pg_temp.expect_error(owner_a, 'INSERT INTO public.inpi_conflicts (numero, rpi, rpi_date, marca) VALUES (''123456789'', 1, current_date, ''x'')', 'ninguem grava direto');
   PERFORM pg_temp.run(operator, 'SELECT public.platform_inpi_save_process(''900000095'', ''Teste'', NULL, current_date)');
