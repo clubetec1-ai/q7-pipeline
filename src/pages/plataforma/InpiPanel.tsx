@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ExternalLink, RefreshCw, Stamp } from "lucide-react";
+import { ExternalLink, Mail, RefreshCw, Stamp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { callFunction } from "@/lib/callFunction";
@@ -26,6 +26,7 @@ export function InpiPanel() {
   const [conflicts, setConflicts] = useState<Conflict[]>([]);
   const [scan, setScan] = useState<Scan | null>(null);
   const [watch, setWatch] = useState({ terms: "", titulares: "" });
+  const [mail, setMail] = useState({ on: true, emails: "" });
   const [form, setForm] = useState({ numero: "", label: "" });
   const [busy, setBusy] = useState(false);
 
@@ -35,13 +36,16 @@ export function InpiPanel() {
       supabase.from("inpi_events").select("*").order("rpi", { ascending: false }).limit(200),
       supabase.from("inpi_conflicts").select("*").order("rpi", { ascending: false }).limit(50),
       supabase.from("inpi_scans").select("*").order("rpi", { ascending: false }).limit(1),
-      supabase.from("inpi_settings").select("terms, titulares").maybeSingle(),
+      supabase.from("inpi_settings").select("terms, titulares, email_on, emails").maybeSingle(),
     ]);
     setProcs((p.data ?? []) as Proc[]);
     setEvents((e.data ?? []) as Ev[]);
     setConflicts((c.data ?? []) as Conflict[]);
     setScan(((s.data ?? [])[0] ?? null) as Scan | null);
-    if (w.data) setWatch({ terms: (w.data.terms ?? []).join(", "), titulares: (w.data.titulares ?? []).join(", ") });
+    if (w.data) {
+      setWatch({ terms: (w.data.terms ?? []).join(", "), titulares: (w.data.titulares ?? []).join(", ") });
+      setMail({ on: w.data.email_on, emails: (w.data.emails ?? []).join(", ") });
+    }
   }, []);
   useEffect(() => { void load(); }, [load]);
 
@@ -62,6 +66,12 @@ export function InpiPanel() {
     void load();
   };
   const split = (s: string) => s.split(",").map((x) => x.trim()).filter(Boolean);
+  const testMail = async () => {
+    setBusy(true);
+    const r = await callFunction<{ sent: number }>("inpi-watch", { action: "test_email" });
+    setBusy(false);
+    toast(r.ok ? { title: "E-mail de teste enviado", description: "Confira a caixa de entrada (e o spam)." } : { variant: "destructive", title: "Não enviou", description: r.message });
+  };
 
   return (
     <section className="space-y-3 rounded-lg border p-4">
@@ -126,6 +136,19 @@ export function InpiPanel() {
           ))}
         </div>
       )}
+
+      <div className="rounded-md border p-2 space-y-2 text-sm">
+        <label className="flex items-center gap-2">
+          <input type="checkbox" checked={mail.on} onChange={(e) => setMail({ ...mail, on: e.target.checked })} />
+          <Mail className="w-4 h-4" /> Avisar também por e-mail (um resumo por revista, só quando houver novidade ou ação a fazer)
+        </label>
+        <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
+          <Input placeholder="E-mails, separados por vírgula (vazio = e-mail de quem administra a plataforma)" value={mail.emails}
+            onChange={(e) => setMail({ ...mail, emails: e.target.value })} aria-label="E-mails para os avisos do INPI" />
+          <Button variant="outline" onClick={() => void rpc("platform_inpi_set_email", { p_on: mail.on, p_emails: split(mail.emails) }, "Aviso por e-mail salvo")}>Salvar</Button>
+          <Button variant="ghost" disabled={busy} onClick={() => void testMail()}>Enviar e-mail de teste</Button>
+        </div>
+      </div>
 
       <details className="text-sm">
         <summary className="cursor-pointer text-muted-foreground">Acompanhar outro processo e o que vigiar</summary>

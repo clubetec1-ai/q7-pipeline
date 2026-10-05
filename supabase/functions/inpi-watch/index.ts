@@ -2,6 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { HttpError, isPlatformOperator, requireUser } from "../_shared/auth.ts";
 import { getSecret, safeEqual } from "../_shared/secrets.ts";
 import { inpiGuidance, scanRpiZip } from "../_shared/inpi-rpi.ts";
+import { esc, sendSystemEmail } from "../_shared/email.ts";
 
 /**
  * Acompanhamento dos pedidos de marca na RPI (revista semanal do INPI, seção Marcas).
@@ -32,6 +33,32 @@ async function editions(from: Date): Promise<Edition[]> {
     .sort((a, b) => a.numero - b.numero);
 }
 
+interface NewEvent { numero: string; label?: string; despacho: string; nivel?: string; orientacao?: string; complemento?: string; prazo?: string }
+interface NewConflict { numero: string; marca: string; titulares?: string; classes?: string; despacho?: string; prazo?: string }
+const dBR = (s?: string) => (s ? s.split("-").reverse().join("/") : "");
+
+/** Um e-mail por revista (ou por falha), para os destinatários escolhidos em Plataforma. */
+// deno-lint-ignore no-explicit-any
+async function mailInpi(admin: any, subject: string, lines: string[], force = false) {
+  const { data: r } = await admin.rpc("service_inpi_recipients");
+  const cfg = (r ?? {}) as { on?: boolean; to?: string[] };
+  if (!force && cfg.on === false) return { sent: 0, skipped: "e-mail desligado" };
+  const to = (cfg.to ?? []).filter(Boolean);
+  if (!to.length) return { sent: 0, skipped: "sem destinatário" };
+  const { data: appUrl } = await admin.from("app_settings").select("value").eq("key", "app_url").maybeSingle();
+  const link = appUrl?.value ? `${String(appUrl.value).replace(/\/$/, "")}/plataforma` : "";
+  const text = `Olá!\n\n${lines.join("\n\n")}\n\n${link ? `Detalhes em Plataforma → Planos → Marca no INPI: ${link}` : "Veja em Plataforma → Planos → Marca no INPI."}\n\nDeixa com a IA`;
+  const html = `<p>Olá!</p>${lines.map((l) => `<p>${esc(l).replace(/\n/g, "<br>")}</p>`).join("")}` +
+    `<p>${link ? `<a href="${esc(link)}">Ver em Plataforma → Marca no INPI</a>` : "Veja em Plataforma → Planos → Marca no INPI."}</p><p>Deixa com a IA</p>`;
+  let sent = 0, skipped = "";
+  for (const t of to) {
+    const res = await sendSystemEmail(admin, { to: t, subject: `[Deixa com a IA] ${subject}`, text, html });
+    if (res.ok) sent++; else skipped = res.skipped ?? res.error ?? "falhou";
+  }
+  if (skipped) console.log("[inpi-watch] e-mail", { sent, skipped });
+  return { sent, ...(skipped ? { skipped } : {}) };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -44,6 +71,14 @@ Deno.serve(async (req) => {
     } else {
       const ctx = await requireUser(req);
       if (!(await isPlatformOperator(ctx))) throw new HttpError(403, "Só a Clubetec");
+      if (body?.action === "test_email") {
+        const r = await mailInpi(admin, "Teste do aviso do INPI", [
+          "Este é um e-mail de teste do monitor da marca no INPI.",
+          "Quando a revista do INPI publicar algo nos nossos pedidos (ou uma marca parecida com a nossa), o aviso chega assim, com o que fazer e o prazo.",
+        ], true);
+        if (!r.sent) throw new HttpError(409, `Não enviei: ${r.skipped ?? "sem destinatário"}`);
+        return json({ ok: true, sent: r.sent });
+      }
     }
 
     const { data: w, error: we } = await admin.rpc("service_inpi_watch");
@@ -72,14 +107,28 @@ Deno.serve(async (req) => {
         why = e instanceof Error ? e.message : String(e);
       }
     }
-    if (!zip) throw new HttpError(502, `A revista ${ed.numero} não baixou (${why.slice(0, 120)}); tento de novo amanhã.`);
+    const fail = async (msg: string) => {
+      const { data: f } = await admin.rpc("service_inpi_record", { p_rpi: ed.numero, p_date: iso(ed.dataPublicacao), p_processes: [], p_conflicts: [], p_error: msg });
+      // Avisa só na primeira falha desta revista (o cron tenta de novo todo dia).
+      if ((f as { first_error?: boolean } | null)?.first_error) {
+        await mailInpi(admin, `INPI: não consegui ler a revista ${ed.numero}`, [
+          `A leitura da RPI ${ed.numero} (${ed.dataPublicacao}) falhou: ${msg}`,
+          "Vou tentar de novo sozinho todos os dias. Se continuar, use \"Verificar agora\" em Plataforma ou confira os processos no pePI.",
+        ]);
+      }
+    };
+    if (!zip) {
+      const msg = `A revista ${ed.numero} não baixou (${why.slice(0, 120)}); tento de novo amanhã.`;
+      await fail(msg);
+      throw new HttpError(502, msg);
+    }
 
     let scan;
     try {
       scan = await scanRpiZip(zip, { numbers: watch.numbers, titulares: watch.titulares, terms: watch.terms });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      await admin.rpc("service_inpi_record", { p_rpi: ed.numero, p_date: iso(ed.dataPublicacao), p_processes: [], p_conflicts: [], p_error: msg });
+      await fail(msg.slice(0, 200));
       throw new HttpError(502, `Não consegui ler a revista ${ed.numero}: ${msg}`);
     }
     const ours = scan.hits.filter((h) => h.motivo !== "marca");
@@ -100,7 +149,25 @@ Deno.serve(async (req) => {
       p_rpi: ed.numero, p_date: iso(ed.dataPublicacao), p_processes: processes, p_conflicts: conflicts, p_error: null,
     });
     if (re) throw new Error(re.message);
-    return json({ ok: true, rpi: ed.numero, data: iso(ed.dataPublicacao), ...(rec as object), pending: pending.length - 1 });
+    const out = rec as { events: number; conflicts: number; new_events?: NewEvent[]; new_conflicts?: NewConflict[] };
+    const evs = out.new_events ?? [];
+    const cfs = out.new_conflicts ?? [];
+    let mail = null;
+    if (evs.length || cfs.length) {
+      const urgent = evs.some((e) => e.nivel === "urgente");
+      const lines = [
+        `Saiu a Revista da Propriedade Industrial nº ${ed.numero} (${ed.dataPublicacao}).`,
+        ...evs.map((e) => `${e.nivel === "urgente" ? "⚠ AÇÃO NECESSÁRIA — " : ""}${e.label || "Processo"} (nº ${e.numero}): ${e.despacho}.` +
+          (e.orientacao ? `\n${e.orientacao}` : "") + (e.prazo ? `\nPrazo estimado: ${dBR(e.prazo)}.` : "") +
+          (e.complemento ? `\nTexto do despacho: ${e.complemento}` : "")),
+        ...cfs.map((c) => `Marca parecida com a nossa: "${c.marca}" (nº ${c.numero}, ${c.titulares || "titular não informado"}, classe ${c.classes || "?"}): ${c.despacho ?? ""}.` +
+          (c.prazo ? `\nSe for do mesmo ramo, dá para apresentar oposição até ${dBR(c.prazo)}.` : "")),
+      ];
+      const subject = urgent ? `URGENTE — INPI: ação necessária (RPI ${ed.numero})`
+        : evs.length ? `INPI: novidade nos pedidos da marca (RPI ${ed.numero})` : `INPI: marca parecida com a nossa (RPI ${ed.numero})`;
+      mail = await mailInpi(admin, subject, lines);
+    }
+    return json({ ok: true, rpi: ed.numero, data: iso(ed.dataPublicacao), events: out.events, conflicts: out.conflicts, pending: pending.length - 1, ...(mail ? { mail } : {}) });
   } catch (e) {
     if (e instanceof HttpError) return json({ ok: false, error: e.message }, e.status);
     console.error("[inpi-watch]", e instanceof Error ? e.message : e);

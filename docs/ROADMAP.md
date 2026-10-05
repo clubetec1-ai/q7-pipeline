@@ -295,6 +295,19 @@ Meta liberar as permissões) → 19b Google Agenda (🙋 precisa de credencial O
   Também vigia marcas parecidas com "Deixa com a IA" publicadas por outros (prazo de oposição de 60 dias) e processos
   novos em nome da Clubetec (entram sozinhos). Aviso no sino e por e-mail para os operadores. Painel em Plataforma →
   Planos → Marca no INPI ("Verificar agora", acompanhar outro processo, termos vigiados). Teste com a RPI 2908 ok.
+- ✅ **Aviso do INPI por e-mail (05/10):** um e-mail-resumo por revista só quando há novidade ou ação a fazer
+  ("URGENTE" quando há prazo curto), com o texto do despacho, o que fazer e o prazo; e-mail também se a leitura da
+  revista falhar. Destinatários e liga/desliga em Plataforma → Marca no INPI, com "Enviar e-mail de teste".
+- ✅ **Entrevista por voz (05/10):** a última pergunta não fica mais sem resposta (a IA às vezes encerrava fazendo uma
+  pergunta; agora só encerra sem pergunta, e depois de 8 respostas despede-se sozinha); no fim aparece "Responder esta
+  pergunta"/"Quero responder mais". Anexos durante a entrevista: quando o dono cita um material (modelo de orçamento,
+  tabela de preços, missão/visão/valores...), a IA convida a anexar e aparece o botão "Anexar: <material>"; no fim de
+  cada etapa, cartão "Tem algum material desta etapa?" com exemplos por etapa.
+- ✅ **Passo a passo "Como funciona" no Diagnóstico (05/10):** abre sozinho na primeira visita (5 passos com Próximo/
+  Voltar, setas apontando os botões reais): por que responder com detalhes, jeitos de responder (voz, falar, escrever),
+  vozes e ritmo, anexos, tudo salvo por etapa. **Princípio do dono:** todo fluxo de autoatendimento ganha um passo a
+  passo assim. 📌 Depois: vídeos explicativos curtos em cada passo a passo (gravar quando as telas estabilizarem) e o
+  mesmo guia em Números, Agentes, Fluxos e Configurações.
 - ⏳ **Registro da marca "Deixa com a IA" no INPI (prioridade do dono, 05/10):** titular Clubetec (CNPJ); busca prévia
   sem marca igual (classe 35 tem "DEIXA COMIGO" registrada → fora por ora); 3 pedidos: mista classe 42, nominativa
   classe 42, mista classe 9 (GRU código 389 por pedido). Logos prontos em docs/marca/inpi (JPG 945×945, 300 dpi,

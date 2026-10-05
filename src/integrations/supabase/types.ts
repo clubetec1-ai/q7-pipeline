@@ -2242,18 +2242,24 @@ export type Database = {
       }
       inpi_settings: {
         Row: {
+          email_on: boolean
+          emails: string[]
           id: boolean
           terms: string[]
           titulares: string[]
           updated_at: string
         }
         Insert: {
+          email_on?: boolean
+          emails?: string[]
           id?: boolean
           terms?: string[]
           titulares?: string[]
           updated_at?: string
         }
         Update: {
+          email_on?: boolean
+          emails?: string[]
           id?: boolean
           terms?: string[]
           titulares?: string[]
@@ -5216,6 +5222,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      platform_inpi_set_email: {
+        Args: { p_emails: string[]; p_on: boolean }
+        Returns: undefined
+      }
       platform_inpi_set_watch: {
         Args: { p_terms: string[]; p_titulares: string[] }
         Returns: undefined
@@ -5514,6 +5524,7 @@ export type Database = {
       service_get_secret: { Args: { secret_name: string }; Returns: string }
       service_has_secret: { Args: { secret_name: string }; Returns: boolean }
       service_http_take: { Args: { org: string }; Returns: boolean }
+      service_inpi_recipients: { Args: never; Returns: Json }
       service_inpi_record: {
         Args: {
           p_conflicts: Json
