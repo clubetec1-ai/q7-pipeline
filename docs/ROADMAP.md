@@ -280,14 +280,23 @@ e-mail) → 18 Diagnóstico 2ª parte (o cérebro com delegação já ficou pron
 Campanhas → 15 telefonia genérica → 17 franquias, white label e implantação → 14 Messenger/Instagram (testar quando a
 Meta liberar as permissões) → 19b Google Agenda (🙋 precisa de credencial OAuth do Google criada pelo dono).
 **Pedidos de 05/10 (configurando a Clubetec do zero):**
+- ✅ **Pedidos protocolados no e-Marcas (05/10), titular Clubetec:**
+  **945455720** (mista, classe 42, protocolo 850260519590), **945455780** (nominativa, classe 42, protocolo
+  850260519601), **945455844** (mista, classe 9, protocolo 850260519609). Classe 42: os mesmos 13 serviços nos dois
+  pedidos (SaaS, PaaS, AIaaS, consultoria em IA e em software, elaboração, instalação, manutenção, atualização e aluguel
+  de software, programação, software on-line não baixável, armazenamento de dados). Classe 9: aplicativos baixáveis,
+  programas de computador baixáveis e gravados, softwares gravados, plataformas de programas e plug-in. Viena nos
+  mistos: 26.4.4, 26.4.10, 26.4.18 e 26.4.24 (logo horizontal). 🙋 Dono: acompanhar a RPI toda semana (exigência
+  formal: 5 dias para cumprir); oposição de terceiros: 60 dias depois da publicação; incluir o CNAE de software antes
+  da primeira venda (nov/dez).
 - ⏳ **Registro da marca "Deixa com a IA" no INPI (prioridade do dono, 05/10):** titular Clubetec (CNPJ); busca prévia
   sem marca igual (classe 35 tem "DEIXA COMIGO" registrada → fora por ora); 3 pedidos: mista classe 42, nominativa
   classe 42, mista classe 9 (GRU código 389 por pedido). Logos prontos em docs/marca/inpi (JPG 945×945, 300 dpi,
   fundo branco; versões horizontal e empilhada). Depois: logo novo da Clubetec (o registro atual tem as cores antigas).
   **GRUs emitidas em 05/10 (código 389, R$ 440 cada com desconto de ME/EPP, cadastro da Clubetec no INPI):**
   29409172365635001 (mista 42), 29409172365635095 (nominativa 42), 29409172365635265 (mista 9). 🙋 Dono: pagar as 3
-  guias ✅ pagas (05/10); protocolar os 3 pedidos no e-Marcas depois que o CNPJ tiver CNAE de software (declaração do
-  art. 128). Cadastro da Clubetec no INPI atualizado em 05/10 (razão social sem "e Segurança", Rua Padre Vieira, 697,
+  guias ✅ pagas (05/10); os 3 pedidos ✅ protocolados em 05/10 (acima); o dono decidiu incluir o CNAE de software
+  depois (declaração do art. 128). Cadastro da Clubetec no INPI atualizado em 05/10 (razão social sem "e Segurança", Rua Padre Vieira, 697,
   CEP 13015-301, EPP). 🙋 Dono: custo com o contador para incluir 62.03-1 / 63.11-9 (e 62.02-3).
 - ✅ **Dados da Clubetec no banco, sempre atualizados (05/10):** tabela platform_company com o que a Receita mostra do
   CNPJ 31.778.487/0001-61 (razão social CLUBETEC SOLUÇÕES E SERVIÇOS DE TECNOLOGIA LTDA, Rua Padre Vieira, 697 – Centro,
