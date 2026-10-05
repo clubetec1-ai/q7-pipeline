@@ -90,7 +90,7 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
     atendimento, PDF digitalizado (OCR), setores da base por bloco de IA, vídeo e anexos de e-mail.
 17. 🟡 **Cobrança e registros:** Asaas ✅; falta IA gerando cobrança (com permissão), cobrança recorrente ligada a
     "Conta a receber", Mercado Pago/Efí, IA criando registros.
-18. 🟡 **Integrações:** Bling beta ✅ (validar com conta real 🙋); faltam Omie, Tiny, Nuvemshop, Google Agenda.
+18. 🟡 **Integrações:** Google Agenda ✅ código pronto (05/10: conector com login do Google, "Horários livres" e "Agendar" nos fluxos, testes do cálculo; 🙋 a Clubetec cria o app no Google Cloud e cola em Plataforma → Conectores); Bling beta ✅ (validar com conta real 🙋); faltam Omie, Tiny, Nuvemshop, Google Agenda.
 19. ⏳ **Meta:** número em poucos cliques (Embedded Signup) e nova conversa com modelo aprovado.
     *Situação em 03/10: empresa verificada na Meta (23/09); app "ClubeCRM" publicado; pedido de permissões
     whatsapp_business_management e whatsapp_business_messaging enviado em 24/09, "Análise em andamento" (a Meta diz até
