@@ -77,7 +77,7 @@ const ago = (iso: string) => {
 function Card({ c, stages = [], onMove }: { c: Conversation; stages?: Stage[]; onMove?: (convId: string, stageId: string) => void }) {
   const navigate = useNavigate();
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: c.id });
-  const who = c.contact_name || c.contact_phone || c.contact_email || "Sem nome";
+  const who = c.contact_name || c.contact_phone || c.contact_email || (c.channel === "instagram" ? "Instagram" : c.channel === "messenger" ? "Messenger" : "Sem nome");
   return (
     <div
       ref={setNodeRef}
@@ -194,7 +194,7 @@ export default function Kanban() {
   const [activeCard, setActiveCard] = useState<Conversation | null>(null);
   const [editing, setEditing] = useState(false);
   const [search, setSearch] = useState("");
-  const [channel, setChannel] = useState<"all" | "whatsapp" | "email">("all");
+  const [channel, setChannel] = useState<string>("all");
   const [addStageOpen, setAddStageOpen] = useState(false);
   const [newStageName, setNewStageName] = useState("");
   const [stageToDelete, setStageToDelete] = useState<Stage | null>(null);
@@ -256,7 +256,10 @@ export default function Kanban() {
       return [c.contact_name, c.contact_phone, c.contact_email].some((v) => v?.toLowerCase().includes(q));
     });
   }, [conversations, search, channel]);
-  const hasEmail = conversations.some((c) => c.channel === "email");
+  // Canais que aparecem nas conversas (o filtro só aparece com mais de um).
+  const CHANNELS: [string, string][] = [["whatsapp", "WhatsApp"], ["email", "E-mail"], ["messenger", "Messenger"], ["instagram", "Instagram"]];
+  const present = CHANNELS.filter(([k]) => conversations.some((c) => (c.channel ?? "whatsapp") === k));
+  const hasEmail = present.length > 1;
 
   const onDragStart = (e: DragStartEvent) => {
     const c = conversations.find((x) => x.id === e.active.id);
@@ -414,7 +417,7 @@ export default function Kanban() {
           />
           {hasEmail && (
             <div className="inline-flex h-9 items-center rounded-lg bg-muted p-1 text-sm" role="group" aria-label="Canal">
-              {([["all", "Todos"], ["whatsapp", "WhatsApp"], ["email", "E-mail"]] as const).map(([k, label]) => (
+              {([["all", "Todos"], ...present] as [string, string][]).map(([k, label]) => (
                 <button
                   key={k}
                   onClick={() => setChannel(k)}

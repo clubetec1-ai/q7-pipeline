@@ -1,3 +1,4 @@
+import { pageToken, sendMetaText } from "../_shared/meta-messaging.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { HttpError, permissionsIn, requireUser } from "../_shared/auth.ts";
 import { forOrg } from "../_shared/tenant.ts";
@@ -44,7 +45,7 @@ Deno.serve(async (req) => {
     const ctx = await requireUser(req);
     const { data: conv } = await ctx.userClient
       .from("conversations")
-      .select("id, organization_id, channel, instance_id, email_account_id, contact_phone, contact_email, last_inbound_at")
+      .select("id, organization_id, channel, instance_id, email_account_id, meta_page_id, contact_external_id, contact_phone, contact_email, last_inbound_at")
       .eq("id", conversationId)
       .maybeSingle();
     if (!conv) throw new HttpError(404, "Conversa não encontrada");
@@ -77,6 +78,16 @@ Deno.serve(async (req) => {
     if (conv.channel === "email") {
       // E-mail: mesma permissão e regra de assumir; sem janela de 24 h.
       ({ sent, fields } = await sendEmailMessage({ admin, orgId, conv, ticketId, text, mediaPath, mediaName, libraryId }));
+    } else if (conv.channel === "messenger" || conv.channel === "instagram") {
+      // Messenger/Instagram: só texto por enquanto; a Meta só deixa responder até 24 h depois da última mensagem da pessoa.
+      if (mediaPath || libraryId) throw new HttpError(400, "Pelo Messenger/Instagram, por enquanto só texto.");
+      if (!conv.last_inbound_at || Date.now() - Date.parse(conv.last_inbound_at) > 24 * 3600_000) {
+        throw new HttpError(409, "Janela de 24h fechada: a Meta só deixa responder até 24 h depois da última mensagem da pessoa.");
+      }
+      const token = await pageToken(admin, conv.meta_page_id);
+      if (!token) throw new HttpError(409, "A Página está desconectada. Conecte de novo em Números.");
+      const r = await sendMetaText(token, conv.contact_external_id, text);
+      sent = { ok: r.ok, messageId: r.messageId, error: r.error } as providers.SendResult;
     } else {
     const { data: bare } = await org.select("whatsapp_instances").eq("id", conv.instance_id).maybeSingle();
     if (!bare) throw new HttpError(404, "Número da conversa não encontrado");

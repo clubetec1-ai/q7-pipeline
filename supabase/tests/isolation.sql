@@ -1523,6 +1523,25 @@ BEGIN
   PERFORM pg_temp.expect((SELECT count(*) FROM public.org_modules m JOIN public.subscriptions s ON s.organization_id = m.organization_id
     WHERE s.asaas_subscription_id = 'sub_iso' AND m.enabled) = 2, 'pagar religa os modulos do plano');
 
+  -- 94. Messenger/Instagram: Pagina so da propria empresa; conversa nao cruza empresas.
+  INSERT INTO public.meta_pages (id, organization_id, page_id, name) VALUES
+    ('aaaaaaaa-0000-0000-0094-000000000001', A, '111111111111', 'Pagina A'),
+    ('bbbbbbbb-0000-0000-0094-000000000001', 'bbbbbbbb-0000-0000-0000-000000000001', '222222222222', 'Pagina B');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, 'SELECT count(*) FROM public.meta_pages') = 1, 'membro ve so a Pagina da empresa');
+  PERFORM pg_temp.expect(pg_temp.q(outsider, 'SELECT count(*) FROM public.meta_pages') = 0, 'quem nao e de empresa nenhuma nao ve');
+  PERFORM pg_temp.expect_error(owner_a, format('INSERT INTO public.meta_pages (organization_id, page_id, name) VALUES (%L, %L, %L)', A, '333333333333', 'x'), 'navegador nao conecta Pagina direto');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.set_meta_page(%L, NULL, true, true, false)', 'aaaaaaaa-0000-0000-0094-000000000001'), 'outra org nao muda a Pagina');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.set_meta_page(%L, NULL, true, true, false)', 'aaaaaaaa-0000-0000-0094-000000000001'), 'atendente nao muda a Pagina');
+  PERFORM pg_temp.run(owner_a, format('SELECT public.set_meta_page(%L, NULL, true, true, true)', 'aaaaaaaa-0000-0000-0094-000000000001'));
+  PERFORM pg_temp.expect((SELECT ai_reply AND NOT instagram FROM public.meta_pages WHERE id = 'aaaaaaaa-0000-0000-0094-000000000001'), 'Instagram so liga com conta ligada');
+  PERFORM pg_temp.expect(pg_temp.run(NULL, format('INSERT INTO public.conversations (organization_id, channel, meta_page_id, contact_external_id) VALUES (%L, %L, %L, %L)',
+    A, 'messenger', 'bbbbbbbb-0000-0000-0094-000000000001', '5555555555')) LIKE 'err:%', 'conversa de A nao usa a Pagina de B');
+  INSERT INTO public.conversations (id, channel, meta_page_id, contact_external_id) VALUES ('aaaaaaaa-0000-0000-0094-000000000011', 'messenger', 'aaaaaaaa-0000-0000-0094-000000000001', '5555555555');
+  PERFORM pg_temp.expect((SELECT organization_id FROM public.conversations WHERE id = 'aaaaaaaa-0000-0000-0094-000000000011') = A, 'conversa herda a empresa da Pagina');
+  PERFORM pg_temp.expect((SELECT status FROM public.service_ticket_for_inbound('aaaaaaaa-0000-0000-0094-000000000011', false)) IN ('bot', 'queued'), 'atendimento nasce pela regra da Pagina');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.conversations WHERE id = ''aaaaaaaa-0000-0000-0094-000000000011''') = 0, 'outra org nao ve a conversa do Messenger');
+  PERFORM pg_temp.expect_error(owner_a, 'SELECT public.service_meta_page_forget(''aaaaaaaa-0000-0000-0094-000000000001'')', 'navegador nao apaga token');
+
   -- 92. Rede de franquias: unidade entra por codigo; matriz ve so numeros; padrao so configuracao.
   UPDATE public.organizations SET status = 'active' WHERE id = 'bbbbbbbb-0000-0000-0000-000000000001'; -- um grupo anterior suspende B
   PERFORM pg_temp.expect_error(owner_a, format('SELECT public.platform_create_network(%L, %L)', A, 'Rede X'), 'so a Clubetec cria rede');

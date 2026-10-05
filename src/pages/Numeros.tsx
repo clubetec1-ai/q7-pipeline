@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { AddNumberDialog } from "./numeros/AddNumberDialog";
 import { EmailAccounts } from "./numeros/EmailAccounts";
+import { MetaPages } from "./numeros/MetaPages";
 
 interface NumberRow {
   id: string;
@@ -197,6 +198,7 @@ export default function Numeros() {
           </div>
         )}
         <EmailAccounts orgId={org.id} />
+        <MetaPages orgId={org.id} />
         <IgnoredSenders orgId={org.id} canManage={can("org.settings")} />
       </main>
 

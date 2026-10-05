@@ -1138,6 +1138,7 @@ export type Database = {
           auto_followup_count: number
           channel: string
           contact_email: string | null
+          contact_external_id: string | null
           contact_id: string | null
           contact_name: string | null
           contact_phone: string | null
@@ -1150,6 +1151,7 @@ export type Database = {
           instance_id: string | null
           last_inbound_at: string | null
           last_message_at: string
+          meta_page_id: string | null
           organization_id: string
           stage_id: string | null
           updated_at: string
@@ -1161,6 +1163,7 @@ export type Database = {
           auto_followup_count?: number
           channel?: string
           contact_email?: string | null
+          contact_external_id?: string | null
           contact_id?: string | null
           contact_name?: string | null
           contact_phone?: string | null
@@ -1173,6 +1176,7 @@ export type Database = {
           instance_id?: string | null
           last_inbound_at?: string | null
           last_message_at?: string
+          meta_page_id?: string | null
           organization_id: string
           stage_id?: string | null
           updated_at?: string
@@ -1184,6 +1188,7 @@ export type Database = {
           auto_followup_count?: number
           channel?: string
           contact_email?: string | null
+          contact_external_id?: string | null
           contact_id?: string | null
           contact_name?: string | null
           contact_phone?: string | null
@@ -1196,6 +1201,7 @@ export type Database = {
           instance_id?: string | null
           last_inbound_at?: string | null
           last_message_at?: string
+          meta_page_id?: string | null
           organization_id?: string
           stage_id?: string | null
           updated_at?: string
@@ -1242,6 +1248,13 @@ export type Database = {
             columns: ["instance_id", "organization_id"]
             isOneToOne: false
             referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "conversations_meta_page_fk"
+            columns: ["meta_page_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "meta_pages"
             referencedColumns: ["id", "organization_id"]
           },
           {
@@ -2491,6 +2504,72 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tickets"
             referencedColumns: ["id", "organization_id"]
+          },
+        ]
+      }
+      meta_pages: {
+        Row: {
+          ai_reply: boolean
+          created_at: string
+          department_id: string | null
+          id: string
+          ig_account_id: string | null
+          ig_username: string | null
+          instagram: boolean
+          last_error: string | null
+          messenger: boolean
+          name: string
+          organization_id: string
+          page_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          ai_reply?: boolean
+          created_at?: string
+          department_id?: string | null
+          id?: string
+          ig_account_id?: string | null
+          ig_username?: string | null
+          instagram?: boolean
+          last_error?: string | null
+          messenger?: boolean
+          name: string
+          organization_id: string
+          page_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          ai_reply?: boolean
+          created_at?: string
+          department_id?: string | null
+          id?: string
+          ig_account_id?: string | null
+          ig_username?: string | null
+          instagram?: boolean
+          last_error?: string | null
+          messenger?: boolean
+          name?: string
+          organization_id?: string
+          page_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_pages_department_fk"
+            columns: ["department_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "meta_pages_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -5149,6 +5228,7 @@ export type Database = {
         Args: { org: string; pmid: string; who: string }
         Returns: number
       }
+      service_meta_page_forget: { Args: { page: string }; Returns: undefined }
       service_module_on: { Args: { m: string; org: string }; Returns: boolean }
       service_platform_alert_recipients: { Args: never; Returns: string[] }
       service_put_secret: {
@@ -5338,6 +5418,16 @@ export type Database = {
       }
       set_member_name: {
         Args: { member: string; name: string; org: string }
+        Returns: undefined
+      }
+      set_meta_page: {
+        Args: {
+          p_ai_reply: boolean
+          p_department: string
+          p_instagram: boolean
+          p_messenger: boolean
+          page: string
+        }
         Returns: undefined
       }
       set_org_area: {

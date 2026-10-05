@@ -1,6 +1,6 @@
 import { Link, Navigate } from "react-router-dom";
 import {
-  Bot, BookOpen, Braces, Building2, Clock, CreditCard, Filter, Network, KeyRound, Library, Mail, MessageSquare, Palette, PhoneCall, Plug, Server, Settings2, Shuffle, Tags, Target, UsersRound, Wallet, Workflow, type LucideIcon,
+  Bot, BookOpen, Braces, Building2, Clock, Facebook, CreditCard, Filter, Network, KeyRound, Library, Mail, MessageSquare, Palette, PhoneCall, Plug, Server, Settings2, Shuffle, Tags, Target, UsersRound, Wallet, Workflow, type LucideIcon,
 } from "lucide-react";
 import { useOrg } from "@/contexts/OrgContext";
 import { AppHeader } from "@/components/AppHeader";
@@ -36,6 +36,8 @@ export default function Configuracoes() {
       { title: "E-mail", desc: "Caixas de e-mail atendidas na mesma tela das conversas.", to: "/numeros", icon: Mail, color: "#6C8EF5",
         state: !s.email ? "optional" : s.emailNoDept ? "pending" : "ok",
         detail: s.email ? `${s.email} caixa(s)${s.emailNoDept ? ` · ${s.emailNoDept} sem setor (cai na Fila geral)` : ""}` : undefined, show: manage && hasModule("canais") },
+      { title: "Facebook e Instagram", desc: "Mensagens do Messenger e do Instagram Direct na mesma tela das conversas.", to: "/numeros", icon: Facebook, color: "#1877F2",
+        state: "optional", show: manage && hasModule("canais") },
       { title: "Telefone", desc: "Ramal de cada atendente pelo navegador ou MicroSIP.", to: "/equipe?tab=ramais", icon: PhoneCall, color: "#3FB8BE",
         state: s.ramais ? "ok" : "optional", detail: s.ramais ? `${s.ramais} ramal(is)` : undefined, show: team && hasModule("telefonia") },
     ] },
