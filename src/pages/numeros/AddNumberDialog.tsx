@@ -3,6 +3,7 @@ import { ShieldCheck, QrCode, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { callFunction } from "@/lib/callFunction";
+import { FacebookButton } from "./MetaConnect";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -141,6 +142,11 @@ export function AddNumberDialog({
 
         {step === "meta" && (
           <div className="space-y-3">
+            <div className="rounded-md border p-3 space-y-2 bg-muted/30">
+              <p className="text-sm">O jeito mais fácil: entre com o Facebook da empresa e escolha o número. Nada para copiar.</p>
+              <FacebookButton orgId={orgId} kind="whatsapp" label="Conectar o WhatsApp com o Facebook" />
+            </div>
+            <p className="text-xs text-muted-foreground">Ou, se já tiver os dados do WhatsApp Manager (avançado):</p>
             <div className="space-y-1.5"><Label>Nome na equipe (opcional)</Label>
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Comercial" /></div>
             <div className="space-y-1.5"><Label>Phone Number ID</Label>

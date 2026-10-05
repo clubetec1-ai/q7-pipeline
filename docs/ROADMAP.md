@@ -289,7 +289,7 @@ Meta liberar as permissões) → 19b Google Agenda (🙋 precisa de credencial O
   sotaque brasileiro e tom simpático, sem trocar de voz no meio; texto e voz chegam juntos; cada resposta é salva na
   hora ("Continuar entrevista"); a página não "recarrega" mais quando o login se renova ao voltar para a aba (a tela
   toda era remontada e perdia o que estava em andamento — valia para qualquer tela).
-- ⏳ **Facebook/Instagram e WhatsApp oficial em um clique:** botão "Conectar com o Facebook" (login da Meta → escolher
+- ✅ *(código pronto 05/10: botão "Conectar com o Facebook" em Números → Facebook e Instagram e em Adicionar número → WhatsApp oficial; login da Meta, escolha da Página ou do número, mesmas checagens da conexão manual, token temporário apagado ao concluir; Plataforma → Conectores → App da Meta com o passo a passo. 🙋 Clubetec: configurar o Facebook Login for Business no app e pedir as permissões na análise)* **Facebook/Instagram e WhatsApp oficial em um clique:** botão "Conectar com o Facebook" (login da Meta → escolher
   a Página/Instagram ou o número → pronto), sem o cliente copiar ID nem token; a Clubetec faz uma vez o app, as
   permissões e a análise da Meta. Mesmo caminho para o Google Agenda (já é um clique para o cliente).
 

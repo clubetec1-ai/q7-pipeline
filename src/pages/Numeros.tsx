@@ -26,6 +26,7 @@ import {
 import { AddNumberDialog } from "./numeros/AddNumberDialog";
 import { EmailAccounts } from "./numeros/EmailAccounts";
 import { MetaPages } from "./numeros/MetaPages";
+import { MetaConnectReturn } from "./numeros/MetaConnect";
 
 interface NumberRow {
   id: string;
@@ -70,6 +71,7 @@ export default function Numeros() {
   const [lastIn, setLastIn] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
+  const [metaTick, setMetaTick] = useState(0);
   const [reconnectId, setReconnectId] = useState<string | null>(null);
   const [editing, setEditing] = useState<NumberRow | null>(null);
   const [deleting, setDeleting] = useState<NumberRow | null>(null);
@@ -198,7 +200,8 @@ export default function Numeros() {
           </div>
         )}
         <EmailAccounts orgId={org.id} />
-        <MetaPages orgId={org.id} />
+        <MetaPages key={metaTick} orgId={org.id} />
+        <MetaConnectReturn onDone={() => { setMetaTick((t) => t + 1); load(); }} />
         <IgnoredSenders orgId={org.id} canManage={can("org.settings")} />
       </main>
 
