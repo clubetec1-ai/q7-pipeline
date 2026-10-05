@@ -1542,6 +1542,23 @@ BEGIN
   PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.conversations WHERE id = ''aaaaaaaa-0000-0000-0094-000000000011''') = 0, 'outra org nao ve a conversa do Messenger');
   PERFORM pg_temp.expect_error(owner_a, 'SELECT public.service_meta_page_forget(''aaaaaaaa-0000-0000-0094-000000000001'')', 'navegador nao apaga token');
 
+  -- 95. Marca no INPI: so a Clubetec ve e mexe; o registro da revista so pelo servidor.
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT count(*) FROM public.inpi_processes') = 0, 'cliente nao ve os processos da Clubetec');
+  PERFORM pg_temp.expect(pg_temp.q(outsider, 'SELECT count(*) FROM public.inpi_conflicts') = 0, 'cliente nao ve marcas parecidas');
+  PERFORM pg_temp.expect(pg_temp.q(operator, 'SELECT count(*) FROM public.inpi_processes') >= 3, 'operador ve os processos');
+  PERFORM pg_temp.expect_error(owner_a, 'SELECT public.platform_inpi_save_process(''123456789'', ''x'', NULL, NULL)', 'cliente nao cadastra processo');
+  PERFORM pg_temp.expect_error(owner_a, 'SELECT public.platform_inpi_set_watch(ARRAY[''abcd''], ARRAY[''abcd''])', 'cliente nao muda a vigilancia');
+  PERFORM pg_temp.expect_error(operator, 'SELECT public.service_inpi_record(1, current_date, ''[]'', ''[]'', NULL)', 'navegador nao grava revista');
+  PERFORM pg_temp.expect_error(owner_a, 'INSERT INTO public.inpi_conflicts (numero, rpi, rpi_date, marca) VALUES (''123456789'', 1, current_date, ''x'')', 'ninguem grava direto');
+  PERFORM pg_temp.run(operator, 'SELECT public.platform_inpi_save_process(''900000095'', ''Teste'', NULL, current_date)');
+  PERFORM public.service_inpi_record(99095, '2026-10-06',
+    '[{"numero":"900000095","despachos":[{"codigo":"IPAS136","nome":"Exigência de mérito","nivel":"urgente","orientacao":"x","dias":60}]}]',
+    '[{"numero":"900000095","marca":"nossa"},{"numero":"900000096","marca":"Deixe com a IA","despacho":"Publicação de pedido de registro para oposição"}]', NULL);
+  PERFORM pg_temp.expect((SELECT prazo FROM public.inpi_events WHERE numero = '900000095' AND rpi = 99095) = '2026-12-05', 'despacho grava o prazo');
+  PERFORM pg_temp.expect((SELECT last_status FROM public.inpi_processes WHERE numero = '900000095') = 'Exigência de mérito', 'processo mostra o ultimo despacho');
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.inpi_conflicts WHERE rpi = 99095) = 1, 'marca parecida entra; processo nosso nao vira conflito');
+  PERFORM pg_temp.expect((SELECT prazo FROM public.inpi_conflicts WHERE numero = '900000096') = '2026-12-05', 'prazo de oposicao de 60 dias');
+
   -- 92. Rede de franquias: unidade entra por codigo; matriz ve so numeros; padrao so configuracao.
   UPDATE public.organizations SET status = 'active' WHERE id = 'bbbbbbbb-0000-0000-0000-000000000001'; -- um grupo anterior suspende B
   PERFORM pg_temp.expect_error(owner_a, format('SELECT public.platform_create_network(%L, %L)', A, 'Rede X'), 'so a Clubetec cria rede');

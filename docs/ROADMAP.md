@@ -289,6 +289,12 @@ Meta liberar as permissões) → 19b Google Agenda (🙋 precisa de credencial O
   mistos: 26.4.4, 26.4.10, 26.4.18 e 26.4.24 (logo horizontal). 🙋 Dono: acompanhar a RPI toda semana (exigência
   formal: 5 dias para cumprir); oposição de terceiros: 60 dias depois da publicação; incluir o CNAE de software antes
   da primeira venda (nov/dez).
+- ✅ **Monitor da RPI (05/10, pedido do dono):** a função inpi-watch lê sozinha a revista do INPI (seção Marcas, XML
+  de toda terça; cron diário às 9h pega a edição nova) e grava no banco cada despacho dos nossos processos, com o que
+  fazer e o prazo estimado (exigência formal 5 dias; exigência, oposição, deferimento e indeferimento 60 dias).
+  Também vigia marcas parecidas com "Deixa com a IA" publicadas por outros (prazo de oposição de 60 dias) e processos
+  novos em nome da Clubetec (entram sozinhos). Aviso no sino e por e-mail para os operadores. Painel em Plataforma →
+  Planos → Marca no INPI ("Verificar agora", acompanhar outro processo, termos vigiados). Teste com a RPI 2908 ok.
 - ⏳ **Registro da marca "Deixa com a IA" no INPI (prioridade do dono, 05/10):** titular Clubetec (CNPJ); busca prévia
   sem marca igual (classe 35 tem "DEIXA COMIGO" registrada → fora por ora); 3 pedidos: mista classe 42, nominativa
   classe 42, mista classe 9 (GRU código 389 por pedido). Logos prontos em docs/marca/inpi (JPG 945×945, 300 dpi,

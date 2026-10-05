@@ -73,3 +73,6 @@ verify_jwt = false
 
 [functions.platform-company]
 verify_jwt = false
+
+[functions.inpi-watch]
+verify_jwt = false
