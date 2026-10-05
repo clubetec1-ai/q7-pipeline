@@ -70,3 +70,6 @@ verify_jwt = false
 
 [functions.meta-connect-callback]
 verify_jwt = false
+
+[functions.platform-company]
+verify_jwt = false
