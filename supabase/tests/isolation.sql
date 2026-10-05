@@ -1523,6 +1523,25 @@ BEGIN
   PERFORM pg_temp.expect((SELECT count(*) FROM public.org_modules m JOIN public.subscriptions s ON s.organization_id = m.organization_id
     WHERE s.asaas_subscription_id = 'sub_iso' AND m.enabled) = 2, 'pagar religa os modulos do plano');
 
+  -- 88. Diagnostico: convite ao responsavel do setor ve so o proprio convite.
+  INSERT INTO public.org_modules (organization_id, module, enabled) VALUES (A, 'diagnostico', true)
+  ON CONFLICT (organization_id, module) DO UPDATE SET enabled = true;
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.diag_invite_sector(%L, %L, %L)', A, 'Vendas', agent2_a), 'atendente nao convida');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.diag_invite_sector(%L, %L, %L)', A, 'Vendas', agent_a), 'outra org nao convida em A');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.diag_invite_sector(%L, %L, %L)', A, 'Vendas', owner_b), 'so convida gente da equipe');
+  PERFORM pg_temp.run(owner_a, format('SELECT public.diag_invite_sector(%L, %L, %L)', A, 'Vendas', agent_a));
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, 'SELECT count(*) FROM public.diag_delegations') = 1, 'convidado ve o proprio convite');
+  PERFORM pg_temp.expect(pg_temp.q(agent2_a, 'SELECT count(*) FROM public.diag_delegations') = 0, 'outro atendente nao ve');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.diag_delegations') = 0, 'outra org nao ve');
+  PERFORM pg_temp.expect_error(agent2_a, format('SELECT public.diag_submit_sector(%L, %L)', (SELECT id FROM public.diag_delegations WHERE organization_id = A AND user_id = agent_a), 'texto de outra pessoa aqui'), 'outro nao envia pelo convidado');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.diag_submit_sector(%L, %L)', (SELECT id FROM public.diag_delegations WHERE organization_id = A AND user_id = agent_a), 'curto'), 'texto curto recusado');
+  PERFORM pg_temp.run(agent_a, format('SELECT public.diag_submit_sector(%L, %L)', (SELECT id FROM public.diag_delegations WHERE organization_id = A AND user_id = agent_a), '1. Cliente pede orcamento. 2. Vendedor responde.'));
+  PERFORM pg_temp.expect(EXISTS (SELECT 1 FROM public.notifications WHERE organization_id = A AND user_id = owner_a AND kind = 'diag_submitted'), 'dono e avisado do envio');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.diag_close_delegation(%L, true)', (SELECT id FROM public.diag_delegations WHERE organization_id = A AND user_id = agent_a)), 'convidado nao fecha');
+  PERFORM pg_temp.run(owner_a, format('SELECT public.diag_close_delegation(%L, true)', (SELECT id FROM public.diag_delegations WHERE organization_id = A AND user_id = agent_a)));
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, 'SELECT count(*) FROM public.diag_delegations') = 0, 'depois de usado some para o convidado');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.diag_submit_sector(%L, %L)', (SELECT id FROM public.diag_delegations WHERE organization_id = A AND user_id = agent_a), 'mudando depois de usado'), 'nao reenvia depois de usado');
+
   -- 87. Relatorio por e-mail: cada um assina o proprio; calculado com o escopo da pessoa.
   PERFORM pg_temp.expect_error(outsider, format('SELECT public.set_report_email(%L, %L, %L)', A, 'weekly', '{operacao}'), 'quem nao e da empresa nao assina');
   PERFORM pg_temp.expect_error(owner_b, format('SELECT public.set_report_email(%L, %L, %L)', A, 'weekly', '{operacao}'), 'outra org nao assina em A');

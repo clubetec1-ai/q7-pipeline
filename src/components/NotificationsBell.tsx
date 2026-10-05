@@ -17,6 +17,8 @@ const TEXT: Record<string, (r: Record<string, string>) => string> = {
   charge_paid: (r) => `Pagamento recebido: R$ ${Number(r.value ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
   email_health: (r) => `Caixa de e-mail ${r.name ?? ""}: ${r.error ?? "precisa de atenção"}`,
   team_mention: (r) => `Você foi mencionado no chat da equipe: ${r.text ?? ""}`,
+  diag_invite: (r) => `Você foi convidado(a) a descrever os processos do setor ${r.setor ?? ""}`,
+  diag_submitted: (r) => `${r.name || "O responsável"} enviou os processos do setor ${r.setor ?? ""} — revise no Diagnóstico`,
   process_reminder: (r) => `⏰ Lembrete: implementar "${r.nome ?? ""}"${r.setor ? ` (${r.setor})` : ""} — veja o plano no Diagnóstico`,
   missed_call: (r) => `📞 Ligação perdida de ${r.phone ?? ""} — clique para retornar`,
   improvement: (r) => `${r.source === "monitor" ? "Correção" : r.source === "cerebro" ? "Sugestão do cérebro" : "Melhoria"} para aprovar: ${r.title ?? ""}`,
@@ -68,6 +70,8 @@ export function NotificationsBell() {
     else if (n.kind === "webhook_paused") navigate("/configuracoes/api");
     else if (n.kind === "team_mention") navigate("/chat");
     else if (n.kind === "process_reminder") navigate("/diagnostico");
+    else if (n.kind === "diag_invite") navigate("/diagnostico/setor");
+    else if (n.kind === "diag_submitted") navigate(`/diagnostico?pagina=${encodeURIComponent(`proc:${n.ref.setor ?? ""}`)}`);
     else if (n.kind === "missed_call" && n.ref.phone) requestCall(String(n.ref.phone));
   };
 

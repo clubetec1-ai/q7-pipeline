@@ -48,6 +48,7 @@ import ConfigIA from "./pages/ConfigIA";
 import ConfigAtendimento from "./pages/ConfigAtendimento";
 import ConfigAparencia from "./pages/ConfigAparencia";
 import ConfigApi from "./pages/ConfigApi";
+import DiagnosticoSetor from "./pages/DiagnosticoSetor";
 import ConfigAreas from "./pages/ConfigAreas";
 import Cerebro from "./pages/Cerebro";
 import FlowEditor from "./pages/FlowEditor";
@@ -74,6 +75,7 @@ const App = () => (
             <Route path="/biblioteca" element={<ProtectedRoute><Biblioteca /></ProtectedRoute>} />
             <Route path="/plataforma" element={<ProtectedRoute><Plataforma /></ProtectedRoute>} />
             <Route path="/registros" element={<ProtectedRoute><Registros /></ProtectedRoute>} />
+            <Route path="/diagnostico/setor" element={<ProtectedRoute><ModuleGate m="diagnostico"><DiagnosticoSetor /></ModuleGate></ProtectedRoute>} />
             <Route path="/diagnostico" element={<ProtectedRoute><ModuleGate m="diagnostico"><Diagnostico /></ModuleGate></ProtectedRoute>} />
             <Route path="/cobrancas" element={<ProtectedRoute><ModuleGate m="cobrancas"><Cobrancas /></ModuleGate></ProtectedRoute>} />
             <Route path="/integracoes" element={<ProtectedRoute><Integracoes /></ProtectedRoute>} />

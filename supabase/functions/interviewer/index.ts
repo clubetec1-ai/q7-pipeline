@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const action = String(body?.action ?? "");
-    if (!["message", "suggest", "research", "plan", "format", "transcribe", "brand_write", "sector_priority", "voice_turn", "speak"].includes(action)) throw new HttpError(400, "Ação inválida");
+    if (!["message", "suggest", "research", "plan", "format", "transcribe", "brand_write", "sector_priority", "voice_turn", "speak", "presence_texts"].includes(action)) throw new HttpError(400, "Ação inválida");
     const ctx = await requireUser(req);
     const orgId = await resolveOrg(ctx, body?.organization_id);
     await requirePermission(ctx, orgId, "org.settings");
@@ -184,6 +184,32 @@ Deno.serve(async (req) => {
 
     // ------------------------------------------------------------- brand_write
     // Marketing: texto de campanha no tom de voz da marca (usa só o retrato público + a voz).
+    // --------------------------------------------------------- presence_texts
+    // Textos para o perfil no Google e as redes, no tom da marca, só com o que o dono contou.
+    if (action === "presence_texts") {
+      const base = ["empresa", "produtos", "atendimento", "pos_venda", "presenca", "marca_voz"].map((k) => clip(sections[k], 1500)).filter(Boolean);
+      if (base.length < 2) throw new HttpError(422, "Aprove antes as etapas Empresa e Publicar e medir.");
+      const out = await ask(
+        "Você escreve a presença digital de uma empresa brasileira: perfil da empresa no Google (Google Meu Negócio) e redes sociais. " +
+        "Use SOMENTE o que está nas informações da empresa; nunca invente endereço, telefone, preço, prazo, prêmio ou número. " +
+        "Onde faltar um dado, escreva [preencher: o que falta]. Siga o tom de voz da marca, se houver. Português do Brasil. " +
+        'Responda SOMENTE com JSON: {"google_descricao":"até 750 caracteres, sem link e sem telefone","google_categorias":["categoria principal","até 3 secundárias"],' +
+        '"google_posts":["3 publicações curtas para o perfil do Google (até 300 caracteres cada, com chamada para ação)"],' +
+        '"instagram_bio":"até 150 caracteres","facebook_sobre":"até 255 caracteres","ideias_posts":["5 ideias de publicação para as redes, uma linha cada"]}',
+        `Empresa: ${orgRow?.name ?? ""}\n` + ["Sobre", "Produtos/serviços", "Atendimento", "Pós-venda", "Onde aparece hoje", "Tom de voz"]
+          .map((l, i) => { const k = ["empresa", "produtos", "atendimento", "pos_venda", "presenca", "marca_voz"][i]; return sections[k] ? `${l}: ${clip(sections[k], 1500)}` : ""; })
+          .filter(Boolean).join("\n"),
+      );
+      const list = (v: unknown, n: number, len: number) => (Array.isArray(v) ? v : []).map((x) => clip(x, len)).filter(Boolean).slice(0, n);
+      const textos = {
+        google_descricao: clip(out.google_descricao, 750), google_categorias: list(out.google_categorias, 4, 80),
+        google_posts: list(out.google_posts, 3, 300), instagram_bio: clip(out.instagram_bio, 150),
+        facebook_sobre: clip(out.facebook_sobre, 255), ideias_posts: list(out.ideias_posts, 5, 200),
+      };
+      if (!textos.google_descricao) throw new HttpError(502, "Não consegui escrever agora. Tente de novo.");
+      return json({ ok: true, textos });
+    }
+
     if (action === "brand_write") {
       const goal = clip(body?.goal, 1500);
       if (goal.length < 5) throw new HttpError(400, "Conte sobre o que é a mensagem.");
