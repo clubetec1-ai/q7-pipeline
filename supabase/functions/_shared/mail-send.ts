@@ -7,7 +7,7 @@ import { HttpError } from "./auth.ts";
 import { forOrg } from "./tenant.ts";
 import { isDangerous, sniffMime, typeOf } from "./media.ts";
 import { loadLibraryFile } from "./library.ts";
-import { accountPassword, smtpTransport } from "./mail.ts";
+import { accountPassword, copyToSent, smtpTransport } from "./mail.ts";
 import { friendlyMailError, replySubject } from "./mail-utils.ts";
 
 const MAX_ATTACHMENT = 20 * 1024 * 1024;
@@ -53,11 +53,15 @@ export async function sendEmailMessage(p: {
   const body = [text, acc.signature ? `-- \n${acc.signature}` : ""].filter(Boolean).join("\n\n") || " ";
   try {
     const transport = await smtpTransport(acc, pass);
-    const info = await transport.sendMail({
+    const mailOpts = {
       from: { name: acc.name, address: acc.address }, to: conv.contact_email, subject, text: body,
       ...(lastIn?.email_message_id ? { inReplyTo: lastIn.email_message_id, references: lastIn.email_message_id } : {}),
       attachments,
-    });
+    };
+    const info = await transport.sendMail(mailOpts);
+    // Cópia na pasta "Enviados" da caixa (provedores que não guardam sozinhos); falhar aqui não desfaz o envio.
+    await copyToSent(acc, pass, { ...mailOpts, messageId: info.messageId }).catch((e) =>
+      console.warn("[mail] cópia em Enviados falhou", e instanceof Error ? e.message.slice(0, 160) : String(e)));
     return { sent: { ok: true, messageId: info.messageId }, fields: { ...fields, email_subject: subject, email_message_id: info.messageId ?? null } };
   } catch (e) {
     return { sent: { ok: false, error: friendlyMailError(e) }, fields: { ...fields, email_subject: subject } };

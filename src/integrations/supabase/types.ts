@@ -1273,6 +1273,7 @@ export type Database = {
       email_accounts: {
         Row: {
           address: string
+          ai_reply: boolean
           created_at: string
           department_id: string | null
           has_password: boolean
@@ -1294,6 +1295,7 @@ export type Database = {
         }
         Insert: {
           address: string
+          ai_reply?: boolean
           created_at?: string
           department_id?: string | null
           has_password?: boolean
@@ -1315,6 +1317,7 @@ export type Database = {
         }
         Update: {
           address?: string
+          ai_reply?: boolean
           created_at?: string
           department_id?: string | null
           has_password?: boolean
