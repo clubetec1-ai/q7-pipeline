@@ -61,3 +61,6 @@ verify_jwt = false
 
 [functions.webhooks-dispatch]
 verify_jwt = false
+
+[functions.report-email]
+verify_jwt = false

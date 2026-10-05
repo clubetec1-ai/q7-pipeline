@@ -1523,6 +1523,22 @@ BEGIN
   PERFORM pg_temp.expect((SELECT count(*) FROM public.org_modules m JOIN public.subscriptions s ON s.organization_id = m.organization_id
     WHERE s.asaas_subscription_id = 'sub_iso' AND m.enabled) = 2, 'pagar religa os modulos do plano');
 
+  -- 87. Relatorio por e-mail: cada um assina o proprio; calculado com o escopo da pessoa.
+  PERFORM pg_temp.expect_error(outsider, format('SELECT public.set_report_email(%L, %L, %L)', A, 'weekly', '{operacao}'), 'quem nao e da empresa nao assina');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.set_report_email(%L, %L, %L)', A, 'weekly', '{operacao}'), 'outra org nao assina em A');
+  PERFORM pg_temp.run(agent_a, format('SELECT public.set_report_email(%L, %L, %L)', A, 'weekly', '{operacao,atendentes,comercial}'));
+  PERFORM pg_temp.expect((SELECT kinds FROM public.report_emails WHERE organization_id = A AND user_id = agent_a) = '{atendentes}', 'atendente so recebe o que ve na tela');
+  PERFORM pg_temp.run(owner_a, format('SELECT public.set_report_email(%L, %L, %L)', A, 'monthly', '{operacao,ia}'));
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT count(*) FROM public.report_emails') = 1, 'cada um ve so a propria assinatura');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.report_emails') = 0, 'outra org nao ve assinaturas de A');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('INSERT INTO public.report_emails (organization_id, user_id, frequency, kinds) VALUES (%L, %L, %L, %L)', A, agent2_a, 'weekly', '{operacao}')) LIKE 'err:%', 'navegador nao assina por outra pessoa');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_report_as(%L, %L, %L, now() - interval %L, now())', A, owner_a, 'operacao', '7 days'), 'navegador nao gera relatorio como outro');
+  PERFORM pg_temp.expect(public.service_report_as(A, agent_a, 'operacao', now() - interval '7 days', now()) IS NULL, 'atendente nao recebe operacao');
+  PERFORM pg_temp.expect(public.service_report_as(A, agent_a, 'atendentes', now() - interval '7 days', now()) ->> 'escopo' = 'self', 'atendente recebe so os proprios numeros');
+  PERFORM pg_temp.expect(public.service_report_as(A, owner_b, 'operacao', now() - interval '7 days', now()) IS NULL, 'quem nao e de A nao recebe relatorio de A');
+  PERFORM pg_temp.run(agent_a, format('SELECT public.set_report_email(%L, NULL, NULL)', A));
+  PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM public.report_emails WHERE organization_id = A AND user_id = agent_a), 'desligar remove a assinatura');
+
   -- 86. API e webhooks: chave so do dono, guardada por hash; eventos so para os enderecos da propria empresa.
   PERFORM pg_temp.expect_error(agent_a, format('SELECT public.create_api_key(%L, %L, %L)', A, 'n8n', '{contacts:read}'), 'atendente nao cria chave');
   PERFORM pg_temp.expect_error(owner_b, format('SELECT public.create_api_key(%L, %L, %L)', A, 'n8n', '{contacts:read}'), 'outra org nao cria chave em A');

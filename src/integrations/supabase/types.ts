@@ -3297,6 +3297,41 @@ export type Database = {
           },
         ]
       }
+      report_emails: {
+        Row: {
+          created_at: string
+          frequency: string
+          kinds: string[]
+          last_sent_at: string | null
+          organization_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          frequency: string
+          kinds: string[]
+          last_sent_at?: string | null
+          organization_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          frequency?: string
+          kinds?: string[]
+          last_sent_at?: string | null
+          organization_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_emails_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_requests: {
         Row: {
           created_at: string
@@ -4801,6 +4836,27 @@ export type Database = {
         Args: { secret_name: string; secret_value: string }
         Returns: undefined
       }
+      service_report_as: {
+        Args: {
+          kind: string
+          org: string
+          since: string
+          uid: string
+          until: string
+        }
+        Returns: Json
+      }
+      service_report_emails_due: {
+        Args: never
+        Returns: {
+          email: string
+          frequency: string
+          kinds: string[]
+          org_name: string
+          organization_id: string
+          user_id: string
+        }[]
+      }
       service_search_knowledge: {
         Args: {
           depts?: string[]
@@ -4990,6 +5046,10 @@ export type Database = {
       }
       set_presence: {
         Args: { new_status: string; org: string; reason?: string }
+        Returns: undefined
+      }
+      set_report_email: {
+        Args: { freq: string; org: string; p_kinds: string[] }
         Returns: undefined
       }
       set_require_mfa: {
