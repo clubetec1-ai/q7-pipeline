@@ -1517,6 +1517,7 @@ export type Database = {
         Row: {
           approved_at: string | null
           approved_by: string | null
+          area_id: string | null
           artifact_id: string | null
           artifact_kind: string | null
           closed_at: string | null
@@ -1547,6 +1548,7 @@ export type Database = {
         Insert: {
           approved_at?: string | null
           approved_by?: string | null
+          area_id?: string | null
           artifact_id?: string | null
           artifact_kind?: string | null
           closed_at?: string | null
@@ -1577,6 +1579,7 @@ export type Database = {
         Update: {
           approved_at?: string | null
           approved_by?: string | null
+          area_id?: string | null
           artifact_id?: string | null
           artifact_kind?: string | null
           closed_at?: string | null
@@ -1605,6 +1608,13 @@ export type Database = {
           version?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "improvements_area_fk"
+            columns: ["area_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "org_areas"
+            referencedColumns: ["id", "organization_id"]
+          },
           {
             foreignKeyName: "improvements_department_fk"
             columns: ["department_id", "organization_id"]
@@ -2209,6 +2219,80 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "oauth_states_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_areas: {
+        Row: {
+          agent_enabled: boolean
+          approval_mode: string
+          approver_id: string | null
+          backup_approver_id: string | null
+          created_at: string
+          department_id: string | null
+          enabled: boolean
+          id: string
+          key: string
+          name: string
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          agent_enabled?: boolean
+          approval_mode?: string
+          approver_id?: string | null
+          backup_approver_id?: string | null
+          created_at?: string
+          department_id?: string | null
+          enabled?: boolean
+          id?: string
+          key: string
+          name: string
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          agent_enabled?: boolean
+          approval_mode?: string
+          approver_id?: string | null
+          backup_approver_id?: string | null
+          created_at?: string
+          department_id?: string | null
+          enabled?: boolean
+          id?: string
+          key?: string
+          name?: string
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_areas_approver_fk"
+            columns: ["organization_id", "approver_id"]
+            isOneToOne: false
+            referencedRelation: "organization_members"
+            referencedColumns: ["organization_id", "user_id"]
+          },
+          {
+            foreignKeyName: "org_areas_backup_fk"
+            columns: ["organization_id", "backup_approver_id"]
+            isOneToOne: false
+            referencedRelation: "organization_members"
+            referencedColumns: ["organization_id", "user_id"]
+          },
+          {
+            foreignKeyName: "org_areas_department_fk"
+            columns: ["department_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "org_areas_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -4017,6 +4101,7 @@ export type Database = {
           conversation_id: string
         }[]
       }
+      seed_org_areas: { Args: { org: string }; Returns: number }
       seed_pipeline_stages: { Args: { _user_id: string }; Returns: undefined }
       service_add_improvements: {
         Args: {
@@ -4200,6 +4285,10 @@ export type Database = {
         Args: { org: string; secret_key: string; secret_value: string }
         Returns: undefined
       }
+      set_improvement_area: {
+        Args: { area: string; improvement: string }
+        Returns: undefined
+      }
       set_improvement_live: {
         Args: { days?: number; improvement: string }
         Returns: undefined
@@ -4211,6 +4300,21 @@ export type Database = {
       set_member_name: {
         Args: { member: string; name: string; org: string }
         Returns: undefined
+      }
+      set_org_area: {
+        Args: {
+          agent_on: boolean
+          approver: string
+          area: string
+          backup: string
+          department: string
+          mode: string
+          on_off: boolean
+          org: string
+          p_key: string
+          p_name: string
+        }
+        Returns: string
       }
       set_org_secret: {
         Args: { org: string; secret_key: string; secret_value: string }

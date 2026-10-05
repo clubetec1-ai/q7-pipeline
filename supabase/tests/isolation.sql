@@ -1331,6 +1331,37 @@ BEGIN
   UPDATE public.conversations SET stage_id = (SELECT id FROM public.pipeline_stages WHERE organization_id = A AND name = 'Qualificado')
   WHERE id = 'aaaaaaaa-0000-0000-0004-000000000001';
   PERFORM pg_temp.expect((SELECT count(*) FROM public.followups WHERE conversation_id = 'aaaaaaaa-0000-0000-0004-000000000001' AND kind = 'auto_stage' AND status = 'pending') = 0, 'saiu da etapa: retornos cancelados');
+
+  -- 73. Cerebro: areas so o dono cria; responsavel tem que ser da equipe da mesma empresa.
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.set_org_area(%L, NULL, %L, %L, NULL, NULL, NULL, NULL, false, true)', A, 'vendas', 'Vendas'), 'atendente nao cria area');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.set_org_area(%L, NULL, %L, %L, NULL, NULL, NULL, NULL, false, true)', A, 'vendas', 'Vendas'), 'outra org nao cria area em A');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.set_org_area(%L, NULL, %L, %L, NULL, %L, NULL, NULL, false, true)', A, 'vendas', 'Vendas', owner_b), 'responsavel de outra empresa recusado');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.set_org_area(%L, NULL, %L, %L, NULL, NULL, NULL, NULL, false, true)', A, 'inventada', 'X'), 'tipo de area fora da lista recusado');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('SELECT public.set_org_area(%L, NULL, %L, %L, NULL, %L, NULL, %L, false, true)', A, 'vendas', 'Vendas', agent_a, 'responsavel')) = 'ok:1', 'dono cria area com responsavel');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, 'SELECT count(*) FROM public.org_areas') = 1, 'responsavel ve a sua area');
+  PERFORM pg_temp.expect(pg_temp.q(agent2_a, 'SELECT count(*) FROM public.org_areas') = 0, 'outro atendente nao ve areas');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.org_areas') = 0, 'outra org nao ve areas de A');
+  PERFORM pg_temp.expect_denied(owner_a, format('INSERT INTO public.org_areas (organization_id, key, name) VALUES (%L, %L, %L)', A, 'rh', 'RH'), 'navegador nao grava area direto');
+  PERFORM pg_temp.expect(pg_temp.t(owner_a, format('SELECT public.seed_org_areas(%L) >= 1', A)) = 'true', 'dono sugere areas pelos setores');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.seed_org_areas(%L)', A), 'atendente nao sugere areas');
+
+  -- 74. Responsavel aprova so a propria area, so processo/automacao, e so no modo responsavel.
+  INSERT INTO public.improvements (id, organization_id, title, kind, status, source, area_id) VALUES
+    ('aaaaaaaa-0000-0000-0074-000000000001', A, 'Melhoria de vendas', 'processo', 'sugerida', 'cerebro', (SELECT id FROM public.org_areas WHERE organization_id = A AND name = 'Vendas')),
+    ('aaaaaaaa-0000-0000-0074-000000000002', A, 'Agente novo de vendas', 'agente', 'sugerida', 'cerebro', (SELECT id FROM public.org_areas WHERE organization_id = A AND name = 'Vendas')),
+    ('aaaaaaaa-0000-0000-0074-000000000003', A, 'Outra area', 'processo', 'sugerida', 'manual', (SELECT id FROM public.org_areas WHERE organization_id = A AND name <> 'Vendas' LIMIT 1));
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, 'SELECT count(*) FROM public.improvements WHERE source = ''cerebro''') = 2, 'responsavel ve as propostas da area');
+  PERFORM pg_temp.expect(pg_temp.q(agent2_a, 'SELECT count(*) FROM public.improvements WHERE source = ''cerebro''') = 0, 'outro atendente nao ve');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.approve_improvement(%L)', 'aaaaaaaa-0000-0000-0074-000000000002'), 'responsavel nao aprova agente de IA');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.approve_improvement(%L)', 'aaaaaaaa-0000-0000-0074-000000000003'), 'responsavel nao aprova outra area');
+  PERFORM pg_temp.expect_error(agent2_a, format('SELECT public.approve_improvement(%L)', 'aaaaaaaa-0000-0000-0074-000000000001'), 'quem nao e responsavel nao aprova');
+  UPDATE public.org_areas SET approval_mode = 'dono' WHERE organization_id = A AND name = 'Vendas';
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.approve_improvement(%L)', 'aaaaaaaa-0000-0000-0074-000000000001'), 'modo dono: responsavel nao aprova');
+  UPDATE public.org_areas SET approval_mode = 'responsavel' WHERE organization_id = A AND name = 'Vendas';
+  PERFORM pg_temp.expect(pg_temp.run(agent_a, format('SELECT public.approve_improvement(%L)', 'aaaaaaaa-0000-0000-0074-000000000001')) = 'ok:1', 'responsavel aprova a propria area');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.set_improvement_area(%L, NULL)', 'aaaaaaaa-0000-0000-0074-000000000002'), 'responsavel nao muda a area da proposta');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.set_improvement_area(%L, %L)', 'aaaaaaaa-0000-0000-0074-000000000002', 'bbbbbbbb-0000-0000-0000-000000000001'), 'area inexistente ou de outra org recusada');
+  PERFORM pg_temp.expect_error(owner_a, format('UPDATE public.improvements SET area_id = (SELECT id FROM public.org_areas WHERE organization_id = %L LIMIT 1)', A), 'navegador nao grava improvements');
   PERFORM pg_temp.expect(pg_temp.run(NULL, format('UPDATE public.conversations SET stage_id = (SELECT id FROM public.pipeline_stages WHERE organization_id = %L AND name = %L) WHERE id = %L',
     A, 'Qualificado', 'aaaaaaaa-0000-0000-0004-000000000001')) = 'ok:1', 'etapa da propria org aceita');
 

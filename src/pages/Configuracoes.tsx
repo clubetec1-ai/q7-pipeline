@@ -1,6 +1,6 @@
 import { Link, Navigate } from "react-router-dom";
 import {
-  Bot, BookOpen, Clock, Filter, KeyRound, Library, Mail, MessageSquare, Palette, PhoneCall, Plug, Server, Settings2, Shuffle, Tags, Target, UsersRound, Wallet, Workflow, type LucideIcon,
+  Bot, BookOpen, Clock, Filter, Network, KeyRound, Library, Mail, MessageSquare, Palette, PhoneCall, Plug, Server, Settings2, Shuffle, Tags, Target, UsersRound, Wallet, Workflow, type LucideIcon,
 } from "lucide-react";
 import { useOrg } from "@/contexts/OrgContext";
 import { AppHeader } from "@/components/AppHeader";
@@ -61,6 +61,8 @@ export default function Configuracoes() {
         detail: s.aiKeys ? `${s.aiKeys} provedor(es) com chave` : s.platformAI ? "Usando a IA da Clubetec (incluída)" : "Nenhuma IA disponível", show: manage && hasModule("ia") },
     ] },
     { title: "4. Equipe", cards: [
+      { title: "Áreas e responsáveis", desc: "Quem aprova as sugestões do cérebro em cada área (Vendas, Financeiro, Atendimento…).", to: "/configuracoes/areas",
+        icon: Network, color: "#7C3AED", state: "optional", show: manage && hasModule("gestao") },
       { title: "Pessoas e convites", desc: "Convidar atendentes e definir o que cada um pode fazer.", to: "/equipe", icon: UsersRound, color: "#F59E0B",
         state: "optional", detail: `${s.members} pessoa(s)`, show: can("members.manage") },
       { title: "Setores e fila", desc: "Setores, fila e quem recebe cada atendimento. Saudação e protocolo na aba Mensagens.", to: "/equipe?tab=departamentos", icon: Shuffle, color: "#F59E0B",
