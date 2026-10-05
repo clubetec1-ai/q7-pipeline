@@ -253,7 +253,7 @@ export async function runFlow(p: {
         // Conector pronto (ex.: Bling): sempre com o telefone do próprio cliente da conversa.
         const d = node.data ?? {};
         const out = await runConnectorAction(admin, orgId, String(d.connector ?? ""), String(d.connector_action ?? ""),
-          { phone: conv.contact_phone ?? "", vars: result.vars });
+          { phone: conv.contact_phone ?? "", name: conv.contact_name ?? null, vars: result.vars });
         if (!out.ok) console.log("[flow/conector]", { node: node.id, error: out.error });
         result = advance(graph, node.id, null, {
           ...ctx, timerFired: false, attempts: result.attempts, aiTurns: result.aiTurns,

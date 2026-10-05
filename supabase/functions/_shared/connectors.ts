@@ -8,6 +8,7 @@ import { getSecret, putSecret } from "./secrets.ts";
 import { forOrg } from "./tenant.ts";
 import { checkUrl } from "./flow/http.ts";
 import { pickPath } from "./flow/engine.ts";
+import { book, freeSlots } from "./gcal.ts";
 
 export interface Step {
   /** Caminho relativo à API; aceita {telefone}, {telefone_local}, {var.x} (codificados na URL). */
@@ -18,15 +19,47 @@ export interface Step {
   /** Campos do item escolhido (ou da resposta) → variáveis para os próximos passos e para a mensagem. */
   pick: Record<string, string>;
 }
-export interface Action { label: string; description: string; outputs: Record<string, string>; steps: Step[] }
+export interface ActionInput { phone: string; name?: string | null; vars: Record<string, string> }
+export interface Action {
+  label: string; description: string; outputs: Record<string, string>;
+  /** Receita de consultas (GET) — ou, quando a API pede mais que isso, uma ação em código. */
+  steps?: Step[];
+  run?: (token: string, input: ActionInput) => Promise<ActionResult>;
+}
 export interface Connector {
   name: string; beta?: boolean; description: string;
-  oauth: { authorize: string; token: string; basicAuth: boolean };
+  oauth: { authorize: string; token: string; basicAuth: boolean; scope?: string; extraAuth?: Record<string, string> };
   api: string;
   actions: Record<string, Action>;
 }
 
 export const CONNECTORS: Record<string, Connector> = {
+  google_agenda: {
+    name: "Google Agenda", description: "Horários livres e agendamento na agenda do Google de quem conectar.",
+    oauth: {
+      authorize: "https://accounts.google.com/o/oauth2/v2/auth",
+      token: "https://oauth2.googleapis.com/token",
+      basicAuth: false,
+      // Só eventos e livre/ocupado: não lê nem apaga e-mails, contatos ou outras agendas.
+      scope: "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.freebusy",
+      extraAuth: { access_type: "offline", prompt: "consent", include_granted_scopes: "true" },
+    },
+    api: "https://www.googleapis.com/calendar/v3",
+    actions: {
+      horarios_livres: {
+        label: "Horários livres",
+        description: "Próximos horários livres em dias úteis (padrão: 6 horários de 1 h, das 9h às 18h, nos próximos 7 dias). Ajuste com as variáveis duracao_min, inicio_h, fim_h, dias e quantos.",
+        outputs: { horarios: "Lista para mostrar ao cliente", horarios_iso: "Lista técnica (usada pelo Agendar)" },
+        run: (token, input) => freeSlots(token, input),
+      },
+      agendar: {
+        label: "Agendar",
+        description: "Marca o horário que o cliente escolheu (o número da lista dos horários livres, ou dd/mm hh:mm), se ainda estiver livre. Use a variável horario com a resposta do cliente.",
+        outputs: { evento_inicio: "Dia e hora marcados", evento_link: "Link do compromisso (para a equipe)" },
+        run: (token, input) => book(token, input),
+      },
+    },
+  },
   bling: {
     name: "Bling", beta: true, description: "ERP: pedidos, contatos e situações (API v3).",
     oauth: {
@@ -105,18 +138,19 @@ export interface ActionResult { ok: boolean; vars?: Record<string, string>; erro
 const digits = (v: unknown) => String(v ?? "").replace(/\D/g, "");
 
 /** Executa uma ação (receita) do conector para o telefone do cliente. */
-export async function runConnectorAction(admin: Admin, orgId: string, key: string, actionKey: string, input: { phone: string; vars: Record<string, string> }): Promise<ActionResult> {
+export async function runConnectorAction(admin: Admin, orgId: string, key: string, actionKey: string, input: ActionInput): Promise<ActionResult> {
   const c = CONNECTORS[key];
   const action = c?.actions[actionKey];
   if (!c || !action) return { ok: false, error: "ação desconhecida" };
   const token = await accessToken(admin, orgId, key);
   if (!token) return { ok: false, error: `${c.name} não conectado` };
+  if (action.run) return await action.run(token, input);
   const phone = digits(input.phone);
   const local = phone.replace(/^55(?=\d{10,11}$)/, "");
   const tail = phone.slice(-8);
   const vars: Record<string, string> = { ...input.vars };
 
-  for (const step of action.steps) {
+  for (const step of action.steps ?? []) {
     const path = step.path
       .replace(/\{telefone_local\}/g, encodeURIComponent(local))
       .replace(/\{telefone\}/g, encodeURIComponent(phone))

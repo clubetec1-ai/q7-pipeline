@@ -56,6 +56,8 @@ Deno.serve(async (req) => {
       url.searchParams.set("client_id", app.id);
       url.searchParams.set("state", state);
       url.searchParams.set("redirect_uri", `${base?.value}/connectors-callback`);
+      if (c.oauth.scope) url.searchParams.set("scope", c.oauth.scope);
+      for (const [k, v] of Object.entries(c.oauth.extraAuth ?? {})) url.searchParams.set(k, v);
       return json({ ok: true, url: url.toString() });
     }
 

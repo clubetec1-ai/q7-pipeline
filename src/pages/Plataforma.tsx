@@ -50,6 +50,7 @@ export default function Plataforma() {
   const [requests, setRequests] = useState<HelpRequest[]>([]);
   const [apps, setApps] = useState<Record<string, boolean>>({});
   const [appForm, setAppForm] = useState({ id: "", secret: "" });
+  const [gForm, setGForm] = useState({ id: "", secret: "" });
 
   const load = useCallback(async () => {
     const [o, t, rq] = await Promise.all([
@@ -188,6 +189,26 @@ export default function Plataforma() {
               if (error) return toast({ variant: "destructive", title: "Não salvo", description: error.message });
               setAppForm({ id: "", secret: "" });
               toast({ title: "Aplicativo do Bling salvo", description: "As empresas já podem conectar em Integrações." });
+              void load();
+            }}>Salvar</Button>
+          </div>
+        </section>
+        <section className="space-y-2 rounded-lg border p-4">
+          <h2 className="font-semibold">Aplicativo do Google Agenda {apps.google_agenda ? <Badge className="ml-2">Ativo</Badge> : <Badge variant="outline" className="ml-2">Não configurado</Badge>}</h2>
+          <ol className="list-decimal pl-5 text-xs text-muted-foreground space-y-0.5">
+            <li>No Google Cloud (console.cloud.google.com), com a conta da Clubetec, crie o projeto “Deixa com a IA” e ative a Google Calendar API.</li>
+            <li>Tela de consentimento OAuth: tipo Externo, nome “Deixa com a IA”, e-mail de suporte, links da política de privacidade e dos termos; escopos <code>calendar.events</code> e <code>calendar.freebusy</code>. Para sair do modo de teste, o Google revisa o app.</li>
+            <li>Credenciais → Criar ID do cliente OAuth → Aplicativo da Web. Em “URIs de redirecionamento autorizados”: <code className="select-all">{`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/connectors-callback`}</code></li>
+            <li>Copie o ID do cliente e a chave secreta e cole abaixo (vão para o cofre; não aparecem de novo).</li>
+          </ol>
+          <div className="flex flex-wrap gap-2">
+            <Input className="max-w-xs" placeholder="ID do cliente" value={gForm.id} onChange={(e) => setGForm({ ...gForm, id: e.target.value })} />
+            <Input className="max-w-xs" type="password" autoComplete="off" placeholder="Chave secreta do cliente" value={gForm.secret} onChange={(e) => setGForm({ ...gForm, secret: e.target.value })} />
+            <Button variant="outline" disabled={gForm.id.length < 8 || gForm.secret.length < 8} onClick={async () => {
+              const { error } = await supabase.rpc("platform_set_connector_app", { connector: "google_agenda", client_id: gForm.id.trim(), client_secret: gForm.secret.trim() });
+              if (error) return toast({ variant: "destructive", title: "Não salvo", description: error.message });
+              setGForm({ id: "", secret: "" });
+              toast({ title: "Aplicativo do Google salvo", description: "As empresas já podem conectar o Google Agenda em Integrações." });
               void load();
             }}>Salvar</Button>
           </div>
