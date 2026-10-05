@@ -462,6 +462,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "campaigns_instance_id_same_org"
+            columns: ["instance_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
             foreignKeyName: "campaigns_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
@@ -954,6 +961,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "conversations_instance_id_same_org"
+            columns: ["instance_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
             foreignKeyName: "conversations_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
@@ -966,6 +980,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "pipeline_stages"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_stage_id_same_org"
+            columns: ["stage_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id", "organization_id"]
           },
         ]
       }
@@ -1430,6 +1451,7 @@ export type Database = {
           organization_id: string
           send_at: string
           sent_at: string | null
+          stage_id: string | null
           status: string
           text_override: string | null
           updated_at: string
@@ -1445,6 +1467,7 @@ export type Database = {
           organization_id: string
           send_at: string
           sent_at?: string | null
+          stage_id?: string | null
           status?: string
           text_override?: string | null
           updated_at?: string
@@ -1460,6 +1483,7 @@ export type Database = {
           organization_id?: string
           send_at?: string
           sent_at?: string | null
+          stage_id?: string | null
           status?: string
           text_override?: string | null
           updated_at?: string
@@ -1472,6 +1496,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "conversations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followups_conversation_id_same_org"
+            columns: ["conversation_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id", "organization_id"]
           },
           {
             foreignKeyName: "followups_organization_id_fkey"
@@ -1756,6 +1787,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "internal_notes_conversation_id_same_org"
+            columns: ["conversation_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
             foreignKeyName: "internal_notes_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
@@ -1768,6 +1806,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tickets"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_notes_ticket_id_same_org"
+            columns: ["ticket_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id", "organization_id"]
           },
         ]
       }
@@ -2045,6 +2090,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "messages_conversation_id_same_org"
+            columns: ["conversation_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
             foreignKeyName: "messages_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
@@ -2057,6 +2109,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tickets"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_ticket_id_same_org"
+            columns: ["ticket_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id", "organization_id"]
           },
         ]
       }
@@ -2505,6 +2564,10 @@ export type Database = {
         Row: {
           color: string | null
           created_at: string
+          followup_days: number[]
+          followup_hint: string | null
+          followup_template: string | null
+          followup_template_lang: string
           id: string
           name: string
           organization_id: string
@@ -2515,6 +2578,10 @@ export type Database = {
         Insert: {
           color?: string | null
           created_at?: string
+          followup_days?: number[]
+          followup_hint?: string | null
+          followup_template?: string | null
+          followup_template_lang?: string
           id?: string
           name: string
           organization_id: string
@@ -2525,6 +2592,10 @@ export type Database = {
         Update: {
           color?: string | null
           created_at?: string
+          followup_days?: number[]
+          followup_hint?: string | null
+          followup_template?: string | null
+          followup_template_lang?: string
           id?: string
           name?: string
           organization_id?: string
@@ -3105,6 +3176,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "conversations"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_messages_conversation_id_same_org"
+            columns: ["conversation_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id", "organization_id"]
           },
         ]
       }

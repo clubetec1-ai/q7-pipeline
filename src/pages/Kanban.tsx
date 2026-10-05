@@ -23,7 +23,8 @@ import {
   useDroppable,
   useDraggable,
 } from "@dnd-kit/core";
-import { MoreHorizontal, Plus, Trash2 } from "lucide-react";
+import { Clock, MoreHorizontal, Plus, Trash2 } from "lucide-react";
+import { StageFollowups } from "./kanban/StageFollowups";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -45,7 +46,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-type Stage = { id: string; name: string; position: number; color: string | null };
+type Stage = { id: string; name: string; position: number; color: string | null; followup_days?: number[] | null; followup_hint?: string | null; followup_template?: string | null };
 type Conversation = {
   id: string;
   contact_name: string | null;
@@ -128,12 +129,14 @@ function Column({
   onRename,
   onDelete,
   onMove,
+  onFollowups,
 }: {
   stage: Stage;
   cards: Conversation[];
   stages: Stage[];
   editing: boolean;
   onMove: (convId: string, stageId: string) => void;
+  onFollowups: (stage: Stage) => void;
   onRename: (id: string, name: string) => void;
   onDelete: (id: string) => void;
 }) {
@@ -153,6 +156,9 @@ function Column({
               className="h-7 text-sm"
               aria-label="Nome da etapa"
             />
+            <button onClick={() => onFollowups(stage)} className="text-muted-foreground hover:text-foreground p-1 shrink-0" title="Retorno automático">
+              <Clock className="w-3.5 h-3.5" />
+            </button>
             <button onClick={() => onDelete(stage.id)} className="text-muted-foreground hover:text-destructive p-1 shrink-0" title="Apagar etapa">
               <Trash2 className="w-3.5 h-3.5" />
             </button>
@@ -160,6 +166,11 @@ function Column({
         ) : (
           <>
             <span className="font-medium text-sm truncate flex-1">{stage.name}</span>
+            {!!stage.followup_days?.length && (
+              <span className="text-xs text-muted-foreground shrink-0" title={`Retorno automático após ${stage.followup_days.join(", ")} dia(s) sem resposta`}>
+                <Clock className="inline w-3 h-3 mr-0.5" />{stage.followup_days.join("·")}d
+              </span>
+            )}
             <span className="text-xs text-muted-foreground tabular-nums">{cards.length}</span>
           </>
         )}
@@ -187,6 +198,7 @@ export default function Kanban() {
   const [addStageOpen, setAddStageOpen] = useState(false);
   const [newStageName, setNewStageName] = useState("");
   const [stageToDelete, setStageToDelete] = useState<Stage | null>(null);
+  const [followupStage, setFollowupStage] = useState<Stage | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const manage = can("pipeline.manage");
 
@@ -461,6 +473,7 @@ export default function Kanban() {
                 cards={visible.filter((c) => c.stage_id === s.id)}
                 stages={stages}
                 onMove={(id, st) => void moveTo(id, st)}
+                onFollowups={setFollowupStage}
                 editing={editing}
                 onRename={renameStage}
                 onDelete={requestDeleteStage}
@@ -472,6 +485,9 @@ export default function Kanban() {
           </DragOverlay>
         </DndContext>
       </div>
+      {followupStage && (
+        <StageFollowups stage={followupStage} open onClose={() => setFollowupStage(null)} onSaved={() => void loadStages()} />
+      )}
       <AlertDialog open={!!stageToDelete} onOpenChange={(o) => !o && setStageToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

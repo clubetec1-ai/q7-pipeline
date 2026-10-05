@@ -1315,6 +1315,22 @@ BEGIN
   PERFORM pg_temp.expect(pg_temp.q(owner_b, format('SELECT count(*) FROM storage.objects WHERE name = %L', A::text || '/logo-telas-1.png')) = 0, 'outra org nao ve o logo de A');
   UPDATE public.company_profiles SET brand = jsonb_set(brand, '{theme,logo}', to_jsonb('bbbbbbbb-0000-0000-0000-000000000001/x.png'::text)) WHERE organization_id = A;
   PERFORM pg_temp.expect(pg_temp.t(agent_a, format('SELECT coalesce(public.org_theme(%L) ->> %L, %L)', A, 'logo', 'sem')) = 'sem', 'logo fora da pasta da empresa ignorado');
+
+  -- 72. Retorno automatico por etapa do funil: agenda ao entrar, cancela ao sair, recomeca quando o cliente responde.
+  PERFORM pg_temp.expect((SELECT followup_days = '{2,5,10}' FROM public.pipeline_stages WHERE organization_id = A AND name = 'Proposta enviada'), 'funil pronto ja vem com 2, 5 e 10 dias');
+  PERFORM pg_temp.expect_error(owner_a, format('UPDATE public.pipeline_stages SET followup_days = %L WHERE organization_id = %L AND name = %L', '{61}', A, 'Proposta enviada'), 'mais de 60 dias recusado');
+  PERFORM pg_temp.expect(pg_temp.run(agent_a, format('UPDATE public.pipeline_stages SET followup_days = %L WHERE organization_id = %L', '{1}', A)) = 'ok:0', 'atendente nao muda retornos');
+  PERFORM pg_temp.expect(pg_temp.run(owner_b, format('UPDATE public.pipeline_stages SET followup_days = %L WHERE organization_id = %L', '{1}', A)) = 'ok:0', 'outra org nao muda retornos de A');
+  UPDATE public.conversations SET stage_id = (SELECT id FROM public.pipeline_stages WHERE organization_id = A AND name = 'Proposta enviada')
+  WHERE id = 'aaaaaaaa-0000-0000-0004-000000000001';
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.followups WHERE conversation_id = 'aaaaaaaa-0000-0000-0004-000000000001' AND kind = 'auto_stage' AND status = 'pending') = 3, 'entrar na etapa agenda 3 retornos');
+  PERFORM pg_temp.expect((SELECT bool_and(organization_id = A) FROM public.followups WHERE conversation_id = 'aaaaaaaa-0000-0000-0004-000000000001' AND kind = 'auto_stage'), 'retornos na mesma empresa');
+  INSERT INTO public.messages (organization_id, user_id, conversation_id, direction, sender, content)
+  VALUES (A, owner_a, 'aaaaaaaa-0000-0000-0004-000000000001', 'inbound', 'contact', 'oi');
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.followups WHERE conversation_id = 'aaaaaaaa-0000-0000-0004-000000000001' AND kind = 'auto_stage' AND status = 'pending') = 3, 'cliente respondeu: recomeca a contagem');
+  UPDATE public.conversations SET stage_id = (SELECT id FROM public.pipeline_stages WHERE organization_id = A AND name = 'Qualificado')
+  WHERE id = 'aaaaaaaa-0000-0000-0004-000000000001';
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.followups WHERE conversation_id = 'aaaaaaaa-0000-0000-0004-000000000001' AND kind = 'auto_stage' AND status = 'pending') = 0, 'saiu da etapa: retornos cancelados');
   PERFORM pg_temp.expect(pg_temp.run(NULL, format('UPDATE public.conversations SET stage_id = (SELECT id FROM public.pipeline_stages WHERE organization_id = %L AND name = %L) WHERE id = %L',
     A, 'Qualificado', 'aaaaaaaa-0000-0000-0004-000000000001')) = 'ok:1', 'etapa da propria org aceita');
 

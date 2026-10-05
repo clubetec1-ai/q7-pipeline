@@ -1,7 +1,8 @@
 import { StatusBadge } from "@/components/layout/StatusBadge";
 import { firstName, memberNames } from "@/lib/memberNames";
 import { useEffect, useState } from "react";
-import { ArrowRightLeft, Bot, CheckCircle2, Hand, Hash, MoreHorizontal } from "lucide-react";
+import { ArrowRightLeft, Bot, CheckCircle2, FileText, Hand, Hash, MoreHorizontal } from "lucide-react";
+import { ProposalDialog } from "./ProposalDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/contexts/OrgContext";
@@ -34,6 +35,7 @@ export function TicketBar({ ticket, onChanged, greet = true }: { ticket: Ticket 
   const { toast } = useToast();
   const [busy, setBusy] = useState(false);
   const [dialog, setDialog] = useState<"transfer" | "close" | "take" | null>(null);
+  const [proposalOpen, setProposalOpen] = useState(false);
   const [owner, setOwner] = useState("");
   const [departments, setDepartments] = useState<Option[]>([]);
   const [people, setPeople] = useState<Option[]>([]);
@@ -163,8 +165,17 @@ export function TicketBar({ ticket, onChanged, greet = true }: { ticket: Ticket 
                 <Hash className="w-4 h-4" /> Enviar protocolo ao cliente
               </DropdownMenuItem>
             )}
+            {mine && hasModule("ia") && (
+              <DropdownMenuItem className="gap-2" onSelect={() => setProposalOpen(true)}>
+                <FileText className="w-4 h-4" /> Gerar proposta (rascunho)
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
+      )}
+
+      {proposalOpen && (
+        <ProposalDialog conversationId={ticket.conversation_id} open onClose={() => setProposalOpen(false)} onSent={onChanged} />
       )}
 
       <Dialog open={dialog === "take"} onOpenChange={(o) => !o && setDialog(null)}>
