@@ -1,3 +1,4 @@
+import { AiPolicyCard } from "@/components/AiPolicyCard";
 import { useCallback, useEffect, useState } from "react";
 import { AgentTester } from "./agente/AgentTester";
 import { Link, Navigate } from "react-router-dom";
@@ -107,6 +108,8 @@ export default function Agente() {
           <h1 className="text-2xl font-semibold flex items-center gap-2"><Bot className="w-6 h-6" /> Agente de IA</h1>
           <p className="text-sm text-muted-foreground">A IA atende os clientes na hora e passa para uma pessoa quando precisa.</p>
         </div>
+
+        <AiPolicyCard />
 
         {!loaded ? <Loader2 className="w-5 h-5 animate-spin" /> : (
           <>
