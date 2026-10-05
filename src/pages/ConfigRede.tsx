@@ -55,6 +55,7 @@ export default function ConfigRede() {
     }
   }, [org, days]);
   useEffect(() => { void load(); }, [load]);
+  useEffect(() => { setNewCode(null); }, [org?.id]);
 
   if (!org) return null;
   if (!can("org.settings")) return <Navigate to="/configuracoes" replace />;
@@ -66,6 +67,7 @@ export default function ConfigRede() {
     setBusy(false);
     if (error) return fail(error.message);
     toast({ title: "Sua empresa entrou na rede" });
+    window.dispatchEvent(new Event("clubecrm:theme-changed")); // marca da rede (white label)
     setCode("");
     void load();
   };
@@ -73,6 +75,7 @@ export default function ConfigRede() {
     if (!window.confirm("Sair da rede? A matriz deixa de ver os números da sua empresa e você deixa de receber o padrão. O que já foi aplicado continua.")) return;
     const { error } = await supabase.rpc("network_leave", { org: org.id });
     if (error) return fail(error.message);
+    window.dispatchEvent(new Event("clubecrm:theme-changed")); // volta à marca padrão
     void load();
   };
   const apply = async () => {
