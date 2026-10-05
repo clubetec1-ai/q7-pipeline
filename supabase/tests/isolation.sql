@@ -1446,6 +1446,13 @@ BEGIN
   PERFORM pg_temp.expect(public.service_brain_packet(A)::text NOT LIKE '%5511900000001%', 'pacote sem telefone de cliente');
   PERFORM pg_temp.expect(public.service_brain_packet(A)::text NOT LIKE '%@%', 'pacote sem e-mail');
   PERFORM pg_temp.expect(public.service_brain_packet(A)::text NOT LIKE '%"oi"%', 'pacote sem mensagens');
+
+  -- 81. Historico por area: dono e responsavel da area; outros nao.
+  PERFORM pg_temp.expect(pg_temp.t(agent_a, format('SELECT jsonb_array_length(public.area_activity(%L, (SELECT id FROM public.org_areas WHERE organization_id = %L AND name = %L), NULL)) >= 1',
+    A, A, 'Vendas')) = 'true', 'responsavel ve o que a area fez');
+  PERFORM pg_temp.expect_error(agent2_a, format('SELECT public.area_activity(%L, (SELECT id FROM public.org_areas WHERE organization_id = %L AND name = %L), NULL)', A, A, 'Vendas'), 'outro atendente nao ve');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.area_activity(%L, (SELECT id FROM public.org_areas WHERE organization_id = %L AND name = %L), NULL)', A, A, 'Vendas'), 'outra org nao ve historico de A');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.area_activity(%L, (SELECT id FROM public.org_areas WHERE organization_id = %L AND name = %L), NULL)', 'bbbbbbbb-0000-0000-0000-000000000001', A, 'Vendas'), 'area de A pedida em nome de B recusada');
   PERFORM pg_temp.expect(pg_temp.run(NULL, format('UPDATE public.conversations SET stage_id = (SELECT id FROM public.pipeline_stages WHERE organization_id = %L AND name = %L) WHERE id = %L',
     A, 'Qualificado', 'aaaaaaaa-0000-0000-0004-000000000001')) = 'ok:1', 'etapa da propria org aceita');
 

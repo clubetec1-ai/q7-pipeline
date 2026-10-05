@@ -3949,6 +3949,10 @@ export type Database = {
       add_default_tags: { Args: { org: string }; Returns: number }
       ai_keys_status: { Args: { org: string }; Returns: Json }
       approve_improvement: { Args: { improvement: string }; Returns: undefined }
+      area_activity: {
+        Args: { area: string; org: string; since: string }
+        Returns: Json
+      }
       assign_extension: {
         Args: { ext: string; member: string }
         Returns: undefined

@@ -14,6 +14,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { LIGHT, METRICS, fmt, metricsOf } from "./cerebro/metrics";
+import { AreaActivityDetails } from "./cerebro/AreaActivity";
 
 interface Goal { id: string; title: string; metric_key: string; direction: string; target: number; baseline: number | null; period: string; status: string; value: number | null; light: string }
 interface AreaView {
@@ -248,6 +249,8 @@ export default function Cerebro() {
                 ))}
               </dl>
               <p className="text-xs text-muted-foreground -mt-2">Últimos 7 dias; a seta compara com os 7 dias anteriores.</p>
+
+              <AreaActivityDetails orgId={org.id} areaId={a.id} />
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
