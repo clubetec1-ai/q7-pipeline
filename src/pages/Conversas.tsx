@@ -51,7 +51,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { BookOpen, Mail, ChevronDown, CheckCircle2, XCircle, AlertCircle, Paperclip } from "lucide-react";
+import { BookOpen, Mail, ChevronDown, CheckCircle2, XCircle, AlertCircle, Paperclip, Facebook, Instagram } from "lucide-react";
 import { LibraryPicker, type LibraryPick } from "./conversas/LibraryPicker";
 import { useTickets, STATUS_LABEL, TicketTab } from "./conversas/useTickets";
 import { TicketBar } from "./conversas/TicketBar";
@@ -62,7 +62,8 @@ import { ColorPill } from "@/components/ColorTag";
 
 type Conversation = {
   id: string;
-  channel?: "whatsapp" | "email";
+  channel?: "whatsapp" | "email" | "messenger" | "instagram";
+  meta_page_id?: string | null;
   email_account_id?: string | null;
   contact_email?: string | null;
   contact_phone: string | null;
@@ -161,7 +162,10 @@ export default function Conversas() {
   const [groupsOf, setGroupsOf] = useState<Map<string, string[]>>(new Map());
   const [mailboxes, setMailboxes] = useState<Map<string, string>>(new Map());
   const [numberFilter, setNumberFilter] = useState("");
-  const channelKey = (c: Conversation) => (c.channel === "email" ? `e:${c.email_account_id}` : `n:${c.instance_id}`);
+  const isMeta = (c: Conversation) => c.channel === "messenger" || c.channel === "instagram";
+  const channelKey = (c: Conversation) => (c.channel === "email" ? `e:${c.email_account_id}` : isMeta(c) ? `m:${c.meta_page_id}:${c.channel}` : `n:${c.instance_id}`);
+  // Sem telefone nem e-mail (Messenger/Instagram): mostra o canal.
+  const contactLine = (c: Conversation) => c.contact_phone ?? c.contact_email ?? (c.channel === "instagram" ? "Instagram Direct" : c.channel === "messenger" ? "Messenger" : "");
   const inChannel = (c: Conversation) => !numberFilter || channelKey(c) === numberFilter;
   const multiChannel = numbers.size + mailboxes.size > 1;
   const [myName, setMyName] = useState("");
@@ -219,6 +223,14 @@ export default function Conversas() {
     );
   };
   const numberTag = (c: Conversation) => {
+    if (isMeta(c)) {
+      const Icon = c.channel === "instagram" ? Instagram : Facebook;
+      return (
+        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground shrink-0" title={c.channel === "instagram" ? "Instagram Direct" : "Messenger"}>
+          <Icon className="w-3 h-3" />{c.channel === "instagram" ? "Instagram" : "Messenger"}
+        </span>
+      );
+    }
     if (c.channel === "email") {
       const box = c.email_account_id ? mailboxes.get(c.email_account_id) : null;
       return (
@@ -618,7 +630,7 @@ export default function Conversas() {
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-medium text-sm truncate">
-                    {c.contact_name || c.contact_phone || c.contact_email}
+                    {c.contact_name || c.contact_phone || c.contact_email || contactLine(c)}
                   </span>
                   {byConversation.get(c.id) && (
                     <StatusBadge status={byConversation.get(c.id)!.status}>
@@ -627,7 +639,7 @@ export default function Conversas() {
                   )}
                 </div>
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs text-muted-foreground truncate">{c.contact_phone ?? c.contact_email}</span>
+                  <span className="text-xs text-muted-foreground truncate">{contactLine(c)}</span>
                   {numberTag(c)}
                 </div>
                 {colorTags(c) && <div className="mt-1">{colorTags(c)}</div>}
@@ -647,10 +659,10 @@ export default function Conversas() {
               <div className="p-3 border-b flex items-center justify-between gap-3 flex-wrap">
                 <div>
                   <div className="font-semibold text-sm">
-                    {active.contact_name || active.contact_phone || active.contact_email}
+                    {active.contact_name || active.contact_phone || active.contact_email || contactLine(active)}
                   </div>
                   <div className="text-xs text-muted-foreground flex items-center gap-2">
-                    {active.contact_phone ?? active.contact_email}
+                    {contactLine(active)}
                     {numberTag(active)}
                     {colorTags(active)}
                   </div>
@@ -934,7 +946,7 @@ export default function Conversas() {
                 <Input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder={pendingFile || pendingLib ? "Descrição do arquivo (opcional)..." : active.channel === "email" ? "Responder por e-mail..." : active.ai_enabled ? "IA responderá automaticamente. Envie mensagem manual mesmo assim..." : "Digite sua resposta..."}
+                  placeholder={pendingFile || pendingLib ? "Descrição do arquivo (opcional)..." : active.channel === "email" ? "Responder por e-mail..." : isMeta(active) ? "Responder (só texto; a Meta deixa até 24 h depois da última mensagem da pessoa)..." : active.ai_enabled ? "IA responderá automaticamente. Envie mensagem manual mesmo assim..." : "Digite sua resposta..."}
                   onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), send())}
                   disabled={sending}
                 />

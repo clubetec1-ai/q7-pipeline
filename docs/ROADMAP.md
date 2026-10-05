@@ -112,7 +112,7 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
     pedida pelo WhatsApp e retenção automática, "apagada pelo cliente" no e-mail e na Meta, limite e marca d'água na
     exportação, gravação de áudio no navegador, depuração do bloco HTTP.
 25. ✅ *(05/10: busca, reações e grupos com pessoas escolhidas — teste 89)* **Chat da equipe:** falta busca, reações e canais extras.
-26. 🟡 Messenger e Instagram ⏳ (depois de WhatsApp e e-mail); backup semanal local ✅ (externo/nuvem quando assinar o Supabase Pro); logo e ícone da aba ✅.
+26. 🟡 Messenger e Instagram — **código pronto (05/10)**: Números → Facebook e Instagram (conectar a Página com ID + token, que vai para o cofre; Instagram ligado entra junto; setor e "IA responde" por Página), webhook meta-webhook com assinatura da Meta, conversas em Conversas e no Funil, resposta da equipe e da IA (só texto, janela de 24 h), teste 94. 🙋 Para ligar: no app da Meta, adicionar os produtos Messenger e Instagram, pedir pages_messaging, instagram_manage_messages e pages_manage_metadata, e cadastrar o webhook https://ulmndwlralgjbwlebxmo.supabase.co/functions/v1/meta-webhook com o mesmo token de verificação do WhatsApp (campos messages, messaging_postbacks, message_echoes); opcional: app_settings meta_app_id. Depois, teste real com uma Página. backup semanal local ✅ (externo/nuvem quando assinar o Supabase Pro); logo e ícone da aba ✅.
 
 ### Pedidos de 03/10: entrevista por voz, atendente preferencial, IA principal + 2 reservas
 - **Entrevista do Diagnóstico por voz (módulo):** o entrevistador faz as perguntas falando e o dono responde falando,
