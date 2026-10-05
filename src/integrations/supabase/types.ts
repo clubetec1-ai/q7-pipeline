@@ -2518,6 +2518,157 @@ export type Database = {
         }
         Relationships: []
       }
+      network_invites: {
+        Row: {
+          code_hash: string
+          created_at: string
+          expires_at: string
+          hint: string
+          id: string
+          network_id: string
+          used_at: string | null
+          used_by_org: string | null
+        }
+        Insert: {
+          code_hash: string
+          created_at?: string
+          expires_at?: string
+          hint: string
+          id?: string
+          network_id: string
+          used_at?: string | null
+          used_by_org?: string | null
+        }
+        Update: {
+          code_hash?: string
+          created_at?: string
+          expires_at?: string
+          hint?: string
+          id?: string
+          network_id?: string
+          used_at?: string | null
+          used_by_org?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "network_invites_network_id_fkey"
+            columns: ["network_id"]
+            isOneToOne: false
+            referencedRelation: "networks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "network_invites_used_by_org_fkey"
+            columns: ["used_by_org"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      network_standards: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          mandatory: boolean
+          network_id: string
+          payload: Json
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          mandatory?: boolean
+          network_id: string
+          payload: Json
+          version: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          mandatory?: boolean
+          network_id?: string
+          payload?: Json
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "network_standards_network_id_fkey"
+            columns: ["network_id"]
+            isOneToOne: false
+            referencedRelation: "networks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      network_units: {
+        Row: {
+          applied_version: number
+          joined_at: string
+          network_id: string
+          organization_id: string
+        }
+        Insert: {
+          applied_version?: number
+          joined_at?: string
+          network_id: string
+          organization_id: string
+        }
+        Update: {
+          applied_version?: number
+          joined_at?: string
+          network_id?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "network_units_network_id_fkey"
+            columns: ["network_id"]
+            isOneToOne: false
+            referencedRelation: "networks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "network_units_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      networks: {
+        Row: {
+          brand: Json
+          created_at: string
+          hq_org_id: string
+          id: string
+          name: string
+        }
+        Insert: {
+          brand?: Json
+          created_at?: string
+          hq_org_id: string
+          id?: string
+          name: string
+        }
+        Update: {
+          brand?: Json
+          created_at?: string
+          hq_org_id?: string
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "networks_hq_org_id_fkey"
+            columns: ["hq_org_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
@@ -4557,6 +4708,7 @@ export type Database = {
         Args: { conv: string; whole_domain?: boolean }
         Returns: string
       }
+      implantation_compare: { Args: { org: string }; Returns: Json }
       leave_team_group: { Args: { ch: string }; Returns: undefined }
       link_improvement_artifact: {
         Args: { aid: string; akind: string; improvement: string }
@@ -4615,6 +4767,7 @@ export type Database = {
         }[]
       }
       my_mfa_status: { Args: never; Returns: Json }
+      my_network: { Args: { org: string }; Returns: Json }
       my_permissions: { Args: { org: string }; Returns: string[] }
       my_recovery_codes_left: { Args: never; Returns: number }
       my_subscription: { Args: { org: string }; Returns: Json }
@@ -4625,6 +4778,22 @@ export type Database = {
           name: string
           organization_id: string
         }[]
+      }
+      network_apply_standard: { Args: { org: string }; Returns: number }
+      network_dashboard: {
+        Args: { net: string; since: string; until: string }
+        Returns: Json
+      }
+      network_invite: { Args: { net: string }; Returns: string }
+      network_join: { Args: { org: string; p_code: string }; Returns: string }
+      network_leave: { Args: { org: string }; Returns: undefined }
+      network_publish_standard: {
+        Args: { net: string; p_mandatory: boolean }
+        Returns: number
+      }
+      network_remove_unit: {
+        Args: { net: string; unit: string }
+        Returns: undefined
       }
       nudge_improvement: { Args: { improvement: string }; Returns: undefined }
       number_activity: {
@@ -4694,6 +4863,11 @@ export type Database = {
       platform_billing_status: { Args: never; Returns: Json }
       platform_brain_usage: { Args: { since: string }; Returns: Json }
       platform_close_support: { Args: { org: string }; Returns: undefined }
+      platform_create_network: {
+        Args: { hq: string; p_name: string }
+        Returns: string
+      }
+      platform_networks: { Args: never; Returns: Json }
       platform_open_support: {
         Args: { minutes?: number; org: string; reason: string }
         Returns: string
@@ -4744,6 +4918,10 @@ export type Database = {
       }
       platform_set_module_limits: {
         Args: { lim: Json; m: string; org: string }
+        Returns: undefined
+      }
+      platform_set_network_brand: {
+        Args: { net: string; p_brand: Json }
         Returns: undefined
       }
       platform_set_org_status: {
@@ -5208,6 +5386,7 @@ export type Database = {
       }
       signup_templates: { Args: never; Returns: Json }
       start_campaign: { Args: { campaign: string }; Returns: Json }
+      start_implantation: { Args: { org: string }; Returns: Json }
       supervisor_dashboard: { Args: { org: string }; Returns: Json }
       tag_group_counts: { Args: { org: string }; Returns: Json }
       take_over_ticket: {

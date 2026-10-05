@@ -1,4 +1,5 @@
 import { BrainCard } from "@/components/BrainCard";
+import { ImplantationCard } from "@/components/ImplantationCard";
 import { Link } from "react-router-dom";
 import {
   Bot, BookOpen, Check, ClipboardList, Clock, Layers, Mail, MessageSquare, MessagesSquare, Palette, PartyPopper, Settings2, Tags, Target, Trello, User, Users, Workflow,
@@ -78,6 +79,7 @@ export default function Inicio() {
 
         {manage && <OrgHealth orgId={org.id} />}
         {hasModule("gestao") && <BrainCard orgId={org.id} />}
+        {manage && <ImplantationCard orgId={org.id} />}
 
         {manage && !loading && s.teamMode === null && (
           <section className="rounded-xl border-2 border-primary bg-card p-5 space-y-3">

@@ -76,6 +76,17 @@ export function themeFor(hex: string) {
 let logoUrl: string | null = null;
 const listeners = new Set<() => void>();
 const setLogo = (u: string | null) => { if (u !== logoUrl) { logoUrl = u; listeners.forEach((l) => l()); } };
+// Marca da rede (white label): nome do produto e logo no lugar de "Deixa com a IA".
+export interface WhiteLabel { appName: string; logo: string | null }
+let wl: WhiteLabel | null = null;
+const wlListeners = new Set<() => void>();
+const setWl = (v: WhiteLabel | null) => {
+  if (JSON.stringify(v) !== JSON.stringify(wl)) { wl = v; wlListeners.forEach((l) => l()); }
+  if (typeof document !== "undefined") document.title = v?.appName ?? "Deixa com a IA";
+};
+export function useWhiteLabel() {
+  return useSyncExternalStore((cb) => { wlListeners.add(cb); return () => wlListeners.delete(cb); }, () => wl);
+}
 export function useOrgLogo() {
   return useSyncExternalStore((cb) => { listeners.add(cb); return () => listeners.delete(cb); }, () => logoUrl);
 }
@@ -104,12 +115,16 @@ export function OrgTheme() {
     return () => window.removeEventListener("clubecrm:theme-changed", bump);
   }, []);
   useEffect(() => {
-    const reset = () => { applyCss(""); setLogo(null); };
+    const reset = () => { applyCss(""); setLogo(null); setWl(null); };
     if (!org) { reset(); return; }
     let alive = true;
     void supabase.rpc("org_theme", { org: org.id }).then(async ({ data }) => {
       if (!alive) return;
-      const t = (data ?? {}) as { primary?: string; secondary?: string; logo?: string };
+      const t = (data ?? {}) as { primary?: string; secondary?: string; logo?: string; app_name?: string; network_logo?: string };
+      if (t.app_name) {
+        const nl = t.network_logo ? (await supabase.storage.from("brand").createSignedUrl(t.network_logo, 3600)).data?.signedUrl ?? null : null;
+        if (alive) setWl({ appName: t.app_name, logo: nl });
+      } else setWl(null);
       const light: string[] = [], dark: string[] = [];
       if (t.primary && HEX.test(t.primary)) {
         const th = themeFor(t.primary);
