@@ -1501,6 +1501,28 @@ BEGIN
   PERFORM pg_temp.expect(NOT public.service_ai_take((SELECT id FROM public.organizations WHERE created_by = outsider)), 'franquia mensal de IA esgotada bloqueia');
   PERFORM pg_temp.expect(public.service_ai_take(A), 'empresa sem plano continua com IA');
 
+  -- 85. Cobranca da assinatura: so o servidor grava; aviso processado uma vez e so na assinatura certa; rotina diaria.
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_billing_link(%L, %L, %L, %L, NULL, NULL)', A, 'cus_x', 'sub_x', 'completo'), 'navegador nao liga assinatura');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_billing_event(%L, %L, %L, current_date)', 'evt_x', 'sub_x', 'PAYMENT_RECEIVED'), 'navegador nao confirma pagamento');
+  PERFORM pg_temp.expect_error(owner_a, 'SELECT public.platform_billing_status()', 'cliente nao ve o Asaas da Clubetec');
+  PERFORM public.service_billing_link((SELECT id FROM public.organizations WHERE created_by = outsider), 'cus_iso', 'sub_iso', 'essencial', NULL, NULL);
+  PERFORM pg_temp.expect(public.service_billing_event('evt_iso_1', 'sub_iso', 'PAYMENT_RECEIVED', current_date) = 'ok', 'pagamento confirmado');
+  PERFORM pg_temp.expect((SELECT status = 'active' AND current_period_end > now() + interval '25 days' FROM public.subscriptions WHERE asaas_subscription_id = 'sub_iso'), 'assinatura ativa por um mes');
+  PERFORM pg_temp.expect(public.service_billing_event('evt_iso_1', 'sub_iso', 'PAYMENT_RECEIVED', current_date) = 'repetido', 'aviso repetido nao reprocessa');
+  PERFORM pg_temp.expect(public.service_billing_event('evt_iso_2', 'sub_desconhecida', 'PAYMENT_RECEIVED', current_date) = 'ignorado', 'assinatura desconhecida ignorada');
+  PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM public.subscriptions WHERE organization_id = A), 'pagamento de outra empresa nao cria assinatura em A');
+  -- Rotina diaria: teste vencido para a empresa e desliga os modulos (dados ficam).
+  UPDATE public.subscriptions SET status = 'trial', trial_ends_at = now() - interval '1 day' WHERE asaas_subscription_id = 'sub_iso';
+  PERFORM private.billing_tick();
+  PERFORM pg_temp.expect((SELECT status FROM public.subscriptions WHERE asaas_subscription_id = 'sub_iso') = 'expired', 'teste vencido vira vencida');
+  PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM public.org_modules m JOIN public.subscriptions s ON s.organization_id = m.organization_id
+    WHERE s.asaas_subscription_id = 'sub_iso' AND m.enabled), 'vencida desliga os modulos');
+  PERFORM pg_temp.expect(pg_temp.t(outsider, format('SELECT public.org_access_state((SELECT id FROM public.organizations WHERE created_by = %L)) ->> %L', outsider, 'status')) = 'expired', 'membro ve que esta vencida');
+  PERFORM pg_temp.expect(pg_temp.t(owner_b, format('SELECT coalesce(public.org_access_state((SELECT id FROM public.organizations WHERE created_by = %L))::text, %L)', outsider, 'nada')) = 'nada', 'outra org nao ve a situacao');
+  PERFORM pg_temp.expect(public.service_billing_event('evt_iso_3', 'sub_iso', 'PAYMENT_CONFIRMED', current_date) = 'ok', 'pagou depois de vencida');
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.org_modules m JOIN public.subscriptions s ON s.organization_id = m.organization_id
+    WHERE s.asaas_subscription_id = 'sub_iso' AND m.enabled) = 2, 'pagar religa os modulos do plano');
+
   -- 82. Consumo do cerebro por empresa: so o operador Clubetec.
   PERFORM pg_temp.expect_error(owner_a, format('SELECT public.platform_brain_usage(%L)', current_date), 'dono nao ve consumo das outras empresas');
   PERFORM pg_temp.expect(pg_temp.t(operator, format('SELECT jsonb_typeof(public.platform_brain_usage(%L))', current_date)) = 'array', 'operador ve o consumo');

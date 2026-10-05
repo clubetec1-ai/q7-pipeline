@@ -243,6 +243,17 @@ Início, Conversas, Funil, Cérebro, Configurações e Áreas. **Fase 1 concluí
 membro ativo; MFA recomendado; franquia 8 análises/mês e 1 manual/dia; e-mail semanal desligado; cérebro dentro do
 módulo "Qualidade e Gestão".
 
+**Fase 2 — andamento:** 7 ✅ **venda autoatendida (05/10, docs/design/04)**: página pública `/planos`; cadastro com
+o plano escolhido e confirmação de e-mail; "Criar a sua empresa" (teste grátis, módulos do plano ligados sozinhos, 1
+teste por pessoa, e-mail confirmado); Configurações → Plano e assinatura (situação, uso de IA × franquia, assinar,
+cobranças com link, cancelar); assinatura mensal pelo **Asaas da Clubetec** (PIX/boleto/cartão na página do Asaas)
+com implantação cobrada uma vez; aviso de pagamento (webhook com token, uma vez por aviso); rotina diária (lembra o fim
+do teste, vence, atraso, cancelada) — vencida desliga os módulos e mostra o bloqueio, pagar religa; franquia mensal de
+IA por plano; Plataforma → Planos (preços, módulos, franquias, plano de cada empresa, conectar o Asaas da Clubetec).
+Testes 83–85. 🙋 Dono: (a) conectar o Asaas da Clubetec em Plataforma → Planos (primeiro em teste/sandbox);
+(b) no Supabase, Authentication → Sign In/Providers → Email: ligar "Allow new users to sign up" **com** "Confirm email";
+(c) revisar os preços sugeridos.
+
 **Fase 2 — pré-lançamento:** 7. venda autoatendida (planos, assinatura Asaas, teste grátis, cadastro público,
 franquia de IA; 🙋 preços — sugestão em docs/marketing/02); 8. contrato e LGPD (termos, privacidade, contrato de
 tratamento de dados; 🙋 revisão jurídica); 9. Meta: Embedded Signup e nome do app (análise prevista ~14/10);

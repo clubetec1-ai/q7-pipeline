@@ -23,6 +23,10 @@ const TEXT: Record<string, (r: Record<string, string>) => string> = {
   brain_reminder: (r) => `${String(r.escalado) === "true" ? "⚠ Parada há tempo (escalado ao dono)" : "Lembrete"}: ${r.status === "aprovada" ? "colocar no ar" : "aprovar ou descartar"} "${r.title ?? ""}"`,
   brain_goal: (r) => `Meta fora do rumo: ${r.title ?? ""}`,
   brain_weekly: () => "O resumo da semana do cérebro está pronto",
+  billing_trial: () => "O teste grátis está acabando — assine para não parar",
+  billing_expired: () => "A assinatura venceu: os atendimentos automáticos pararam (seus dados estão guardados)",
+  billing_overdue: () => "O pagamento da assinatura está em atraso",
+  billing_paid: () => "Pagamento da assinatura confirmado. Obrigado!",
   security_alert: (r) => `⚠ Segurança: ${r.name ?? "alguém da equipe"} tentou exportar contatos sem permissão (bloqueado)`,
   number_health: (r) => `Número ${r.name ?? ""}: ${r.error ?? (r.status === "disconnected" ? "desconectado" : "precisa de atenção")}`,
 };
@@ -59,6 +63,7 @@ export function NotificationsBell() {
     else if (n.kind === "security_alert") navigate("/supervisor");
     else if (n.kind === "improvement") navigate("/melhorias");
     else if (n.kind === "brain_reminder" || n.kind === "brain_goal" || n.kind === "brain_weekly") navigate("/cerebro");
+    else if (n.kind.startsWith("billing_")) navigate("/configuracoes/plano");
     else if (n.kind === "team_mention") navigate("/chat");
     else if (n.kind === "process_reminder") navigate("/diagnostico");
     else if (n.kind === "missed_call" && n.ref.phone) requestCall(String(n.ref.phone));

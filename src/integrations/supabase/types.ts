@@ -363,6 +363,35 @@ export type Database = {
           },
         ]
       }
+      billing_events: {
+        Row: {
+          created_at: string
+          event: string
+          id: string
+          organization_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event: string
+          id: string
+          organization_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event?: string
+          id?: string
+          organization_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brain_runs: {
         Row: {
           calls: number
@@ -3280,6 +3309,7 @@ export type Database = {
           organization_id: string
           plan_key: string
           reminded_at: string | null
+          setup_payment_id: string | null
           status: string
           trial_ends_at: string | null
           updated_at: string
@@ -3294,6 +3324,7 @@ export type Database = {
           organization_id: string
           plan_key: string
           reminded_at?: string | null
+          setup_payment_id?: string | null
           status?: string
           trial_ends_at?: string | null
           updated_at?: string
@@ -3308,6 +3339,7 @@ export type Database = {
           organization_id?: string
           plan_key?: string
           reminded_at?: string | null
+          setup_payment_id?: string | null
           status?: string
           trial_ends_at?: string | null
           updated_at?: string
@@ -4349,6 +4381,7 @@ export type Database = {
           tokens_out: number
         }[]
       }
+      platform_billing_status: { Args: never; Returns: Json }
       platform_brain_usage: { Args: { since: string }; Returns: Json }
       platform_close_support: { Args: { org: string }; Returns: undefined }
       platform_open_support: {
@@ -4536,6 +4569,22 @@ export type Database = {
       service_anonymize_contact: {
         Args: { actor: string; contact: string; org: string; reason: string }
         Returns: Json
+      }
+      service_billing_cancel: { Args: { org: string }; Returns: undefined }
+      service_billing_event: {
+        Args: { due: string; ev: string; event_id: string; sub: string }
+        Returns: string
+      }
+      service_billing_link: {
+        Args: {
+          customer: string
+          email: string
+          org: string
+          plan: string
+          setup_id: string
+          sub: string
+        }
+        Returns: undefined
       }
       service_brain_can_run_manual: { Args: { org: string }; Returns: string }
       service_brain_due: { Args: never; Returns: string[] }

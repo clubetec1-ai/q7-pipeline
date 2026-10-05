@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { money } from "../Planos";
+import { callFunction } from "@/lib/callFunction";
 
 interface PlanRow {
   key: string; name: string; description: string | null; price_cents: number; setup_cents: number; modules: string[];
@@ -26,11 +27,22 @@ export function PlansPanel({ orgs }: { orgs: { id: string; name: string }[] }) {
   const [edit, setEdit] = useState<PlanRow | null>(null);
   const [orgId, setOrgId] = useState("");
   const [orgPlan, setOrgPlan] = useState({ plan: "", status: "active", days: "14" });
+  const [billing, setBilling] = useState<{ connected: boolean; webhook: boolean; env: string | null; assinaturas: Record<string, number> | null } | null>(null);
+  const [asaasKey, setAsaasKey] = useState({ env: "sandbox", key: "" });
 
   const load = useCallback(async () => {
     const { data } = await supabase.from("plans").select("*").order("sort");
     setPlans((data as unknown as PlanRow[]) ?? []);
+    const { data: b } = await supabase.rpc("platform_billing_status");
+    setBilling((b as never) ?? null);
   }, []);
+  const connect = async () => {
+    const r = await callFunction<{ env: string; warning: string | null }>("billing", { action: "platform_connect", env: asaasKey.env, api_key: asaasKey.key.trim() });
+    if (!r.ok) return toast({ variant: "destructive", title: "Não conectou", description: r.message });
+    toast({ title: `Asaas da Clubetec conectado (${r.data.env === "production" ? "produção" : "teste"})`, description: r.data.warning ?? undefined });
+    setAsaasKey({ env: asaasKey.env, key: "" });
+    void load();
+  };
   useEffect(() => { void load(); }, [load]);
 
   const save = async () => {
@@ -113,6 +125,25 @@ export function PlansPanel({ orgs }: { orgs: { id: string; name: string }[] }) {
             <div className="flex gap-2"><Button onClick={() => void save()}>Salvar plano</Button><Button variant="ghost" onClick={() => setEdit(null)}>Cancelar</Button></div>
           </div>
         )}
+      </section>
+
+      <section className="space-y-3 rounded-lg border p-4">
+        <h2 className="font-semibold">Cobrança da Clubetec (Asaas)</h2>
+        <p className="text-sm text-muted-foreground">
+          Conta Asaas da Clubetec que cobra as assinaturas. A chave fica no cofre e nunca aparece de novo.
+          {billing && <> Situação: <b>{billing.connected ? `conectado (${billing.env === "production" ? "produção" : "teste"})` : "não conectado"}</b>
+            {billing.connected && !billing.webhook ? " · aviso de pagamento não cadastrado" : ""}
+            {billing.assinaturas ? ` · assinaturas: ${Object.entries(billing.assinaturas).map(([k, v]) => `${k} ${v}`).join(", ")}` : ""}</>}
+        </p>
+        <div className="flex flex-wrap gap-2 items-end text-sm">
+          <select className="h-9 rounded-md border bg-background px-2" value={asaasKey.env} onChange={(e) => setAsaasKey({ ...asaasKey, env: e.target.value })}>
+            <option value="sandbox">Teste (sandbox)</option>
+            <option value="production">Produção</option>
+          </select>
+          <Input className="h-9 w-80" type="password" autoComplete="off" placeholder="Chave de API do Asaas da Clubetec" value={asaasKey.key}
+            onChange={(e) => setAsaasKey({ ...asaasKey, key: e.target.value })} />
+          <Button disabled={asaasKey.key.trim().length < 20} onClick={() => void connect()}>Conectar</Button>
+        </div>
       </section>
 
       <section className="space-y-3 rounded-lg border p-4">
