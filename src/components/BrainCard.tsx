@@ -9,6 +9,7 @@ export function BrainCard({ orgId }: { orgId: string }) {
   const [state, setState] = useState<{ scope: string; toApprove: number; pending: number; resumo: string | null } | null>(null);
   useEffect(() => {
     let alive = true;
+    setState(null); // trocou de empresa: não mostra o resumo da anterior
     void (async () => {
       const { data, error } = await supabase.rpc("brain_overview", { org: orgId });
       if (error || !alive) return;
