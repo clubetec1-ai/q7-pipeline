@@ -101,7 +101,7 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
     necessária ou ainda em análise — com destaque a partir de 12/10 (previsão ~14/10). **Quando aprovar:** ligar o
     cadastro de número em poucos cliques (Embedded Signup) e seguir com a subida para produção na VPS (item 6), e
     desligar o monitoramento.
-20. 🟡 **Relatórios:** existem; falta PDF, período personalizado e envio automático por e-mail.
+20. ✅ **Relatórios** *(05/10)*: PDF (impressão do navegador com empresa, período e setor), "Escolher datas" (até 1 ano) e envio por e-mail semanal/mensal que cada pessoa liga para si, calculado com o escopo dela (teste 87).
 
 ### P3 — canais, voz e extras (quando o fornecedor liberar ou o cliente pedir)
 21. 🟡 **Voz:** ramal e Nvoip ✅; falta WSS, aviso em tempo real, gravações e transcrição (🙋 respostas da Handphone e
@@ -274,6 +274,11 @@ nicho); 12. API aberta + webhooks (n8n/Make/Zapier); 13. executar o plano de mar
 16. relatórios em PDF, período livre e envio por e-mail; 17. rede de franquias, white label e implantação como pacote;
 18. Diagnóstico 2ª parte + **cérebro com delegação por área** (prioridade do dono); 19. Campanhas e Chat da equipe
 (busca, reações) e Google Agenda. **Depois do lançamento:** 20. Microsoft Teams para ramais.
+
+**Fase 3 — ordem de execução (dono autorizou em 05/10: "pode fazer a fase 3"):** 16 relatórios (PDF, período livre,
+e-mail) → 18 Diagnóstico 2ª parte (o cérebro com delegação já ficou pronto nas fatias 1–7) → 19a Chat da equipe e
+Campanhas → 15 telefonia genérica → 17 franquias, white label e implantação → 14 Messenger/Instagram (testar quando a
+Meta liberar as permissões) → 19b Google Agenda (🙋 precisa de credencial OAuth do Google criada pelo dono).
 
 **Decisões e fatos de 03/10:** domínios comprados pelo dono ✅ (falta o pedido no INPI com agente de propriedade
 industrial); limite de gasto de US$ 20 na OpenAI ✅; Supabase continua Free no piloto (Pro no lançamento); backup

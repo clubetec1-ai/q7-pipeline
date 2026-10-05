@@ -2,7 +2,7 @@ import { SectionTabs } from "@/components/layout/SectionTabs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { useNavigate } from "react-router-dom";
-import { BarChart3, Download, LogOut } from "lucide-react";
+import { Download, FileText, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/contexts/OrgContext";
@@ -12,6 +12,10 @@ import { MainNav } from "@/components/MainNav";
 import { NumberHealthBanner } from "@/components/NumberHealthBanner";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 
 type Kind = "atendentes" | "operacao" | "qualidade" | "melhorias" | "comercial" | "ia";
 type Data = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -21,6 +25,9 @@ const TABS: [Kind, string, boolean][] = [
   ["melhorias", "Melhorias", false], ["comercial", "Comercial", false], ["ia", "IA e automação", false],
 ];
 const PERIODS: [string, number][] = [["7 dias", 7], ["30 dias", 30], ["90 dias", 90]];
+const DAY = 86_400_000;
+const ymd = (t: number) => new Date(t - new Date(t).getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
+const dmy = (t: number) => new Date(t).toLocaleDateString("pt-BR");
 const DOW = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 // Indicadores em que MENOR é melhor (seta verde quando cai).
 const LOWER_BETTER = new Set(["fila_min", "fila_max_min", "resposta_min", "duracao_min", "insatisfeitos", "transferencias", "nao_funcionou",
@@ -49,6 +56,9 @@ export default function Relatorios() {
   const tabs = TABS.filter(([, , agent]) => agent || !onlySelf);
   const [kind, setKind] = useState<Kind>("atendentes");
   const [days, setDays] = useState(30);
+  const [custom, setCustom] = useState<{ from: string; to: string } | null>(null);
+  const [mailOpen, setMailOpen] = useState(false);
+  const [mail, setMail] = useState<{ frequency: string; kinds: string[] }>({ frequency: "", kinds: [] });
   const [dept, setDept] = useState("");
   const [depts, setDepts] = useState<{ id: string; name: string }[]>([]);
   const [cur, setCur] = useState<Data | null>(null);
@@ -60,9 +70,19 @@ export default function Relatorios() {
     void supabase.from("departments").select("id, name").eq("organization_id", org.id).order("name").then(({ data }) => setDepts(data ?? []));
   }, [org, onlySelf]);
 
+  // Período: botões (últimos N dias) ou datas escolhidas (dias inteiros, até 1 ano).
+  const range = useMemo(() => {
+    if (custom && custom.from && custom.to) {
+      const a = new Date(`${custom.from}T00:00:00`).getTime(), b = new Date(`${custom.to}T00:00:00`).getTime() + DAY;
+      if (b > a) return { from: Math.max(a, b - 366 * DAY), to: b };
+    }
+    const to = Date.now();
+    return { from: to - days * DAY, to };
+  }, [custom, days]);
+
   const load = useCallback(async () => {
     if (!org) return;
-    const now = Date.now(), span = days * 86_400_000;
+    const now = range.to, span = range.to - range.from;
     const call = (from: number, to: number) => supabase.rpc("report", {
       org: org.id, kind, since: new Date(from).toISOString(), until: new Date(to).toISOString(), dept: dept || null,
     } as never);
@@ -70,8 +90,14 @@ export default function Relatorios() {
     setError(a.error?.message ?? null);
     setCur((a.data as Data) ?? null);
     setPrev((b.data as Data) ?? null);
-  }, [org, kind, days, dept]);
+  }, [org, kind, range, dept]);
   useEffect(() => { void load(); }, [load]);
+
+  useEffect(() => {
+    if (!org) return;
+    void supabase.from("report_emails").select("frequency, kinds").eq("organization_id", org.id).maybeSingle()
+      .then(({ data }) => setMail(data ? { frequency: data.frequency, kinds: data.kinds } : { frequency: "", kinds: [] }));
+  }, [org]);
 
   const tableRows = useMemo(() => {
     if (!cur) return [] as Data[];
@@ -84,6 +110,19 @@ export default function Relatorios() {
   }, [cur, kind]);
 
   if (!org) return null;
+
+  const exportPdf = async () => {
+    await supabase.rpc("log_report_export", { org: org.id, kind } as never);
+    window.print(); // "Salvar como PDF" do navegador; a página tem estilo próprio de impressão
+  };
+  const saveMail = async () => {
+    const { error } = await supabase.rpc("set_report_email", {
+      org: org.id, freq: mail.frequency || null, p_kinds: mail.kinds.length ? mail.kinds : null,
+    } as never);
+    if (error) return toast({ variant: "destructive", title: "Não salvou", description: error.message });
+    setMailOpen(false);
+    toast({ title: mail.frequency ? `Você vai receber ${mail.frequency === "weekly" ? "toda segunda-feira" : "todo dia 1º"} no seu e-mail` : "Envio por e-mail desligado" });
+  };
 
   const exportCsv = async () => {
     const rows: Data[] = tableRows.length ? tableRows : [cur?.resumo ?? cur ?? {}];
@@ -108,12 +147,22 @@ export default function Relatorios() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <AppHeader active="relatorios" />
-      <SectionTabs group="resultados" active="relatorios" />
-      <NumberHealthBanner />
+      <div className="print:hidden">
+        <AppHeader active="relatorios" />
+        <SectionTabs group="resultados" active="relatorios" />
+        <NumberHealthBanner />
+      </div>
 
-      <main className="flex-1 w-full max-w-6xl mx-auto p-4 sm:p-6 space-y-4">
-        <div className="flex flex-wrap items-end justify-between gap-3">
+      <main className="flex-1 w-full max-w-6xl mx-auto p-4 sm:p-6 space-y-4 print:p-0 print:max-w-none"
+        style={{ printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" }}>
+        <div className="hidden print:block border-b pb-2">
+          <p className="font-brand text-xl">{org.name} — Relatório: {tabs.find(([k]) => k === kind)?.[1]}</p>
+          <p className="text-sm text-muted-foreground">
+            Período: {dmy(range.from)} a {dmy(range.to - 1)} · comparado com o período anterior de mesmo tamanho
+            {dept ? ` · Setor: ${depts.find((d) => d.id === dept)?.name ?? ""}` : ""} · gerado em {new Date().toLocaleString("pt-BR")} · Deixa com a IA
+          </p>
+        </div>
+        <div className="flex flex-wrap items-end justify-between gap-3 print:hidden">
           <div>
             <h1 className="font-brand text-2xl leading-tight">Relatórios</h1>
             <p className="text-sm text-muted-foreground">
@@ -123,9 +172,21 @@ export default function Relatorios() {
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex rounded-md border overflow-hidden">
               {PERIODS.map(([l, d]) => (
-                <button key={d} type="button" onClick={() => setDays(d)} className={`px-3 py-1.5 text-sm ${days === d ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>{l}</button>
+                <button key={d} type="button" onClick={() => { setCustom(null); setDays(d); }}
+                  className={`px-3 py-1.5 text-sm ${!custom && days === d ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>{l}</button>
               ))}
+              <button type="button" onClick={() => setCustom(custom ?? { from: ymd(Date.now() - 30 * DAY), to: ymd(Date.now()) })}
+                className={`px-3 py-1.5 text-sm ${custom ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>Escolher datas</button>
             </div>
+            {custom && (
+              <div className="flex items-center gap-1 text-sm">
+                <Input type="date" className="h-9 w-[9.5rem]" value={custom.from} max={custom.to} aria-label="De"
+                  onChange={(e) => setCustom({ ...custom, from: e.target.value })} />
+                <span className="text-muted-foreground">até</span>
+                <Input type="date" className="h-9 w-[9.5rem]" value={custom.to} min={custom.from} max={ymd(Date.now())} aria-label="Até"
+                  onChange={(e) => setCustom({ ...custom, to: e.target.value })} />
+              </div>
+            )}
             {!onlySelf && (
               <select className="h-9 rounded-md border bg-background px-2 text-sm" value={dept} onChange={(e) => setDept(e.target.value)}>
                 <option value="">Todos os setores</option>
@@ -133,10 +194,14 @@ export default function Relatorios() {
               </select>
             )}
             <Button variant="outline" size="sm" onClick={exportCsv} disabled={!cur}><Download className="w-4 h-4 mr-1" /> CSV</Button>
+            <Button variant="outline" size="sm" onClick={() => void exportPdf()} disabled={!cur}><FileText className="w-4 h-4 mr-1" /> PDF</Button>
+            <Button variant="outline" size="sm" onClick={() => setMailOpen(true)}>
+              <Mail className="w-4 h-4 mr-1" /> {mail.frequency ? (mail.frequency === "weekly" ? "Semanal por e-mail" : "Mensal por e-mail") : "Receber por e-mail"}
+            </Button>
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-1 border-b">
+        <div className="flex flex-wrap gap-1 border-b print:hidden">
           {tabs.map(([k, l]) => (
             <button key={k} type="button" onClick={() => setKind(k)}
               className={`px-3 py-2 text-sm -mb-px border-b-2 ${kind === k ? "border-primary font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`}>{l}</button>
@@ -199,6 +264,40 @@ export default function Relatorios() {
         )}
         {cur && !cards.length && !tableRows.length && <p className="text-sm text-muted-foreground">Sem dados no período.</p>}
       </main>
+
+      <Dialog open={mailOpen} onOpenChange={setMailOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Receber relatórios por e-mail</DialogTitle>
+            <DialogDescription>
+              Vai para o seu e-mail, com os mesmos números que você vê aqui, comparados com o período anterior. Semanal: toda segunda, com os últimos 7 dias. Mensal: todo dia 1º, com o mês anterior.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="flex rounded-md border overflow-hidden w-fit">
+              {([["", "Desligado"], ["weekly", "Semanal"], ["monthly", "Mensal"]] as const).map(([v, l]) => (
+                <button key={v} type="button" onClick={() => setMail({ frequency: v, kinds: v && !mail.kinds.length ? [kind] : mail.kinds })}
+                  className={`px-3 py-1.5 text-sm ${mail.frequency === v ? "bg-primary text-primary-foreground" : "hover:bg-muted"}`}>{l}</button>
+              ))}
+            </div>
+            {mail.frequency && (
+              <div className="grid gap-1.5 sm:grid-cols-2">
+                {tabs.map(([k, l]) => (
+                  <label key={k} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input type="checkbox" checked={mail.kinds.includes(k)}
+                      onChange={(e) => setMail({ ...mail, kinds: e.target.checked ? [...mail.kinds, k] : mail.kinds.filter((x) => x !== k) })} />
+                    {l}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMailOpen(false)}>Cancelar</Button>
+            <Button onClick={() => void saveMail()} disabled={!!mail.frequency && !mail.kinds.length}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
