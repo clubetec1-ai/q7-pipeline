@@ -133,9 +133,13 @@ export default function ConfigAreas() {
               <tbody className="divide-y">
                 {areas.map((a) => (
                   <tr key={a.id} className={a.enabled ? "" : "opacity-60"}>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 min-w-[10rem]">
                       <p className="font-medium">{a.name}</p>
-                      <p className="text-xs text-muted-foreground">{AREA_KEYS[a.key] ?? a.key}</p>
+                      <select className="mt-1 h-7 w-full rounded-md border bg-background px-1 text-xs text-muted-foreground" value={a.key}
+                        disabled={busy === a.id} aria-label={`Tipo da área ${a.name}`} title="O tipo define os números que o cérebro acompanha"
+                        onChange={(e) => void save(a, { key: e.target.value })}>
+                        {Object.entries(AREA_KEYS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                      </select>
                     </td>
                     <td className="px-4 py-3 min-w-[10rem]">
                       <select className={sel} value={a.department_id ?? ""} disabled={busy === a.id} onChange={(e) => void save(a, { department_id: e.target.value || null })}>

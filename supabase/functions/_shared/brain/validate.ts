@@ -26,6 +26,26 @@ export function sanitizePacket<T>(v: T): T {
 }
 
 const clip = (s: unknown, n: number) => redact(String(s ?? "").replace(/\s+/g, " ").trim()).slice(0, n);
+/** Corta no fim da última frase que cabe (nada de texto parado no meio). */
+const clipSentence = (s: unknown, n: number) => {
+  const t = clip(s, n + 1);
+  if (t.length <= n) return t;
+  const cut = t.slice(0, n);
+  const end = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf("! "), cut.lastIndexOf("? "));
+  return end > 0 ? cut.slice(0, end + 1) : cut.replace(/\s+\S*$/, "") + "…";
+};
+const norm = (s: unknown) => String(s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+/** A IA às vezes responde a área pelo nome ou pelo tipo: aceita id, nome ou tipo (se só houver uma área daquele tipo). */
+function areaResolver(areas: PacketArea[]) {
+  const byId = new Map(areas.map((a) => [a.id, a]));
+  const byName = new Map(areas.map((a) => [norm(a.nome), a]));
+  const byKey = new Map<string, PacketArea[]>();
+  for (const a of areas) byKey.set(a.key, [...(byKey.get(a.key) ?? []), a]);
+  return (v: unknown): PacketArea | undefined => {
+    const s = String(v ?? "");
+    return byId.get(s) ?? byName.get(norm(s)) ?? (byKey.get(s)?.length === 1 ? byKey.get(s)![0] : undefined);
+  };
+}
 
 export interface Orchestration {
   resumo: string;
@@ -36,22 +56,22 @@ export interface Orchestration {
 
 // deno-lint-ignore no-explicit-any
 export function validateOrchestration(raw: any, packet: Packet): Orchestration {
-  const byId = new Map(packet.areas.map((a) => [a.id, a]));
+  const find = areaResolver(packet.areas);
   const goalIds = new Set(packet.areas.flatMap((a) => a.metas.map((m) => m.id)));
   const prioridades = (Array.isArray(raw?.prioridades) ? raw.prioridades : [])
     // deno-lint-ignore no-explicit-any
-    .filter((p: any) => byId.has(String(p?.area_id)) && clip(p?.titulo, 120).length >= 3)
+    .filter((p: any) => !!find(p?.area_id ?? p?.area_key ?? p?.area) && clip(p?.titulo, 120).length >= 3)
     .slice(0, 3)
     // deno-lint-ignore no-explicit-any
     .map((p: any) => ({
-      area_id: String(p.area_id), area_key: byId.get(String(p.area_id))!.key, titulo: clip(p.titulo, 120), por_que: clip(p.por_que, 300),
+      area_id: find(p.area_id ?? p.area_key ?? p.area)!.id, area_key: find(p.area_id ?? p.area_key ?? p.area)!.key,
+      titulo: clip(p.titulo, 120), por_que: clip(p.por_que, 300),
       meta_id: goalIds.has(String(p?.meta_id)) ? String(p.meta_id) : null,
     }));
-  const withAgent = new Set(packet.areas.filter((a) => a.agente_ligado).map((a) => a.id));
   const asked: unknown[] = Array.isArray(raw?.delegar) ? raw.delegar : [];
-  const delegar = [...new Set(asked.map((k) => String(k)))].filter((k) => withAgent.has(k)).slice(0, 3);
+  const delegar = [...new Set(asked.map((k) => find(k)).filter((a): a is PacketArea => !!a && a.agente_ligado).map((a) => a.id))].slice(0, 3);
   const cobrar = (Array.isArray(raw?.cobrar) ? raw.cobrar : []).map((c: unknown) => clip(c, 160)).filter(Boolean).slice(0, 5);
-  return { resumo: clip(raw?.resumo, 600), prioridades, delegar, cobrar };
+  return { resumo: clipSentence(raw?.resumo, 900), prioridades, delegar, cobrar };
 }
 
 export interface Proposal {

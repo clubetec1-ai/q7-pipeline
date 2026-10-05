@@ -1467,6 +1467,10 @@ BEGIN
   PERFORM pg_temp.expect(public.service_brain_packet(A)::text NOT LIKE '%@%', 'pacote sem e-mail');
   PERFORM pg_temp.expect(public.service_brain_packet(A)::text NOT LIKE '%"oi"%', 'pacote sem mensagens');
 
+  -- 82. Consumo do cerebro por empresa: so o operador Clubetec.
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.platform_brain_usage(%L)', current_date), 'dono nao ve consumo das outras empresas');
+  PERFORM pg_temp.expect(pg_temp.t(operator, format('SELECT jsonb_typeof(public.platform_brain_usage(%L))', current_date)) = 'array', 'operador ve o consumo');
+
   -- 81. Historico por area: dono e responsavel da area; outros nao.
   PERFORM pg_temp.expect(pg_temp.t(agent_a, format('SELECT jsonb_array_length(public.area_activity(%L, (SELECT id FROM public.org_areas WHERE organization_id = %L AND name = %L), NULL)) >= 1',
     A, A, 'Vendas')) = 'true', 'responsavel ve o que a area fez');

@@ -57,3 +57,14 @@ Deno.test("pacote anonimizado antes de ir para a IA", () => {
   assertEquals(/98888|maria@|123\.456/.test(JSON.stringify(p)), false);
   assertEquals(p.areas[0].id, "aaaaaaaa-0000-0000-0000-00000000000a");
 });
+
+Deno.test("aceita a area pelo nome ou pelo tipo; resumo cortado no fim da frase", () => {
+  const o = validateOrchestration({
+    resumo: "Primeira frase curta. " + "x".repeat(950),
+    prioridades: [{ area: "VENDAS", titulo: "Pelo nome" }, { area_key: "vendas", titulo: "Pelo tipo" }],
+    delegar: ["Vendas"],
+  }, { areas: [area] });
+  assertEquals(o.prioridades.map((p) => p.area_id), [area.id, area.id]);
+  assertEquals(o.delegar, [area.id]);
+  assertEquals(o.resumo, "Primeira frase curta.");
+});
