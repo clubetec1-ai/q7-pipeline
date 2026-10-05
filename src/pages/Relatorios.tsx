@@ -59,6 +59,7 @@ export default function Relatorios() {
   const [custom, setCustom] = useState<{ from: string; to: string } | null>(null);
   const [mailOpen, setMailOpen] = useState(false);
   const [mail, setMail] = useState<{ frequency: string; kinds: string[] }>({ frequency: "", kinds: [] });
+  const [saved, setSaved] = useState<{ frequency: string; kinds: string[] }>({ frequency: "", kinds: [] });
   const [dept, setDept] = useState("");
   const [depts, setDepts] = useState<{ id: string; name: string }[]>([]);
   const [cur, setCur] = useState<Data | null>(null);
@@ -96,7 +97,7 @@ export default function Relatorios() {
   useEffect(() => {
     if (!org) return;
     void supabase.from("report_emails").select("frequency, kinds").eq("organization_id", org.id).maybeSingle()
-      .then(({ data }) => setMail(data ? { frequency: data.frequency, kinds: data.kinds } : { frequency: "", kinds: [] }));
+      .then(({ data }) => { const v = data ? { frequency: data.frequency, kinds: data.kinds } : { frequency: "", kinds: [] }; setMail(v); setSaved(v); });
   }, [org]);
 
   const tableRows = useMemo(() => {
@@ -121,6 +122,7 @@ export default function Relatorios() {
     } as never);
     if (error) return toast({ variant: "destructive", title: "Não salvou", description: error.message });
     setMailOpen(false);
+    setSaved(mail);
     toast({ title: mail.frequency ? `Você vai receber ${mail.frequency === "weekly" ? "toda segunda-feira" : "todo dia 1º"} no seu e-mail` : "Envio por e-mail desligado" });
   };
 
@@ -195,8 +197,8 @@ export default function Relatorios() {
             )}
             <Button variant="outline" size="sm" onClick={exportCsv} disabled={!cur}><Download className="w-4 h-4 mr-1" /> CSV</Button>
             <Button variant="outline" size="sm" onClick={() => void exportPdf()} disabled={!cur}><FileText className="w-4 h-4 mr-1" /> PDF</Button>
-            <Button variant="outline" size="sm" onClick={() => setMailOpen(true)}>
-              <Mail className="w-4 h-4 mr-1" /> {mail.frequency ? (mail.frequency === "weekly" ? "Semanal por e-mail" : "Mensal por e-mail") : "Receber por e-mail"}
+            <Button variant="outline" size="sm" onClick={() => { setMail(saved); setMailOpen(true); }}>
+              <Mail className="w-4 h-4 mr-1" /> {saved.frequency ? (saved.frequency === "weekly" ? "Semanal por e-mail" : "Mensal por e-mail") : "Receber por e-mail"}
             </Button>
           </div>
         </div>
