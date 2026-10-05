@@ -223,9 +223,12 @@ só o Microsoft Teams (item 20) pode ficar para depois. O **cérebro** tem que e
 
 **Andamento (branch `feat/fase1`, ainda sem merge):** design P2 (barra da conversa, bolhas, Kanban com etiquetas/
 "Mover para…"/Desfazer, abas Resultados e Clientes, Clientes em tabela) ✅; funil 2ª parte (retorno automático por
-etapa 2/5/10 dias + "Gerar proposta") ✅; **cérebro** — fatia 1 áreas e responsáveis ✅, fatia 2 metas e números por
-área + página Cérebro ✅, fatias 3–8 em andamento (cobranças, resultado → Diagnóstico, orquestrador semanal, agentes
-de área, histórico, acabamento). Padrões adotados nas decisões do cérebro (o dono pode mudar): responsável = qualquer
+etapa 2/5/10 dias + "Gerar proposta") ✅; **cérebro** — fatias 1 a 7 ✅ (04/10): áreas e responsáveis; metas e números por
+área com semáforo no banco; cobranças automáticas (escala ao dono após 2); resultado volta ao Diagnóstico e o plano
+aprende; análise semanal (segunda 8h) e manual com pacote fechado só de números, validador que refaz as evidências e
+agentes de área propondo até 3 sugestões; franquia só o operador muda; resumo da semana, histórico e "o que a área
+fez"; cartão no Início; assistente do app atualizado. Testes de isolamento 69–81 + teste do validador. Fatia 8
+(prova de ponta a ponta no Cartório Teste depois do merge + revisão de segurança) em andamento. Padrões adotados nas decisões do cérebro (o dono pode mudar): responsável = qualquer
 membro ativo; MFA recomendado; franquia 8 análises/mês e 1 manual/dia; e-mail semanal desligado; cérebro dentro do
 módulo "Qualidade e Gestão".
 
