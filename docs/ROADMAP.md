@@ -235,8 +235,11 @@ processos do Diagnóstico, aprovação em Melhorias. Ajustes do teste: área rec
 (não medida)" no pacote, resumo cortado na frase, setor vira Atendimento, tipo da área editável, painel da Clubetec
 com consumo e franquia por empresa (Plataforma → Módulos) e e-mail opcional do cérebro (resumo, meta fora do rumo,
 cobrança escalada). Também em 04/10: **e-mail completo** (IA responde e-mails por caixa, opcional; cópia em
-"Enviados") ✅ e **regras da IA visíveis** ("O que a IA nunca faz" na tela do Agente) ✅. Fase 1 restante: item 6
-(varredura final tela a tela). Padrões adotados nas decisões do cérebro (o dono pode mudar): responsável = qualquer
+"Enviados") ✅ e **regras da IA visíveis** ("O que a IA nunca faz" na tela do Agente) ✅. **Varredura final (item 6) ✅ 04/10:** 32 telas
+abertas no site publicado sem erro no console, sem tela quebrada e sem rolagem lateral (computador); tema escuro
+conferido nas telas principais (legível); títulos das 25 páginas padronizados (fonte da marca, sem ícone) com os nomes
+do menu novo. 🙋 Pendente: conferir no celular de verdade (o Chrome do teste não deixou simular a tela pequena) —
+Início, Conversas, Funil, Cérebro, Configurações e Áreas. **Fase 1 concluída.** Próximo: Fase 2. Padrões adotados nas decisões do cérebro (o dono pode mudar): responsável = qualquer
 membro ativo; MFA recomendado; franquia 8 análises/mês e 1 manual/dia; e-mail semanal desligado; cérebro dentro do
 módulo "Qualidade e Gestão".
 
