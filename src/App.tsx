@@ -46,6 +46,7 @@ import ConfigIA from "./pages/ConfigIA";
 import ConfigAtendimento from "./pages/ConfigAtendimento";
 import ConfigAparencia from "./pages/ConfigAparencia";
 import ConfigAreas from "./pages/ConfigAreas";
+import Cerebro from "./pages/Cerebro";
 import FlowEditor from "./pages/FlowEditor";
 
 const queryClient = new QueryClient();
@@ -95,6 +96,7 @@ const App = () => (
             <Route path="/configuracoes/atendimento" element={<ProtectedRoute><ConfigAtendimento /></ProtectedRoute>} />
             <Route path="/configuracoes/aparencia" element={<ProtectedRoute><ConfigAparencia /></ProtectedRoute>} />
             <Route path="/configuracoes/areas" element={<ProtectedRoute><ConfigAreas /></ProtectedRoute>} />
+            <Route path="/cerebro" element={<ProtectedRoute><Cerebro /></ProtectedRoute>} />
             <Route path="/configuracoes/ia" element={<ProtectedRoute><ModuleGate m="ia"><ConfigIA /></ModuleGate></ProtectedRoute>} />
             <Route path="/configuracoes/cobrancas" element={<ProtectedRoute><ModuleGate m="cobrancas"><ConfigCobrancas /></ModuleGate></ProtectedRoute>} />
             <Route path="/setores" element={<ProtectedRoute><Setores /></ProtectedRoute>} />

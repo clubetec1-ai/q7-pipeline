@@ -199,6 +199,126 @@ export type Database = {
         }
         Relationships: []
       }
+      area_goals: {
+        Row: {
+          alerted_at: string | null
+          approved_by: string | null
+          area_id: string
+          baseline: number | null
+          created_at: string
+          created_by: string | null
+          direction: string
+          ends_on: string | null
+          id: string
+          metric_key: string
+          organization_id: string
+          period: string
+          source: string
+          starts_on: string
+          status: string
+          target: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          alerted_at?: string | null
+          approved_by?: string | null
+          area_id: string
+          baseline?: number | null
+          created_at?: string
+          created_by?: string | null
+          direction: string
+          ends_on?: string | null
+          id?: string
+          metric_key: string
+          organization_id: string
+          period?: string
+          source?: string
+          starts_on?: string
+          status?: string
+          target: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          alerted_at?: string | null
+          approved_by?: string | null
+          area_id?: string
+          baseline?: number | null
+          created_at?: string
+          created_by?: string | null
+          direction?: string
+          ends_on?: string | null
+          id?: string
+          metric_key?: string
+          organization_id?: string
+          period?: string
+          source?: string
+          starts_on?: string
+          status?: string
+          target?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "area_goals_area_fk"
+            columns: ["area_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "org_areas"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "area_goals_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      area_metric_snapshots: {
+        Row: {
+          area_id: string
+          created_at: string
+          metric_key: string
+          organization_id: string
+          period_start: string
+          value: number | null
+        }
+        Insert: {
+          area_id: string
+          created_at?: string
+          metric_key: string
+          organization_id: string
+          period_start: string
+          value?: number | null
+        }
+        Update: {
+          area_id?: string
+          created_at?: string
+          metric_key?: string
+          organization_id?: string
+          period_start?: string
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "area_metric_snapshots_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "area_snapshots_area_fk"
+            columns: ["area_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "org_areas"
+            referencedColumns: ["id", "organization_id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           action: string
@@ -3727,6 +3847,7 @@ export type Database = {
         Args: { ext: string; member: string }
         Returns: undefined
       }
+      brain_overview: { Args: { org: string }; Returns: Json }
       brand_kit: { Args: { org: string }; Returns: Json }
       campaign_audience: {
         Args: { groups: string[]; org: string }
@@ -4095,6 +4216,20 @@ export type Database = {
         Args: { org: string; since: string }
         Returns: Json
       }
+      save_area_goal: {
+        Args: {
+          area: string
+          goal: string
+          org: string
+          p_direction: string
+          p_ends: string
+          p_metric: string
+          p_period: string
+          p_target: number
+          p_title: string
+        }
+        Returns: string
+      }
       search_messages: {
         Args: { org: string; q: string }
         Returns: {
@@ -4264,6 +4399,10 @@ export type Database = {
           p_user?: string
         }
         Returns: string
+      }
+      set_area_goal_status: {
+        Args: { goal: string; new_status: string }
+        Returns: undefined
       }
       set_auto_review: {
         Args: { enabled: boolean; org: string }

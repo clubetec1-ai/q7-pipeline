@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useOrg } from "@/contexts/OrgContext";
+import { useAreaApprover } from "@/lib/useAreaApprover";
 
 type Group = "resultados" | "clientes";
 interface Tab { key: string; to: string; label: string; show: boolean }
@@ -10,12 +11,14 @@ interface Tab { key: string; to: string; label: string; show: boolean }
  * permissão e o módulo certos (as mesmas regras do MainNav).
  */
 export function SectionTabs({ group, active }: { group: Group; active: string }) {
-  const { can, hasModule } = useOrg();
+  const { can, hasModule, org } = useOrg();
+  const approver = useAreaApprover(org?.id);
   const manage = can("org.settings");
   const reports = can("reports.view");
   const attend = can("conversations.attend");
   const tabs: Tab[] = group === "resultados"
     ? [
+      { key: "cerebro", to: "/cerebro", label: "Cérebro", show: (can("org.settings") && hasModule("gestao")) || approver },
       { key: "supervisor", to: "/supervisor", label: "Agora", show: reports && hasModule("gestao") },
       { key: "relatorios", to: "/relatorios", label: "Relatórios", show: manage || reports || attend },
       { key: "funil", to: "/funil", label: "Funil de vendas", show: manage || reports },

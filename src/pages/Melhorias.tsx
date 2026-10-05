@@ -54,7 +54,7 @@ export default function Melhorias() {
   const [form, setForm] = useState<{ title: string; description: string; how: string; kind: string; department: string } | null>(null);
   const [showDiscarded, setShowDiscarded] = useState(false);
   const [areas, setAreas] = useState<{ id: string; name: string }[]>([]);
-  const [areaFilter, setAreaFilter] = useState("");
+  const [areaFilter, setAreaFilter] = useState(() => new URLSearchParams(window.location.search).get("area") ?? "");
   const [loaded, setLoaded] = useState(false);
   const manage = can("org.settings");
 

@@ -1362,6 +1362,24 @@ BEGIN
   PERFORM pg_temp.expect_error(agent_a, format('SELECT public.set_improvement_area(%L, NULL)', 'aaaaaaaa-0000-0000-0074-000000000002'), 'responsavel nao muda a area da proposta');
   PERFORM pg_temp.expect_error(owner_a, format('SELECT public.set_improvement_area(%L, %L)', 'aaaaaaaa-0000-0000-0074-000000000002', 'bbbbbbbb-0000-0000-0000-000000000001'), 'area inexistente ou de outra org recusada');
   PERFORM pg_temp.expect_error(owner_a, format('UPDATE public.improvements SET area_id = (SELECT id FROM public.org_areas WHERE organization_id = %L LIMIT 1)', A), 'navegador nao grava improvements');
+
+  -- 75. Metas e numeros por area: so o dono define; indicador so do catalogo da area; responsavel so ve a sua.
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('SELECT public.save_area_goal(%L, NULL, (SELECT id FROM public.org_areas WHERE organization_id = %L AND name = %L), %L, %L, %L, 10, %L, NULL)',
+    A, A, 'Vendas', 'Mais leads', 'leads_novos', 'up', 'semana')) = 'ok:1', 'dono cria meta da area');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.save_area_goal(%L, NULL, (SELECT id FROM public.org_areas WHERE organization_id = %L AND name = %L), %L, %L, %L, 10, %L, NULL)',
+    A, A, 'Vendas', 'Errada', 'valor_emitido', 'up', 'semana'), 'indicador de outra area recusado');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.save_area_goal(%L, NULL, (SELECT id FROM public.org_areas WHERE organization_id = %L AND name = %L), %L, %L, %L, 5, %L, NULL)',
+    A, A, 'Vendas', 'X', 'leads_novos', 'up', 'semana'), 'responsavel nao cria meta');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, 'SELECT count(*) FROM public.area_goals') = 1, 'responsavel ve a meta da sua area');
+  PERFORM pg_temp.expect(pg_temp.q(agent2_a, 'SELECT count(*) FROM public.area_goals') = 0, 'outro atendente nao ve metas');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.area_goals') = 0, 'outra org nao ve metas de A');
+  PERFORM pg_temp.expect(pg_temp.t(owner_a, format('SELECT public.brain_overview(%L) ->> %L', A, 'scope')) = 'dono', 'dono ve o painel inteiro');
+  PERFORM pg_temp.expect(pg_temp.t(agent_a, format('SELECT jsonb_array_length(public.brain_overview(%L) -> %L)', A, 'areas')) = '1', 'responsavel ve so a sua area');
+  PERFORM pg_temp.expect(pg_temp.t(agent_a, format('SELECT public.brain_overview(%L) -> %L -> 0 -> %L -> 0 ->> %L', A, 'areas', 'goals', 'light')) IN ('no_rumo', 'atencao', 'fora', 'sem_dados'), 'semaforo calculado no banco');
+  PERFORM pg_temp.expect_error(agent2_a, format('SELECT public.brain_overview(%L)', A), 'quem nao e responsavel nao ve o painel');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.brain_overview(%L)', A), 'outra org nao ve o painel de A');
+  PERFORM pg_temp.expect_denied(owner_a, format('INSERT INTO public.area_metric_snapshots (organization_id, area_id, metric_key, period_start, value) VALUES (%L, (SELECT id FROM public.org_areas WHERE organization_id = %L LIMIT 1), %L, current_date, 1)', A, A, 'leads_novos'), 'navegador nao grava foto dos numeros');
+  PERFORM pg_temp.expect(private.snapshot_area_metrics(A) >= 1, 'backend grava a foto semanal');
   PERFORM pg_temp.expect(pg_temp.run(NULL, format('UPDATE public.conversations SET stage_id = (SELECT id FROM public.pipeline_stages WHERE organization_id = %L AND name = %L) WHERE id = %L',
     A, 'Qualificado', 'aaaaaaaa-0000-0000-0004-000000000001')) = 'ok:1', 'etapa da propria org aceita');
 
