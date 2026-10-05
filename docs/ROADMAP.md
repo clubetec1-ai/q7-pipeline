@@ -254,6 +254,16 @@ Testes 83–85. 🙋 Dono: (a) conectar o Asaas da Clubetec em Plataforma → Pl
 (b) no Supabase, Authentication → Sign In/Providers → Email: ligar "Allow new users to sign up" **com** "Confirm email";
 (c) revisar os preços sugeridos.
 
+**Fase 2 — andamento:** 12 ✅ **API aberta + webhooks (05/10, docs/design/05)**: Configurações → API e webhooks;
+chaves por empresa (`dca_…`, aparece uma vez, o banco guarda só o hash; até 20 ativas; permissões por chave; revogar);
+API `/functions/v1/api` (contatos: buscar e criar/atualizar com campos próprios; conversas: listar e mudar etapa por
+nome ou id; mensagens: enviar pelo WhatsApp respeitando opt-out e a janela de 24h/modelo do número oficial), 60
+chamadas/min por empresa, sem CORS, auditoria; webhooks de saída (novo contato, nova conversa, mudou de etapa,
+atendimento encerrado, mensagem recebida) assinados com HMAC-SHA256 (`X-DCA-Signature`, `X-DCA-Timestamp`), só https
+público (checagem contra rede interna também na hora do envio), sem seguir redirecionamento, 6 tentativas com espera
+crescente, pausa após 20 falhas com aviso no sino; botão de teste e últimas entregas; guia para n8n/Make/Zapier na
+tela e no assistente. Teste 86 + teste ponta a ponta na Cartório Teste (dados de teste removidos).
+
 **Fase 2 — pré-lançamento:** 7. venda autoatendida (planos, assinatura Asaas, teste grátis, cadastro público,
 franquia de IA; 🙋 preços — sugestão em docs/marketing/02); 8. contrato e LGPD (termos, privacidade, contrato de
 tratamento de dados; 🙋 revisão jurídica); 9. Meta: Embedded Signup e nome do app (análise prevista ~14/10);
@@ -303,7 +313,7 @@ Outubro = só estabilidade, segurança, visual e melhorias, com a Clubetec usand
   card e "Mover para…"; instalar funil reordena as etapas; Clientes em tabela; trocar as cores cruas restantes.
 - ✅ **Backup semanal do piloto** *(03/10)*: `npm run backup` exporta os dados de todas as tabelas para
   `C:\Users\HP\Backups\deixa-com-a-ia` (fora do git; guarda 8 cópias); agendado toda segunda às 9h no Windows.
-- ⏳ **Integrações: API aberta + webhooks em vez de conectores um a um** *(pedido 03/10; Bling deixa de ser foco)*:
+- ✅ (1)–(3) feitos em 05/10; (4) pendente — **Integrações: API aberta + webhooks em vez de conectores um a um** *(pedido 03/10; Bling deixa de ser foco)*:
   (1) **webhooks de saída** assinados (novo contato, mudou de etapa, atendimento finalizado, mensagem recebida);
   (2) **API com chave por empresa** e permissões (enviar mensagem, criar/atualizar contato, mover no funil, consultar
   conversa); (3) guia pronto para **n8n, Make e Zapier**, que já ligam com milhares de sistemas sem a gente construir

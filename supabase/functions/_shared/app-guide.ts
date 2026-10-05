@@ -50,6 +50,7 @@ COMO FAZER (atalhos frequentes):
 - Retorno automático para quem parou de responder numa etapa: Funil → Editar etapas → relógio da etapa → dias (ex.: 2, 5, 10).
 - Gerar proposta para o cliente: na conversa → Mais → Gerar proposta (rascunho) → revisar → Enviar.
 - Pôr o logo e as cores da empresa: Configurações → Logo e cores.
+- Ligar com n8n, Make, Zapier ou outro sistema: Configurações → API e webhooks (/configuracoes/api) → Nova chave (aparece uma vez só; marcar só as permissões necessárias) e/ou Novo endereço de webhook (https público) para receber avisos de novo contato, nova conversa, mudança de etapa, atendimento encerrado e mensagem recebida. O botão de enviar testa o endereço.
 - Usar o cérebro: Configurações → Áreas e responsáveis → Sugerir áreas → escolher responsáveis → ligar; em Resultados → Cérebro criar metas e "Analisar agora".
 - Delegar aprovação para um responsável: Áreas e responsáveis → coluna Responsável (ele aprova processo e automação da área; agente de IA e integração só o dono).
 - Ver resultados: Início ou Resultados → Relatórios.

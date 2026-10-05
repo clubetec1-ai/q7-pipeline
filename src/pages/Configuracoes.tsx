@@ -1,6 +1,6 @@
 import { Link, Navigate } from "react-router-dom";
 import {
-  Bot, BookOpen, Clock, CreditCard, Filter, Network, KeyRound, Library, Mail, MessageSquare, Palette, PhoneCall, Plug, Server, Settings2, Shuffle, Tags, Target, UsersRound, Wallet, Workflow, type LucideIcon,
+  Bot, BookOpen, Braces, Clock, CreditCard, Filter, Network, KeyRound, Library, Mail, MessageSquare, Palette, PhoneCall, Plug, Server, Settings2, Shuffle, Tags, Target, UsersRound, Wallet, Workflow, type LucideIcon,
 } from "lucide-react";
 import { useOrg } from "@/contexts/OrgContext";
 import { AppHeader } from "@/components/AppHeader";
@@ -79,6 +79,8 @@ export default function Configuracoes() {
         icon: Wallet, color: "#10B981", state: s.payments ? "ok" : "optional", detail: s.payments ? "Asaas conectado" : undefined, show: manage && hasModule("cobrancas") },
       { title: "Ligar com outros sistemas", desc: "Conectar outros sistemas para a IA e os fluxos consultarem.", to: "/integracoes", icon: Plug, color: "#64748B",
         state: s.integrations ? "ok" : "optional", detail: s.integrations ? `${s.integrations} integração(ões)` : undefined, show: manage },
+      { title: "API e webhooks", desc: "Chaves para n8n, Make, Zapier ou o seu sistema, e avisos automáticos quando algo acontece.", to: "/configuracoes/api",
+        icon: Braces, color: "#0F766E", state: "optional", show: manage },
     ] },
     { title: "Equipe Clubetec", cards: [
       { title: "Uazapi — servidor global", desc: "Servidor e token de administrador do WhatsApp por QR de toda a plataforma. Só a equipe Clubetec vê.",
