@@ -2926,6 +2926,54 @@ export type Database = {
           },
         ]
       }
+      plans: {
+        Row: {
+          active: boolean
+          description: string | null
+          features: string[]
+          key: string
+          limits: Json
+          modules: string[]
+          name: string
+          price_cents: number
+          public: boolean
+          setup_cents: number
+          sort: number
+          trial_days: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          description?: string | null
+          features?: string[]
+          key: string
+          limits?: Json
+          modules?: string[]
+          name: string
+          price_cents?: number
+          public?: boolean
+          setup_cents?: number
+          sort?: number
+          trial_days?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          description?: string | null
+          features?: string[]
+          key?: string
+          limits?: Json
+          modules?: string[]
+          name?: string
+          price_cents?: number
+          public?: boolean
+          setup_cents?: number
+          sort?: number
+          trial_days?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       platform_ai_slots: {
         Row: {
           last_alert_at: string | null
@@ -3218,6 +3266,66 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          asaas_customer_id: string | null
+          asaas_subscription_id: string | null
+          billing_email: string | null
+          cancel_at_period_end: boolean
+          created_at: string
+          current_period_end: string | null
+          organization_id: string
+          plan_key: string
+          reminded_at: string | null
+          status: string
+          trial_ends_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          asaas_customer_id?: string | null
+          asaas_subscription_id?: string | null
+          billing_email?: string | null
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          organization_id: string
+          plan_key: string
+          reminded_at?: string | null
+          status?: string
+          trial_ends_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          asaas_customer_id?: string | null
+          asaas_subscription_id?: string | null
+          billing_email?: string | null
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          organization_id?: string
+          plan_key?: string
+          reminded_at?: string | null
+          status?: string
+          trial_ends_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_plan_key_fkey"
+            columns: ["plan_key"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["key"]
           },
         ]
       }
@@ -4167,6 +4275,7 @@ export type Database = {
       my_mfa_status: { Args: never; Returns: Json }
       my_permissions: { Args: { org: string }; Returns: string[] }
       my_recovery_codes_left: { Args: never; Returns: number }
+      my_subscription: { Args: { org: string }; Returns: Json }
       my_support_access: {
         Args: never
         Returns: {
@@ -4211,6 +4320,7 @@ export type Database = {
         }
         Returns: string
       }
+      org_access_state: { Args: { org: string }; Returns: Json }
       org_health: { Args: { org: string }; Returns: Json }
       org_setup_status: { Args: { org: string }; Returns: Json }
       org_theme: { Args: { org: string }; Returns: Json }
@@ -4262,6 +4372,23 @@ export type Database = {
           template_key: string
         }[]
       }
+      platform_save_plan: {
+        Args: {
+          p_active: boolean
+          p_description: string
+          p_features: string[]
+          p_key: string
+          p_limits: Json
+          p_modules: string[]
+          p_name: string
+          p_price: number
+          p_public: boolean
+          p_setup: number
+          p_sort: number
+          p_trial: number
+        }
+        Returns: undefined
+      }
       platform_secret_status: { Args: never; Returns: Json }
       platform_security_email: { Args: never; Returns: string }
       platform_set_connector_app: {
@@ -4286,6 +4413,15 @@ export type Database = {
       }
       platform_set_security_email: {
         Args: { email: string }
+        Returns: undefined
+      }
+      platform_set_subscription: {
+        Args: {
+          new_status: string
+          org: string
+          plan: string
+          trial_days: number
+        }
         Returns: undefined
       }
       publish_flow: { Args: { flow: string }; Returns: number }
@@ -4362,6 +4498,10 @@ export type Database = {
       }
       seed_org_areas: { Args: { org: string }; Returns: number }
       seed_pipeline_stages: { Args: { _user_id: string }; Returns: undefined }
+      self_signup_org: {
+        Args: { org_name: string; plan: string; template: string }
+        Returns: string
+      }
       service_add_improvements: {
         Args: {
           items: Json
@@ -4635,6 +4775,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      signup_templates: { Args: never; Returns: Json }
       start_campaign: { Args: { campaign: string }; Returns: Json }
       supervisor_dashboard: { Args: { org: string }; Returns: Json }
       tag_group_counts: { Args: { org: string }; Returns: Json }
