@@ -2079,6 +2079,188 @@ export type Database = {
           },
         ]
       }
+      inpi_conflicts: {
+        Row: {
+          classes: string | null
+          created_at: string
+          despacho: string | null
+          id: string
+          marca: string
+          numero: string
+          prazo: string | null
+          reviewed_at: string | null
+          rpi: number
+          rpi_date: string
+          termo: string | null
+          titulares: string | null
+        }
+        Insert: {
+          classes?: string | null
+          created_at?: string
+          despacho?: string | null
+          id?: string
+          marca: string
+          numero: string
+          prazo?: string | null
+          reviewed_at?: string | null
+          rpi: number
+          rpi_date: string
+          termo?: string | null
+          titulares?: string | null
+        }
+        Update: {
+          classes?: string | null
+          created_at?: string
+          despacho?: string | null
+          id?: string
+          marca?: string
+          numero?: string
+          prazo?: string | null
+          reviewed_at?: string | null
+          rpi?: number
+          rpi_date?: string
+          termo?: string | null
+          titulares?: string | null
+        }
+        Relationships: []
+      }
+      inpi_events: {
+        Row: {
+          codigo: string
+          complemento: string | null
+          created_at: string
+          id: string
+          nivel: string
+          nome: string
+          numero: string
+          orientacao: string | null
+          prazo: string | null
+          rpi: number
+          rpi_date: string
+        }
+        Insert: {
+          codigo: string
+          complemento?: string | null
+          created_at?: string
+          id?: string
+          nivel?: string
+          nome: string
+          numero: string
+          orientacao?: string | null
+          prazo?: string | null
+          rpi: number
+          rpi_date: string
+        }
+        Update: {
+          codigo?: string
+          complemento?: string | null
+          created_at?: string
+          id?: string
+          nivel?: string
+          nome?: string
+          numero?: string
+          orientacao?: string | null
+          prazo?: string | null
+          rpi?: number
+          rpi_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inpi_events_numero_fkey"
+            columns: ["numero"]
+            isOneToOne: false
+            referencedRelation: "inpi_processes"
+            referencedColumns: ["numero"]
+          },
+        ]
+      }
+      inpi_processes: {
+        Row: {
+          created_at: string
+          filed_at: string | null
+          label: string
+          last_at: string | null
+          last_rpi: number | null
+          last_status: string | null
+          marca: string | null
+          numero: string
+          protocolo: string | null
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          filed_at?: string | null
+          label?: string
+          last_at?: string | null
+          last_rpi?: number | null
+          last_status?: string | null
+          marca?: string | null
+          numero: string
+          protocolo?: string | null
+          source?: string
+        }
+        Update: {
+          created_at?: string
+          filed_at?: string | null
+          label?: string
+          last_at?: string | null
+          last_rpi?: number | null
+          last_status?: string | null
+          marca?: string | null
+          numero?: string
+          protocolo?: string | null
+          source?: string
+        }
+        Relationships: []
+      }
+      inpi_scans: {
+        Row: {
+          conflicts: number
+          error: string | null
+          events: number
+          rpi: number
+          rpi_date: string | null
+          scanned_at: string
+        }
+        Insert: {
+          conflicts?: number
+          error?: string | null
+          events?: number
+          rpi: number
+          rpi_date?: string | null
+          scanned_at?: string
+        }
+        Update: {
+          conflicts?: number
+          error?: string | null
+          events?: number
+          rpi?: number
+          rpi_date?: string | null
+          scanned_at?: string
+        }
+        Relationships: []
+      }
+      inpi_settings: {
+        Row: {
+          id: boolean
+          terms: string[]
+          titulares: string[]
+          updated_at: string
+        }
+        Insert: {
+          id?: boolean
+          terms?: string[]
+          titulares?: string[]
+          updated_at?: string
+        }
+        Update: {
+          id?: boolean
+          terms?: string[]
+          titulares?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       integration_guides: {
         Row: {
           config: Json
@@ -5017,6 +5199,27 @@ export type Database = {
         Args: { hq: string; p_name: string }
         Returns: string
       }
+      platform_inpi_remove_process: {
+        Args: { p_numero: string }
+        Returns: undefined
+      }
+      platform_inpi_review_conflict: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
+      platform_inpi_save_process: {
+        Args: {
+          p_filed_at: string
+          p_label: string
+          p_numero: string
+          p_protocolo: string
+        }
+        Returns: undefined
+      }
+      platform_inpi_set_watch: {
+        Args: { p_terms: string[]; p_titulares: string[] }
+        Returns: undefined
+      }
       platform_meta_app: { Args: never; Returns: Json }
       platform_networks: { Args: never; Returns: Json }
       platform_open_support: {
@@ -5311,6 +5514,17 @@ export type Database = {
       service_get_secret: { Args: { secret_name: string }; Returns: string }
       service_has_secret: { Args: { secret_name: string }; Returns: boolean }
       service_http_take: { Args: { org: string }; Returns: boolean }
+      service_inpi_record: {
+        Args: {
+          p_conflicts: Json
+          p_date: string
+          p_error: string
+          p_processes: Json
+          p_rpi: number
+        }
+        Returns: Json
+      }
+      service_inpi_watch: { Args: never; Returns: Json }
       service_install_sales_funnel: { Args: { org: string }; Returns: Json }
       service_mark_message_deleted: {
         Args: { org: string; pmid: string; who: string }
