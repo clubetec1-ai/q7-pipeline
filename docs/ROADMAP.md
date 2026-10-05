@@ -107,11 +107,11 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
 21. 🟡 **Voz:** ramal e Nvoip ✅; falta WSS, aviso em tempo real, gravações e transcrição (🙋 respostas da Handphone e
     da Nvoip, histórico com erro 403), agente de voz/URA, fluxos na ligação, avaliação das ligações.
 22. 🟡 **E-mail:** IMAP/SMTP ✅; falta Microsoft 365 por OAuth, Google direto, cópia em "Enviados", IA e fluxos no e-mail.
-23. 🟡 **Campanhas:** existem; falta arquivo da biblioteca, modelos da Meta puxados da conta, relatório de respostas, A/B.
+23. ✅ *(05/10: modelos da Meta puxados da conta, teste A/B, arquivo da biblioteca no número por QR, resultado de respostas em 7 dias por versão — teste 90)* **Campanhas:** existem; falta arquivo da biblioteca, modelos da Meta puxados da conta, relatório de respostas, A/B.
 24. 🟡 **Atendimento:** falta convidar outro setor sem transferir, sino para os ajudantes, filtros na busca, anonimização
     pedida pelo WhatsApp e retenção automática, "apagada pelo cliente" no e-mail e na Meta, limite e marca d'água na
     exportação, gravação de áudio no navegador, depuração do bloco HTTP.
-25. 🟡 **Chat da equipe:** falta busca, reações e canais extras.
+25. ✅ *(05/10: busca, reações e grupos com pessoas escolhidas — teste 89)* **Chat da equipe:** falta busca, reações e canais extras.
 26. 🟡 Messenger e Instagram ⏳ (depois de WhatsApp e e-mail); backup semanal local ✅ (externo/nuvem quando assinar o Supabase Pro); logo e ícone da aba ✅.
 
 ### Pedidos de 03/10: entrevista por voz, atendente preferencial, IA principal + 2 reservas

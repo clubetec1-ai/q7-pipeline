@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { useNavigate } from "react-router-dom";
-import { AtSign, Hash, LogOut, MessageSquare, MessagesSquare, Paperclip, Plus, Send, Share2, User } from "lucide-react";
+import { AtSign, Hash, MessageSquare, MessagesSquare, Paperclip, Plus, Search, Send, Share2, SmilePlus, User, Users, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/contexts/OrgContext";
@@ -13,17 +13,23 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 
-interface Channel { id: string; kind: "geral" | "setor" | "direto"; name: string; dm_key: string | null }
+interface Channel { id: string; kind: "geral" | "setor" | "direto" | "grupo"; name: string; dm_key: string | null; created_by: string | null }
+interface Reaction { message_id: number; user_id: string; emoji: string }
+interface Hit { id: number; channel_id: string; author_id: string; content: string | null; created_at: string }
+const EMOJIS = ["👍", "❤️", "😂", "🎉", "✅", "👀"];
 interface Msg {
   id: number; channel_id: string; author_id: string; content: string | null; mentions: string[];
   attachment_path: string | null; attachment_name: string | null; conversation_id: string | null; created_at: string;
 }
 
-/** Chat interno da equipe: Geral (todos), um canal por setor e conversas diretas. */
+/** Chat interno da equipe: Geral (todos), um canal por setor, grupos e conversas diretas; busca e reações. */
 export default function Chat() {
-  const { signOut, user } = useAuth();
-  const { org } = useOrg();
+  const { user } = useAuth();
+  const { org, can } = useOrg();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [channels, setChannels] = useState<Channel[]>([]);
@@ -37,6 +43,11 @@ export default function Chat() {
   const [q, setQ] = useState("");
   const [convs, setConvs] = useState<{ id: string; contact_name: string | null; contact_phone: string | null }[]>([]);
   const [busy, setBusy] = useState(false);
+  const [reactions, setReactions] = useState<Reaction[]>([]);
+  const [picker, setPicker] = useState<number | null>(null);
+  const [search, setSearch] = useState("");
+  const [hits, setHits] = useState<Hit[] | null>(null);
+  const [group, setGroup] = useState<{ id: string | null; name: string; members: string[] } | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const end = useRef<HTMLDivElement>(null);
 
@@ -44,7 +55,7 @@ export default function Chat() {
     if (!org) return;
     await supabase.rpc("ensure_team_channels", { org: org.id } as never);
     const [c, u, m] = await Promise.all([
-      supabase.from("team_channels").select("id, kind, name, dm_key").eq("organization_id", org.id).order("name"),
+      supabase.from("team_channels").select("id, kind, name, dm_key, created_by").eq("organization_id", org.id).order("name"),
       supabase.rpc("team_unread", { org: org.id } as never),
       memberNames(org.id),
     ]);
@@ -60,11 +71,16 @@ export default function Chat() {
   useEffect(() => {
     if (!active || !org) return;
     let alive = true;
+    const loadReactions = () => supabase.from("team_reactions").select("message_id, user_id, emoji").eq("channel_id", active)
+      .then(({ data }) => { if (alive) setReactions((data as Reaction[]) ?? []); });
     void supabase.from("team_messages").select("*").eq("channel_id", active).order("id", { ascending: false }).limit(100)
       .then(({ data }) => { if (alive) setMsgs(((data as Msg[]) ?? []).reverse()); });
+    void loadReactions();
     const ch = supabase.channel(`team-${active}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "team_messages", filter: `channel_id=eq.${active}` },
         (p) => setMsgs((m) => (m.some((x) => x.id === (p.new as Msg).id) ? m : [...m, p.new as Msg])))
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "team_reactions", filter: `channel_id=eq.${active}` },
+        () => void loadReactions())
       .subscribe();
     return () => { alive = false; supabase.removeChannel(ch); };
   }, [active, org]);
@@ -86,6 +102,7 @@ export default function Chat() {
     geral: channels.filter((c) => c.kind === "geral"),
     setor: channels.filter((c) => c.kind === "setor"),
     direto: channels.filter((c) => c.kind === "direto"),
+    grupo: channels.filter((c) => c.kind === "grupo"),
   }), [channels]);
 
   if (!org || !user) return null;
@@ -135,6 +152,43 @@ export default function Chat() {
     setActive(data as unknown as string);
   };
 
+  const react = async (msg: number, emoji: string) => {
+    setPicker(null);
+    const { data, error } = await supabase.rpc("team_react", { msg, p_emoji: emoji });
+    if (error) return fail("Não foi possível reagir");
+    setReactions((r) => data
+      ? [...r, { message_id: msg, user_id: user.id, emoji }]
+      : r.filter((x) => !(x.message_id === msg && x.user_id === user.id && x.emoji === emoji)));
+  };
+  // Busca nas conversas que a pessoa pode ver (a RLS do banco decide).
+  const runSearch = async (v: string) => {
+    setSearch(v);
+    const t = v.trim().replace(/[\\%_]/g, (c) => "\\" + c);
+    if (t.length < 2) return setHits(null);
+    const { data } = await supabase.from("team_messages").select("id, channel_id, author_id, content, created_at")
+      .eq("organization_id", org.id).ilike("content", `%${t}%`).order("id", { ascending: false }).limit(30);
+    setHits((data as Hit[]) ?? []);
+  };
+  const saveGroup = async () => {
+    if (!group) return;
+    const { data, error } = await supabase.rpc("save_team_group", { org: org.id, ch: group.id as string, p_name: group.name, p_members: group.members });
+    if (error) return fail(error.message);
+    setGroup(null);
+    await loadChannels();
+    setActive(data as unknown as string);
+  };
+  const leaveGroup = async (c: Channel) => {
+    if (!window.confirm(`Sair do grupo "${c.name}"? Você deixa de ver as mensagens dele.`)) return;
+    const { error } = await supabase.rpc("leave_team_group", { ch: c.id });
+    if (error) return fail("Não foi possível sair");
+    setActive(null);
+    await loadChannels();
+  };
+  const groupMembers = async (c: Channel) => {
+    const { data } = await supabase.from("team_channel_members").select("user_id").eq("channel_id", c.id);
+    setGroup({ id: c.id, name: c.name, members: (data ?? []).map((x) => x.user_id).filter((id) => id !== user.id) });
+  };
+
   const people = [...names].filter(([id]) => id !== user.id);
   const chBtn = (c: Channel, icon: JSX.Element) => (
     <button key={c.id} type="button" onClick={() => setActive(c.id)}
@@ -151,8 +205,20 @@ export default function Chat() {
       <div className="flex-1 min-h-0 grid md:grid-cols-[240px_1fr]">
         <aside className="border-r p-2 space-y-3 overflow-y-auto">
           <p className="px-2 text-sm font-semibold flex items-center gap-2"><MessagesSquare className="w-4 h-4" /> Chat da equipe</p>
+          <div className="relative px-1">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-muted-foreground" />
+            <Input className="h-8 pl-7 pr-7 text-sm" placeholder="Buscar mensagens" value={search} onChange={(e) => void runSearch(e.target.value)} aria-label="Buscar mensagens" />
+            {search && <button type="button" className="absolute right-3 top-2" onClick={() => { setSearch(""); setHits(null); }} aria-label="Limpar busca"><X className="w-4 h-4" /></button>}
+          </div>
           <div className="space-y-0.5">{groups.geral.map((c) => chBtn(c, <Hash className="w-4 h-4 shrink-0" />))}</div>
           {groups.setor.length > 0 && <div className="space-y-0.5"><p className="px-2 text-xs text-muted-foreground">Setores</p>{groups.setor.map((c) => chBtn(c, <Hash className="w-4 h-4 shrink-0" />))}</div>}
+          <div className="space-y-0.5">
+            <div className="flex items-center justify-between px-2">
+              <p className="text-xs text-muted-foreground">Grupos</p>
+              <button type="button" title="Novo grupo" onClick={() => setGroup({ id: null, name: "", members: [] })}><Plus className="w-4 h-4" /></button>
+            </div>
+            {groups.grupo.map((c) => chBtn(c, <Users className="w-4 h-4 shrink-0" />))}
+          </div>
           <div className="space-y-0.5">
             <div className="flex items-center justify-between px-2">
               <p className="text-xs text-muted-foreground">Diretas</p>
@@ -173,15 +239,38 @@ export default function Chat() {
           <div className="border-b px-4 py-2 text-sm font-medium flex items-center gap-2">
             {current?.kind === "direto" ? <User className="w-4 h-4" /> : <Hash className="w-4 h-4" />}{current ? label(current) : ""}
             <span className="text-xs text-muted-foreground font-normal">
-              {current?.kind === "geral" ? "todos da empresa" : current?.kind === "setor" ? "pessoas do setor + gestão" : current?.kind === "direto" ? "só vocês dois" : ""}
+              {current?.kind === "geral" ? "todos da empresa" : current?.kind === "setor" ? "pessoas do setor + gestão" : current?.kind === "direto" ? "só vocês dois" : current?.kind === "grupo" ? "só quem está no grupo" : ""}
             </span>
+            {current?.kind === "grupo" && (
+              <span className="ml-auto flex gap-1">
+                {(current.created_by === user.id || can("org.settings")) && <Button size="sm" variant="ghost" className="h-7" onClick={() => void groupMembers(current)}>Pessoas</Button>}
+                <Button size="sm" variant="ghost" className="h-7" onClick={() => void leaveGroup(current)}>Sair</Button>
+              </span>
+            )}
           </div>
-          <div className="flex-1 overflow-y-auto p-4 space-y-2">
+          {hits && (
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              <p className="text-sm text-muted-foreground">{hits.length ? `${hits.length} mensagem(ns) com “${search.trim()}”` : `Nada encontrado com “${search.trim()}”.`}</p>
+              {hits.map((h) => {
+                const c = channels.find((x) => x.id === h.channel_id);
+                return (
+                  <button key={h.id} type="button" className="w-full text-left rounded-lg border p-2 hover:bg-muted"
+                    onClick={() => { setActive(h.channel_id); setSearch(""); setHits(null); }}>
+                    <p className="text-xs text-muted-foreground">{c ? label(c) : "Canal"} · {names.get(h.author_id) ?? "Alguém"} · {new Date(h.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</p>
+                    <p className="text-sm line-clamp-2">{h.content}</p>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          <div className={`flex-1 overflow-y-auto p-4 space-y-2 ${hits ? "hidden" : ""}`}>
             {!msgs.length && <p className="text-sm text-muted-foreground">Nenhuma mensagem ainda.</p>}
             {msgs.map((m) => {
               const mine = m.author_id === user.id;
+              const rs = reactions.filter((r) => r.message_id === m.id);
+              const counts = EMOJIS.map((e) => [e, rs.filter((r) => r.emoji === e)] as const).filter(([, l]) => l.length);
               return (
-                <div key={m.id} className={mine ? "text-right" : ""}>
+                <div key={m.id} className={`group ${mine ? "text-right" : ""}`}>
                   <div className={`inline-block max-w-[80%] px-3 py-2 text-sm text-left ${mine ? "rounded-2xl rounded-br-md bg-primary/10 ring-1 ring-inset ring-primary/20" : "rounded-2xl rounded-bl-md border bg-card"}`}>
                     {!mine && <p className="text-xs font-medium opacity-80">{names.get(m.author_id) ?? "Alguém"}</p>}
                     {m.content && <p className="whitespace-pre-wrap">{m.content}</p>}
@@ -196,6 +285,21 @@ export default function Chat() {
                       </button>
                     )}
                     <p className="text-xs opacity-60 mt-0.5">{new Date(m.created_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</p>
+                  </div>
+                  <div className={`flex flex-wrap items-center gap-1 mt-0.5 ${mine ? "justify-end" : ""}`}>
+                    {counts.map(([e, l]) => (
+                      <button key={e} type="button" onClick={() => void react(m.id, e)} title={l.map((r) => names.get(r.user_id) ?? "Alguém").join(", ")}
+                        className={`rounded-full border px-1.5 text-xs ${l.some((r) => r.user_id === user.id) ? "bg-primary/10 border-primary/40" : "bg-card"}`}>{e} {l.length}</button>
+                    ))}
+                    {picker === m.id ? (
+                      <span className="inline-flex rounded-full border bg-card px-1">
+                        {EMOJIS.map((e) => <button key={e} type="button" className="px-0.5 text-sm hover:scale-125 transition" onClick={() => void react(m.id, e)} aria-label={`Reagir ${e}`}>{e}</button>)}
+                      </span>
+                    ) : (
+                      <button type="button" className="opacity-0 group-hover:opacity-100 focus:opacity-100 text-muted-foreground" onClick={() => setPicker(m.id)} aria-label="Reagir">
+                        <SmilePlus className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -236,6 +340,33 @@ export default function Chat() {
           </div>
         </section>
       </div>
+
+      <Dialog open={!!group} onOpenChange={(o) => !o && setGroup(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{group?.id ? "Pessoas do grupo" : "Novo grupo"}</DialogTitle>
+            <DialogDescription>Só quem estiver no grupo vê as mensagens. Você fica no grupo automaticamente.</DialogDescription>
+          </DialogHeader>
+          {group && (
+            <div className="space-y-3">
+              <Input placeholder="Nome do grupo (ex.: Projeto inauguração)" maxLength={60} value={group.name} onChange={(e) => setGroup({ ...group, name: e.target.value })} />
+              <div className="max-h-64 overflow-y-auto space-y-1">
+                {people.map(([id, n]) => (
+                  <label key={id} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input type="checkbox" checked={group.members.includes(id)}
+                      onChange={(e) => setGroup({ ...group, members: e.target.checked ? [...group.members, id] : group.members.filter((x) => x !== id) })} />
+                    {n}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setGroup(null)}>Cancelar</Button>
+            <Button disabled={!group || group.name.trim().length < 2 || !group.members.length} onClick={() => void saveGroup()}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

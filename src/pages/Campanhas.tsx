@@ -3,9 +3,8 @@ import { useCallback, useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { BrandWriter } from "@/components/brand/BrandWriter";
 import { Navigate, useNavigate } from "react-router-dom";
-import { LogOut, Megaphone, Pause, Play, Plus, Trash2, X } from "lucide-react";
+import { BarChart3, Download, Pause, Paperclip, Play, Plus, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/contexts/OrgContext";
 import { useToast } from "@/hooks/use-toast";
 import { Logo } from "@/components/Logo";
@@ -17,15 +16,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { TagIcon } from "@/components/TagIcon";
+import { callFunction } from "@/lib/callFunction";
 
 interface Campaign {
   id: string; name: string; instance_id: string | null; group_ids: string[]; message: string | null;
   template_name: string | null; template_lang: string | null; status: string; scheduled_at: string | null;
+  message_b: string | null; template_name_b: string | null; library_file_id: string | null;
   rate_per_min: number; window_start: number; window_end: number;
   total: number; sent: number; failed: number; skipped: number; created_at: string;
 }
 interface Inst { id: string; name: string; provider: string; status: string }
 interface Group { id: string; name: string; color: string | null; icon?: string | null }
+interface LibFile { id: string; name: string; mime: string | null }
+interface MetaTpl { name: string; language: string; category: string; body: string; params: number }
+interface Result { versao: string; enviados: number; responderam: number; sairam: number }
 type Draft = Partial<Campaign> & { name: string };
 
 const STATUS: Record<string, [string, "default" | "secondary" | "outline" | "destructive"]> = {
@@ -36,7 +40,6 @@ const EMPTY: Draft = { name: "", group_ids: [], message: "Oi {nome}! ...\n\nResp
 
 /** Disparos para grupos de clientes (dono/admin): rascunho → iniciar → acompanhar. */
 export default function Campanhas() {
-  const { signOut } = useAuth();
   const { org, can } = useOrg();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -46,14 +49,20 @@ export default function Campanhas() {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [audience, setAudience] = useState<{ total: number; optout: number; recebem: number } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [files, setFiles] = useState<LibFile[]>([]);
+  const [tpls, setTpls] = useState<MetaTpl[] | null>(null);
+  const [ab, setAb] = useState(false);
+  const [results, setResults] = useState<Record<string, Result[]>>({});
 
   const load = useCallback(async () => {
     if (!org) return;
-    const [c, i, g] = await Promise.all([
+    const [c, i, g, f] = await Promise.all([
       supabase.from("campaigns").select("*").eq("organization_id", org.id).order("created_at", { ascending: false }).limit(50),
       supabase.from("whatsapp_instances").select("id, name, provider, status").eq("organization_id", org.id).neq("status", "disabled").order("created_at"),
       supabase.from("contact_groups").select("id, name, color, icon").eq("organization_id", org.id).order("name"),
+      supabase.from("library_files").select("id, name, mime").eq("organization_id", org.id).order("name"),
     ]);
+    setFiles((f.data as LibFile[]) ?? []);
     setList((c.data as unknown as Campaign[]) ?? []);
     setInsts((i.data as Inst[]) ?? []);
     setGroups((g.data as Group[]) ?? []);
@@ -83,6 +92,9 @@ export default function Campanhas() {
       name: draft.name.trim(), instance_id: draft.instance_id ?? null, group_ids: draft.group_ids ?? [],
       message: draft.message ?? null, template_name: isMeta ? draft.template_name?.trim() || null : null,
       template_lang: isMeta ? draft.template_lang?.trim() || "pt_BR" : null,
+      message_b: !isMeta && ab ? draft.message_b?.trim() || null : null,
+      template_name_b: isMeta && ab ? draft.template_name_b?.trim() || null : null,
+      library_file_id: isMeta ? null : draft.library_file_id || null,
       scheduled_at: draft.scheduled_at || null, rate_per_min: draft.rate_per_min ?? 20,
       window_start: draft.window_start ?? 8, window_end: draft.window_end ?? 20,
     };
@@ -115,6 +127,20 @@ export default function Campanhas() {
     void load();
   };
 
+  const loadTemplates = async () => {
+    if (!inst) return;
+    const r = await callFunction<{ templates: MetaTpl[] }>("manage-instance", { action: "templates", instance_id: inst.id });
+    if (!r.ok) return fail("Não buscou os modelos", r.message);
+    setTpls(r.data.templates);
+    if (!r.data.templates.length) toast({ title: "Nenhum modelo aprovado nesta conta da Meta" });
+  };
+  const showResults = async (c: Campaign) => {
+    const { data, error } = await supabase.rpc("campaign_results", { campaign: c.id });
+    if (error) return fail("Não foi possível", error.message);
+    setResults((r) => ({ ...r, [c.id]: (data as unknown as Result[]) ?? [] }));
+  };
+  const rate = (a: number, b: number) => (b ? `${Math.round((a / b) * 100)}%` : "—");
+
   const remove = async (c: Campaign) => {
     if (!window.confirm(`Apagar o rascunho "${c.name}"?`)) return;
     const { error } = await supabase.from("campaigns").delete().eq("id", c.id);
@@ -134,7 +160,7 @@ export default function Campanhas() {
             <h1 className="font-brand text-2xl leading-tight">Campanhas</h1>
             <p className="text-sm text-muted-foreground">Envio para grupos de clientes, aos poucos e só no horário. Quem pediu para sair nunca recebe.</p>
           </div>
-          {!draft && <Button onClick={() => setDraft({ ...EMPTY, instance_id: insts[0]?.id })}><Plus className="w-4 h-4 mr-1" /> Nova campanha</Button>}
+          {!draft && <Button onClick={() => { setAb(false); setTpls(null); setDraft({ ...EMPTY, instance_id: insts[0]?.id }); }}><Plus className="w-4 h-4 mr-1" /> Nova campanha</Button>}
         </div>
 
         {draft && (
@@ -183,18 +209,51 @@ export default function Campanhas() {
 
             {isMeta ? (
               <div className="space-y-2">
-                <p className="text-xs text-muted-foreground">Número da Meta só envia <b>modelo aprovado</b> para quem não falou nas últimas 24h. Informe o nome do modelo aprovado no gerenciador da Meta.</p>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs text-muted-foreground">Número da Meta só envia <b>modelo aprovado</b> para quem não falou nas últimas 24h.</p>
+                  <Button size="sm" variant="outline" onClick={() => void loadTemplates()}><Download className="w-4 h-4 mr-1" /> Buscar modelos aprovados</Button>
+                </div>
+                {tpls && tpls.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {tpls.map((t) => (
+                      <button key={`${t.name}-${t.language}`} type="button" title={t.body}
+                        onClick={() => setDraft({ ...draft, template_name: t.name, template_lang: t.language, message: t.body })}
+                        className={`rounded-full border px-3 py-1 text-xs ${draft.template_name === t.name && draft.template_lang === t.language ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted"}`}>
+                        {t.name} · {t.language}{t.category ? ` · ${t.category.toLowerCase()}` : ""}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <div className="flex flex-wrap gap-2">
                   <Input className="flex-1 min-w-[12rem]" placeholder="nome_do_modelo" value={draft.template_name ?? ""} onChange={(e) => setDraft({ ...draft, template_name: e.target.value })} />
                   <Input className="w-28" placeholder="pt_BR" value={draft.template_lang ?? "pt_BR"} onChange={(e) => setDraft({ ...draft, template_lang: e.target.value })} />
                 </div>
                 <Textarea rows={3} placeholder="Texto do modelo (para conferência). Se tiver {{1}}, ele recebe o primeiro nome." value={draft.message ?? ""} onChange={(e) => setDraft({ ...draft, message: e.target.value })} />
+                <label className="flex items-center gap-2 text-xs cursor-pointer">
+                  <input type="checkbox" checked={ab} onChange={(e) => setAb(e.target.checked)} /> Teste A/B: metade recebe outro modelo (mesmo idioma)
+                </label>
+                {ab && <Input placeholder="nome_do_modelo_b" value={draft.template_name_b ?? ""} onChange={(e) => setDraft({ ...draft, template_name_b: e.target.value })} />}
               </div>
             ) : (
               <div className="space-y-1">
                 <p className="text-xs font-medium">Mensagem <span className="text-muted-foreground font-normal">— {"{nome}"} vira o primeiro nome do cliente</span></p>
                 <Textarea rows={5} maxLength={4000} value={draft.message ?? ""} onChange={(e) => setDraft({ ...draft, message: e.target.value })} />
                 {org && <BrandWriter orgId={org.id} onUse={(t) => setDraft({ ...draft, message: t })} />}
+                <label className="flex items-center gap-2 text-xs cursor-pointer pt-1">
+                  <input type="checkbox" checked={ab} onChange={(e) => setAb(e.target.checked)} /> Teste A/B: metade dos contatos recebe uma segunda versão
+                </label>
+                {ab && (
+                  <Textarea rows={4} maxLength={4000} placeholder="Versão B da mensagem" value={draft.message_b ?? ""}
+                    onChange={(e) => setDraft({ ...draft, message_b: e.target.value })} />
+                )}
+                <label className="flex flex-wrap items-center gap-2 text-xs pt-1">
+                  <Paperclip className="w-3.5 h-3.5" /> Arquivo da biblioteca (opcional; a mensagem vai como legenda)
+                  <select className="h-8 rounded-md border bg-background px-2 text-xs" value={draft.library_file_id ?? ""}
+                    onChange={(e) => setDraft({ ...draft, library_file_id: e.target.value || null })}>
+                    <option value="">Sem arquivo</option>
+                    {files.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+                  </select>
+                </label>
               </div>
             )}
 
@@ -233,12 +292,13 @@ export default function Campanhas() {
                   <span className="text-xs text-muted-foreground">{insts.find((i) => i.id === c.instance_id)?.name ?? ""}</span>
                   <div className="ml-auto flex gap-1">
                     {c.status === "draft" && <>
-                      <Button size="sm" variant="outline" onClick={() => setDraft({ ...c })}>Editar</Button>
+                      <Button size="sm" variant="outline" onClick={() => { setAb(!!(c.message_b || c.template_name_b)); setTpls(null); setDraft({ ...c }); }}>Editar</Button>
                       <Button size="icon" variant="ghost" title="Apagar" onClick={() => remove(c)}><Trash2 className="w-4 h-4" /></Button>
                     </>}
                     {c.status === "running" && <Button size="sm" variant="outline" onClick={() => setStatus(c, "paused")}><Pause className="w-4 h-4 mr-1" /> Pausar</Button>}
                     {c.status === "paused" && <Button size="sm" variant="outline" onClick={() => setStatus(c, "running")}><Play className="w-4 h-4 mr-1" /> Retomar</Button>}
                     {(c.status === "running" || c.status === "paused") && <Button size="sm" variant="ghost" onClick={() => setStatus(c, "canceled")}>Cancelar</Button>}
+                    {c.status !== "draft" && <Button size="sm" variant="ghost" onClick={() => void showResults(c)}><BarChart3 className="w-4 h-4 mr-1" /> Resultado</Button>}
                   </div>
                 </div>
                 {c.status !== "draft" && (
@@ -249,6 +309,18 @@ export default function Campanhas() {
                       {c.status === "running" ? ` · até ${c.rate_per_min}/min, das ${c.window_start}h às ${c.window_end}h` : ""}
                     </p>
                   </>
+                )}
+                {results[c.id] && (
+                  <div className="rounded-md bg-muted/40 p-2 text-xs space-y-1">
+                    <p className="text-muted-foreground">Respostas até 7 dias depois do envio{results[c.id].length > 1 ? " — comparando as versões" : ""}:</p>
+                    {results[c.id].map((r) => (
+                      <p key={r.versao}>
+                        {results[c.id].length > 1 && <b>Versão {r.versao}: </b>}
+                        {r.enviados} enviados · <b>{r.responderam} responderam ({rate(r.responderam, r.enviados)})</b> · {r.sairam} saíram da lista ({rate(r.sairam, r.enviados)})
+                      </p>
+                    ))}
+                    {!results[c.id].length && <p>Ainda sem envios.</p>}
+                  </div>
                 )}
               </div>
             );

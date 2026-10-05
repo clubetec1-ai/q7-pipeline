@@ -1523,6 +1523,33 @@ BEGIN
   PERFORM pg_temp.expect((SELECT count(*) FROM public.org_modules m JOIN public.subscriptions s ON s.organization_id = m.organization_id
     WHERE s.asaas_subscription_id = 'sub_iso' AND m.enabled) = 2, 'pagar religa os modulos do plano');
 
+  -- 90. Campanhas: arquivo so da propria empresa; resultado so para quem gerencia.
+  PERFORM pg_temp.expect_error(owner_b, format('INSERT INTO public.campaigns (organization_id, name, library_file_id) VALUES (%L, %L, %L)',
+    'bbbbbbbb-0000-0000-0000-000000000001', 'Promo B', 'aaaaaaaa-0000-0000-0012-000000000001'), 'campanha de B nao usa arquivo de A');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('INSERT INTO public.campaigns (organization_id, name, library_file_id, message, message_b) VALUES (%L, %L, %L, %L, %L)',
+    A, 'Promo AB', 'aaaaaaaa-0000-0000-0012-000000000001', 'Versao A', 'Versao B')) = 'ok:1', 'dono cria campanha A/B com arquivo');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.campaign_results(%L)', 'aaaaaaaa-0000-0000-0043-000000000021'), 'outra org nao ve resultado');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.campaign_results(%L)', 'aaaaaaaa-0000-0000-0043-000000000021'), 'atendente nao ve resultado');
+  PERFORM pg_temp.expect(pg_temp.t(owner_a, format('SELECT jsonb_typeof(public.campaign_results(%L))', 'aaaaaaaa-0000-0000-0043-000000000021')) = 'array', 'dono ve resultado');
+
+  -- 89. Chat: grupos so para os membros; reacoes so em canal visivel.
+  PERFORM pg_temp.run(agent_a, format('SELECT public.save_team_group(%L, NULL, %L, ARRAY[%L, %L]::uuid[])', A, 'Projeto Teste', agent2_a, owner_b));
+  PERFORM pg_temp.expect(pg_temp.q(agent2_a, format('SELECT count(*) FROM public.team_channels WHERE kind = %L AND name = %L', 'grupo', 'Projeto Teste')) = 1, 'membro ve o grupo');
+  PERFORM pg_temp.expect(pg_temp.q(sup_a, format('SELECT count(*) FROM public.team_channels WHERE kind = %L', 'grupo')) = 0, 'quem nao e do grupo nao ve');
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, format('SELECT count(*) FROM public.team_channels WHERE kind = %L', 'grupo')) = 0, 'nem o dono ve grupo de que nao participa');
+  PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM public.team_channel_members m JOIN public.team_channels c ON c.id = m.channel_id
+    WHERE c.name = 'Projeto Teste' AND m.user_id = owner_b), 'pessoa de outra empresa nao entra no grupo');
+  PERFORM pg_temp.expect_error(agent2_a, format('SELECT public.save_team_group(%L, (SELECT id FROM public.team_channels WHERE name = %L), %L, ARRAY[%L]::uuid[])', A, 'Projeto Teste', 'Renomeado', agent2_a), 'so quem criou muda o grupo');
+  INSERT INTO public.team_messages (organization_id, channel_id, author_id, content)
+  VALUES (A, (SELECT id FROM public.team_channels WHERE name = 'Projeto Teste'), agent2_a, 'mensagem do grupo');
+  PERFORM pg_temp.expect(pg_temp.t(agent_a, format('SELECT public.team_react((SELECT id FROM public.team_messages WHERE content = %L), %L)', 'mensagem do grupo', '👍')) = 'true', 'membro reage');
+  PERFORM pg_temp.expect_error(sup_a, format('SELECT public.team_react((SELECT id FROM public.team_messages WHERE content = %L), %L)', 'mensagem do grupo', '👍'), 'quem nao ve nao reage');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.team_react((SELECT id FROM public.team_messages WHERE content = %L), %L)', 'mensagem do grupo', 'x'), 'emoji fora da lista recusado');
+  PERFORM pg_temp.expect(pg_temp.q(sup_a, 'SELECT count(*) FROM public.team_reactions') = 0, 'quem nao ve o canal nao ve reacoes');
+  PERFORM pg_temp.expect(pg_temp.q(sup_a, format('SELECT count(*) FROM public.team_messages WHERE content = %L', 'mensagem do grupo')) = 0, 'busca nao acha mensagem de grupo alheio');
+  PERFORM pg_temp.run(agent2_a, format('SELECT public.leave_team_group((SELECT id FROM public.team_channels WHERE name = %L))', 'Projeto Teste'));
+  PERFORM pg_temp.expect(pg_temp.q(agent2_a, format('SELECT count(*) FROM public.team_channels WHERE kind = %L', 'grupo')) = 0, 'quem saiu deixa de ver');
+
   -- 88. Diagnostico: convite ao responsavel do setor ve so o proprio convite.
   INSERT INTO public.org_modules (organization_id, module, enabled) VALUES (A, 'diagnostico', true)
   ON CONFLICT (organization_id, module) DO UPDATE SET enabled = true;
