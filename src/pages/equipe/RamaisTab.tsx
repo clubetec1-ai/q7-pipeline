@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import type { EquipeData } from "./useEquipeData";
 import { useOrg } from "@/contexts/OrgContext";
 import { NvoipCard } from "./NvoipCard";
+import { RamaisPanel } from "../plataforma/RamaisPanel";
 
 interface Ext { id: string; number: string; label: string | null; wss_url: string | null; has_password: boolean; user_id: string | null; mode: string; reg_state: string | null; reg_detail: string | null; reg_at: string | null }
 const MODES: [string, string][] = [["webrtc", "Navegador (WebRTC)"], ["sip", "MicroSIP / aparelho"], ["off", "Desligado"]];
@@ -35,6 +36,8 @@ export function RamaisTab({ orgId, data }: { orgId: string; data: EquipeData }) 
   const active = data.members.filter((m) => m.status === "active");
 
   const card = can("org.settings") ? <NvoipCard orgId={orgId} /> : null;
+  // Dono/admin: cadastra a própria central e os ramais (o operador da Clubetec também pode fazer por ele).
+  if (can("org.settings")) return <div className="space-y-4">{card}<RamaisPanel orgs={[{ id: orgId, name: "" }]} self /></div>;
   if (!rows.length) {
     return <>{card}<p className="text-sm text-muted-foreground">Nenhum ramal ainda. Ao contratar o PBX com a Clubetec, os ramais chegam aqui prontos e já associados à equipe; você pode trocar o atendente quando quiser.</p></>;
   }

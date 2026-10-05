@@ -4,6 +4,7 @@ import { forOrg } from "../_shared/tenant.ts";
 import { setContactField } from "../_shared/contact-fields.ts";
 import * as providers from "../_shared/providers/index.ts";
 import { getUazapiConfig } from "../_shared/get-uazapi-config.ts";
+import { moduleOn } from "../_shared/modules.ts";
 
 /**
  * API aberta do Deixa com a IA (docs/design/05-api-webhooks.md). Para servidores e
@@ -149,6 +150,39 @@ Deno.serve(async (req) => {
       await org.update("conversations", { last_message_at: new Date().toISOString() }).eq("id", conv!.id);
       await admin.from("audit_log").insert({ organization_id: orgId, actor_type: "system", agent_key: "api", action: "api.message_sent", target: conv!.id, meta: { key: k.key_id } });
       return res({ conversation_id: conv!.id, message_id: sent.messageId ?? null }, 201);
+    }
+
+    // ------------------------------------------------------------ ligações
+    // Histórico de qualquer central (Asterisk, 3CX, Nvoip…) ou automação: cria ou atualiza pela id da ligação.
+    if (path === "/calls" && req.method === "POST") {
+      need("calls:write");
+      if (!(await moduleOn(admin, orgId, "telefonia"))) return fail(403, "O módulo Telefonia não está contratado.");
+      const id = clip(body.id, 100);
+      if (!/^[A-Za-z0-9._:@-]{1,100}$/.test(id)) return fail(400, "id obrigatório (identificador da ligação na central).");
+      const dirRaw = String(body.direction ?? "").toLowerCase();
+      const direction = ["in", "inbound", "entrada", "recebida"].includes(dirRaw) ? "in" : ["out", "outbound", "saida", "saída", "feita"].includes(dirRaw) ? "out" : null;
+      if (!direction) return fail(400, "direction: in ou out.");
+      const STATUS: Record<string, string> = {
+        ringing: "ringing", tocando: "ringing", answered: "answered", atendida: "answered", "in-progress": "answered",
+        missed: "missed", perdida: "missed", "no-answer": "missed", noanswer: "missed",
+        ended: "ended", completed: "ended", encerrada: "ended", failed: "failed", busy: "failed", ocupado: "failed", falhou: "failed",
+      };
+      const status = STATUS[String(body.status ?? "").toLowerCase()];
+      if (!status) return fail(400, "status: ringing, answered, missed, ended ou failed.");
+      const phone = digits(body.phone);
+      if (phone.length < 2 || phone.length > 20) return fail(400, "phone: número do cliente (só dígitos).");
+      const when = (v: unknown) => (v && !Number.isNaN(Date.parse(String(v))) ? new Date(String(v)).toISOString() : null);
+      const rec = clip(body.recording_url, 500);
+      if (rec && !/^https:\/\/[^\s]+$/.test(rec)) return fail(400, "recording_url precisa ser https.");
+      const dur = Number(body.duration);
+      const { data: callId, error } = await admin.rpc("service_upsert_call", {
+        org: orgId, p_provider_call_id: `api:${id}`, p_direction: direction, p_phone: phone,
+        p_ext_number: clip(body.extension, 64) || null, p_status: status,
+        p_started_at: when(body.started_at), p_answered_at: when(body.answered_at), p_ended_at: when(body.ended_at),
+        p_duration: Number.isFinite(dur) ? Math.round(dur) : null, p_recording_url: rec || null, p_user: null,
+      });
+      if (error || !callId) return fail(400, "Ligação não registrada. Confira os campos.");
+      return res({ call_id: callId }, 201);
     }
 
     return fail(404, "Caminho não encontrado. Veja a documentação em Configurações → API e webhooks.");

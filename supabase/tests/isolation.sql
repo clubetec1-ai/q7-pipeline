@@ -1523,6 +1523,17 @@ BEGIN
   PERFORM pg_temp.expect((SELECT count(*) FROM public.org_modules m JOIN public.subscriptions s ON s.organization_id = m.organization_id
     WHERE s.asaas_subscription_id = 'sub_iso' AND m.enabled) = 2, 'pagar religa os modulos do plano');
 
+  -- 91. Telefonia generica: dono cadastra a propria central; outra empresa nao mexe.
+  INSERT INTO public.org_modules (organization_id, module, enabled) VALUES (A, 'telefonia', true)
+  ON CONFLICT (organization_id, module) DO UPDATE SET enabled = true;
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.save_extension(%L, NULL, %L, %L, %L, %L, %L, %L, %L)', A, '7101', '7101', 'pbx.exemplo.com', 'wss://pbx.exemplo.com/ws', '3cx', 'Teste', 'senha123'), 'atendente nao cadastra ramal');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.save_extension(%L, NULL, %L, %L, %L, %L, %L, %L, %L)', A, '7101', '7101', 'pbx.exemplo.com', 'wss://pbx.exemplo.com/ws', '3cx', 'Teste', 'senha123'), 'outra org nao cadastra em A');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.save_extension(%L, NULL, %L, %L, %L, %L, %L, %L, %L)', A, '7102', '7102', 'pbx.exemplo.com', 'wss://pbx.exemplo.com/ws', 'qualquer', 'Teste', ''), 'central fora da lista recusada');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('SELECT public.save_extension(%L, NULL, %L, %L, %L, %L, %L, %L, %L)', A, '7101', '7101', 'pbx.exemplo.com', 'wss://pbx.exemplo.com/ws', '3cx', 'Teste', 'senha123')) LIKE 'ok:%', 'dono cadastra ramal da propria central');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, 'SELECT has_password FROM public.pbx_extensions WHERE number = ''7101''') LIKE 'ok:%', 'senha marcada sem voltar ao navegador');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.delete_extension((SELECT id FROM public.pbx_extensions WHERE organization_id = %L AND number = %L))', A, '7101'), 'outra org nao apaga ramal de A');
+  PERFORM pg_temp.expect(pg_temp.t(owner_a, format('SELECT public.create_api_key(%L, %L, %L) ->> %L LIKE %L', A, 'central', '{calls:write}', 'key', 'dca_%')) = 'true', 'chave com permissao de ligacoes');
+
   -- 90. Campanhas: arquivo so da propria empresa; resultado so para quem gerencia.
   PERFORM pg_temp.expect_error(owner_b, format('INSERT INTO public.campaigns (organization_id, name, library_file_id) VALUES (%L, %L, %L)',
     'bbbbbbbb-0000-0000-0000-000000000001', 'Promo B', 'aaaaaaaa-0000-0000-0012-000000000001'), 'campanha de B nao usa arquivo de A');

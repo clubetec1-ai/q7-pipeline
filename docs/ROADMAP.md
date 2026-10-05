@@ -327,7 +327,7 @@ Outubro = só estabilidade, segurança, visual e melhorias, com a Clubetec usand
 - 📌 **Ordem dos canais (decisão do dono em 03/10):** 1º **WhatsApp e e-mail** (foco agora) → 2º **Facebook
   Messenger e Instagram Direct** (mesmo app da Meta; pede permissões novas e outra análise) → 3º **telefonia**, por
   último. Integrações sempre do jeito mais simples e usual possível, para ficar seguro e rápido de implantar.
-- ⏳ **Telefonia genérica** *(pedido 03/10)*: o ramal no navegador já é SIP padrão (qualquer central com WebRTC/wss); o
+- ✅ *(05/10: o dono cadastra a própria central e os ramais com modelos prontos — Asterisk/FreePBX/Issabel, 3CX, Nvoip, Handphone ou outra SIP —, senha no cofre, teste antes de salvar; histórico de qualquer central por POST /calls da API aberta, permissão "Registrar ligações"; teste 91)* **Telefonia genérica** *(pedido 03/10)*: o ramal no navegador já é SIP padrão (qualquer central com WebRTC/wss); o
   que é específico da Nvoip/Handphone é só o histórico de ligações. Trocar por um modelo genérico: qualquer central
   SIP + histórico por webhook/API aberta (o mesmo das integrações), sem código por fornecedor. Decisão 03/10: **API de
   telefonia genérica já pré-configurada** (o cliente só informa a central e as credenciais).
