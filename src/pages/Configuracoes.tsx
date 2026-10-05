@@ -1,6 +1,6 @@
 import { Link, Navigate } from "react-router-dom";
 import {
-  Bot, BookOpen, Clock, Filter, Network, KeyRound, Library, Mail, MessageSquare, Palette, PhoneCall, Plug, Server, Settings2, Shuffle, Tags, Target, UsersRound, Wallet, Workflow, type LucideIcon,
+  Bot, BookOpen, Clock, CreditCard, Filter, Network, KeyRound, Library, Mail, MessageSquare, Palette, PhoneCall, Plug, Server, Settings2, Shuffle, Tags, Target, UsersRound, Wallet, Workflow, type LucideIcon,
 } from "lucide-react";
 import { useOrg } from "@/contexts/OrgContext";
 import { AppHeader } from "@/components/AppHeader";
@@ -71,6 +71,8 @@ export default function Configuracoes() {
         state: s.tags || s.groups ? "ok" : "optional", detail: `${s.tags} etiqueta(s) · ${s.groups} grupo(s)`, show: lib || can("contacts.groups_manage") },
     ] },
     { title: "5. Vendas e cobrança", cards: [
+      { title: "Plano e assinatura", desc: "Seu plano, teste grátis, uso de IA do mês e pagamento da assinatura.", to: "/configuracoes/plano",
+        icon: CreditCard, color: "#2563EB", state: "optional", show: can("org.billing") },
       { title: "Funil de vendas", desc: "Instalar o funil pronto, ver contatos por etapa e criar links de captação.", to: "/funil", icon: Filter, color: "#8B5CF6",
         state: "optional", show: manage },
       { title: "Cobranças (Asaas)", desc: "Conectar o Asaas e as regras de cobrança, aviso de pagamento e lembretes.", to: "/configuracoes/cobrancas",

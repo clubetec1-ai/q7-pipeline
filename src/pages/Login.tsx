@@ -1,3 +1,4 @@
+import { PLAN_KEY } from "./Planos";
 import { translateError } from "@/lib/translateError";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { LogIn } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -21,7 +22,12 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  // /login?modo=cadastro&plano=x (vindo da página de planos): já abre o cadastro e guarda o plano escolhido.
+  const params = new URLSearchParams(window.location.search);
+  const [mode, setMode] = useState<"signin" | "signup">(params.get("modo") === "cadastro" ? "signup" : "signin");
+  const [sentTo, setSentTo] = useState<string | null>(null);
+  const plano = params.get("plano");
+  if (plano) { try { localStorage.setItem(PLAN_KEY, plano); } catch { /* ok */ } }
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { signIn, signUp } = useAuth();
@@ -33,12 +39,15 @@ const Login = () => {
     try {
       schema.parse({ email, password, fullName });
       if (mode === "signup") {
-        const { error } = await signUp(email, password, fullName);
+        const { error, session } = await signUp(email, password, fullName);
         if (error) {
           toast({ variant: "destructive", title: "Erro no cadastro", description: translateError(error) });
+        } else if (!session) {
+          // Confirmação de e-mail ligada: só entra depois de clicar no link.
+          setSentTo(email);
         } else {
-          toast({ title: "Conta criada!", description: "Entrando automaticamente..." });
-          navigate("/");
+          toast({ title: "Conta criada!" });
+          navigate("/inicio");
         }
       } else {
         const { error } = await signIn(email, password);
@@ -74,6 +83,16 @@ const Login = () => {
             </span>
           </div>
 
+          {sentTo ? (
+            <div className="space-y-3 text-center text-sm">
+              <p className="font-medium">Confirme o seu e-mail</p>
+              <p className="text-muted-foreground">
+                Enviamos um link para <b>{sentTo}</b>. Clique nele e depois entre por aqui para criar a sua empresa e
+                começar o teste grátis. Não chegou? Olhe a caixa de spam.
+              </p>
+              <Button variant="outline" className="w-full" onClick={() => { setSentTo(null); setMode("signin"); }}>Já confirmei, quero entrar</Button>
+            </div>
+          ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === "signup" && (
               <div className="space-y-1.5">
@@ -122,6 +141,7 @@ const Login = () => {
               )}
             </Button>
           </form>
+          )}
 
           <div className="text-center">
             <Button
@@ -135,7 +155,9 @@ const Login = () => {
           </div>
         </div>
 
-        <p className="text-center text-xs text-muted-foreground">© 2026 Clubetec</p>
+        <p className="text-center text-xs text-muted-foreground">
+          <Link to="/planos" className="underline">Conheça os planos</Link> · © 2026 Clubetec
+        </p>
       </div>
     </div>
   );

@@ -1,3 +1,5 @@
+import { SubscriptionGate } from "@/components/SubscriptionGate";
+import { CreateCompany } from "@/components/CreateCompany";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOrg } from "@/contexts/OrgContext";
@@ -34,21 +36,10 @@ export const ProtectedRoute = ({
   // Depois do código, recarrega para as permissões virem com a sessão nova.
   if (mfa.needsCode) return <MfaChallenge onDone={() => window.location.reload()} />;
   if (mfa.status?.required && !mfa.status.enrolled) return <MfaEnroll mandatory onDone={() => window.location.reload()} />;
-  if (allowWithoutOrg || orgs.length > 0) return <>{children}{orgs.length > 0 && <NamePrompt />}</>;
+  if (orgs.length > 0) return <SubscriptionGate>{children}<NamePrompt /></SubscriptionGate>;
+  if (allowWithoutOrg) return <>{children}</>;
   if (invitations.length > 0) return <Navigate to="/convite" replace />;
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-6">
-      <div className="max-w-sm text-center space-y-4">
-        <h1 className="text-xl font-semibold">Você ainda não faz parte de nenhuma equipe</h1>
-        <p className="text-sm text-muted-foreground">
-          Peça ao responsável pela sua empresa para enviar um convite para o seu e-mail. Assim que
-          ele chegar, entre de novo por aqui.
-        </p>
-        <Button variant="outline" onClick={() => signOut()}>
-          Sair
-        </Button>
-      </div>
-    </div>
-  );
+  // Sem empresa e sem convite: pode criar a própria (teste grátis) ou esperar um convite.
+  return <CreateCompany onSignOut={() => void signOut()} />;
 };

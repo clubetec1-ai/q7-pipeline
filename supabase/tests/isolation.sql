@@ -1467,6 +1467,62 @@ BEGIN
   PERFORM pg_temp.expect(public.service_brain_packet(A)::text NOT LIKE '%@%', 'pacote sem e-mail');
   PERFORM pg_temp.expect(public.service_brain_packet(A)::text NOT LIKE '%"oi"%', 'pacote sem mensagens');
 
+  -- 83. Planos: visitante e cliente veem so os publicos e ativos; so a Clubetec edita.
+  INSERT INTO public.plans (key, name, modules, public, active) VALUES ('iso_oculto', 'Oculto', ARRAY['ia'], false, true) ON CONFLICT (key) DO NOTHING;
+  EXECUTE 'SET LOCAL ROLE anon';
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.plans WHERE key = 'iso_oculto') = 0 AND (SELECT count(*) FROM public.plans) >= 1, 'visitante ve so planos publicos');
+  EXECUTE 'RESET ROLE';
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT count(*) FROM public.plans WHERE key = ''iso_oculto''') = 0, 'cliente nao ve plano oculto');
+  PERFORM pg_temp.expect(pg_temp.q(operator, 'SELECT count(*) FROM public.plans WHERE key = ''iso_oculto''') = 1, 'Clubetec ve plano oculto');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.platform_save_plan(%L, %L, NULL, 1, 0, %L, %L, NULL, 14, true, true, 0)', 'gratis', 'Gratis', '{ia}', '{}'), 'cliente nao cria plano');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.platform_set_subscription(%L, %L, %L, 30)', A, 'completo', 'active'), 'cliente nao muda a propria assinatura');
+  PERFORM pg_temp.expect_denied(owner_a, format('INSERT INTO public.subscriptions (organization_id, plan_key) VALUES (%L, %L)', A, 'completo'), 'navegador nao grava assinatura');
+
+  -- 84. Criar a propria empresa (teste gratis): e-mail confirmado, modulos do plano, 1 teste por pessoa, franquia de IA.
+  UPDATE auth.users SET email_confirmed_at = NULL WHERE id = outsider;
+  PERFORM pg_temp.expect_error(outsider, format('SELECT public.self_signup_org(%L, %L, %L)', 'Loja do Outsider', 'generico', 'essencial'), 'sem e-mail confirmado nao cria');
+  UPDATE auth.users SET email_confirmed_at = now() WHERE id = outsider;
+  PERFORM pg_temp.expect_error(outsider, format('SELECT public.self_signup_org(%L, %L, %L)', 'Loja', 'generico', 'iso_oculto'), 'plano oculto nao vale no cadastro');
+  PERFORM pg_temp.expect(pg_temp.run(outsider, format('SELECT public.self_signup_org(%L, %L, %L)', 'Loja do Outsider', 'generico', 'essencial')) = 'ok:1', 'pessoa cria a propria empresa');
+  PERFORM pg_temp.expect((SELECT s.status = 'trial' AND s.trial_ends_at > now() + interval '13 days' FROM public.subscriptions s JOIN public.organizations o ON o.id = s.organization_id
+    WHERE o.created_by = outsider), 'nasce em teste gratis');
+  PERFORM pg_temp.expect((SELECT string_agg(module, ',' ORDER BY module) FROM public.org_modules m JOIN public.organizations o ON o.id = m.organization_id
+    WHERE o.created_by = outsider AND m.enabled) = 'canais,ia', 'modulos exatamente os do plano');
+  PERFORM pg_temp.expect((SELECT role = 'owner' FROM public.organization_members m JOIN public.organizations o ON o.id = m.organization_id
+    WHERE o.created_by = outsider AND m.user_id = outsider), 'quem criou vira dono');
+  PERFORM pg_temp.expect_error(outsider, format('SELECT public.self_signup_org(%L, %L, %L)', 'Segunda', 'generico', 'essencial'), 'um teste gratis por pessoa');
+  PERFORM pg_temp.expect_denied(owner_b, format('INSERT INTO public.organizations (name, slug, created_by) VALUES (%L, %L, %L)', 'Pirata', 'org-pirata', owner_b), 'navegador nao cria empresa direto');
+  PERFORM pg_temp.expect_denied(owner_b, format('INSERT INTO public.organization_members (organization_id, user_id, role, status) VALUES (%L, %L, %L, %L)', A, owner_b, 'owner', 'active'), 'navegador nao se poe como dono');
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, format('SELECT count(*) FROM public.subscriptions s JOIN public.organizations o ON o.id = s.organization_id WHERE o.created_by = %L', outsider)) = 0, 'outra empresa nao ve a assinatura');
+  PERFORM pg_temp.expect(pg_temp.t(outsider, format('SELECT public.my_subscription((SELECT id FROM public.organizations WHERE created_by = %L)) ->> %L', outsider, 'status')) = 'trial', 'dono ve a propria assinatura');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.my_subscription((SELECT id FROM public.organizations WHERE created_by = %L))', outsider), 'dono de outra empresa nao ve');
+  INSERT INTO public.ai_usage_daily (organization_id, day, provider, source, calls)
+  SELECT id, current_date, 'openai', 'plataforma', 3000 FROM public.organizations WHERE created_by = outsider;
+  PERFORM pg_temp.expect(NOT public.service_ai_take((SELECT id FROM public.organizations WHERE created_by = outsider)), 'franquia mensal de IA esgotada bloqueia');
+  PERFORM pg_temp.expect(public.service_ai_take(A), 'empresa sem plano continua com IA');
+
+  -- 85. Cobranca da assinatura: so o servidor grava; aviso processado uma vez e so na assinatura certa; rotina diaria.
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_billing_link(%L, %L, %L, %L, NULL, NULL)', A, 'cus_x', 'sub_x', 'completo'), 'navegador nao liga assinatura');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_billing_event(%L, %L, %L, current_date)', 'evt_x', 'sub_x', 'PAYMENT_RECEIVED'), 'navegador nao confirma pagamento');
+  PERFORM pg_temp.expect_error(owner_a, 'SELECT public.platform_billing_status()', 'cliente nao ve o Asaas da Clubetec');
+  PERFORM public.service_billing_link((SELECT id FROM public.organizations WHERE created_by = outsider), 'cus_iso', 'sub_iso', 'essencial', NULL, NULL);
+  PERFORM pg_temp.expect(public.service_billing_event('evt_iso_1', 'sub_iso', 'PAYMENT_RECEIVED', current_date) = 'ok', 'pagamento confirmado');
+  PERFORM pg_temp.expect((SELECT status = 'active' AND current_period_end > now() + interval '25 days' FROM public.subscriptions WHERE asaas_subscription_id = 'sub_iso'), 'assinatura ativa por um mes');
+  PERFORM pg_temp.expect(public.service_billing_event('evt_iso_1', 'sub_iso', 'PAYMENT_RECEIVED', current_date) = 'repetido', 'aviso repetido nao reprocessa');
+  PERFORM pg_temp.expect(public.service_billing_event('evt_iso_2', 'sub_desconhecida', 'PAYMENT_RECEIVED', current_date) = 'ignorado', 'assinatura desconhecida ignorada');
+  PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM public.subscriptions WHERE organization_id = A), 'pagamento de outra empresa nao cria assinatura em A');
+  -- Rotina diaria: teste vencido para a empresa e desliga os modulos (dados ficam).
+  UPDATE public.subscriptions SET status = 'trial', trial_ends_at = now() - interval '1 day' WHERE asaas_subscription_id = 'sub_iso';
+  PERFORM private.billing_tick();
+  PERFORM pg_temp.expect((SELECT status FROM public.subscriptions WHERE asaas_subscription_id = 'sub_iso') = 'expired', 'teste vencido vira vencida');
+  PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM public.org_modules m JOIN public.subscriptions s ON s.organization_id = m.organization_id
+    WHERE s.asaas_subscription_id = 'sub_iso' AND m.enabled), 'vencida desliga os modulos');
+  PERFORM pg_temp.expect(pg_temp.t(outsider, format('SELECT public.org_access_state((SELECT id FROM public.organizations WHERE created_by = %L)) ->> %L', outsider, 'status')) = 'expired', 'membro ve que esta vencida');
+  PERFORM pg_temp.expect(pg_temp.t(owner_b, format('SELECT coalesce(public.org_access_state((SELECT id FROM public.organizations WHERE created_by = %L))::text, %L)', outsider, 'nada')) = 'nada', 'outra org nao ve a situacao');
+  PERFORM pg_temp.expect(public.service_billing_event('evt_iso_3', 'sub_iso', 'PAYMENT_CONFIRMED', current_date) = 'ok', 'pagou depois de vencida');
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.org_modules m JOIN public.subscriptions s ON s.organization_id = m.organization_id
+    WHERE s.asaas_subscription_id = 'sub_iso' AND m.enabled) = 2, 'pagar religa os modulos do plano');
+
   -- 82. Consumo do cerebro por empresa: so o operador Clubetec.
   PERFORM pg_temp.expect_error(owner_a, format('SELECT public.platform_brain_usage(%L)', current_date), 'dono nao ve consumo das outras empresas');
   PERFORM pg_temp.expect(pg_temp.t(operator, format('SELECT jsonb_typeof(public.platform_brain_usage(%L))', current_date)) = 'array', 'operador ve o consumo');

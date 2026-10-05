@@ -1,3 +1,5 @@
+import ConfigPlano from "./pages/ConfigPlano";
+import Planos from "./pages/Planos";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -63,6 +65,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/planos" element={<Planos />} />
             <Route path="/" element={<ProtectedRoute><Conversas /></ProtectedRoute>} />
             <Route path="/kanban" element={<ProtectedRoute><Kanban /></ProtectedRoute>} />
             <Route path="/equipe" element={<ProtectedRoute><Equipe /></ProtectedRoute>} />
@@ -95,6 +98,7 @@ const App = () => (
             <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
             <Route path="/configuracoes/atendimento" element={<ProtectedRoute><ConfigAtendimento /></ProtectedRoute>} />
             <Route path="/configuracoes/aparencia" element={<ProtectedRoute><ConfigAparencia /></ProtectedRoute>} />
+            <Route path="/configuracoes/plano" element={<ProtectedRoute><ConfigPlano /></ProtectedRoute>} />
             <Route path="/configuracoes/areas" element={<ProtectedRoute><ModuleGate m="gestao"><ConfigAreas /></ModuleGate></ProtectedRoute>} />
             <Route path="/cerebro" element={<ProtectedRoute><ModuleGate m="gestao"><Cerebro /></ModuleGate></ProtectedRoute>} />
             <Route path="/configuracoes/ia" element={<ProtectedRoute><ModuleGate m="ia"><ConfigIA /></ModuleGate></ProtectedRoute>} />

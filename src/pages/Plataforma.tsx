@@ -13,6 +13,7 @@ import { Logo } from "@/components/Logo";
 import { RamaisPanel } from "./plataforma/RamaisPanel";
 import { ModulesPanel } from "./plataforma/ModulesPanel";
 import { BrainUsagePanel } from "./plataforma/BrainUsagePanel";
+import { PlansPanel } from "./plataforma/PlansPanel";
 import { MainNav } from "@/components/MainNav";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Badge } from "@/components/ui/badge";
@@ -116,6 +117,7 @@ export default function Plataforma() {
         <Tabs defaultValue="empresas">
           <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="empresas">Empresas</TabsTrigger>
+            <TabsTrigger value="planos">Planos</TabsTrigger>
             <TabsTrigger value="modulos">Módulos</TabsTrigger>
             <TabsTrigger value="ramais">Ramais</TabsTrigger>
             <TabsTrigger value="conectores">Conectores</TabsTrigger>
@@ -164,6 +166,7 @@ export default function Plataforma() {
           </Table>
         </div>
           </TabsContent>
+          <TabsContent value="planos" className="pt-4"><PlansPanel orgs={rows} /></TabsContent>
           <TabsContent value="modulos" className="pt-4 space-y-4"><ModulesPanel orgs={rows} /><BrainUsagePanel /></TabsContent>
           <TabsContent value="ramais" className="pt-4"><RamaisPanel orgs={rows} /></TabsContent>
           <TabsContent value="conectores" className="pt-4 space-y-4">
