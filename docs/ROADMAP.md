@@ -280,6 +280,13 @@ e-mail) → 18 Diagnóstico 2ª parte (o cérebro com delegação já ficou pron
 Campanhas → 15 telefonia genérica → 17 franquias, white label e implantação → 14 Messenger/Instagram (testar quando a
 Meta liberar as permissões) → 19b Google Agenda (🙋 precisa de credencial OAuth do Google criada pelo dono).
 **Pedidos de 05/10 (configurando a Clubetec do zero):**
+- ⏳ **Registro da marca "Deixa com a IA" no INPI (prioridade do dono, 05/10):** titular Clubetec (CNPJ); busca prévia
+  sem marca igual (classe 35 tem "DEIXA COMIGO" registrada → fora por ora); 3 pedidos: mista classe 42, nominativa
+  classe 42, mista classe 9 (GRU código 389 por pedido). Logos prontos em docs/marca/inpi (JPG 945×945, 300 dpi,
+  fundo branco; versões horizontal e empilhada). Depois: logo novo da Clubetec (o registro atual tem as cores antigas).
+- ⏳ **Google Agenda mais fácil para o cliente:** hoje já é "Conectar" + login do Google; falta a Clubetec publicar o
+  app (tela de consentimento, domínio próprio verificado, política de privacidade publicada) e passar na verificação
+  do Google (escopo sensível de agenda: vídeo de demonstração e justificativa). No piloto, modo teste (até 100 e-mails).
 - ⏳ **Termos de uso (e política de privacidade e contrato de tratamento de dados):** a **Clubetec, com o CNPJ
   próprio, é a fornecedora e a representante legal do software** em todos os documentos, telas, e-mails e cobranças;
   o Thiago (dono) não aparece como pessoa física nem como responsável. Aceite no cadastro registrado (versão, data e
