@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     await requireModule(admin, orgId, "ia");
     const { data: conv } = await ctx.userClient.from("conversations")
-      .select("id, contact_id, contact_name").eq("id", convId).eq("organization_id", orgId).maybeSingle();
+      .select("id, contact_id, contact_name, department_id").eq("id", convId).eq("organization_id", orgId).maybeSingle();
     if (!conv) throw new HttpError(404, "Conversa não encontrada.");
     const { data: allowed } = await admin.rpc("service_ai_take", { org: orgId });
     if (allowed === false) throw new HttpError(429, "Muitos pedidos agora. Tente em um minuto.");
@@ -61,8 +61,11 @@ Deno.serve(async (req) => {
     const history = (msgs ?? []).reverse()
       .map((m: { direction: string; content: string | null }) => `${m.direction === "inbound" ? "Cliente" : "Empresa"}: ${clip(m.content, 400)}`)
       .filter((l: string) => !l.endsWith(": ")).join("\n");
+    // Documentos: dono vê os internos; o atendente, só os que podem ir para o cliente, do setor da conversa.
+    const owner = perms.includes("org.settings");
     const docs = await knowledgeContext(admin, orgId,
-      `proposta orçamento planos preços ${clip(custom.segmento, 80)} ${clip(custom.dor, 120)}`, "interno", null, 3500);
+      `proposta orçamento planos preços ${clip(custom.segmento, 80)} ${clip(custom.dor, 120)}`,
+      owner ? "interno" : "cliente", owner ? null : (conv.department_id ? [conv.department_id] : null), 3500);
 
     const ai = await resolveAI(admin, orgId);
     if (!ai) throw new HttpError(409, "A IA ainda não está disponível para esta empresa.");

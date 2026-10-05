@@ -8,36 +8,46 @@ import { BRAIN_MODELS, kindsOf } from "./rules.ts";
  * que existe no Diagnóstico).
  */
 export interface PacketArea {
-  key: string; nome: string; agente_ligado: boolean;
+  id: string; key: string; nome: string; agente_ligado: boolean;
   indicadores: Record<string, number>; semana_anterior: Record<string, number>;
   metas: { id: string; titulo: string; indicador: string }[];
   processos: { nome: string }[];
 }
 export interface Packet { areas: PacketArea[] }
 
+/** Pacote seguro para a IA: anonimiza todo texto (e-mail, telefone, CPF...) recursivamente; ids ficam. */
+export function sanitizePacket<T>(v: T): T {
+  if (typeof v === "string") return redact(v) as unknown as T;
+  if (Array.isArray(v)) return v.map((x) => sanitizePacket(x)) as unknown as T;
+  if (v && typeof v === "object") {
+    return Object.fromEntries(Object.entries(v as Record<string, unknown>).map(([k, x]) => [k, k === "id" ? x : sanitizePacket(x)])) as T;
+  }
+  return v;
+}
+
 const clip = (s: unknown, n: number) => redact(String(s ?? "").replace(/\s+/g, " ").trim()).slice(0, n);
 
 export interface Orchestration {
   resumo: string;
-  prioridades: { area_key: string; titulo: string; por_que: string; meta_id: string | null }[];
+  prioridades: { area_id: string; area_key: string; titulo: string; por_que: string; meta_id: string | null }[];
   delegar: string[];
   cobrar: string[];
 }
 
 // deno-lint-ignore no-explicit-any
 export function validateOrchestration(raw: any, packet: Packet): Orchestration {
-  const keys = new Set(packet.areas.map((a) => a.key));
+  const byId = new Map(packet.areas.map((a) => [a.id, a]));
   const goalIds = new Set(packet.areas.flatMap((a) => a.metas.map((m) => m.id)));
   const prioridades = (Array.isArray(raw?.prioridades) ? raw.prioridades : [])
     // deno-lint-ignore no-explicit-any
-    .filter((p: any) => keys.has(String(p?.area_key)) && clip(p?.titulo, 120).length >= 3)
+    .filter((p: any) => byId.has(String(p?.area_id)) && clip(p?.titulo, 120).length >= 3)
     .slice(0, 3)
     // deno-lint-ignore no-explicit-any
     .map((p: any) => ({
-      area_key: String(p.area_key), titulo: clip(p.titulo, 120), por_que: clip(p.por_que, 300),
+      area_id: String(p.area_id), area_key: byId.get(String(p.area_id))!.key, titulo: clip(p.titulo, 120), por_que: clip(p.por_que, 300),
       meta_id: goalIds.has(String(p?.meta_id)) ? String(p.meta_id) : null,
     }));
-  const withAgent = new Set(packet.areas.filter((a) => a.agente_ligado).map((a) => a.key));
+  const withAgent = new Set(packet.areas.filter((a) => a.agente_ligado).map((a) => a.id));
   const asked: unknown[] = Array.isArray(raw?.delegar) ? raw.delegar : [];
   const delegar = [...new Set(asked.map((k) => String(k)))].filter((k) => withAgent.has(k)).slice(0, 3);
   const cobrar = (Array.isArray(raw?.cobrar) ? raw.cobrar : []).map((c: unknown) => clip(c, 160)).filter(Boolean).slice(0, 5);

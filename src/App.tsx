@@ -95,8 +95,8 @@ const App = () => (
             <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
             <Route path="/configuracoes/atendimento" element={<ProtectedRoute><ConfigAtendimento /></ProtectedRoute>} />
             <Route path="/configuracoes/aparencia" element={<ProtectedRoute><ConfigAparencia /></ProtectedRoute>} />
-            <Route path="/configuracoes/areas" element={<ProtectedRoute><ConfigAreas /></ProtectedRoute>} />
-            <Route path="/cerebro" element={<ProtectedRoute><Cerebro /></ProtectedRoute>} />
+            <Route path="/configuracoes/areas" element={<ProtectedRoute><ModuleGate m="gestao"><ConfigAreas /></ModuleGate></ProtectedRoute>} />
+            <Route path="/cerebro" element={<ProtectedRoute><ModuleGate m="gestao"><Cerebro /></ModuleGate></ProtectedRoute>} />
             <Route path="/configuracoes/ia" element={<ProtectedRoute><ModuleGate m="ia"><ConfigIA /></ModuleGate></ProtectedRoute>} />
             <Route path="/configuracoes/cobrancas" element={<ProtectedRoute><ModuleGate m="cobrancas"><ConfigCobrancas /></ModuleGate></ProtectedRoute>} />
             <Route path="/setores" element={<ProtectedRoute><Setores /></ProtectedRoute>} />

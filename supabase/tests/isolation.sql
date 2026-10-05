@@ -1332,7 +1332,12 @@ BEGIN
   WHERE id = 'aaaaaaaa-0000-0000-0004-000000000001';
   PERFORM pg_temp.expect((SELECT count(*) FROM public.followups WHERE conversation_id = 'aaaaaaaa-0000-0000-0004-000000000001' AND kind = 'auto_stage' AND status = 'pending') = 0, 'saiu da etapa: retornos cancelados');
 
-  -- 73. Cerebro: areas so o dono cria; responsavel tem que ser da equipe da mesma empresa.
+  -- 73. Cerebro: areas so o dono cria; responsavel tem que ser da equipe da mesma empresa; exige o modulo.
+  INSERT INTO public.org_modules (organization_id, module, enabled) VALUES (A, 'gestao', false)
+    ON CONFLICT (organization_id, module) DO UPDATE SET enabled = false;
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.set_org_area(%L, NULL, %L, %L, NULL, NULL, NULL, NULL, false, true)', A, 'vendas', 'Sem modulo'), 'sem o modulo Gestao nao cria area');
+  INSERT INTO public.org_modules (organization_id, module, enabled) VALUES (A, 'gestao', true)
+    ON CONFLICT (organization_id, module) DO UPDATE SET enabled = true;
   PERFORM pg_temp.expect_error(agent_a, format('SELECT public.set_org_area(%L, NULL, %L, %L, NULL, NULL, NULL, NULL, false, true)', A, 'vendas', 'Vendas'), 'atendente nao cria area');
   PERFORM pg_temp.expect_error(owner_b, format('SELECT public.set_org_area(%L, NULL, %L, %L, NULL, NULL, NULL, NULL, false, true)', A, 'vendas', 'Vendas'), 'outra org nao cria area em A');
   PERFORM pg_temp.expect_error(owner_a, format('SELECT public.set_org_area(%L, NULL, %L, %L, NULL, %L, NULL, NULL, false, true)', A, 'vendas', 'Vendas', owner_b), 'responsavel de outra empresa recusado');
@@ -1382,8 +1387,6 @@ BEGIN
   PERFORM pg_temp.expect(private.snapshot_area_metrics(A) >= 1, 'backend grava a foto semanal');
 
   -- 76. Cobrancas do cerebro: avisa so quem deve (mesma empresa), 1x por intervalo, e escala ao dono depois de 2.
-  INSERT INTO public.org_modules (organization_id, module, enabled) VALUES (A, 'gestao', true)
-    ON CONFLICT (organization_id, module) DO UPDATE SET enabled = true;
   UPDATE public.improvements SET approved_at = now() - interval '8 days', reminded_at = NULL, reminders = 0 WHERE id = 'aaaaaaaa-0000-0000-0074-000000000001';
   DELETE FROM public.notifications WHERE organization_id = A AND kind = 'brain_reminder';
   PERFORM private.brain_daily_tick();
@@ -1419,7 +1422,7 @@ BEGIN
 
   -- 78. Cerebro so pelo servidor; analises so o dono ve; franquia so o operador grava.
   PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_brain_packet(%L)', A), 'navegador nao le o pacote do cerebro');
-  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_brain_propose(%L, NULL, %L, %L)', A, 'vendas', '[]'), 'navegador nao grava proposta do cerebro');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_brain_propose_area(%L, NULL, NULL, %L)', A, '[]'), 'navegador nao grava proposta do cerebro');
   PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_brain_start_run(%L, %L, NULL)', A, 'manual'), 'navegador nao abre analise');
   PERFORM pg_temp.expect_error(owner_a, 'SELECT * FROM public.service_brain_due()', 'navegador nao lista empresas do cerebro');
   PERFORM pg_temp.expect_error(owner_a, format('SELECT public.platform_set_module_limits(%L, %L, %L)', A, 'gestao', '{"analises_mes":999}'), 'dono nao muda a propria franquia');
@@ -1432,15 +1435,32 @@ BEGIN
 
   -- 79. Propostas do cerebro: nascem sugeridas, no maximo 3, avisam o responsavel, e area cheia nao recebe mais.
   DELETE FROM public.improvements WHERE organization_id = A AND source = 'cerebro' AND status = 'sugerida';
-  PERFORM pg_temp.expect(public.service_brain_propose(A, 'aaaaaaaa-0000-0000-0078-000000000001', 'vendas',
+  PERFORM pg_temp.expect(public.service_brain_propose_area(A, 'aaaaaaaa-0000-0000-0078-000000000001', (SELECT id FROM public.org_areas WHERE organization_id = A AND name = 'Vendas'),
     '[{"titulo":"P1","tipo":"processo"},{"titulo":"P2","tipo":"automacao","modelo":"followup"},{"titulo":"P3","tipo":"processo"},{"titulo":"P4","tipo":"processo"}]'::jsonb) = 3, 'no maximo 3 por analise');
   PERFORM pg_temp.expect((SELECT bool_and(status = 'sugerida' AND source = 'cerebro' AND agent_key = 'area:vendas' AND organization_id = A)
     FROM public.improvements WHERE brain_run_id = 'aaaaaaaa-0000-0000-0078-000000000001'), 'nascem sugeridas, marcadas como do cerebro');
   PERFORM pg_temp.expect(EXISTS (SELECT 1 FROM public.notifications WHERE organization_id = A AND user_id = agent_a AND kind = 'improvement' AND ref ->> 'title' = 'P1'), 'responsavel avisado');
-  PERFORM pg_temp.expect(public.service_brain_propose(A, 'aaaaaaaa-0000-0000-0078-000000000001', 'vendas', '[{"titulo":"P1"}]'::jsonb) = 0, 'titulo repetido nao duplica');
-  PERFORM public.service_brain_propose(A, 'aaaaaaaa-0000-0000-0078-000000000001', 'vendas', '[{"titulo":"P5"},{"titulo":"P6"}]'::jsonb);
-  PERFORM pg_temp.expect(public.service_brain_propose(A, 'aaaaaaaa-0000-0000-0078-000000000001', 'vendas', '[{"titulo":"P7"}]'::jsonb) = 0, 'area com 5 pendentes nao recebe mais');
-  PERFORM pg_temp.expect(public.service_brain_propose('bbbbbbbb-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0078-000000000001', 'vendas', '[{"titulo":"Z"}]'::jsonb) = 0, 'analise de A nao grava em B');
+  PERFORM pg_temp.expect(public.service_brain_propose_area(A, 'aaaaaaaa-0000-0000-0078-000000000001', (SELECT id FROM public.org_areas WHERE organization_id = A AND name = 'Vendas'), '[{"titulo":"P1"}]'::jsonb) = 0, 'titulo repetido nao duplica');
+  PERFORM public.service_brain_propose_area(A, 'aaaaaaaa-0000-0000-0078-000000000001', (SELECT id FROM public.org_areas WHERE organization_id = A AND name = 'Vendas'), '[{"titulo":"P5"},{"titulo":"P6"}]'::jsonb);
+  PERFORM pg_temp.expect(public.service_brain_propose_area(A, 'aaaaaaaa-0000-0000-0078-000000000001', (SELECT id FROM public.org_areas WHERE organization_id = A AND name = 'Vendas'), '[{"titulo":"P7"}]'::jsonb) = 0, 'area com 5 pendentes nao recebe mais');
+  PERFORM pg_temp.expect(public.service_brain_propose_area('bbbbbbbb-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0078-000000000001', (SELECT id FROM public.org_areas WHERE organization_id = A AND name = 'Vendas'), '[{"titulo":"Z"}]'::jsonb) = 0, 'area de A nao grava em nome de B');
+  -- Modo "so o dono": nem o supervisor do setor aprova; e o aviso vai para o dono.
+  INSERT INTO public.improvements (id, organization_id, title, kind, status, source, area_id, department_id) VALUES
+    ('aaaaaaaa-0000-0000-0079-000000000001', A, 'Agente do setor', 'agente', 'sugerida', 'manual', NULL, 'aaaaaaaa-0000-0000-0001-000000000001'),
+    ('aaaaaaaa-0000-0000-0079-000000000002', A, 'Do cerebro no setor', 'processo', 'sugerida', 'cerebro', (SELECT id FROM public.org_areas WHERE organization_id = A AND name = 'Vendas'), 'aaaaaaaa-0000-0000-0001-000000000001');
+  PERFORM pg_temp.expect(pg_temp.run(sup_a, format('SELECT public.approve_improvement(%L)', 'aaaaaaaa-0000-0000-0079-000000000001')) = 'ok:1', 'supervisor do setor continua aprovando (regra antiga)');
+  UPDATE public.org_areas SET approval_mode = 'dono' WHERE organization_id = A AND name = 'Vendas';
+  PERFORM pg_temp.expect_error(sup_a, format('SELECT public.approve_improvement(%L)', 'aaaaaaaa-0000-0000-0079-000000000002'), 'modo dono: supervisor do setor nao aprova');
+  PERFORM pg_temp.expect((SELECT count(*) FROM private.brain_recipients(A, (SELECT id FROM public.org_areas WHERE organization_id = A AND name = 'Vendas'), false) r WHERE r = agent_a) = 0, 'modo dono: cobranca nao vai para o responsavel');
+  UPDATE public.org_areas SET approval_mode = 'responsavel' WHERE organization_id = A AND name = 'Vendas';
+  -- Correcao herda a area da original.
+  INSERT INTO public.improvements (id, organization_id, title, kind, status, source, parent_id) VALUES
+    ('aaaaaaaa-0000-0000-0079-000000000003', A, 'Ajustar: P1', 'processo', 'sugerida', 'monitor', (SELECT id FROM public.improvements WHERE organization_id = A AND title = 'P1'));
+  PERFORM pg_temp.expect((SELECT area_id IS NOT NULL FROM public.improvements WHERE id = 'aaaaaaaa-0000-0000-0079-000000000003'), 'correcao herda a area');
+  -- Analise: so uma em andamento; presa vira erro.
+  INSERT INTO public.brain_runs (organization_id, kind, status, started_at) VALUES (A, 'manual', 'rodando', now() - interval '20 minutes');
+  PERFORM pg_temp.expect(public.service_brain_start_run(A, 'semanal', NULL) IS NOT NULL, 'analise presa e liberada e a nova abre');
+  PERFORM pg_temp.expect(public.service_brain_start_run(A, 'semanal', NULL) IS NULL, 'so uma analise em andamento por empresa');
 
   -- 80. LGPD do pacote: so agregados, sem telefone nem conteudo de conversa.
   PERFORM pg_temp.expect(public.service_brain_packet(A)::text NOT LIKE '%5511900000001%', 'pacote sem telefone de cliente');
