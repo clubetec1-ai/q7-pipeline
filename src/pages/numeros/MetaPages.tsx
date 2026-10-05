@@ -7,6 +7,7 @@ import { callFunction } from "@/lib/callFunction";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { FacebookButton } from "./MetaConnect";
 
 interface Page {
   id: string; page_id: string; name: string; ig_account_id: string | null; ig_username: string | null;
@@ -70,7 +71,12 @@ export function MetaPages({ orgId }: { orgId: string }) {
     <section className="rounded-xl border bg-card p-4 space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="font-medium inline-flex items-center gap-2"><Facebook className="w-4 h-4" /><Instagram className="w-4 h-4" /> Facebook e Instagram</p>
-        {manage && !form && <Button size="sm" variant="outline" onClick={() => setForm({ page_id: "", token: "" })}>Conectar Página</Button>}
+        {manage && !form && (
+          <span className="flex flex-wrap gap-2">
+            <FacebookButton orgId={orgId} kind="pages" />
+            <Button size="sm" variant="ghost" onClick={() => setForm({ page_id: "", token: "" })}>Manual (avançado)</Button>
+          </span>
+        )}
       </div>
       <p className="text-xs text-muted-foreground">
         Mensagens do Messenger e do Instagram Direct chegam em Conversas, como o WhatsApp. A Meta só deixa responder até 24 h depois da última mensagem da pessoa.

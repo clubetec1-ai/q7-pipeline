@@ -51,6 +51,13 @@ export default function Plataforma() {
   const [apps, setApps] = useState<Record<string, boolean>>({});
   const [appForm, setAppForm] = useState({ id: "", secret: "" });
   const [gForm, setGForm] = useState({ id: "", secret: "" });
+  const [meta, setMeta] = useState({ app_id: "", config_pages: "", config_whatsapp: "", secret: false, verify_token: false });
+  useEffect(() => {
+    void supabase.rpc("platform_meta_app").then(({ data }) => {
+      const d = (data ?? {}) as { app_id?: string; config_pages?: string; config_whatsapp?: string; secret?: boolean; verify_token?: boolean };
+      setMeta({ app_id: d.app_id ?? "", config_pages: d.config_pages ?? "", config_whatsapp: d.config_whatsapp ?? "", secret: !!d.secret, verify_token: !!d.verify_token });
+    });
+  }, []);
 
   const load = useCallback(async () => {
     const [o, t, rq] = await Promise.all([
@@ -190,6 +197,26 @@ export default function Plataforma() {
               setAppForm({ id: "", secret: "" });
               toast({ title: "Aplicativo do Bling salvo", description: "As empresas já podem conectar em Integrações." });
               void load();
+            }}>Salvar</Button>
+          </div>
+        </section>
+        <section className="space-y-2 rounded-lg border p-4">
+          <h2 className="font-semibold">App da Meta — “Conectar com o Facebook” {meta.app_id && meta.secret ? <Badge className="ml-2">Ativo</Badge> : <Badge variant="outline" className="ml-2">Incompleto</Badge>}</h2>
+          <ol className="list-decimal pl-5 text-xs text-muted-foreground space-y-0.5">
+            <li>No app da Meta (developers.facebook.com), adicione o produto <b>Facebook Login for Business</b>. Em Configurações, “URIs de redirecionamento do OAuth válidos”: <code className="select-all">{`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/meta-connect-callback`}</code></li>
+            <li>Crie duas <b>configurações</b> de login, ambas com tipo de token <b>“Token de acesso do usuário do sistema”</b> (não vence): uma para Páginas/Instagram (permissões pages_show_list, pages_messaging, pages_manage_metadata, instagram_basic, instagram_manage_messages, business_management) e outra para o WhatsApp (whatsapp_business_management, whatsapp_business_messaging, business_management). Copie o ID de cada uma.</li>
+            <li>Produtos Messenger e Instagram: webhook <code className="select-all">{`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/meta-webhook`}</code> com o mesmo token de verificação do WhatsApp; campos messages, messaging_postbacks e message_echoes.</li>
+            <li>Peça as permissões acima em Análise do app. Até aprovar, só funciona para quem tem função no app (administrador, desenvolvedor ou testador).</li>
+          </ol>
+          <p className="text-xs">App Secret no cofre: {meta.secret ? "✓" : "✗ falta"} · token de verificação do webhook: {meta.verify_token ? "✓" : "✗ falta"}</p>
+          <div className="flex flex-wrap gap-2">
+            <Input className="max-w-[12rem]" placeholder="ID do app" value={meta.app_id} onChange={(e) => setMeta({ ...meta, app_id: e.target.value.trim() })} />
+            <Input className="max-w-[14rem]" placeholder="ID da configuração (Páginas)" value={meta.config_pages} onChange={(e) => setMeta({ ...meta, config_pages: e.target.value.trim() })} />
+            <Input className="max-w-[14rem]" placeholder="ID da configuração (WhatsApp)" value={meta.config_whatsapp} onChange={(e) => setMeta({ ...meta, config_whatsapp: e.target.value.trim() })} />
+            <Button variant="outline" disabled={!/^\d{5,25}$/.test(meta.app_id)} onClick={async () => {
+              const { error } = await supabase.rpc("platform_set_meta_app", { p_app_id: meta.app_id, p_config_pages: meta.config_pages, p_config_whatsapp: meta.config_whatsapp });
+              if (error) return toast({ variant: "destructive", title: "Não salvo", description: error.message });
+              toast({ title: "App da Meta salvo", description: "O botão Conectar com o Facebook já usa estes dados." });
             }}>Salvar</Button>
           </div>
         </section>

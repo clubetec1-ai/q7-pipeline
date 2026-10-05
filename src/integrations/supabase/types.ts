@@ -2507,6 +2507,47 @@ export type Database = {
           },
         ]
       }
+      meta_connect_sessions: {
+        Row: {
+          created_at: string
+          error: string | null
+          expires_at: string
+          id: string
+          kind: string
+          options: Json
+          organization_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          expires_at?: string
+          id?: string
+          kind: string
+          options?: Json
+          organization_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          expires_at?: string
+          id?: string
+          kind?: string
+          options?: Json
+          organization_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_connect_sessions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meta_pages: {
         Row: {
           ai_reply: boolean
@@ -4946,6 +4987,7 @@ export type Database = {
         Args: { hq: string; p_name: string }
         Returns: string
       }
+      platform_meta_app: { Args: never; Returns: Json }
       platform_networks: { Args: never; Returns: Json }
       platform_open_support: {
         Args: { minutes?: number; org: string; reason: string }
@@ -4989,6 +5031,14 @@ export type Database = {
       platform_security_email: { Args: never; Returns: string }
       platform_set_connector_app: {
         Args: { client_id: string; client_secret: string; connector: string }
+        Returns: undefined
+      }
+      platform_set_meta_app: {
+        Args: {
+          p_app_id: string
+          p_config_pages: string
+          p_config_whatsapp: string
+        }
         Returns: undefined
       }
       platform_set_module: {
@@ -5231,6 +5281,10 @@ export type Database = {
       service_mark_message_deleted: {
         Args: { org: string; pmid: string; who: string }
         Returns: number
+      }
+      service_meta_connect_forget: {
+        Args: { sess: string }
+        Returns: undefined
       }
       service_meta_page_forget: { Args: { page: string }; Returns: undefined }
       service_module_on: { Args: { m: string; org: string }; Returns: boolean }
