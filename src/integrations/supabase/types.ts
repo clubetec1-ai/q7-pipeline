@@ -601,6 +601,7 @@ export type Database = {
           phone: string
           sent_at: string | null
           status: string
+          variant: string
         }
         Insert: {
           campaign_id: string
@@ -612,6 +613,7 @@ export type Database = {
           phone: string
           sent_at?: string | null
           status?: string
+          variant?: string
         }
         Update: {
           campaign_id?: string
@@ -623,6 +625,7 @@ export type Database = {
           phone?: string
           sent_at?: string | null
           status?: string
+          variant?: string
         }
         Relationships: [
           {
@@ -650,7 +653,9 @@ export type Database = {
           group_ids: string[]
           id: string
           instance_id: string | null
+          library_file_id: string | null
           message: string | null
+          message_b: string | null
           name: string
           organization_id: string
           rate_per_min: number
@@ -661,6 +666,7 @@ export type Database = {
           status: string
           template_lang: string | null
           template_name: string | null
+          template_name_b: string | null
           total: number
           window_end: number
           window_start: number
@@ -673,7 +679,9 @@ export type Database = {
           group_ids?: string[]
           id?: string
           instance_id?: string | null
+          library_file_id?: string | null
           message?: string | null
+          message_b?: string | null
           name: string
           organization_id: string
           rate_per_min?: number
@@ -684,6 +692,7 @@ export type Database = {
           status?: string
           template_lang?: string | null
           template_name?: string | null
+          template_name_b?: string | null
           total?: number
           window_end?: number
           window_start?: number
@@ -696,7 +705,9 @@ export type Database = {
           group_ids?: string[]
           id?: string
           instance_id?: string | null
+          library_file_id?: string | null
           message?: string | null
+          message_b?: string | null
           name?: string
           organization_id?: string
           rate_per_min?: number
@@ -707,6 +718,7 @@ export type Database = {
           status?: string
           template_lang?: string | null
           template_name?: string | null
+          template_name_b?: string | null
           total?: number
           window_end?: number
           window_start?: number
@@ -725,6 +737,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "whatsapp_instances"
             referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "campaigns_library_file_id_fkey"
+            columns: ["library_file_id"]
+            isOneToOne: false
+            referencedRelation: "library_files"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "campaigns_organization_id_fkey"
@@ -3626,6 +3645,7 @@ export type Database = {
       team_channels: {
         Row: {
           created_at: string
+          created_by: string | null
           department_id: string | null
           dm_key: string | null
           id: string
@@ -3635,6 +3655,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          created_by?: string | null
           department_id?: string | null
           dm_key?: string | null
           id?: string
@@ -3644,6 +3665,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          created_by?: string | null
           department_id?: string | null
           dm_key?: string | null
           id?: string
@@ -3762,6 +3784,48 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "conversations"
             referencedColumns: ["id", "organization_id"]
+          },
+        ]
+      }
+      team_reactions: {
+        Row: {
+          channel_id: string
+          created_at: string
+          emoji: string
+          message_id: number
+          organization_id: string
+          user_id: string
+        }
+        Insert: {
+          channel_id: string
+          created_at?: string
+          emoji: string
+          message_id: number
+          organization_id: string
+          user_id: string
+        }
+        Update: {
+          channel_id?: string
+          created_at?: string
+          emoji?: string
+          message_id?: number
+          organization_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_reactions_channel_id_organization_id_fkey"
+            columns: ["channel_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "team_channels"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "team_reactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "team_messages"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -4330,6 +4394,7 @@ export type Database = {
         Args: { groups: string[]; org: string }
         Returns: Json
       }
+      campaign_results: { Args: { campaign: string }; Returns: Json }
       can_manage_knowledge: {
         Args: { dept: string; org: string }
         Returns: boolean
@@ -4491,6 +4556,7 @@ export type Database = {
         Args: { conv: string; whole_domain?: boolean }
         Returns: string
       }
+      leave_team_group: { Args: { ch: string }; Returns: undefined }
       link_improvement_artifact: {
         Args: { aid: string; akind: string; improvement: string }
         Returns: undefined
@@ -4765,6 +4831,10 @@ export type Database = {
           p_target: number
           p_title: string
         }
+        Returns: string
+      }
+      save_team_group: {
+        Args: { ch: string; org: string; p_members: string[]; p_name: string }
         Returns: string
       }
       save_webhook_endpoint: {
@@ -5156,6 +5226,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      team_react: { Args: { msg: number; p_emoji: string }; Returns: boolean }
       team_unread: {
         Args: { org: string }
         Returns: {

@@ -4,6 +4,7 @@ import { getSecret, safeEqual } from "../_shared/secrets.ts";
 import { forOrg } from "../_shared/tenant.ts";
 import * as providers from "../_shared/providers/index.ts";
 import { instForSend } from "../_shared/flow/executor.ts";
+import { loadLibraryFile } from "../_shared/library.ts";
 
 /**
  * Disparos (cron a cada minuto, x-cron-secret). Para cada campanha em andamento,
@@ -48,10 +49,13 @@ Deno.serve(async (req) => {
     const ids = (batch ?? []).map((r: { id: number }) => r.id);
     const { data: claimed } = ids.length
       ? await org.update("campaign_recipients", { sent_at: new Date().toISOString() }).in("id", ids).is("sent_at", null)
-        .select("id, contact_id, phone, name")
+        .select("id, contact_id, phone, name, variant")
       : { data: [] };
 
     const gap = Math.min(2500, Math.floor(45_000 / Math.max(1, c.rate_per_min)));
+    // Arquivo da biblioteca (só número por QR Code): carregado uma vez por lote.
+    const file = !isCloud && c.library_file_id && (claimed ?? []).length
+      ? await loadLibraryFile(admin, c.organization_id, c.library_file_id).catch(() => null) : null;
     let okN = 0, failN = 0, skipN = 0;
     for (const r of claimed ?? []) {
       if (Date.now() - started > 110_000) { // não passa do tempo da função; o resto volta para a fila
@@ -65,13 +69,18 @@ Deno.serve(async (req) => {
         continue;
       }
       const nome = firstName(r.name);
-      const text = String(c.message ?? "").replaceAll("{nome}", nome).replace(/\s+([,!.?])/g, "$1").trim();
+      const isB = r.variant === "B";
+      const msg = isB && c.message_b ? c.message_b : c.message;
+      const tpl = isB && c.template_name_b ? c.template_name_b : c.template_name;
+      const text = String(msg ?? "").replaceAll("{nome}", nome).replace(/\s+([,!.?])/g, "$1").trim();
       const res = isCloud
         ? await providers.sendTemplate(inst, r.phone, {
-            name: c.template_name, language: c.template_lang,
-            ...(String(c.message ?? "").includes("{{1}}") ? { bodyParams: [nome || "cliente"] } : {}),
+            name: tpl, language: c.template_lang,
+            ...(String(msg ?? "").includes("{{1}}") ? { bodyParams: [nome || "cliente"] } : {}),
           })
-        : await providers.sendText(inst, r.phone, text);
+        : file
+          ? await providers.sendMedia(inst, r.phone, { type: file.type, bytes: file.bytes, mime: file.mime, name: file.name, caption: text })
+          : await providers.sendText(inst, r.phone, text);
 
       // Conversa do contato neste número (cria se não houver) + mensagem no histórico.
       let { data: conv } = await org.select("conversations", "id").eq("instance_id", inst.id).eq("contact_phone", r.phone).maybeSingle();
@@ -84,7 +93,8 @@ Deno.serve(async (req) => {
       if (conv) {
         await org.insert("messages", {
           conversation_id: conv.id, direction: "outbound", sender: "human", sent_by: c.created_by,
-          content: isCloud ? `[Campanha: ${c.name}] modelo ${c.template_name}` : text,
+          content: isCloud ? `[Campanha: ${c.name}] modelo ${tpl}` : text,
+          ...(file ? { type: file.type, media_path: file.path, media_mime: file.mime, media_size: file.bytes.length, media_name: file.name } : {}),
           status: res.ok ? "sent" : "failed", provider_message_id: res.messageId ?? null,
           error: res.ok ? null : String(res.error ?? "falha").slice(0, 300),
         });

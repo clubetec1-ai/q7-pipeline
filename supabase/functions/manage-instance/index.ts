@@ -39,6 +39,8 @@ const PERMISSION: Record<string, string> = {
   set_webhook: "org.settings",
   get_webhooks: "org.settings",
   diagnose: "org.settings",
+  // Modelos aprovados na conta da Meta (para campanhas no número oficial).
+  templates: "campaigns.manage",
   // Excluir apaga as conversas do número: só o dono (org.billing é exclusiva do owner).
   remove: "org.billing",
 };
@@ -147,6 +149,31 @@ serve(async (req) => {
     const token: string | null = inst.instance_token;
 
     console.log(`[manage-instance] action=${action} provider=${inst.provider}`);
+
+    // === TEMPLATES (número oficial): modelos APROVADOS da conta, só leitura ===
+    if (action === "templates") {
+      if (providers.providerOf(inst) !== "cloud") return json({ ok: false, error: "Só o número oficial da Meta usa modelos." }, 400);
+      if (!inst.waba_id || !token) return json({ ok: false, error: "Número oficial sem conta da Meta ligada." }, 400);
+      const url = `https://graph.facebook.com/${providers.GRAPH_VERSION}/${encodeURIComponent(inst.waba_id)}/message_templates` +
+        "?status=APPROVED&limit=100&fields=name,language,category,components";
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(15_000) });
+      if (!res.ok) {
+        console.error("[templates]", res.status);
+        return json({ ok: false, error: "A Meta não devolveu os modelos agora. Tente de novo." }, 502);
+      }
+      const data = await res.json().catch(() => ({}));
+      // deno-lint-ignore no-explicit-any
+      const list = (Array.isArray(data?.data) ? data.data : []).map((t: any) => {
+        // deno-lint-ignore no-explicit-any
+        const bodyText = String((t.components ?? []).find((c: any) => c?.type === "BODY")?.text ?? "");
+        return {
+          name: String(t.name ?? "").slice(0, 512), language: String(t.language ?? "").slice(0, 10),
+          category: String(t.category ?? "").slice(0, 40), body: bodyText.slice(0, 1024),
+          params: (bodyText.match(/\{\{\d+\}\}/g) ?? []).length,
+        };
+      }).filter((t: { name: string; language: string }) => /^[a-z0-9_]{1,512}$/.test(t.name) && /^[a-z]{2}(_[A-Z]{2})?$/.test(t.language));
+      return json({ ok: true, templates: list });
+    }
 
     // === SEND TEXT (Uazapi ou Cloud, pelo provedor do número) ===
     if (action === "send_text") {
