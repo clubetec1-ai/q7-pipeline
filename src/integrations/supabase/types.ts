@@ -4510,6 +4510,7 @@ export type Database = {
         }
         Returns: string
       }
+      delete_extension: { Args: { ext: string }; Returns: undefined }
       delete_http_secret: {
         Args: { org: string; secret_key: string }
         Returns: undefined
@@ -4830,6 +4831,20 @@ export type Database = {
           p_period: string
           p_target: number
           p_title: string
+        }
+        Returns: string
+      }
+      save_extension: {
+        Args: {
+          ext: string
+          org: string
+          p_label: string
+          p_number: string
+          p_password: string
+          p_provider: string
+          p_sip_domain: string
+          p_sip_user: string
+          p_wss_url: string
         }
         Returns: string
       }

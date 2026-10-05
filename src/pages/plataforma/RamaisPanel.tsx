@@ -25,6 +25,21 @@ function parseSheet(text: string) {
 }
 type TestResult = { ok: boolean; text: string } | null;
 
+/** Centrais pré-configuradas: o dono só informa o servidor e as credenciais. */
+export const CENTRAIS: { key: string; label: string; domain: string; wss: string; tip: string }[] = [
+  { key: "asterisk", label: "Asterisk / FreePBX / Issabel", domain: "pbx.suaempresa.com.br", wss: "wss://pbx.suaempresa.com.br:8089/ws",
+    tip: "Na central: ative WebRTC no ramal (transport WSS, ICE, DTLS) e use a porta 8089 com certificado válido. Sem WebRTC, use o MicroSIP." },
+  { key: "3cx", label: "3CX", domain: "suaempresa.3cx.com.br", wss: "",
+    tip: "Use o usuário e a senha de autenticação do ramal (em Ramal → Telefone IP). O telefone do navegador do 3CX é próprio: aqui o ramal funciona pelo MicroSIP/aparelho." },
+  { key: "nvoip", label: "Nvoip", domain: "app.nvoip.com.br", wss: "",
+    tip: "Os mesmos dados do MicroSIP. Para o histórico e o clique-para-ligar, conecte a Nvoip no cartão acima." },
+  { key: "handphone", label: "Handphone", domain: "pbx.handphone.com.br", wss: "", tip: "Os mesmos dados que a Handphone enviou para o MicroSIP." },
+  { key: "outro", label: "Outra central SIP", domain: "", wss: "",
+    tip: "Qualquer central SIP: servidor, usuário e senha do ramal. Para o telefone no navegador, a central precisa oferecer WebRTC (endereço wss://)." },
+];
+const presetOf = (k: string) => CENTRAIS.find((c) => c.key === k) ?? CENTRAIS[CENTRAIS.length - 1];
+
+
 /** Liga na central só para conferir os dados digitados (não salva nada). */
 async function testExtension(f: Form): Promise<{ ok: boolean; text: string }> {
   const wss = f.wss_url.trim();
@@ -63,9 +78,9 @@ async function testExtension(f: Form): Promise<{ ok: boolean; text: string }> {
  * servidor e senha (a senha vai direto para o cofre e nunca volta para esta tela).
  * O dono da empresa escolhe o atendente de cada ramal em Configurar → Ramais.
  */
-export function RamaisPanel({ orgs }: { orgs: { id: string; name: string }[] }) {
+export function RamaisPanel({ orgs, self }: { orgs: { id: string; name: string }[]; self?: boolean }) {
   const { toast } = useToast();
-  const [orgId, setOrgId] = useState("");
+  const [orgId, setOrgId] = useState(self ? orgs[0]?.id ?? "" : "");
   const [rows, setRows] = useState<Ext[]>([]);
   const [form, setForm] = useState<Form | null>(null);
   const [busy, setBusy] = useState(false);
@@ -85,8 +100,18 @@ export function RamaisPanel({ orgs }: { orgs: { id: string; name: string }[] }) 
   useEffect(() => { void load(); }, [load]);
   useEffect(() => {
     setMembers([]);
-    if (orgId) void supabase.rpc("operator_org_members", { org: orgId }).then(({ data }) => setMembers((data as Member[]) ?? []));
-  }, [orgId]);
+    if (!orgId) return;
+    if (!self) { void supabase.rpc("operator_org_members", { org: orgId }).then(({ data }) => setMembers((data as Member[]) ?? [])); return; }
+    // Dono/admin: a própria equipe (nome nesta empresa + e-mail).
+    void (async () => {
+      const { data: ms } = await supabase.from("organization_members").select("user_id, display_name, role").eq("organization_id", orgId).eq("status", "active");
+      const ids = (ms ?? []).map((m) => m.user_id);
+      const { data: ps } = ids.length ? await supabase.from("profiles").select("user_id, email").in("user_id", ids) : { data: [] };
+      const mail = new Map((ps ?? []).map((p) => [p.user_id, p.email ?? ""]));
+      setMembers((ms ?? []).map((m) => ({ user_id: m.user_id, role: m.role, email: mail.get(m.user_id) ?? "",
+        name: m.display_name || (mail.get(m.user_id) ?? "").split("@")[0] || "Sem nome" })));
+    })();
+  }, [orgId, self]);
   const memberName = (id: string | null) => (id ? members.find((m) => m.user_id === id)?.name ?? "Atribuído" : null);
   // Status ao vivo: atualiza a cada 30 s.
   useEffect(() => {
@@ -100,12 +125,12 @@ export function RamaisPanel({ orgs }: { orgs: { id: string; name: string }[] }) 
   const novo = () => {
     const last = rows[rows.length - 1];
     edit({ id: null, number: "", label: "", sip_user: "", sip_domain: last?.sip_domain ?? "",
-      wss_url: last?.wss_url ?? "", provider: last?.provider ?? "handphone", password: "", user_id: "" });
+      wss_url: last?.wss_url ?? "", provider: last?.provider ?? (self ? "asterisk" : "handphone"), password: "", user_id: "" });
   };
   const save = async () => {
     if (!form) return;
     setBusy(true);
-    const { data: id, error } = await supabase.rpc("operator_save_extension", {
+    const { data: id, error } = await supabase.rpc("save_extension", {
       org: orgId, ext: form.id as string, p_number: form.number.trim(), p_sip_user: (form.sip_user || form.number).trim(),
       p_sip_domain: form.sip_domain.trim(), p_wss_url: form.wss_url.trim(), p_provider: form.provider,
       p_label: form.label.trim(), p_password: form.password,
@@ -149,7 +174,7 @@ export function RamaisPanel({ orgs }: { orgs: { id: string; name: string }[] }) 
     const out: string[] = [];
     for (const it of items) {
       const existing = rows.find((r) => r.number === it.number);
-      const { data: id, error } = await supabase.rpc("operator_save_extension", {
+      const { data: id, error } = await supabase.rpc("save_extension", {
         org: orgId, ext: (existing?.id ?? null) as string, p_number: it.number, p_sip_user: it.sip_user,
         p_sip_domain: imp.domain.trim(), p_wss_url: imp.wss.trim(), p_provider: imp.provider, p_label: existing?.label ?? "",
         p_password: it.password,
@@ -193,7 +218,7 @@ export function RamaisPanel({ orgs }: { orgs: { id: string; name: string }[] }) 
   };
   const remove = async (e: Ext) => {
     if (!window.confirm(`Excluir o ramal ${e.number}? O histórico de ligações continua.`)) return;
-    const { error } = await supabase.rpc("operator_delete_extension", { ext: e.id });
+    const { error } = await supabase.rpc("delete_extension", { ext: e.id });
     if (error) toast({ variant: "destructive", title: "Não excluiu", description: error.message });
     void load();
   };
@@ -202,7 +227,7 @@ export function RamaisPanel({ orgs }: { orgs: { id: string; name: string }[] }) 
 
   return (
     <section className="space-y-3 rounded-lg border p-4">
-      <h2 className="font-semibold flex items-center gap-2"><Phone className="w-4 h-4" /> Ramais (PBX contratado com a Clubetec)</h2>
+      <h2 className="font-semibold flex items-center gap-2"><Phone className="w-4 h-4" /> {self ? "Central de telefonia e ramais" : "Ramais (PBX contratado com a Clubetec)"}</h2>
       <details className="rounded-md bg-muted/40 p-3 text-sm" open={rows.length === 0}>
         <summary className="cursor-pointer font-medium">Como funciona</summary>
         <ol className="list-decimal pl-5 mt-2 space-y-1 text-muted-foreground">
@@ -215,13 +240,17 @@ export function RamaisPanel({ orgs }: { orgs: { id: string; name: string }[] }) 
             preencha número e senha, e <b>importe</b>. Ou use <b>Associar automaticamente</b> (ramais livres → pessoas sem ramal).
             O dono também pode trocar depois em Configurar → Ramais. O atendente vê o botão 📞 no canto da tela.</li>
           <li>O <b>status</b> aparece aqui: 🟢 online (telefone do navegador registrado), 🔴 erro, ⚪ desconectado, 🔵 MicroSIP (fora do navegador).</li>
+          <li><b>Histórico de ligações de qualquer central:</b> em Configurações → API e webhooks, crie uma chave com “Registrar ligações” e configure a
+            central (ou o n8n) para enviar cada ligação para <code>POST /calls</code>. Ligação perdida vira aviso para o atendente do ramal.</li>
         </ol>
       </details>
       <div className="flex flex-wrap gap-2 items-center">
-        <select className="h-9 rounded-md border bg-background px-2 text-sm" value={orgId} onChange={(e) => { setOrgId(e.target.value); edit(null); }}>
-          <option value="">Escolha a empresa…</option>
-          {orgs.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
-        </select>
+        {!self && (
+          <select className="h-9 rounded-md border bg-background px-2 text-sm" value={orgId} onChange={(e) => { setOrgId(e.target.value); edit(null); }}>
+            <option value="">Escolha a empresa…</option>
+            {orgs.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+          </select>
+        )}
         {orgId && <>
           <Button size="sm" onClick={novo}><Plus className="w-4 h-4 mr-1" /> Novo ramal</Button>
           <Button size="sm" variant="outline" onClick={downloadTemplate} disabled={!members.length}><Download className="w-4 h-4 mr-1" /> Modelo da planilha</Button>
@@ -239,7 +268,7 @@ export function RamaisPanel({ orgs }: { orgs: { id: string; name: string }[] }) 
             <Input placeholder="Servidor/domínio SIP" value={imp.domain} onChange={(e) => setImp({ ...imp, domain: e.target.value })} />
             <Input placeholder="wss://… (vazio = só MicroSIP)" value={imp.wss} onChange={(e) => setImp({ ...imp, wss: e.target.value })} />
             <select className="h-9 rounded-md border bg-background px-2 text-sm" value={imp.provider} onChange={(e) => setImp({ ...imp, provider: e.target.value })}>
-              <option value="handphone">Handphone</option><option value="nvoip">Nvoip</option><option value="outro">Outra central</option>
+              {CENTRAIS.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
             </select>
           </div>
           <input type="file" accept=".csv,.txt" className="text-sm" onChange={async (e) => {
@@ -271,11 +300,13 @@ export function RamaisPanel({ orgs }: { orgs: { id: string; name: string }[] }) 
           <Input placeholder="Nome (ex.: Recepção)" value={form.label} onChange={set("label")} />
           <Input placeholder="Usuário SIP (vazio = número)" value={form.sip_user} onChange={set("sip_user")} />
           <Input type="password" autoComplete="new-password" placeholder={form.id ? "Senha (vazio = manter)" : "Senha do ramal"} value={form.password} onChange={set("password")} />
-          <Input className="sm:col-span-2" placeholder={form.provider === "nvoip" ? "Servidor/domínio (ex.: app.nvoip.com.br)" : "Servidor/domínio SIP (ex.: pbx.handphone.com.br)"} value={form.sip_domain} onChange={set("sip_domain")} />
-          <Input className="sm:col-span-2" placeholder="WebRTC: wss://servidor:porta/ws (vazio = só MicroSIP/aparelho)" value={form.wss_url} onChange={set("wss_url")} />
-          <select className="h-9 rounded-md border bg-background px-2 text-sm" value={form.provider} onChange={set("provider")}>
-            <option value="handphone">Handphone</option><option value="nvoip">Nvoip</option><option value="outro">Outra central</option>
+          <select className="h-9 rounded-md border bg-background px-2 text-sm sm:col-span-4" value={form.provider} aria-label="Central"
+            onChange={(ev) => setForm((f) => (f ? { ...f, provider: ev.target.value } : f))}>
+            {CENTRAIS.map((c) => <option key={c.key} value={c.key}>Central: {c.label}</option>)}
           </select>
+          <p className="sm:col-span-4 text-xs text-muted-foreground">{presetOf(form.provider).tip}</p>
+          <Input className="sm:col-span-2" placeholder={`Servidor/domínio SIP${presetOf(form.provider).domain ? ` (ex.: ${presetOf(form.provider).domain})` : ""}`} value={form.sip_domain} onChange={set("sip_domain")} />
+          <Input className="sm:col-span-2" placeholder={presetOf(form.provider).wss ? `WebRTC (ex.: ${presetOf(form.provider).wss})` : "WebRTC: wss://… (vazio = só MicroSIP/aparelho)"} value={form.wss_url} onChange={set("wss_url")} />
           <select className="h-9 rounded-md border bg-background px-2 text-sm sm:col-span-2" value={form.user_id} onChange={set("user_id")}>
             <option value="">Atendente: — livre —</option>
             {members.map((m) => <option key={m.user_id} value={m.user_id}>{m.name} ({ROLE[m.role] ?? m.role}) · {m.email}</option>)}

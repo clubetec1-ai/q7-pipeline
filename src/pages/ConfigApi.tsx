@@ -21,6 +21,7 @@ const SCOPES: [string, string][] = [
   ["conversations:read", "Listar conversas"],
   ["funnel:write", "Mudar a etapa no funil"],
   ["messages:send", "Enviar mensagem pelo WhatsApp"],
+  ["calls:write", "Registrar ligações (telefonia)"],
 ];
 const EVENTS: [string, string][] = [
   ["contact.created", "Novo contato"],
@@ -265,6 +266,7 @@ export default function ConfigApi() {
             <li>GET /conversations?since=2026-10-01T00:00:00Z <span className="font-sans text-muted-foreground">— conversas recentes</span></li>
             <li>POST /conversations/ID/stage {"{ stage: \"Proposta\" }"} <span className="font-sans text-muted-foreground">— mudar etapa</span></li>
             <li>POST /messages {"{ phone, text }"} <span className="font-sans text-muted-foreground">— enviar WhatsApp</span></li>
+            <li>POST /calls {"{ id, direction: \"in\"|\"out\", phone, extension, status, started_at, ended_at, duration, recording_url }"} <span className="font-sans text-muted-foreground">— histórico de ligações de qualquer central (status: ringing, answered, missed, ended, failed)</span></li>
           </ul>
           <p className="text-xs text-muted-foreground">
             Envio de mensagem respeita quem pediu para não receber. No número oficial da Meta, fora das 24h após a última mensagem do cliente, só vai com modelo aprovado: inclua <code>template: {"{ name, language, params }"}</code>.
