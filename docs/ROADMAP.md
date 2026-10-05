@@ -228,8 +228,13 @@ etapa 2/5/10 dias + "Gerar proposta") ✅; **cérebro** — fatias 1 a 7 ✅ (04
 aprende; análise semanal (segunda 8h) e manual com pacote fechado só de números, validador que refaz as evidências e
 agentes de área propondo até 3 sugestões; franquia só o operador muda; resumo da semana, histórico e "o que a área
 fez"; cartão no Início; assistente do app atualizado. Testes de isolamento 69–81 + teste do validador. Revisão de
-segurança feita (sem crítico; 1 alto e os médios corrigidos em 04/10). Falta a prova de ponta a ponta no Cartório
-Teste depois do merge. Também em 04/10: **e-mail completo** (IA responde e-mails por caixa, opcional; cópia em
+segurança feita (sem crítico; 1 alto e os médios corrigidos em 04/10). **Cérebro concluído e provado no Cartório Teste (04/10)**:
+áreas sugeridas pelos setores, responsável, meta "responder em até 5 min", análise manual real (gpt-4o-mini, 3
+chamadas, ~5.900 tokens): resumo, 2 prioridades ligadas às áreas e à meta, 2 sugestões dos agentes ligadas a
+processos do Diagnóstico, aprovação em Melhorias. Ajustes do teste: área reconhecida pelo nome/tipo, "visão do dono
+(não medida)" no pacote, resumo cortado na frase, setor vira Atendimento, tipo da área editável, painel da Clubetec
+com consumo e franquia por empresa (Plataforma → Módulos) e e-mail opcional do cérebro (resumo, meta fora do rumo,
+cobrança escalada). Também em 04/10: **e-mail completo** (IA responde e-mails por caixa, opcional; cópia em
 "Enviados") ✅ e **regras da IA visíveis** ("O que a IA nunca faz" na tela do Agente) ✅. Fase 1 restante: item 6
 (varredura final tela a tela). Padrões adotados nas decisões do cérebro (o dono pode mudar): responsável = qualquer
 membro ativo; MFA recomendado; franquia 8 análises/mês e 1 manual/dia; e-mail semanal desligado; cérebro dentro do

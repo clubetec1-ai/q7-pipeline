@@ -24,6 +24,11 @@ const parseJson = (reply: string | undefined): Record<string, unknown> => {
 };
 // O texto vai como JSON com "<" escapado: nada dentro dos dados consegue fechar o bloco <dados>.
 const dados = (o: unknown) => `<dados>\n${JSON.stringify(o).replace(/</g, "\\u003c")}\n</dados>`;
+/** O texto do Diagnóstico é a visão do dono, não medição: o nome do campo deixa isso claro para a IA. */
+function labelled<T extends { empresa?: unknown; areas: unknown[] }>(p: T) {
+  const { empresa, ...rest } = p;
+  return { visao_do_dono_nao_medida: empresa, ...rest };
+}
 /** Cabe no limite tirando áreas inteiras do fim, nunca cortando o JSON no meio. */
 function fit<T extends { areas: unknown[] }>(p: T, max: number): T {
   let out = p;
@@ -82,7 +87,7 @@ async function runFor(admin: Admin, orgId: string, kind: "semanal" | "manual", w
       "Escreva um resumo da semana (até 5 frases curtas), escolha até 3 prioridades (cada uma ligada a uma área do pacote pelo campo id e, se houver, à meta pelo id),",
       "escolha até 3 áreas (pelo id) para o agente da área propor melhorias (só as com agente_ligado=true e onde há algo a melhorar) e liste o que cobrar.",
       'JSON: {"resumo":"","prioridades":[{"area_id":"","titulo":"","por_que":"cite o indicador pela chave","meta_id":""}],"delegar":["area_id"],"cobrar":[""]}',
-    ].join(" "), `Áreas (id → nome): ${p.areas.map((a) => `${a.id} → ${a.nome}${a.agente_ligado ? " (agente ligado)" : ""}`).join("; ")}\n${dados(fit(p, 14_000))}`, u, 900);
+    ].join(" "), `Áreas (id → nome): ${p.areas.map((a) => `${a.id} → ${a.nome}${a.agente_ligado ? " (agente ligado)" : ""}`).join("; ")}\n${dados(fit(labelled(p), 14_000))}`, u, 900);
     const orch = validateOrchestration(orchRaw, p);
 
     // 2. Agentes das áreas delegadas: até 3 propostas cada, com evidência dos números do pacote.
@@ -98,7 +103,7 @@ async function runFor(admin: Admin, orgId: string, kind: "semanal" | "manual", w
         "meta_id quando ajudar uma meta, processo (nome exato de um processo do pacote) quando for melhoria de processo, e prazo em dias.",
         "Não repita o que já está em 'abertas' nem o que funcionou em 'resultados_recentes'.",
         'JSON: {"propostas":[{"titulo":"","problema":"","como":"passo a passo curto","tipo":"","modelo":"","meta_id":"","evidencias":["chave"],"processo":"","prioridade":1,"prazo_dias":7}]}',
-      ].join(" "), dados({ empresa: p.empresa, area }), u, 1_200);
+      ].join(" "), dados({ visao_do_dono_nao_medida: p.empresa, area }), u, 1_200);
       const items = validateProposals(raw, area);
       const { data: n } = await admin.rpc("service_brain_propose_area", { org: orgId, run, area: area.id, items });
       created += Number(n) || 0;

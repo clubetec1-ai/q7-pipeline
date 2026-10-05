@@ -29,7 +29,7 @@ const MOTIVO: Record<string, string> = {
 };
 interface Run {
   id: string; kind: string; status: string; started_at: string; error: string | null; calls: number;
-  summary: { resumo?: string; prioridades?: { area_key: string; titulo: string; por_que: string }[]; delegou?: { area_key: string; propostas: number }[]; propostas?: number } | null;
+  summary: { resumo?: string; prioridades?: { area_id?: string; area_key: string; titulo: string; por_que: string }[]; delegou?: { area_key: string; propostas: number }[]; propostas?: number } | null;
 }
 const RUN_STATUS: Record<string, string> = { ok: "Concluída", pulado: "Sem mudanças", erro: "Não concluiu", rodando: "Em andamento" };
 const days = (iso: string) => Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 864e5));
@@ -56,6 +56,7 @@ export default function Cerebro() {
   const [runs, setRuns] = useState<Run[]>([]);
   const [quota, setQuota] = useState(8);
   const [analyzing, setAnalyzing] = useState(false);
+  const [mailOn, setMailOn] = useState(false);
   const [denied, setDenied] = useState(false);
   const [names, setNames] = useState<Map<string, MemberName>>(new Map());
   const [goalFor, setGoalFor] = useState<AreaView | null>(null);
@@ -75,6 +76,8 @@ export default function Cerebro() {
         supabase.from("org_modules").select("limits").eq("organization_id", org.id).eq("module", "gestao").maybeSingle(),
       ]);
       setRuns((r as unknown as Run[]) ?? []);
+      const { data: o } = await supabase.from("organizations").select("settings").eq("id", org.id).maybeSingle();
+      setMailOn(!!(o?.settings as { brain_email?: boolean } | null)?.brain_email);
       const lim = Number((m?.limits as { analises_mes?: number } | null)?.analises_mes);
       setQuota(Number.isFinite(lim) && lim > 0 ? lim : 8);
     }
@@ -113,6 +116,14 @@ export default function Cerebro() {
     if (error) return toast({ variant: "destructive", title: "Prazo não salvo", description: error.message });
     void load();
   };
+  const toggleMail = async (on: boolean) => {
+    const { data } = await supabase.from("organizations").select("settings").eq("id", org.id).maybeSingle();
+    const next = { ...((data?.settings ?? {}) as Record<string, unknown>), brain_email: on };
+    const { error } = await supabase.from("organizations").update({ settings: next as never }).eq("id", org.id);
+    if (error) return toast({ variant: "destructive", title: "Não salvou", description: error.message });
+    setMailOn(on);
+    toast({ title: on ? "Você vai receber o cérebro por e-mail" : "E-mail do cérebro desligado" });
+  };
   const analyze = async () => {
     setAnalyzing(true);
     const r = await callFunction<{ propostas: number; skipped: boolean }>("brain", { organization_id: org.id });
@@ -124,7 +135,7 @@ export default function Cerebro() {
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime();
   const used = runs.filter((r) => ["ok", "erro", "rodando"].includes(r.status) && new Date(r.started_at).getTime() >= monthStart).length;
   const latest = runs.find((r) => r.status === "ok");
-  const areaByKey = (k: string) => ov?.areas.find((a) => a.key === k)?.name ?? k;
+  const areaOf = (id: string | undefined, k: string) => ov?.areas.find((a) => (id ? a.id === id : a.key === k))?.name ?? k;
   const areaName = (id: string | null) => ov?.areas.find((a) => a.id === id)?.name ?? "Sem área";
   const closeGoal = async (g: Goal) => {
     const { error } = await supabase.rpc("set_area_goal_status", { goal: g.id, new_status: "encerrada" });
@@ -147,6 +158,9 @@ export default function Cerebro() {
           </div>
           {owner && (
             <div className="flex flex-wrap items-center gap-2">
+              <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer" title="Resumo da semana, metas fora do rumo e propostas paradas no seu e-mail">
+                <input type="checkbox" className="h-3.5 w-3.5" checked={mailOn} onChange={(e) => void toggleMail(e.target.checked)} /> Receber por e-mail
+              </label>
               <span className="text-xs text-muted-foreground">{used} de {quota} análises no mês</span>
               <Button asChild variant="outline"><Link to="/configuracoes/areas">Áreas e responsáveis</Link></Button>
               <Button disabled={analyzing || used >= quota || !ov?.areas.length} onClick={() => void analyze()}>
@@ -182,7 +196,7 @@ export default function Cerebro() {
             {!!latest.summary.prioridades?.length && (
               <ol className="space-y-1.5 list-decimal pl-5 text-sm">
                 {latest.summary.prioridades.map((p, i) => (
-                  <li key={i}><span className="font-medium">{p.titulo}</span> <span className="text-muted-foreground">· {areaByKey(p.area_key)}{p.por_que ? ` — ${p.por_que}` : ""}</span></li>
+                  <li key={i}><span className="font-medium">{p.titulo}</span> <span className="text-muted-foreground">· {areaOf(p.area_id, p.area_key)}{p.por_que ? ` — ${p.por_que}` : ""}</span></li>
                 ))}
               </ol>
             )}
