@@ -12,6 +12,7 @@ import { callFunction } from "@/lib/callFunction";
 import { Logo } from "@/components/Logo";
 import { RamaisPanel } from "./plataforma/RamaisPanel";
 import { ModulesPanel } from "./plataforma/ModulesPanel";
+import { BrainUsagePanel } from "./plataforma/BrainUsagePanel";
 import { MainNav } from "@/components/MainNav";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Badge } from "@/components/ui/badge";
@@ -163,7 +164,7 @@ export default function Plataforma() {
           </Table>
         </div>
           </TabsContent>
-          <TabsContent value="modulos" className="pt-4"><ModulesPanel orgs={rows} /></TabsContent>
+          <TabsContent value="modulos" className="pt-4 space-y-4"><ModulesPanel orgs={rows} /><BrainUsagePanel /></TabsContent>
           <TabsContent value="ramais" className="pt-4"><RamaisPanel orgs={rows} /></TabsContent>
           <TabsContent value="conectores" className="pt-4 space-y-4">
             <PlatformAIPanel />

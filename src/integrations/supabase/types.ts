@@ -4239,6 +4239,7 @@ export type Database = {
           tokens_out: number
         }[]
       }
+      platform_brain_usage: { Args: { since: string }; Returns: Json }
       platform_close_support: { Args: { org: string }; Returns: undefined }
       platform_open_support: {
         Args: { minutes?: number; org: string; reason: string }
@@ -4415,8 +4416,8 @@ export type Database = {
       }
       service_brain_last_hash: { Args: { org: string }; Returns: string }
       service_brain_packet: { Args: { org: string }; Returns: Json }
-      service_brain_propose: {
-        Args: { items: Json; org: string; p_area_key: string; run: string }
+      service_brain_propose_area: {
+        Args: { area: string; items: Json; org: string; run: string }
         Returns: number
       }
       service_brain_start_run: {

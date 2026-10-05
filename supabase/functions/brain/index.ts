@@ -79,10 +79,10 @@ async function runFor(admin: Admin, orgId: string, kind: "semanal" | "manual", w
     const orchRaw = await ask(ai, [
       "Você é o cérebro de gestão (visão de CEO) desta empresa. Leia o pacote: objetivos da empresa e, por área, indicadores",
       "dos últimos 7 dias × 7 anteriores, metas com semáforo (calculado pelo sistema), pendências e resultados recentes.",
-      "Escreva um resumo da semana (até 5 frases), escolha até 3 prioridades (cada uma ligada a uma área do pacote e, se houver, à meta pelo id),",
+      "Escreva um resumo da semana (até 5 frases curtas), escolha até 3 prioridades (cada uma ligada a uma área do pacote pelo campo id e, se houver, à meta pelo id),",
       "escolha até 3 áreas (pelo id) para o agente da área propor melhorias (só as com agente_ligado=true e onde há algo a melhorar) e liste o que cobrar.",
       'JSON: {"resumo":"","prioridades":[{"area_id":"","titulo":"","por_que":"cite o indicador pela chave","meta_id":""}],"delegar":["area_id"],"cobrar":[""]}',
-    ].join(" "), dados(fit(p, 14_000)), u, 900);
+    ].join(" "), `Áreas (id → nome): ${p.areas.map((a) => `${a.id} → ${a.nome}${a.agente_ligado ? " (agente ligado)" : ""}`).join("; ")}\n${dados(fit(p, 14_000))}`, u, 900);
     const orch = validateOrchestration(orchRaw, p);
 
     // 2. Agentes das áreas delegadas: até 3 propostas cada, com evidência dos números do pacote.
