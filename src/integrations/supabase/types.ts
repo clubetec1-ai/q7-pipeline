@@ -199,6 +199,126 @@ export type Database = {
         }
         Relationships: []
       }
+      area_goals: {
+        Row: {
+          alerted_at: string | null
+          approved_by: string | null
+          area_id: string
+          baseline: number | null
+          created_at: string
+          created_by: string | null
+          direction: string
+          ends_on: string | null
+          id: string
+          metric_key: string
+          organization_id: string
+          period: string
+          source: string
+          starts_on: string
+          status: string
+          target: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          alerted_at?: string | null
+          approved_by?: string | null
+          area_id: string
+          baseline?: number | null
+          created_at?: string
+          created_by?: string | null
+          direction: string
+          ends_on?: string | null
+          id?: string
+          metric_key: string
+          organization_id: string
+          period?: string
+          source?: string
+          starts_on?: string
+          status?: string
+          target: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          alerted_at?: string | null
+          approved_by?: string | null
+          area_id?: string
+          baseline?: number | null
+          created_at?: string
+          created_by?: string | null
+          direction?: string
+          ends_on?: string | null
+          id?: string
+          metric_key?: string
+          organization_id?: string
+          period?: string
+          source?: string
+          starts_on?: string
+          status?: string
+          target?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "area_goals_area_fk"
+            columns: ["area_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "org_areas"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "area_goals_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      area_metric_snapshots: {
+        Row: {
+          area_id: string
+          created_at: string
+          metric_key: string
+          organization_id: string
+          period_start: string
+          value: number | null
+        }
+        Insert: {
+          area_id: string
+          created_at?: string
+          metric_key: string
+          organization_id: string
+          period_start: string
+          value?: number | null
+        }
+        Update: {
+          area_id?: string
+          created_at?: string
+          metric_key?: string
+          organization_id?: string
+          period_start?: string
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "area_metric_snapshots_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "area_snapshots_area_fk"
+            columns: ["area_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "org_areas"
+            referencedColumns: ["id", "organization_id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           action: string
@@ -236,6 +356,68 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "audit_log_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      brain_runs: {
+        Row: {
+          calls: number
+          error: string | null
+          finished_at: string | null
+          id: string
+          kind: string
+          model: string | null
+          organization_id: string
+          packet_hash: string | null
+          period_start: string
+          started_at: string
+          status: string
+          summary: Json | null
+          tokens_in: number
+          tokens_out: number
+          triggered_by: string | null
+        }
+        Insert: {
+          calls?: number
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          kind: string
+          model?: string | null
+          organization_id: string
+          packet_hash?: string | null
+          period_start?: string
+          started_at?: string
+          status?: string
+          summary?: Json | null
+          tokens_in?: number
+          tokens_out?: number
+          triggered_by?: string | null
+        }
+        Update: {
+          calls?: number
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          kind?: string
+          model?: string | null
+          organization_id?: string
+          packet_hash?: string | null
+          period_start?: string
+          started_at?: string
+          status?: string
+          summary?: Json | null
+          tokens_in?: number
+          tokens_out?: number
+          triggered_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brain_runs_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -460,6 +642,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "whatsapp_instances"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaigns_instance_id_same_org"
+            columns: ["instance_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id", "organization_id"]
           },
           {
             foreignKeyName: "campaigns_organization_id_fkey"
@@ -954,6 +1143,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "conversations_instance_id_same_org"
+            columns: ["instance_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
             foreignKeyName: "conversations_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
@@ -966,6 +1162,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "pipeline_stages"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_stage_id_same_org"
+            columns: ["stage_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id", "organization_id"]
           },
         ]
       }
@@ -1070,6 +1273,7 @@ export type Database = {
       email_accounts: {
         Row: {
           address: string
+          ai_reply: boolean
           created_at: string
           department_id: string | null
           has_password: boolean
@@ -1091,6 +1295,7 @@ export type Database = {
         }
         Insert: {
           address: string
+          ai_reply?: boolean
           created_at?: string
           department_id?: string | null
           has_password?: boolean
@@ -1112,6 +1317,7 @@ export type Database = {
         }
         Update: {
           address?: string
+          ai_reply?: boolean
           created_at?: string
           department_id?: string | null
           has_password?: boolean
@@ -1430,6 +1636,7 @@ export type Database = {
           organization_id: string
           send_at: string
           sent_at: string | null
+          stage_id: string | null
           status: string
           text_override: string | null
           updated_at: string
@@ -1445,6 +1652,7 @@ export type Database = {
           organization_id: string
           send_at: string
           sent_at?: string | null
+          stage_id?: string | null
           status?: string
           text_override?: string | null
           updated_at?: string
@@ -1460,6 +1668,7 @@ export type Database = {
           organization_id?: string
           send_at?: string
           sent_at?: string | null
+          stage_id?: string | null
           status?: string
           text_override?: string | null
           updated_at?: string
@@ -1474,6 +1683,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "followups_conversation_id_same_org"
+            columns: ["conversation_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
             foreignKeyName: "followups_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
@@ -1484,16 +1700,22 @@ export type Database = {
       }
       improvements: {
         Row: {
+          agent_key: string | null
           approved_at: string | null
           approved_by: string | null
+          area_id: string | null
           artifact_id: string | null
           artifact_kind: string | null
+          brain_run_id: string | null
           closed_at: string | null
           created_at: string
           created_by: string | null
           department_id: string | null
           description: string | null
           discard_reason: string | null
+          due_date: string | null
+          evidence: Json | null
+          goal_id: string | null
           how: string | null
           id: string
           kind: string
@@ -1504,6 +1726,10 @@ export type Database = {
           modelo: string | null
           organization_id: string
           parent_id: string | null
+          priority: number | null
+          process_ref: string | null
+          reminded_at: string | null
+          reminders: number
           result: string | null
           result_note: string | null
           sistema: string | null
@@ -1514,16 +1740,22 @@ export type Database = {
           version: number
         }
         Insert: {
+          agent_key?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          area_id?: string | null
           artifact_id?: string | null
           artifact_kind?: string | null
+          brain_run_id?: string | null
           closed_at?: string | null
           created_at?: string
           created_by?: string | null
           department_id?: string | null
           description?: string | null
           discard_reason?: string | null
+          due_date?: string | null
+          evidence?: Json | null
+          goal_id?: string | null
           how?: string | null
           id?: string
           kind?: string
@@ -1534,6 +1766,10 @@ export type Database = {
           modelo?: string | null
           organization_id: string
           parent_id?: string | null
+          priority?: number | null
+          process_ref?: string | null
+          reminded_at?: string | null
+          reminders?: number
           result?: string | null
           result_note?: string | null
           sistema?: string | null
@@ -1544,16 +1780,22 @@ export type Database = {
           version?: number
         }
         Update: {
+          agent_key?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          area_id?: string | null
           artifact_id?: string | null
           artifact_kind?: string | null
+          brain_run_id?: string | null
           closed_at?: string | null
           created_at?: string
           created_by?: string | null
           department_id?: string | null
           description?: string | null
           discard_reason?: string | null
+          due_date?: string | null
+          evidence?: Json | null
+          goal_id?: string | null
           how?: string | null
           id?: string
           kind?: string
@@ -1564,6 +1806,10 @@ export type Database = {
           modelo?: string | null
           organization_id?: string
           parent_id?: string | null
+          priority?: number | null
+          process_ref?: string | null
+          reminded_at?: string | null
+          reminders?: number
           result?: string | null
           result_note?: string | null
           sistema?: string | null
@@ -1575,10 +1821,31 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "improvements_area_fk"
+            columns: ["area_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "org_areas"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "improvements_brain_run_fk"
+            columns: ["brain_run_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "brain_runs"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
             foreignKeyName: "improvements_department_fk"
             columns: ["department_id", "organization_id"]
             isOneToOne: false
             referencedRelation: "departments"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "improvements_goal_fk"
+            columns: ["goal_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "area_goals"
             referencedColumns: ["id", "organization_id"]
           },
           {
@@ -1756,6 +2023,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "internal_notes_conversation_id_same_org"
+            columns: ["conversation_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
             foreignKeyName: "internal_notes_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
@@ -1768,6 +2042,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tickets"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_notes_ticket_id_same_org"
+            columns: ["ticket_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id", "organization_id"]
           },
         ]
       }
@@ -2045,6 +2326,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "messages_conversation_id_same_org"
+            columns: ["conversation_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
             foreignKeyName: "messages_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
@@ -2057,6 +2345,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tickets"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_ticket_id_same_org"
+            columns: ["ticket_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id", "organization_id"]
           },
         ]
       }
@@ -2157,6 +2452,80 @@ export type Database = {
           },
         ]
       }
+      org_areas: {
+        Row: {
+          agent_enabled: boolean
+          approval_mode: string
+          approver_id: string | null
+          backup_approver_id: string | null
+          created_at: string
+          department_id: string | null
+          enabled: boolean
+          id: string
+          key: string
+          name: string
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          agent_enabled?: boolean
+          approval_mode?: string
+          approver_id?: string | null
+          backup_approver_id?: string | null
+          created_at?: string
+          department_id?: string | null
+          enabled?: boolean
+          id?: string
+          key: string
+          name: string
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          agent_enabled?: boolean
+          approval_mode?: string
+          approver_id?: string | null
+          backup_approver_id?: string | null
+          created_at?: string
+          department_id?: string | null
+          enabled?: boolean
+          id?: string
+          key?: string
+          name?: string
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_areas_approver_fk"
+            columns: ["organization_id", "approver_id"]
+            isOneToOne: false
+            referencedRelation: "organization_members"
+            referencedColumns: ["organization_id", "user_id"]
+          },
+          {
+            foreignKeyName: "org_areas_backup_fk"
+            columns: ["organization_id", "backup_approver_id"]
+            isOneToOne: false
+            referencedRelation: "organization_members"
+            referencedColumns: ["organization_id", "user_id"]
+          },
+          {
+            foreignKeyName: "org_areas_department_fk"
+            columns: ["department_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "org_areas_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_connections: {
         Row: {
           connected_at: string
@@ -2198,6 +2567,7 @@ export type Database = {
       org_modules: {
         Row: {
           enabled: boolean
+          limits: Json
           module: string
           organization_id: string
           updated_at: string
@@ -2205,6 +2575,7 @@ export type Database = {
         }
         Insert: {
           enabled?: boolean
+          limits?: Json
           module: string
           organization_id: string
           updated_at?: string
@@ -2212,6 +2583,7 @@ export type Database = {
         }
         Update: {
           enabled?: boolean
+          limits?: Json
           module?: string
           organization_id?: string
           updated_at?: string
@@ -2505,6 +2877,10 @@ export type Database = {
         Row: {
           color: string | null
           created_at: string
+          followup_days: number[]
+          followup_hint: string | null
+          followup_template: string | null
+          followup_template_lang: string
           id: string
           name: string
           organization_id: string
@@ -2515,6 +2891,10 @@ export type Database = {
         Insert: {
           color?: string | null
           created_at?: string
+          followup_days?: number[]
+          followup_hint?: string | null
+          followup_template?: string | null
+          followup_template_lang?: string
           id?: string
           name: string
           organization_id: string
@@ -2525,6 +2905,10 @@ export type Database = {
         Update: {
           color?: string | null
           created_at?: string
+          followup_days?: number[]
+          followup_hint?: string | null
+          followup_template?: string | null
+          followup_template_lang?: string
           id?: string
           name?: string
           organization_id?: string
@@ -3106,6 +3490,13 @@ export type Database = {
             referencedRelation: "conversations"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "team_messages_conversation_id_same_org"
+            columns: ["conversation_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id", "organization_id"]
+          },
         ]
       }
       team_reads: {
@@ -3561,10 +3952,16 @@ export type Database = {
       add_default_tags: { Args: { org: string }; Returns: number }
       ai_keys_status: { Args: { org: string }; Returns: Json }
       approve_improvement: { Args: { improvement: string }; Returns: undefined }
+      area_activity: {
+        Args: { area: string; org: string; since: string }
+        Returns: Json
+      }
       assign_extension: {
         Args: { ext: string; member: string }
         Returns: undefined
       }
+      brain_overview: { Args: { org: string }; Returns: Json }
+      brain_pending: { Args: { org: string }; Returns: Json }
       brand_kit: { Args: { org: string }; Returns: Json }
       campaign_audience: {
         Args: { groups: string[]; org: string }
@@ -3715,6 +4112,10 @@ export type Database = {
         Args: { aid: string; akind: string; improvement: string }
         Returns: undefined
       }
+      link_improvement_process: {
+        Args: { improvement: string; process_name: string }
+        Returns: undefined
+      }
       list_http_secrets: {
         Args: { org: string }
         Returns: {
@@ -3774,6 +4175,7 @@ export type Database = {
           organization_id: string
         }[]
       }
+      nudge_improvement: { Args: { improvement: string }; Returns: undefined }
       number_activity: {
         Args: { org: string }
         Returns: {
@@ -3869,6 +4271,10 @@ export type Database = {
         Args: { m: string; on_off: boolean; org: string }
         Returns: undefined
       }
+      platform_set_module_limits: {
+        Args: { lim: Json; m: string; org: string }
+        Returns: undefined
+      }
       platform_set_org_status: {
         Args: { new_status: string; org: string }
         Returns: undefined
@@ -3933,12 +4339,27 @@ export type Database = {
         Args: { org: string; since: string }
         Returns: Json
       }
+      save_area_goal: {
+        Args: {
+          area: string
+          goal: string
+          org: string
+          p_direction: string
+          p_ends: string
+          p_metric: string
+          p_period: string
+          p_target: number
+          p_title: string
+        }
+        Returns: string
+      }
       search_messages: {
         Args: { org: string; q: string }
         Returns: {
           conversation_id: string
         }[]
       }
+      seed_org_areas: { Args: { org: string }; Returns: number }
       seed_pipeline_stages: { Args: { _user_id: string }; Returns: undefined }
       service_add_improvements: {
         Args: {
@@ -3974,6 +4395,33 @@ export type Database = {
       service_anonymize_contact: {
         Args: { actor: string; contact: string; org: string; reason: string }
         Returns: Json
+      }
+      service_brain_can_run_manual: { Args: { org: string }; Returns: string }
+      service_brain_due: { Args: never; Returns: string[] }
+      service_brain_finish_run: {
+        Args: {
+          org: string
+          p_calls: number
+          p_error: string
+          p_hash: string
+          p_in: number
+          p_model: string
+          p_out: number
+          p_status: string
+          p_summary: Json
+          run: string
+        }
+        Returns: undefined
+      }
+      service_brain_last_hash: { Args: { org: string }; Returns: string }
+      service_brain_packet: { Args: { org: string }; Returns: Json }
+      service_brain_propose: {
+        Args: { items: Json; org: string; p_area_key: string; run: string }
+        Returns: number
+      }
+      service_brain_start_run: {
+        Args: { org: string; p_kind: string; who: string }
+        Returns: string
       }
       service_can_add_number: { Args: { org: string }; Returns: boolean }
       service_create_org: {
@@ -4102,6 +4550,10 @@ export type Database = {
         }
         Returns: string
       }
+      set_area_goal_status: {
+        Args: { goal: string; new_status: string }
+        Returns: undefined
+      }
       set_auto_review: {
         Args: { enabled: boolean; org: string }
         Returns: undefined
@@ -4122,6 +4574,14 @@ export type Database = {
         Args: { org: string; secret_key: string; secret_value: string }
         Returns: undefined
       }
+      set_improvement_area: {
+        Args: { area: string; improvement: string }
+        Returns: undefined
+      }
+      set_improvement_due: {
+        Args: { due: string; improvement: string }
+        Returns: undefined
+      }
       set_improvement_live: {
         Args: { days?: number; improvement: string }
         Returns: undefined
@@ -4133,6 +4593,21 @@ export type Database = {
       set_member_name: {
         Args: { member: string; name: string; org: string }
         Returns: undefined
+      }
+      set_org_area: {
+        Args: {
+          agent_on: boolean
+          approver: string
+          area: string
+          backup: string
+          department: string
+          mode: string
+          on_off: boolean
+          org: string
+          p_key: string
+          p_name: string
+        }
+        Returns: string
       }
       set_org_secret: {
         Args: { org: string; secret_key: string; secret_value: string }

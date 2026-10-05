@@ -77,8 +77,15 @@ serve(async (req) => {
         continue;
       }
 
+      // Retorno por etapa do funil: só vale enquanto a conversa continua na mesma etapa.
+      const isStage = f.kind === "auto_stage";
+      if (isStage && (!f.stage_id || conv.stage_id !== f.stage_id)) {
+        await supabase.from("followups").update({ status: "cancelled", error: "mudou de etapa" }).eq("id", f.id);
+        continue;
+      }
+
       // Opt-out (LGPD): contato que pediu para sair não recebe follow-up automático.
-      if (f.kind === "auto_inactivity" && conv.contact_id) {
+      if ((f.kind === "auto_inactivity" || isStage) && conv.contact_id) {
         const { data: ct } = await supabase
           .from("contacts").select("opted_out_at")
           .eq("id", conv.contact_id).eq("organization_id", conv.organization_id).maybeSingle();
@@ -102,7 +109,12 @@ serve(async (req) => {
         continue;
       }
 
-      // Texto: override manual, senão Groq gera reengajamento
+      // Etapa (orientação para a IA e modelo da Meta para fora da janela de 24h).
+      const { data: stage } = isStage
+        ? await org.select("pipeline_stages", "name, followup_hint, followup_template, followup_template_lang").eq("id", f.stage_id).maybeSingle()
+        : { data: null };
+
+      // Texto: override manual, senão a IA gera o reengajamento
       let text = (f.text_override || "").trim();
 
       if (!text) {
@@ -124,7 +136,8 @@ serve(async (req) => {
             role: "system" as const,
             content:
               agent.systemPrompt +
-              "\n\nO cliente não respondeu à última mensagem. Escreva UMA mensagem curta e natural de reengajamento (máx. 2 frases). Não se apresente de novo. Não peça desculpas. Não use emojis em excesso.",
+              "\n\nO cliente não respondeu à última mensagem. Escreva UMA mensagem curta e natural de reengajamento (máx. 2 frases). Não se apresente de novo. Não peça desculpas. Não use emojis em excesso." +
+              (stage ? `\nEtapa do funil: "${String(stage.name).slice(0, 60)}". Objetivo deste retorno: ${String(stage.followup_hint || "retomar a conversa com gentileza").slice(0, 400)}. Nunca invente preço, desconto, prazo ou condição.` : ""),
           },
           ...(history || []).reverse().map((m: any) => ({
             role: (m.direction === "inbound" ? "user" : "assistant") as "user" | "assistant",
@@ -152,12 +165,31 @@ serve(async (req) => {
       // Janela de 24h da Meta: fora dela so template aprovado passa. Enviar
       // assim mesmo gastaria a tentativa e voltaria erro 131047 cru. Em
       // instancia Uazapi isso nao se aplica e isWindowOpen devolve true.
-      if (!providers.isWindowOpen(inst, conv.last_inbound_at)) {
+      const windowOpen = providers.isWindowOpen(inst, conv.last_inbound_at);
+      if (!windowOpen && isStage && stage?.followup_template) {
+        // Número oficial fora das 24h: só modelo aprovado pela Meta passa.
+        const nome = String(conv.contact_name ?? "").trim().split(/\s+/)[0] || "cliente";
+        const sentT = await providers.sendTemplate(inst, conv.contact_phone, {
+          name: stage.followup_template, language: stage.followup_template_lang || "pt_BR", bodyParams: [nome],
+        });
+        if (!sentT.ok) {
+          await supabase.from("followups").update({ status: "failed", error: (sentT.error || "falha no modelo").slice(0, 300) }).eq("id", f.id);
+          continue;
+        }
+        await org.insert("messages", { conversation_id: conv.id, direction: "outbound", sender: "ai", content: `[Retorno automático] modelo ${stage.followup_template}` });
+        await supabase.from("conversations").update({ last_message_at: new Date().toISOString() }).eq("id", conv.id);
+        await supabase.from("followups").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", f.id);
+        processed++;
+        continue;
+      }
+      if (!windowOpen) {
         await supabase
           .from("followups")
           .update({
             status: "failed",
-            error: "janela de 24h fechada — exige template aprovado pela Meta",
+            error: isStage
+              ? "janela de 24h fechada — escolha um modelo aprovado pela Meta nos retornos desta etapa"
+              : "janela de 24h fechada — exige template aprovado pela Meta",
           })
           .eq("id", f.id);
         continue;

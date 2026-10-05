@@ -1,17 +1,18 @@
 import { Link } from "react-router-dom";
 import {
-  Activity, BarChart3, Building2, ChevronDown, ClipboardCheck, ClipboardList, Contact, Filter, Home, Megaphone, Menu,
+  Activity, BarChart3, Brain, Building2, ChevronDown, ClipboardCheck, ClipboardList, Contact, Filter, Home, Megaphone, Menu,
   MessageSquare, MessagesSquare, RefreshCw, Settings2, ShieldCheck, Trello, UserCog, Wallet,
   type LucideIcon,
 } from "lucide-react";
 import { useOrg } from "@/contexts/OrgContext";
+import { useAreaApprover } from "@/lib/useAreaApprover";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
 type Section = "inicio" | "conversas" | "kanban" | "registros" | "cobrancas" | "integracoes" | "equipe" | "numeros" | "fluxos" | "biblioteca"
   | "diagnostico" | "supervisor" | "avaliacoes" | "campanhas" | "seguranca" | "melhorias" | "conhecimento" | "clientes" | "agente"
-  | "relatorios" | "etiquetas" | "chat" | "ramais" | "setores" | "configuracoes" | "plataforma" | "funil";
+  | "relatorios" | "etiquetas" | "chat" | "ramais" | "setores" | "configuracoes" | "plataforma" | "funil" | "cerebro";
 interface Item { key: Section; to: string; label: string; icon: LucideIcon; show: boolean; also?: Section[] }
 
 /** Telas de instalação e da empresa: ficam dentro da central de Configurações (o menu destaca "Configurações"). */
@@ -34,6 +35,7 @@ export function MainNav({ active }: { active: Section }) {
   const manage = can("org.settings");
   const reports = can("reports.view");
   const attend = can("conversations.attend");
+  const approver = useAreaApprover(org?.id);
   const configures = manage || isOperator || can("library.manage") || can("departments.manage") || can("members.manage");
   const top: Item[] = [
     { key: "inicio", to: "/inicio", label: "Início", icon: Home, show: true },
@@ -48,6 +50,7 @@ export function MainNav({ active }: { active: Section }) {
       { key: "campanhas", to: "/campanhas", label: "Campanhas", icon: Megaphone, show: can("campaigns.manage") && hasModule("campanhas") },
     ] },
     { label: "Resultados", icon: BarChart3, items: [
+      { key: "cerebro", to: "/cerebro", label: "Cérebro", icon: Brain, show: (manage && hasModule("gestao")) || approver },
       { key: "supervisor", to: "/supervisor", label: "Agora (equipe e fila)", icon: Activity, show: reports && hasModule("gestao") },
       { key: "relatorios", to: "/relatorios", label: "Relatórios", icon: BarChart3, show: manage || reports || attend },
       { key: "funil", to: "/funil", label: "Funil de vendas", icon: Filter, show: manage || reports },

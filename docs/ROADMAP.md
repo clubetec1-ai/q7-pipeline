@@ -221,6 +221,20 @@ só o Microsoft Teams (item 20) pode ficar para depois. O **cérebro** tem que e
 5. Regras dos bots visíveis na tela (o que a IA nunca faz).
 6. Varredura final: tela a tela (claro/escuro/celular), console, revisão de segurança completa antes da produção.
 
+**Andamento (branch `feat/fase1`, ainda sem merge):** design P2 (barra da conversa, bolhas, Kanban com etiquetas/
+"Mover para…"/Desfazer, abas Resultados e Clientes, Clientes em tabela) ✅; funil 2ª parte (retorno automático por
+etapa 2/5/10 dias + "Gerar proposta") ✅; **cérebro** — fatias 1 a 7 ✅ (04/10): áreas e responsáveis; metas e números por
+área com semáforo no banco; cobranças automáticas (escala ao dono após 2); resultado volta ao Diagnóstico e o plano
+aprende; análise semanal (segunda 8h) e manual com pacote fechado só de números, validador que refaz as evidências e
+agentes de área propondo até 3 sugestões; franquia só o operador muda; resumo da semana, histórico e "o que a área
+fez"; cartão no Início; assistente do app atualizado. Testes de isolamento 69–81 + teste do validador. Revisão de
+segurança feita (sem crítico; 1 alto e os médios corrigidos em 04/10). Falta a prova de ponta a ponta no Cartório
+Teste depois do merge. Também em 04/10: **e-mail completo** (IA responde e-mails por caixa, opcional; cópia em
+"Enviados") ✅ e **regras da IA visíveis** ("O que a IA nunca faz" na tela do Agente) ✅. Fase 1 restante: item 6
+(varredura final tela a tela). Padrões adotados nas decisões do cérebro (o dono pode mudar): responsável = qualquer
+membro ativo; MFA recomendado; franquia 8 análises/mês e 1 manual/dia; e-mail semanal desligado; cérebro dentro do
+módulo "Qualidade e Gestão".
+
 **Fase 2 — pré-lançamento:** 7. venda autoatendida (planos, assinatura Asaas, teste grátis, cadastro público,
 franquia de IA; 🙋 preços — sugestão em docs/marketing/02); 8. contrato e LGPD (termos, privacidade, contrato de
 tratamento de dados; 🙋 revisão jurídica); 9. Meta: Embedded Signup e nome do app (análise prevista ~14/10);

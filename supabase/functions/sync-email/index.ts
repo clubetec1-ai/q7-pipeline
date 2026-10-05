@@ -5,6 +5,7 @@ import { getSecret, safeEqual } from "../_shared/secrets.ts";
 import { storeMedia } from "../_shared/media.ts";
 import { accountPassword, type MailAccount, openImap } from "../_shared/mail.ts";
 import { friendlyMailError, htmlToText, isAutomated, isIgnored, stripQuoted } from "../_shared/mail-utils.ts";
+import { replyEmailByAI } from "../_shared/mail-ai.ts";
 
 /**
  * Recebimento do canal de e-mail (spec canal-email §Recebimento). Cron a cada
@@ -108,6 +109,11 @@ async function syncAccount(admin: any, acc: MailAccount) {
         }
       }
       imported++;
+      // Caixa com "IA responde os e-mails": o protocolo nasce com a IA e ela responde (sem anexos no texto).
+      if (ticket?.status === "bot") {
+        await replyEmailByAI({ admin, orgId: acc.organization_id, conv, ticket, text }).catch((e) =>
+          console.error("[sync-email] IA falhou", e instanceof Error ? e.message.slice(0, 200) : String(e)));
+      }
     }
   } catch (e) {
     failed = true;

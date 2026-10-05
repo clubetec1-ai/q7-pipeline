@@ -1279,6 +1279,8 @@ BEGIN
   PERFORM pg_temp.expect((SELECT count(*) FROM public.tags WHERE organization_id = A AND name LIKE 'Lead %') = 3, 'funil cria etiquetas');
   PERFORM public.service_install_sales_funnel(A);
   PERFORM pg_temp.expect((SELECT count(*) FROM public.pipeline_stages WHERE organization_id = A AND name = 'Qualificado') = 1, 'instalar de novo nao duplica');
+  PERFORM pg_temp.expect((SELECT string_agg(name, '|' ORDER BY position) FROM public.pipeline_stages WHERE organization_id = A)
+    = 'Novo lead|Qualificado|Diagnóstico ou demonstração|Proposta enviada|Teste grátis|Cliente|Perdido|Novo', 'funil na ordem, etapa antiga no fim');
   PERFORM pg_temp.expect((SELECT count(*) FROM public.pipeline_stages WHERE organization_id = 'bbbbbbbb-0000-0000-0000-000000000001' AND name = 'Qualificado') = 0, 'funil de A nao mexe em B');
   INSERT INTO public.flows (id, organization_id, name) VALUES ('aaaaaaaa-0000-0000-0069-000000000001', A, 'funil-a');
   INSERT INTO public.flow_versions (organization_id, flow_id, status, graph) VALUES (A, 'aaaaaaaa-0000-0000-0069-000000000001', 'draft',
@@ -1313,6 +1315,164 @@ BEGIN
   PERFORM pg_temp.expect(pg_temp.q(owner_b, format('SELECT count(*) FROM storage.objects WHERE name = %L', A::text || '/logo-telas-1.png')) = 0, 'outra org nao ve o logo de A');
   UPDATE public.company_profiles SET brand = jsonb_set(brand, '{theme,logo}', to_jsonb('bbbbbbbb-0000-0000-0000-000000000001/x.png'::text)) WHERE organization_id = A;
   PERFORM pg_temp.expect(pg_temp.t(agent_a, format('SELECT coalesce(public.org_theme(%L) ->> %L, %L)', A, 'logo', 'sem')) = 'sem', 'logo fora da pasta da empresa ignorado');
+
+  -- 72. Retorno automatico por etapa do funil: agenda ao entrar, cancela ao sair, recomeca quando o cliente responde.
+  PERFORM pg_temp.expect((SELECT followup_days = '{2,5,10}' FROM public.pipeline_stages WHERE organization_id = A AND name = 'Proposta enviada'), 'funil pronto ja vem com 2, 5 e 10 dias');
+  PERFORM pg_temp.expect_error(owner_a, format('UPDATE public.pipeline_stages SET followup_days = %L WHERE organization_id = %L AND name = %L', '{61}', A, 'Proposta enviada'), 'mais de 60 dias recusado');
+  PERFORM pg_temp.expect(pg_temp.run(agent_a, format('UPDATE public.pipeline_stages SET followup_days = %L WHERE organization_id = %L', '{1}', A)) = 'ok:0', 'atendente nao muda retornos');
+  PERFORM pg_temp.expect(pg_temp.run(owner_b, format('UPDATE public.pipeline_stages SET followup_days = %L WHERE organization_id = %L', '{1}', A)) = 'ok:0', 'outra org nao muda retornos de A');
+  UPDATE public.conversations SET stage_id = (SELECT id FROM public.pipeline_stages WHERE organization_id = A AND name = 'Proposta enviada')
+  WHERE id = 'aaaaaaaa-0000-0000-0004-000000000001';
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.followups WHERE conversation_id = 'aaaaaaaa-0000-0000-0004-000000000001' AND kind = 'auto_stage' AND status = 'pending') = 3, 'entrar na etapa agenda 3 retornos');
+  PERFORM pg_temp.expect((SELECT bool_and(organization_id = A) FROM public.followups WHERE conversation_id = 'aaaaaaaa-0000-0000-0004-000000000001' AND kind = 'auto_stage'), 'retornos na mesma empresa');
+  INSERT INTO public.messages (organization_id, user_id, conversation_id, direction, sender, content)
+  VALUES (A, owner_a, 'aaaaaaaa-0000-0000-0004-000000000001', 'inbound', 'contact', 'oi');
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.followups WHERE conversation_id = 'aaaaaaaa-0000-0000-0004-000000000001' AND kind = 'auto_stage' AND status = 'pending') = 3, 'cliente respondeu: recomeca a contagem');
+  UPDATE public.conversations SET stage_id = (SELECT id FROM public.pipeline_stages WHERE organization_id = A AND name = 'Qualificado')
+  WHERE id = 'aaaaaaaa-0000-0000-0004-000000000001';
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.followups WHERE conversation_id = 'aaaaaaaa-0000-0000-0004-000000000001' AND kind = 'auto_stage' AND status = 'pending') = 0, 'saiu da etapa: retornos cancelados');
+
+  -- 73. Cerebro: areas so o dono cria; responsavel tem que ser da equipe da mesma empresa; exige o modulo.
+  INSERT INTO public.org_modules (organization_id, module, enabled) VALUES (A, 'gestao', false)
+    ON CONFLICT (organization_id, module) DO UPDATE SET enabled = false;
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.set_org_area(%L, NULL, %L, %L, NULL, NULL, NULL, NULL, false, true)', A, 'vendas', 'Sem modulo'), 'sem o modulo Gestao nao cria area');
+  INSERT INTO public.org_modules (organization_id, module, enabled) VALUES (A, 'gestao', true)
+    ON CONFLICT (organization_id, module) DO UPDATE SET enabled = true;
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.set_org_area(%L, NULL, %L, %L, NULL, NULL, NULL, NULL, false, true)', A, 'vendas', 'Vendas'), 'atendente nao cria area');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.set_org_area(%L, NULL, %L, %L, NULL, NULL, NULL, NULL, false, true)', A, 'vendas', 'Vendas'), 'outra org nao cria area em A');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.set_org_area(%L, NULL, %L, %L, NULL, %L, NULL, NULL, false, true)', A, 'vendas', 'Vendas', owner_b), 'responsavel de outra empresa recusado');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.set_org_area(%L, NULL, %L, %L, NULL, NULL, NULL, NULL, false, true)', A, 'inventada', 'X'), 'tipo de area fora da lista recusado');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('SELECT public.set_org_area(%L, NULL, %L, %L, NULL, %L, NULL, %L, false, true)', A, 'vendas', 'Vendas', agent_a, 'responsavel')) = 'ok:1', 'dono cria area com responsavel');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, 'SELECT count(*) FROM public.org_areas') = 1, 'responsavel ve a sua area');
+  PERFORM pg_temp.expect(pg_temp.q(agent2_a, 'SELECT count(*) FROM public.org_areas') = 0, 'outro atendente nao ve areas');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.org_areas') = 0, 'outra org nao ve areas de A');
+  PERFORM pg_temp.expect_denied(owner_a, format('INSERT INTO public.org_areas (organization_id, key, name) VALUES (%L, %L, %L)', A, 'rh', 'RH'), 'navegador nao grava area direto');
+  PERFORM pg_temp.expect(pg_temp.t(owner_a, format('SELECT public.seed_org_areas(%L) >= 1', A)) = 'true', 'dono sugere areas pelos setores');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.seed_org_areas(%L)', A), 'atendente nao sugere areas');
+
+  -- 74. Responsavel aprova so a propria area, so processo/automacao, e so no modo responsavel.
+  INSERT INTO public.improvements (id, organization_id, title, kind, status, source, area_id) VALUES
+    ('aaaaaaaa-0000-0000-0074-000000000001', A, 'Melhoria de vendas', 'processo', 'sugerida', 'cerebro', (SELECT id FROM public.org_areas WHERE organization_id = A AND name = 'Vendas')),
+    ('aaaaaaaa-0000-0000-0074-000000000002', A, 'Agente novo de vendas', 'agente', 'sugerida', 'cerebro', (SELECT id FROM public.org_areas WHERE organization_id = A AND name = 'Vendas')),
+    ('aaaaaaaa-0000-0000-0074-000000000003', A, 'Outra area', 'processo', 'sugerida', 'manual', (SELECT id FROM public.org_areas WHERE organization_id = A AND name <> 'Vendas' LIMIT 1));
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, 'SELECT count(*) FROM public.improvements WHERE source = ''cerebro''') = 2, 'responsavel ve as propostas da area');
+  PERFORM pg_temp.expect(pg_temp.q(agent2_a, 'SELECT count(*) FROM public.improvements WHERE source = ''cerebro''') = 0, 'outro atendente nao ve');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.approve_improvement(%L)', 'aaaaaaaa-0000-0000-0074-000000000002'), 'responsavel nao aprova agente de IA');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.approve_improvement(%L)', 'aaaaaaaa-0000-0000-0074-000000000003'), 'responsavel nao aprova outra area');
+  PERFORM pg_temp.expect_error(agent2_a, format('SELECT public.approve_improvement(%L)', 'aaaaaaaa-0000-0000-0074-000000000001'), 'quem nao e responsavel nao aprova');
+  UPDATE public.org_areas SET approval_mode = 'dono' WHERE organization_id = A AND name = 'Vendas';
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.approve_improvement(%L)', 'aaaaaaaa-0000-0000-0074-000000000001'), 'modo dono: responsavel nao aprova');
+  UPDATE public.org_areas SET approval_mode = 'responsavel' WHERE organization_id = A AND name = 'Vendas';
+  PERFORM pg_temp.expect(pg_temp.run(agent_a, format('SELECT public.approve_improvement(%L)', 'aaaaaaaa-0000-0000-0074-000000000001')) = 'ok:1', 'responsavel aprova a propria area');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.set_improvement_area(%L, NULL)', 'aaaaaaaa-0000-0000-0074-000000000002'), 'responsavel nao muda a area da proposta');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.set_improvement_area(%L, %L)', 'aaaaaaaa-0000-0000-0074-000000000002', 'bbbbbbbb-0000-0000-0000-000000000001'), 'area inexistente ou de outra org recusada');
+  PERFORM pg_temp.expect_error(owner_a, format('UPDATE public.improvements SET area_id = (SELECT id FROM public.org_areas WHERE organization_id = %L LIMIT 1)', A), 'navegador nao grava improvements');
+
+  -- 75. Metas e numeros por area: so o dono define; indicador so do catalogo da area; responsavel so ve a sua.
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('SELECT public.save_area_goal(%L, NULL, (SELECT id FROM public.org_areas WHERE organization_id = %L AND name = %L), %L, %L, %L, 10, %L, NULL)',
+    A, A, 'Vendas', 'Mais leads', 'leads_novos', 'up', 'semana')) = 'ok:1', 'dono cria meta da area');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.save_area_goal(%L, NULL, (SELECT id FROM public.org_areas WHERE organization_id = %L AND name = %L), %L, %L, %L, 10, %L, NULL)',
+    A, A, 'Vendas', 'Errada', 'valor_emitido', 'up', 'semana'), 'indicador de outra area recusado');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.save_area_goal(%L, NULL, (SELECT id FROM public.org_areas WHERE organization_id = %L AND name = %L), %L, %L, %L, 5, %L, NULL)',
+    A, A, 'Vendas', 'X', 'leads_novos', 'up', 'semana'), 'responsavel nao cria meta');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, 'SELECT count(*) FROM public.area_goals') = 1, 'responsavel ve a meta da sua area');
+  PERFORM pg_temp.expect(pg_temp.q(agent2_a, 'SELECT count(*) FROM public.area_goals') = 0, 'outro atendente nao ve metas');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.area_goals') = 0, 'outra org nao ve metas de A');
+  PERFORM pg_temp.expect(pg_temp.t(owner_a, format('SELECT public.brain_overview(%L) ->> %L', A, 'scope')) = 'dono', 'dono ve o painel inteiro');
+  PERFORM pg_temp.expect(pg_temp.t(agent_a, format('SELECT jsonb_array_length(public.brain_overview(%L) -> %L)', A, 'areas')) = '1', 'responsavel ve so a sua area');
+  PERFORM pg_temp.expect(pg_temp.t(agent_a, format('SELECT public.brain_overview(%L) -> %L -> 0 -> %L -> 0 ->> %L', A, 'areas', 'goals', 'light')) IN ('no_rumo', 'atencao', 'fora', 'sem_dados'), 'semaforo calculado no banco');
+  PERFORM pg_temp.expect_error(agent2_a, format('SELECT public.brain_overview(%L)', A), 'quem nao e responsavel nao ve o painel');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.brain_overview(%L)', A), 'outra org nao ve o painel de A');
+  PERFORM pg_temp.expect_denied(owner_a, format('INSERT INTO public.area_metric_snapshots (organization_id, area_id, metric_key, period_start, value) VALUES (%L, (SELECT id FROM public.org_areas WHERE organization_id = %L LIMIT 1), %L, current_date, 1)', A, A, 'leads_novos'), 'navegador nao grava foto dos numeros');
+  PERFORM pg_temp.expect(private.snapshot_area_metrics(A) >= 1, 'backend grava a foto semanal');
+
+  -- 76. Cobrancas do cerebro: avisa so quem deve (mesma empresa), 1x por intervalo, e escala ao dono depois de 2.
+  UPDATE public.improvements SET approved_at = now() - interval '8 days', reminded_at = NULL, reminders = 0 WHERE id = 'aaaaaaaa-0000-0000-0074-000000000001';
+  DELETE FROM public.notifications WHERE organization_id = A AND kind = 'brain_reminder';
+  PERFORM private.brain_daily_tick();
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.notifications WHERE organization_id = A AND kind = 'brain_reminder'
+    AND ref ->> 'improvement_id' = 'aaaaaaaa-0000-0000-0074-000000000001' AND user_id = agent_a) = 1, 'responsavel cobrado pela aprovada parada');
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.notifications WHERE kind = 'brain_reminder' AND organization_id <> A
+    AND ref ->> 'improvement_id' = 'aaaaaaaa-0000-0000-0074-000000000001') = 0, 'cobranca nao vaza para outra empresa');
+  PERFORM private.brain_daily_tick();
+  PERFORM pg_temp.expect((SELECT reminders FROM public.improvements WHERE id = 'aaaaaaaa-0000-0000-0074-000000000001') = 1, 'nao cobra de novo antes de 3 dias');
+  UPDATE public.improvements SET reminders = 2, reminded_at = now() - interval '4 days' WHERE id = 'aaaaaaaa-0000-0000-0074-000000000001';
+  PERFORM private.brain_daily_tick();
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.notifications WHERE organization_id = A AND kind = 'brain_reminder'
+    AND (ref ->> 'escalado')::boolean AND user_id = owner_a AND ref ->> 'improvement_id' = 'aaaaaaaa-0000-0000-0074-000000000001') = 1, 'depois de 2 cobrancas escala ao dono');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.nudge_improvement(%L)', 'aaaaaaaa-0000-0000-0074-000000000001'), 'responsavel nao usa Cobrar');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.nudge_improvement(%L)', 'aaaaaaaa-0000-0000-0074-000000000001'), 'Cobrar so 1x a cada 24h');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.brain_pending(%L)', A), 'outra org nao ve pendencias de A');
+  PERFORM pg_temp.expect(pg_temp.t(agent_a, format('SELECT jsonb_array_length(public.brain_pending(%L)) >= 1', A)) = 'true', 'responsavel ve as pendencias da area');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.set_improvement_due(%L, current_date - 1)', 'aaaaaaaa-0000-0000-0074-000000000001'), 'prazo no passado recusado');
+  PERFORM pg_temp.expect(pg_temp.run(agent_a, format('SELECT public.set_improvement_due(%L, current_date + 3)', 'aaaaaaaa-0000-0000-0074-000000000001')) = 'ok:1', 'responsavel define prazo');
+
+  -- 77. Resultado volta ao Diagnostico (so da mesma empresa).
+  UPDATE public.company_profiles SET processes = '[{"nome":"Confirmar agendamento","implementar":"agora"},{"nome":"Outro"}]'::jsonb WHERE organization_id = A;
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.link_improvement_process(%L, %L)', 'aaaaaaaa-0000-0000-0074-000000000001', 'Nao existe'), 'processo inexistente recusado');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.link_improvement_process(%L, %L)', 'aaaaaaaa-0000-0000-0074-000000000001', 'Outro'), 'responsavel nao liga processo');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('SELECT public.link_improvement_process(%L, %L)', 'aaaaaaaa-0000-0000-0074-000000000001', 'confirmar agendamento')) = 'ok:1', 'dono liga a proposta ao processo');
+  UPDATE public.improvements SET status = 'no_ar', live_at = now() WHERE id = 'aaaaaaaa-0000-0000-0074-000000000001';
+  PERFORM pg_temp.expect((SELECT x -> 'implantacao' ->> 'status' FROM public.company_profiles p, jsonb_array_elements(p.processes) x
+    WHERE p.organization_id = A AND x ->> 'nome' = 'Confirmar agendamento') = 'no_ar', 'processo mostra que foi implantado');
+  PERFORM pg_temp.expect((SELECT x ->> 'implementar' FROM public.company_profiles p, jsonb_array_elements(p.processes) x
+    WHERE p.organization_id = A AND x ->> 'nome' = 'Confirmar agendamento') = 'agora', 'escolha do dono preservada');
+  PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM public.company_profiles p, jsonb_array_elements(coalesce(p.processes, '[]'::jsonb)) x
+    WHERE p.organization_id <> A AND x ? 'implantacao' AND x -> 'implantacao' ->> 'melhoria_id' = 'aaaaaaaa-0000-0000-0074-000000000001'), 'nao toca no Diagnostico de outra empresa');
+
+  -- 78. Cerebro so pelo servidor; analises so o dono ve; franquia so o operador grava.
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_brain_packet(%L)', A), 'navegador nao le o pacote do cerebro');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_brain_propose_area(%L, NULL, NULL, %L)', A, '[]'), 'navegador nao grava proposta do cerebro');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_brain_start_run(%L, %L, NULL)', A, 'manual'), 'navegador nao abre analise');
+  PERFORM pg_temp.expect_error(owner_a, 'SELECT * FROM public.service_brain_due()', 'navegador nao lista empresas do cerebro');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.platform_set_module_limits(%L, %L, %L)', A, 'gestao', '{"analises_mes":999}'), 'dono nao muda a propria franquia');
+  PERFORM pg_temp.expect(pg_temp.run(operator, format('SELECT public.platform_set_module_limits(%L, %L, %L)', A, 'gestao', '{"analises_mes":8}')) = 'ok:1', 'operador define a franquia');
+  INSERT INTO public.brain_runs (id, organization_id, kind, status, period_start) VALUES ('aaaaaaaa-0000-0000-0078-000000000001', A, 'manual', 'ok', current_date);
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT count(*) FROM public.brain_runs') = 1, 'dono ve as analises');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, 'SELECT count(*) FROM public.brain_runs') = 0, 'responsavel nao ve o resumo de CEO');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.brain_runs') = 0, 'outra org nao ve analises de A');
+  PERFORM pg_temp.expect_denied(owner_a, format('INSERT INTO public.brain_runs (organization_id, kind) VALUES (%L, %L)', A, 'manual'), 'navegador nao grava analise');
+
+  -- 79. Propostas do cerebro: nascem sugeridas, no maximo 3, avisam o responsavel, e area cheia nao recebe mais.
+  DELETE FROM public.improvements WHERE organization_id = A AND source = 'cerebro' AND status = 'sugerida';
+  PERFORM pg_temp.expect(public.service_brain_propose_area(A, 'aaaaaaaa-0000-0000-0078-000000000001', (SELECT id FROM public.org_areas WHERE organization_id = A AND name = 'Vendas'),
+    '[{"titulo":"P1","tipo":"processo"},{"titulo":"P2","tipo":"automacao","modelo":"followup"},{"titulo":"P3","tipo":"processo"},{"titulo":"P4","tipo":"processo"}]'::jsonb) = 3, 'no maximo 3 por analise');
+  PERFORM pg_temp.expect((SELECT bool_and(status = 'sugerida' AND source = 'cerebro' AND agent_key = 'area:vendas' AND organization_id = A)
+    FROM public.improvements WHERE brain_run_id = 'aaaaaaaa-0000-0000-0078-000000000001'), 'nascem sugeridas, marcadas como do cerebro');
+  PERFORM pg_temp.expect(EXISTS (SELECT 1 FROM public.notifications WHERE organization_id = A AND user_id = agent_a AND kind = 'improvement' AND ref ->> 'title' = 'P1'), 'responsavel avisado');
+  PERFORM pg_temp.expect(public.service_brain_propose_area(A, 'aaaaaaaa-0000-0000-0078-000000000001', (SELECT id FROM public.org_areas WHERE organization_id = A AND name = 'Vendas'), '[{"titulo":"P1"}]'::jsonb) = 0, 'titulo repetido nao duplica');
+  PERFORM public.service_brain_propose_area(A, 'aaaaaaaa-0000-0000-0078-000000000001', (SELECT id FROM public.org_areas WHERE organization_id = A AND name = 'Vendas'), '[{"titulo":"P5"},{"titulo":"P6"}]'::jsonb);
+  PERFORM pg_temp.expect(public.service_brain_propose_area(A, 'aaaaaaaa-0000-0000-0078-000000000001', (SELECT id FROM public.org_areas WHERE organization_id = A AND name = 'Vendas'), '[{"titulo":"P7"}]'::jsonb) = 0, 'area com 5 pendentes nao recebe mais');
+  PERFORM pg_temp.expect(public.service_brain_propose_area('bbbbbbbb-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0078-000000000001', (SELECT id FROM public.org_areas WHERE organization_id = A AND name = 'Vendas'), '[{"titulo":"Z"}]'::jsonb) = 0, 'area de A nao grava em nome de B');
+  -- Modo "so o dono": nem o supervisor do setor aprova; e o aviso vai para o dono.
+  INSERT INTO public.improvements (id, organization_id, title, kind, status, source, area_id, department_id) VALUES
+    ('aaaaaaaa-0000-0000-0079-000000000001', A, 'Agente do setor', 'agente', 'sugerida', 'manual', NULL, 'aaaaaaaa-0000-0000-0001-000000000001'),
+    ('aaaaaaaa-0000-0000-0079-000000000002', A, 'Do cerebro no setor', 'processo', 'sugerida', 'cerebro', (SELECT id FROM public.org_areas WHERE organization_id = A AND name = 'Vendas'), 'aaaaaaaa-0000-0000-0001-000000000001');
+  PERFORM pg_temp.expect(pg_temp.run(sup_a, format('SELECT public.approve_improvement(%L)', 'aaaaaaaa-0000-0000-0079-000000000001')) = 'ok:1', 'supervisor do setor continua aprovando (regra antiga)');
+  UPDATE public.org_areas SET approval_mode = 'dono' WHERE organization_id = A AND name = 'Vendas';
+  PERFORM pg_temp.expect_error(sup_a, format('SELECT public.approve_improvement(%L)', 'aaaaaaaa-0000-0000-0079-000000000002'), 'modo dono: supervisor do setor nao aprova');
+  PERFORM pg_temp.expect((SELECT count(*) FROM private.brain_recipients(A, (SELECT id FROM public.org_areas WHERE organization_id = A AND name = 'Vendas'), false) r WHERE r = agent_a) = 0, 'modo dono: cobranca nao vai para o responsavel');
+  UPDATE public.org_areas SET approval_mode = 'responsavel' WHERE organization_id = A AND name = 'Vendas';
+  -- Correcao herda a area da original.
+  INSERT INTO public.improvements (id, organization_id, title, kind, status, source, parent_id) VALUES
+    ('aaaaaaaa-0000-0000-0079-000000000003', A, 'Ajustar: P1', 'processo', 'sugerida', 'monitor', (SELECT id FROM public.improvements WHERE organization_id = A AND title = 'P1'));
+  PERFORM pg_temp.expect((SELECT area_id IS NOT NULL FROM public.improvements WHERE id = 'aaaaaaaa-0000-0000-0079-000000000003'), 'correcao herda a area');
+  -- Analise: so uma em andamento; presa vira erro.
+  INSERT INTO public.brain_runs (organization_id, kind, status, started_at) VALUES (A, 'manual', 'rodando', now() - interval '20 minutes');
+  PERFORM pg_temp.expect(public.service_brain_start_run(A, 'semanal', NULL) IS NOT NULL, 'analise presa e liberada e a nova abre');
+  PERFORM pg_temp.expect(public.service_brain_start_run(A, 'semanal', NULL) IS NULL, 'so uma analise em andamento por empresa');
+
+  -- 80. LGPD do pacote: so agregados, sem telefone nem conteudo de conversa.
+  PERFORM pg_temp.expect(public.service_brain_packet(A)::text NOT LIKE '%5511900000001%', 'pacote sem telefone de cliente');
+  PERFORM pg_temp.expect(public.service_brain_packet(A)::text NOT LIKE '%@%', 'pacote sem e-mail');
+  PERFORM pg_temp.expect(public.service_brain_packet(A)::text NOT LIKE '%"oi"%', 'pacote sem mensagens');
+
+  -- 81. Historico por area: dono e responsavel da area; outros nao.
+  PERFORM pg_temp.expect(pg_temp.t(agent_a, format('SELECT jsonb_array_length(public.area_activity(%L, (SELECT id FROM public.org_areas WHERE organization_id = %L AND name = %L), NULL)) >= 1',
+    A, A, 'Vendas')) = 'true', 'responsavel ve o que a area fez');
+  PERFORM pg_temp.expect_error(agent2_a, format('SELECT public.area_activity(%L, (SELECT id FROM public.org_areas WHERE organization_id = %L AND name = %L), NULL)', A, A, 'Vendas'), 'outro atendente nao ve');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.area_activity(%L, (SELECT id FROM public.org_areas WHERE organization_id = %L AND name = %L), NULL)', A, A, 'Vendas'), 'outra org nao ve historico de A');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.area_activity(%L, (SELECT id FROM public.org_areas WHERE organization_id = %L AND name = %L), NULL)', 'bbbbbbbb-0000-0000-0000-000000000001', A, 'Vendas'), 'area de A pedida em nome de B recusada');
   PERFORM pg_temp.expect(pg_temp.run(NULL, format('UPDATE public.conversations SET stage_id = (SELECT id FROM public.pipeline_stages WHERE organization_id = %L AND name = %L) WHERE id = %L',
     A, 'Qualificado', 'aaaaaaaa-0000-0000-0004-000000000001')) = 'ok:1', 'etapa da propria org aceita');
 

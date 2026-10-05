@@ -2,7 +2,11 @@ import { BellRing, Sparkles, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-export interface BoardProc { nome: string; setor?: string; area?: string; implementar?: "agora" | "depois" | "nao"; lembrar_em?: string; lembrado_em?: string; dificuldade?: string }
+export interface BoardProc {
+  nome: string; setor?: string; area?: string; implementar?: "agora" | "depois" | "nao"; lembrar_em?: string; lembrado_em?: string; dificuldade?: string;
+  /** Gravado pelo banco quando a melhoria ligada ao processo vai ao ar ou recebe resultado (cérebro). */
+  implantacao?: { status?: string; resultado?: string | null; em?: string };
+}
 export interface Priority { at: string; resumo?: string; ordem: { setor: string; motivo: string; ganho: string; primeiros: string[] }[] }
 
 const CHOICES: [NonNullable<BoardProc["implementar"]>, string, string][] = [
@@ -62,7 +66,15 @@ export function ImplementationBoard({ processes, sectors, priority, busy, onChan
             <p className="text-sm font-medium">{pos !== undefined ? `${pos + 1}º · ` : ""}{s}</p>
             {list.map((p, i) => (
               <div key={`${p.nome}-${i}`} className="flex flex-wrap items-center gap-2 rounded-md border px-2 py-1.5">
-                <span className="text-sm flex-1 min-w-[10rem]">{p.nome}</span>
+                <span className="text-sm flex-1 min-w-[10rem]">
+                  {p.nome}
+                  {p.implantacao?.em && (
+                    <span className={`ml-2 rounded-md px-1.5 py-0.5 text-xs ${p.implantacao.resultado === "funcionou" ? "bg-success-soft text-success-text" : p.implantacao.resultado === "nao_funcionou" ? "bg-danger-soft text-danger-text" : "bg-info-soft text-info-text"}`}>
+                      Implantado em {new Date(p.implantacao.em).toLocaleDateString("pt-BR")}
+                      {p.implantacao.resultado === "funcionou" ? " · funcionou" : p.implantacao.resultado === "nao_funcionou" ? " · não funcionou" : p.implantacao.status === "no_ar" ? " · medindo" : ""}
+                    </span>
+                  )}
+                </span>
                 <div className="flex rounded-md border overflow-hidden text-xs">
                   {CHOICES.map(([k, label, on]) => (
                     <button key={k} type="button" onClick={() => setProc(p, { implementar: k, lembrar_em: k === "depois" ? p.lembrar_em || inDays(7) : undefined })}

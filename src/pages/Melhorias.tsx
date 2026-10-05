@@ -1,3 +1,4 @@
+import { SectionTabs } from "@/components/layout/SectionTabs";
 import { useCallback, useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { Navigate, useNavigate } from "react-router-dom";
@@ -21,15 +22,15 @@ interface Improvement {
   modelo: string | null; department_id: string | null; status: string; artifact_kind: string | null; artifact_id: string | null;
   parent_id: string | null; version: number; measure_days: number; live_at: string | null; closed_at: string | null;
   metrics_before: Record<string, number> | null; metrics_after: Record<string, number> | null;
-  result: string | null; result_note: string | null; created_at: string;
+  result: string | null; result_note: string | null; created_at: string; area_id?: string | null; process_ref?: string | null;
 }
 
 const COLUMNS: [string, string][] = [["sugerida", "Para aprovar"], ["aprovada", "Aprovadas"], ["no_ar", "No ar — medindo"], ["resultado", "Resultados"]];
-const SOURCE: Record<string, string> = { plano: "Planejamento", avaliacoes: "Avaliações", monitor: "Correção", manual: "Manual" };
+const SOURCE: Record<string, string> = { plano: "Planejamento", avaliacoes: "Avaliações", monitor: "Correção", manual: "Manual", cerebro: "Cérebro" };
 const KIND: Record<string, string> = { automacao: "Automação", agente: "Agente de IA", processo: "Processo", integracao: "Integração" };
 const RESULT: Record<string, [string, string]> = {
-  funcionou: ["Funcionou", "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"],
-  nao_funcionou: ["Não funcionou", "bg-red-500/15 text-red-700 dark:text-red-400"],
+  funcionou: ["Funcionou", "bg-success-soft text-success-text"],
+  nao_funcionou: ["Não funcionou", "bg-danger-soft text-danger-text"],
   inconclusivo: ["Inconclusivo", "bg-muted text-muted-foreground"],
 };
 const METRIC: [string, string, "up" | "down"][] = [
@@ -39,7 +40,8 @@ const METRIC: [string, string, "up" | "down"][] = [
 
 /**
  * Ciclo de melhoria contínua: sugerida → aprovada → no ar (medindo) → resultado.
- * Quem aprova: dono/admin ou o supervisor do setor. Nada vai ao ar sozinho.
+ * Quem aprova: dono/admin, o supervisor do setor ou o responsável da área (Configurações →
+ * Áreas e responsáveis). Nada vai ao ar sozinho.
  */
 export default function Melhorias() {
   const { signOut } = useAuth();
@@ -51,21 +53,33 @@ export default function Melhorias() {
   const [busy, setBusy] = useState<string | null>(null);
   const [form, setForm] = useState<{ title: string; description: string; how: string; kind: string; department: string } | null>(null);
   const [showDiscarded, setShowDiscarded] = useState(false);
+  const [areas, setAreas] = useState<{ id: string; name: string }[]>([]);
+  const [areaFilter, setAreaFilter] = useState(() => new URLSearchParams(window.location.search).get("area") ?? "");
+  const [loaded, setLoaded] = useState(false);
+  const [procs, setProcs] = useState<string[]>([]);
   const manage = can("org.settings");
 
   const load = useCallback(async () => {
     if (!org) return;
-    const [i, d] = await Promise.all([
+    const [i, d, a] = await Promise.all([
       supabase.from("improvements").select("*").eq("organization_id", org.id).order("created_at", { ascending: false }).limit(200),
       supabase.from("departments").select("id, name, color").eq("organization_id", org.id).order("name"),
+      supabase.from("org_areas").select("id, name").eq("organization_id", org.id).order("name"),
     ]);
     setList((i.data as unknown as Improvement[]) ?? []);
     setDepts(d.data ?? []);
-  }, [org]);
+    setAreas(a.data ?? []);
+    setLoaded(true);
+    if (can("org.settings")) {
+      const { data: cp } = await supabase.from("company_profiles").select("processes").eq("organization_id", org.id).maybeSingle();
+      setProcs(((cp?.processes ?? []) as { nome?: string }[]).map((p) => String(p?.nome ?? "")).filter(Boolean).slice(0, 100));
+    }
+  }, [org, can]);
   useEffect(() => { void load(); }, [load]);
 
   if (!org) return null;
-  if (!manage && !can("reports.view")) return <Navigate to="/" replace />;
+  // Responsável de área (sem relatórios) também entra: vê só as propostas das suas áreas (RLS).
+  if (!manage && !can("reports.view") && loaded && !areas.length) return <Navigate to="/" replace />;
 
   const fail = (title: string, description?: string) => toast({ variant: "destructive", title, description });
   const rpc = async (name: string, args: Record<string, unknown>, okTitle: string) => {
@@ -137,9 +151,24 @@ export default function Melhorias() {
           <Badge variant="outline">{KIND[i.kind] ?? i.kind}</Badge>
           <Badge variant="secondary">{SOURCE[i.source] ?? i.source}{i.version > 1 ? ` · v${i.version}` : ""}</Badge>
           {deptName(i.department_id) && <Badge variant="outline">{deptName(i.department_id)}</Badge>}
+          {i.area_id && areas.find((a) => a.id === i.area_id) && <Badge variant="outline">Área: {areas.find((a) => a.id === i.area_id)!.name}</Badge>}
         </div>
       </div>
       {i.description && <p className="text-muted-foreground whitespace-pre-wrap">{i.description.length > 280 ? `${i.description.slice(0, 280)}…` : i.description}</p>}
+      {manage && areas.length > 0 && i.status !== "descartada" && i.status !== "resultado" && (
+        <select className="h-8 w-full rounded-md border bg-background px-2 text-xs" value={i.area_id ?? ""} aria-label="Área que aprova"
+          onChange={(e) => void rpc("set_improvement_area", { improvement: i.id, area: e.target.value || null }, e.target.value ? "Área definida: o responsável foi avisado" : "Sem área")}>
+          <option value="">Sem área (só o dono aprova)</option>
+          {areas.map((a) => <option key={a.id} value={a.id}>Área: {a.name}</option>)}
+        </select>
+      )}
+      {manage && procs.length > 0 && i.status !== "descartada" && (
+        <select className="h-8 w-full rounded-md border bg-background px-2 text-xs" value={i.process_ref ?? ""} aria-label="Processo do Diagnóstico"
+          onChange={(e) => void rpc("link_improvement_process", { improvement: i.id, process_name: e.target.value || null }, e.target.value ? "Ligada ao processo: o resultado aparece no Diagnóstico" : "Sem processo")}>
+          <option value="">Sem processo do Diagnóstico</option>
+          {procs.map((p) => <option key={p} value={p}>Processo: {p}</option>)}
+        </select>
+      )}
       {i.how && <details><summary className="cursor-pointer text-xs">Como implementar</summary><p className="whitespace-pre-wrap text-xs mt-1">{i.how}</p></details>}
       {i.status === "no_ar" && i.live_at && (
         <p className="text-xs text-muted-foreground">
@@ -176,6 +205,7 @@ export default function Melhorias() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <AppHeader active="melhorias" />
+      <SectionTabs group="resultados" active="melhorias" />
       <NumberHealthBanner />
 
       <main className="flex-1 w-full max-w-7xl mx-auto p-4 sm:p-6 space-y-4">
@@ -212,9 +242,19 @@ export default function Melhorias() {
           </section>
         )}
 
+        {areas.length > 0 && (
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-muted-foreground">Área:</span>
+            <select className="h-9 rounded-md border bg-background px-2 text-sm" value={areaFilter} onChange={(e) => setAreaFilter(e.target.value)}>
+              <option value="">Todas</option>
+              {areas.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+          </div>
+        )}
+
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           {COLUMNS.map(([st, label]) => {
-            const items = list.filter((i) => i.status === st);
+            const items = list.filter((i) => i.status === st && (!areaFilter || i.area_id === areaFilter));
             return (
               <section key={st} className="rounded-lg bg-muted/40 p-2 space-y-2 min-h-[8rem]">
                 <p className="text-sm font-semibold px-1">{label} <span className="text-muted-foreground font-normal">({items.length})</span></p>

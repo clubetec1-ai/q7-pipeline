@@ -4,6 +4,7 @@
  */
 import { ImapFlow } from "npm:imapflow@1.0.171";
 import nodemailer from "npm:nodemailer@6.9.16";
+import MailComposer from "npm:nodemailer@6.9.16/lib/mail-composer/index.js";
 import { getSecret } from "./secrets.ts";
 import { checkPublicHost } from "./flow/http.ts";
 
@@ -39,4 +40,30 @@ export async function smtpTransport(acc: Pick<MailAccount, "smtp_host" | "smtp_p
     host: acc.smtp_host, port: acc.smtp_port, secure: acc.smtp_port === 465, requireTLS: acc.smtp_port === 587,
     auth: { user: acc.username, pass }, connectionTimeout: 15_000, greetingTimeout: 15_000, socketTimeout: 30_000,
   });
+}
+
+/** Provedores que já guardam no "Enviados" o que sai pelo SMTP deles (copiar duplicaria). */
+const AUTO_SENT = /(gmail|googlemail|google|office365|outlook|hotmail|live\.com|zoho|yahoo|icloud|me\.com)/i;
+
+/**
+ * Guarda uma cópia do e-mail enviado na pasta "Enviados" (\Sent, ou Sent/Enviados) da
+ * própria caixa, para a empresa ver no webmail o que o sistema respondeu.
+ */
+export async function copyToSent(
+  acc: Pick<MailAccount, "imap_host" | "imap_port" | "username" | "smtp_host">,
+  pass: string,
+  // deno-lint-ignore no-explicit-any
+  opts: Record<string, any>,
+) {
+  if (AUTO_SENT.test(acc.smtp_host) || AUTO_SENT.test(acc.imap_host)) return;
+  const raw: Uint8Array = await new MailComposer(opts).compile().build();
+  const client = await openImap(acc, pass);
+  try {
+    const boxes = (await client.list()) as { path: string; specialUse?: string }[];
+    const sent = boxes.find((b) => b.specialUse === "\Sent")
+      ?? boxes.find((b) => /^(inbox[./])?(sent|enviad|itens enviados|sent items|sent messages)/i.test(b.path));
+    if (sent) await client.append(sent.path, raw, ["\Seen"]);
+  } finally {
+    await client.logout().catch(() => {});
+  }
 }

@@ -21,7 +21,7 @@ import {
 
 interface Account {
   id: string; name: string; address: string; username: string; imap_host: string; imap_port: number;
-  smtp_host: string; smtp_port: number; department_id: string | null; signature: string | null; status: string;
+  smtp_host: string; smtp_port: number; department_id: string | null; signature: string | null; status: string; ai_reply: boolean;
   health_status: string | null; health_error: string | null; last_sync_at: string | null; has_password: boolean;
 }
 type Draft = Omit<Account, "id" | "status" | "health_status" | "health_error" | "last_sync_at" | "has_password"> & { id?: string; password: string };
@@ -37,7 +37,7 @@ const PRESETS: Record<string, { label: string; imap: string; imapPort: number; s
   zoho: { label: "Zoho Mail", imap: "imap.zoho.com", imapPort: 993, smtp: "smtp.zoho.com", smtpPort: 465 },
   outro: { label: "Outro (informar servidores)", imap: "", imapPort: 993, smtp: "", smtpPort: 465 },
 };
-const EMPTY: Draft = { name: "", address: "", username: "", password: "", imap_host: "", imap_port: 993, smtp_host: "", smtp_port: 465, department_id: null, signature: "" };
+const EMPTY: Draft = { name: "", address: "", username: "", password: "", imap_host: "", imap_port: 993, smtp_host: "", smtp_port: 465, department_id: null, signature: "", ai_reply: false };
 const when = (d: string | null) => (d ? new Date(d).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—");
 
 /** Caixas de e-mail da empresa (canal de atendimento). O dono conecta sozinho. */
@@ -53,7 +53,7 @@ export function EmailAccounts({ orgId }: { orgId: string }) {
 
   const load = useCallback(async () => {
     const [a, d] = await Promise.all([
-      supabase.from("email_accounts").select("id, name, address, username, imap_host, imap_port, smtp_host, smtp_port, department_id, signature, status, health_status, health_error, last_sync_at, has_password")
+      supabase.from("email_accounts").select("id, name, address, username, imap_host, imap_port, smtp_host, smtp_port, department_id, signature, ai_reply, status, health_status, health_error, last_sync_at, has_password")
         .eq("organization_id", orgId).order("created_at"),
       supabase.from("departments").select("id, name").eq("organization_id", orgId).order("name"),
     ]);
@@ -76,7 +76,7 @@ export function EmailAccounts({ orgId }: { orgId: string }) {
   const openEdit = (a: Account) => {
     setPreset(Object.keys(PRESETS).find((k) => PRESETS[k].imap === a.imap_host) ?? "outro"); setTest(null);
     setDraft({ id: a.id, name: a.name, address: a.address, username: a.username, password: "", imap_host: a.imap_host, imap_port: a.imap_port,
-      smtp_host: a.smtp_host, smtp_port: a.smtp_port, department_id: a.department_id, signature: a.signature ?? "" });
+      smtp_host: a.smtp_host, smtp_port: a.smtp_port, department_id: a.department_id, signature: a.signature ?? "", ai_reply: !!a.ai_reply });
   };
 
   const runTest = async () => {
@@ -102,7 +102,7 @@ export function EmailAccounts({ orgId }: { orgId: string }) {
     const row = {
       name: draft.name.trim() || address, address, username: (draft.username || address).trim(),
       imap_host: draft.imap_host.trim(), imap_port: draft.imap_port, smtp_host: draft.smtp_host.trim(), smtp_port: draft.smtp_port,
-      department_id: draft.department_id || null, signature: draft.signature?.trim() || null,
+      department_id: draft.department_id || null, signature: draft.signature?.trim() || null, ai_reply: !!draft.ai_reply,
     };
     const res = draft.id
       ? await supabase.from("email_accounts").update(row).eq("id", draft.id).select("id").single()
@@ -225,6 +225,16 @@ export function EmailAccounts({ orgId }: { orgId: string }) {
                 </select>
               </div>
               <Textarea rows={3} placeholder="Assinatura (opcional)" maxLength={2000} value={draft.signature ?? ""} onChange={(e) => set({ signature: e.target.value })} />
+              <label className="flex items-start gap-2 text-sm cursor-pointer">
+                <input type="checkbox" className="mt-0.5 h-4 w-4" checked={!!draft.ai_reply} onChange={(e) => set({ ai_reply: e.target.checked })} />
+                <span>
+                  <span className="font-medium">IA responde os e-mails</span>
+                  <span className="block text-xs text-muted-foreground">
+                    A IA responde na hora, com as informações e documentos da empresa, e passa para a equipe quando precisa. Avisos
+                    automáticos (cobrança, cadastro, newsletter) nunca são respondidos. Precisa do assistente de IA ligado.
+                  </span>
+                </span>
+              </label>
               {test && (
                 <div className="rounded-md border p-2 text-sm space-y-1">
                   <p>{test.imap.ok ? "✅ Recebimento (IMAP) ok" : `❌ Recebimento: ${test.imap.error}`}</p>
