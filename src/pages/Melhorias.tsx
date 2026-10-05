@@ -155,19 +155,26 @@ export default function Melhorias() {
         </div>
       </div>
       {i.description && <p className="text-muted-foreground whitespace-pre-wrap">{i.description.length > 280 ? `${i.description.slice(0, 280)}…` : i.description}</p>}
-      {manage && areas.length > 0 && i.status !== "descartada" && i.status !== "resultado" && (
+      {manage && (areas.length > 0 || procs.length > 0) && i.status !== "descartada" && i.status !== "resultado" && (
+        <details className="text-xs">
+          <summary className="cursor-pointer text-muted-foreground">Área e processo</summary>
+          <div className="mt-1.5 space-y-1.5">
+            {manage && areas.length > 0 && i.status !== "descartada" && i.status !== "resultado" && (
         <select className="h-8 w-full rounded-md border bg-background px-2 text-xs" value={i.area_id ?? ""} aria-label="Área que aprova"
           onChange={(e) => void rpc("set_improvement_area", { improvement: i.id, area: e.target.value || null }, e.target.value ? "Área definida: o responsável foi avisado" : "Sem área")}>
           <option value="">Sem área (só o dono aprova)</option>
           {areas.map((a) => <option key={a.id} value={a.id}>Área: {a.name}</option>)}
         </select>
       )}
-      {manage && procs.length > 0 && i.status !== "descartada" && (
+            {manage && procs.length > 0 && i.status !== "descartada" && (
         <select className="h-8 w-full rounded-md border bg-background px-2 text-xs" value={i.process_ref ?? ""} aria-label="Processo do Diagnóstico"
           onChange={(e) => void rpc("link_improvement_process", { improvement: i.id, process_name: e.target.value || null }, e.target.value ? "Ligada ao processo: o resultado aparece no Diagnóstico" : "Sem processo")}>
           <option value="">Sem processo do Diagnóstico</option>
           {procs.map((p) => <option key={p} value={p}>Processo: {p}</option>)}
         </select>
+      )}
+          </div>
+        </details>
       )}
       {i.how && <details><summary className="cursor-pointer text-xs">Como implementar</summary><p className="whitespace-pre-wrap text-xs mt-1">{i.how}</p></details>}
       {i.status === "no_ar" && i.live_at && (
