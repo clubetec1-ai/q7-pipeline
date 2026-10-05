@@ -4033,6 +4033,10 @@ export type Database = {
         Args: { aid: string; akind: string; improvement: string }
         Returns: undefined
       }
+      link_improvement_process: {
+        Args: { improvement: string; process_name: string }
+        Returns: undefined
+      }
       list_http_secrets: {
         Args: { org: string }
         Returns: {

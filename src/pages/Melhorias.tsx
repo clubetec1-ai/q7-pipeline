@@ -22,7 +22,7 @@ interface Improvement {
   modelo: string | null; department_id: string | null; status: string; artifact_kind: string | null; artifact_id: string | null;
   parent_id: string | null; version: number; measure_days: number; live_at: string | null; closed_at: string | null;
   metrics_before: Record<string, number> | null; metrics_after: Record<string, number> | null;
-  result: string | null; result_note: string | null; created_at: string; area_id?: string | null;
+  result: string | null; result_note: string | null; created_at: string; area_id?: string | null; process_ref?: string | null;
 }
 
 const COLUMNS: [string, string][] = [["sugerida", "Para aprovar"], ["aprovada", "Aprovadas"], ["no_ar", "No ar — medindo"], ["resultado", "Resultados"]];
@@ -56,6 +56,7 @@ export default function Melhorias() {
   const [areas, setAreas] = useState<{ id: string; name: string }[]>([]);
   const [areaFilter, setAreaFilter] = useState(() => new URLSearchParams(window.location.search).get("area") ?? "");
   const [loaded, setLoaded] = useState(false);
+  const [procs, setProcs] = useState<string[]>([]);
   const manage = can("org.settings");
 
   const load = useCallback(async () => {
@@ -69,7 +70,11 @@ export default function Melhorias() {
     setDepts(d.data ?? []);
     setAreas(a.data ?? []);
     setLoaded(true);
-  }, [org]);
+    if (can("org.settings")) {
+      const { data: cp } = await supabase.from("company_profiles").select("processes").eq("organization_id", org.id).maybeSingle();
+      setProcs(((cp?.processes ?? []) as { nome?: string }[]).map((p) => String(p?.nome ?? "")).filter(Boolean).slice(0, 100));
+    }
+  }, [org, can]);
   useEffect(() => { void load(); }, [load]);
 
   if (!org) return null;
@@ -155,6 +160,13 @@ export default function Melhorias() {
           onChange={(e) => void rpc("set_improvement_area", { improvement: i.id, area: e.target.value || null }, e.target.value ? "Área definida: o responsável foi avisado" : "Sem área")}>
           <option value="">Sem área (só o dono aprova)</option>
           {areas.map((a) => <option key={a.id} value={a.id}>Área: {a.name}</option>)}
+        </select>
+      )}
+      {manage && procs.length > 0 && i.status !== "descartada" && (
+        <select className="h-8 w-full rounded-md border bg-background px-2 text-xs" value={i.process_ref ?? ""} aria-label="Processo do Diagnóstico"
+          onChange={(e) => void rpc("link_improvement_process", { improvement: i.id, process_name: e.target.value || null }, e.target.value ? "Ligada ao processo: o resultado aparece no Diagnóstico" : "Sem processo")}>
+          <option value="">Sem processo do Diagnóstico</option>
+          {procs.map((p) => <option key={p} value={p}>Processo: {p}</option>)}
         </select>
       )}
       {i.how && <details><summary className="cursor-pointer text-xs">Como implementar</summary><p className="whitespace-pre-wrap text-xs mt-1">{i.how}</p></details>}

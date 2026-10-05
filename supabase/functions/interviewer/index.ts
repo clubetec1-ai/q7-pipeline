@@ -299,7 +299,16 @@ Deno.serve(async (req) => {
         '"volume_mes" = quantas respostas de IA por mês a automação daria (só para tipo "ia"; use os volumes do retrato). "complexidade": simples = triagem, FAQ, classificação; complexa = análise, negociação, textos longos.',
       ].join(" ");
       const docs = await knowledgeContext(admin, orgId, [sections.setores, sections.objetivos, sections.situacao].filter(Boolean).join(" "), "interno", null, 4000);
-      const out = await ask(prompt, `O que já existe no CRM:\n${crm}\n\nRetrato da empresa:\n${retrato(24_000, 800)}${docs ? `\n\n${docs}` : ""}`, true);
+      // O plano aprende com o que já foi implantado: não repete o que funcionou; troca a abordagem do que não funcionou.
+      const { data: done } = await org.select("improvements", "title, status, result, result_note")
+        .in("status", ["no_ar", "resultado"]).order("updated_at", { ascending: false }).limit(20);
+      const RES: Record<string, string> = { funcionou: "funcionou", nao_funcionou: "NÃO funcionou", inconclusivo: "inconclusivo" };
+      const history = (done ?? []).map((d: { title: string; status: string; result: string | null; result_note: string | null }) =>
+        `- ${clip(d.title, 120)}: ${d.status === "no_ar" ? "no ar, medindo" : RES[d.result ?? ""] ?? "sem resultado"}${d.result_note ? ` (${clip(d.result_note, 160)})` : ""}`).join("\n");
+      const learned = history
+        ? `\n\nO que já foi implantado e o resultado (não repita o que funcionou nem o que está medindo; para o que não funcionou, proponha outra abordagem):\n${history}`
+        : "";
+      const out = await ask(prompt, `O que já existe no CRM:\n${crm}\n\nRetrato da empresa:\n${retrato(24_000, 800)}${docs ? `\n\n${docs}` : ""}${learned}`, true);
       const autos = (Array.isArray(out.automacoes) ? out.automacoes : []).slice(0, 20).map((a: any) => {
         const tipo = oneOf(a?.tipo, ["sem_ia", "ia", "integracao"] as const, "sem_ia");
         const complexidade = oneOf(a?.complexidade, ["simples", "complexa"] as const, "simples");

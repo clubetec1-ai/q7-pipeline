@@ -1403,6 +1403,19 @@ BEGIN
   PERFORM pg_temp.expect(pg_temp.t(agent_a, format('SELECT jsonb_array_length(public.brain_pending(%L)) >= 1', A)) = 'true', 'responsavel ve as pendencias da area');
   PERFORM pg_temp.expect_error(agent_a, format('SELECT public.set_improvement_due(%L, current_date - 1)', 'aaaaaaaa-0000-0000-0074-000000000001'), 'prazo no passado recusado');
   PERFORM pg_temp.expect(pg_temp.run(agent_a, format('SELECT public.set_improvement_due(%L, current_date + 3)', 'aaaaaaaa-0000-0000-0074-000000000001')) = 'ok:1', 'responsavel define prazo');
+
+  -- 77. Resultado volta ao Diagnostico (so da mesma empresa).
+  UPDATE public.company_profiles SET processes = '[{"nome":"Confirmar agendamento","implementar":"agora"},{"nome":"Outro"}]'::jsonb WHERE organization_id = A;
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.link_improvement_process(%L, %L)', 'aaaaaaaa-0000-0000-0074-000000000001', 'Nao existe'), 'processo inexistente recusado');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.link_improvement_process(%L, %L)', 'aaaaaaaa-0000-0000-0074-000000000001', 'Outro'), 'responsavel nao liga processo');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('SELECT public.link_improvement_process(%L, %L)', 'aaaaaaaa-0000-0000-0074-000000000001', 'confirmar agendamento')) = 'ok:1', 'dono liga a proposta ao processo');
+  UPDATE public.improvements SET status = 'no_ar', live_at = now() WHERE id = 'aaaaaaaa-0000-0000-0074-000000000001';
+  PERFORM pg_temp.expect((SELECT x -> 'implantacao' ->> 'status' FROM public.company_profiles p, jsonb_array_elements(p.processes) x
+    WHERE p.organization_id = A AND x ->> 'nome' = 'Confirmar agendamento') = 'no_ar', 'processo mostra que foi implantado');
+  PERFORM pg_temp.expect((SELECT x ->> 'implementar' FROM public.company_profiles p, jsonb_array_elements(p.processes) x
+    WHERE p.organization_id = A AND x ->> 'nome' = 'Confirmar agendamento') = 'agora', 'escolha do dono preservada');
+  PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM public.company_profiles p, jsonb_array_elements(coalesce(p.processes, '[]'::jsonb)) x
+    WHERE p.organization_id <> A AND x ? 'implantacao' AND x -> 'implantacao' ->> 'melhoria_id' = 'aaaaaaaa-0000-0000-0074-000000000001'), 'nao toca no Diagnostico de outra empresa');
   PERFORM pg_temp.expect(pg_temp.run(NULL, format('UPDATE public.conversations SET stage_id = (SELECT id FROM public.pipeline_stages WHERE organization_id = %L AND name = %L) WHERE id = %L',
     A, 'Qualificado', 'aaaaaaaa-0000-0000-0004-000000000001')) = 'ok:1', 'etapa da propria org aceita');
 
