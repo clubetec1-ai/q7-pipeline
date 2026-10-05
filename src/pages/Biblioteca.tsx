@@ -94,7 +94,7 @@ export default function Biblioteca() {
 
       <main className="flex-1 w-full max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold">Biblioteca</h1>
+          <h1 className="font-brand text-2xl leading-tight">Arquivos e respostas prontas</h1>
           <p className="text-sm text-muted-foreground">
             Catálogos, tabelas de preço, manuais… A equipe envia pela conversa, as respostas rápidas e os fluxos anexam,
             e a IA envia quando você permitir no bloco “Agente de IA”.

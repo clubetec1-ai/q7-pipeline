@@ -86,7 +86,7 @@ export default function Setores() {
       <main className="flex-1 w-full max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold flex items-center gap-2"><Layers className="w-6 h-6" /> Setores e processos</h1>
+            <h1 className="font-brand text-2xl leading-tight">Setores e processos</h1>
             <p className="text-sm text-muted-foreground">Cada setor tem sua cor, sua equipe, sua fila de atendimento e os processos mapeados no Diagnóstico.</p>
           </div>
           {manage && <Button asChild variant="outline" size="sm"><Link to="/diagnostico?pagina=setores"><Target className="w-4 h-4 mr-1" /> Mapear no Diagnóstico</Link></Button>}

@@ -145,7 +145,7 @@ export default function Conhecimento() {
 
       <main className="flex-1 w-full max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold flex items-center gap-2"><BookOpen className="w-6 h-6" /> Base de conhecimento</h1>
+          <h1 className="font-brand text-2xl leading-tight">Documentos para a IA</h1>
           <p className="text-sm text-muted-foreground">Contratos, orçamentos, planilhas, manuais e políticas por setor. Os agentes consultam só os trechos que importam para cada pergunta.</p>
         </div>
 

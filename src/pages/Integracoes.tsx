@@ -156,7 +156,7 @@ export default function Integracoes() {
         {!g || !cfg ? (
           <section className="text-sm text-muted-foreground space-y-4">
             <ConnectorsPanel orgId={org.id} />
-            <h1 className="text-2xl font-semibold text-foreground">Integrações</h1>
+            <h1 className="font-brand text-2xl leading-tight">Integrações</h1>
             <p>Conecte o Deixa com a IA a outro sistema (ERP, agenda, loja) para a IA e os fluxos consultarem dados de verdade — por exemplo, o status do pedido pelo telefone do cliente.</p>
             <p>Clique em “Nova integração”: a IA monta o passo a passo, você guarda a chave, testa e cria o fluxo em rascunho.</p>
           </section>

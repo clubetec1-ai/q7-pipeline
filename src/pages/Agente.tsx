@@ -105,7 +105,7 @@ export default function Agente() {
       <NumberHealthBanner />
       <main className="flex-1 w-full max-w-3xl mx-auto p-4 sm:p-6 space-y-4">
         <div>
-          <h1 className="text-2xl font-semibold flex items-center gap-2"><Bot className="w-6 h-6" /> Agente de IA</h1>
+          <h1 className="font-brand text-2xl leading-tight">Assistente de IA</h1>
           <p className="text-sm text-muted-foreground">A IA atende os clientes na hora e passa para uma pessoa quando precisa.</p>
         </div>
 

@@ -80,7 +80,7 @@ export default function Funil() {
       <main className="flex-1 w-full max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold flex items-center gap-2"><Filter className="w-6 h-6" /> Funil de vendas</h1>
+            <h1 className="font-brand text-2xl leading-tight">Funil de vendas</h1>
             <p className="text-sm text-muted-foreground">Quantos contatos estão em cada etapa e de onde vieram. Os contatos se movem pelo Kanban, pelo fluxo de qualificação ou pela IA.</p>
           </div>
           <div className="flex gap-1">
