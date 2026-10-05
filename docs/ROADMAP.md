@@ -279,6 +279,20 @@ nicho); 12. API aberta + webhooks (n8n/Make/Zapier); 13. executar o plano de mar
 e-mail) → 18 Diagnóstico 2ª parte (o cérebro com delegação já ficou pronto nas fatias 1–7) → 19a Chat da equipe e
 Campanhas → 15 telefonia genérica → 17 franquias, white label e implantação → 14 Messenger/Instagram (testar quando a
 Meta liberar as permissões) → 19b Google Agenda (🙋 precisa de credencial OAuth do Google criada pelo dono).
+**Pedidos de 05/10 (configurando a Clubetec do zero):**
+- ⏳ **Termos de uso (e política de privacidade e contrato de tratamento de dados):** a **Clubetec, com o CNPJ
+  próprio, é a fornecedora e a representante legal do software** em todos os documentos, telas, e-mails e cobranças;
+  o Thiago (dono) não aparece como pessoa física nem como responsável. Aceite no cadastro registrado (versão, data e
+  hora), página pública dos termos e da privacidade, e aviso quando mudar a versão. 🙋 Dono: razão social, CNPJ,
+  endereço e e-mail do encarregado de dados (LGPD) da Clubetec; revisão por advogado antes de publicar.
+- ✅ **Entrevista por voz corrigida (05/10):** voz escolhida pela pessoa (5 vozes + a do navegador, com "Ouvir"),
+  sotaque brasileiro e tom simpático, sem trocar de voz no meio; texto e voz chegam juntos; cada resposta é salva na
+  hora ("Continuar entrevista"); a página não "recarrega" mais quando o login se renova ao voltar para a aba (a tela
+  toda era remontada e perdia o que estava em andamento — valia para qualquer tela).
+- ⏳ **Facebook/Instagram e WhatsApp oficial em um clique:** botão "Conectar com o Facebook" (login da Meta → escolher
+  a Página/Instagram ou o número → pronto), sem o cliente copiar ID nem token; a Clubetec faz uma vez o app, as
+  permissões e a análise da Meta. Mesmo caminho para o Google Agenda (já é um clique para o cliente).
+
 **Clubetec zerada para recomeçar como cliente (05/10, pedido do dono):** backup antes; ficaram a empresa, o dono
 (thifpaz) e o admin (clubetec1), o número oficial 19 99100-6831, a caixa de e-mail, o Asaas de teste e o MFA obrigatório;
 saíram conversas/contatos de teste, etapas, setores, etiquetas, fluxos, instruções do assistente, ramal de teste, grupos,
