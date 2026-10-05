@@ -906,6 +906,7 @@ export type Database = {
       company_profiles: {
         Row: {
           brand: Json
+          last_page: string | null
           organization_id: string
           plan: Json
           plan_at: string | null
@@ -922,6 +923,7 @@ export type Database = {
         }
         Insert: {
           brand?: Json
+          last_page?: string | null
           organization_id: string
           plan?: Json
           plan_at?: string | null
@@ -938,6 +940,7 @@ export type Database = {
         }
         Update: {
           brand?: Json
+          last_page?: string | null
           organization_id?: string
           plan?: Json
           plan_at?: string | null
@@ -5401,6 +5404,10 @@ export type Database = {
           p_wss_url: string
         }
         Returns: string
+      }
+      save_step_draft: {
+        Args: { org: string; p_attachments: Json; p_key: string; p_raw: string }
+        Returns: undefined
       }
       save_team_group: {
         Args: { ch: string; org: string; p_members: string[]; p_name: string }
