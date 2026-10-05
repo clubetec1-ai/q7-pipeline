@@ -98,7 +98,7 @@ export default function ConfigAparencia() {
       <main className="flex-1 w-full max-w-3xl mx-auto p-4 sm:p-6 space-y-6">
         <div>
           <Link to="/configuracoes" className="text-sm text-muted-foreground inline-flex items-center gap-1 hover:text-foreground"><ArrowLeft className="w-4 h-4" /> Configurações</Link>
-          <h1 className="text-2xl font-semibold flex items-center gap-2 mt-1"><Palette className="w-6 h-6" /> Aparência</h1>
+          <h1 className="font-brand text-2xl leading-tight mt-1">Logo e cores</h1>
           <p className="text-sm text-muted-foreground">O logo e as cores da sua empresa nas telas da sua equipe. Seus clientes não veem estas telas.</p>
         </div>
 

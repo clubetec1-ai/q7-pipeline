@@ -129,7 +129,7 @@ export default function Numeros() {
       <main className="flex-1 w-full max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
         <div className="flex items-end justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold">Números</h1>
+            <h1 className="font-brand text-2xl leading-tight">WhatsApp e e-mail</h1>
             <p className="text-sm text-muted-foreground">Os WhatsApps que atendem pela {org.name}.</p>
           </div>
           <Button onClick={() => { setReconnectId(null); setAdding(true); }}>

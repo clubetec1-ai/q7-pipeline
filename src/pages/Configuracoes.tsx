@@ -93,7 +93,7 @@ export default function Configuracoes() {
       <main className="flex-1 w-full max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold flex items-center gap-2"><Settings2 className="w-6 h-6" /> Configurações</h1>
+            <h1 className="font-brand text-2xl leading-tight">Configurações</h1>
             <p className="text-sm text-muted-foreground">Tudo que é instalação da {org.name} está aqui. Comece pelos pendentes.</p>
           </div>
           {all.length > 0 && (

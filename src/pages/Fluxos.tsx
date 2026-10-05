@@ -101,7 +101,7 @@ export default function Fluxos() {
 
       <main className="flex-1 w-full max-w-4xl mx-auto p-4 sm:p-6 space-y-8">
         <div>
-          <h1 className="text-2xl font-semibold">Fluxos de atendimento</h1>
+          <h1 className="font-brand text-2xl leading-tight">Menus e respostas automáticas</h1>
           <p className="text-sm text-muted-foreground">
             O fluxo recebe o cliente, faz perguntas e decide entre IA, departamento ou finalizar. Sem fluxo, a IA da empresa responde como hoje.
           </p>

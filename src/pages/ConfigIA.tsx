@@ -21,7 +21,7 @@ export default function ConfigIA() {
       <main className="flex-1 w-full max-w-4xl mx-auto p-4 sm:p-6 space-y-4">
         <Link to="/configuracoes" className="text-sm text-muted-foreground inline-flex items-center gap-1 hover:underline"><ArrowLeft className="w-4 h-4" /> Configurações</Link>
         <div>
-          <h1 className="text-2xl font-semibold flex items-center gap-2"><KeyRound className="w-6 h-6" /> Chaves de IA</h1>
+          <h1 className="font-brand text-2xl leading-tight">Chave de IA própria</h1>
           <p className="text-sm text-muted-foreground">
             Cole a chave uma vez: ela vai para o cofre e não aparece mais (só mostramos se está cadastrada). O provedor padrão vale para o agente de
             atendimento, os fluxos, o follow-up e o Diagnóstico.

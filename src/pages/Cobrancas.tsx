@@ -102,7 +102,7 @@ export default function Cobrancas() {
 
       <main className="flex-1 w-full max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold">Cobranças</h1>
+          <h1 className="font-brand text-2xl leading-tight">Cobranças</h1>
           <p className="text-sm text-muted-foreground">Cobre pelo WhatsApp com PIX, boleto ou cartão. O pagamento é atualizado sozinho.</p>
         </div>
 

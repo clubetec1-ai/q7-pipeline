@@ -15,7 +15,7 @@ TELAS (nome | caminho | para que serve):
 - Cobranças | /cobrancas | Gerar cobrança PIX/boleto e acompanhar pagamentos (configurar o Asaas em Configurações → Cobranças).
 - Campanhas | /campanhas | Envio em massa para grupos de clientes, com horário e velocidade.
 - Cérebro | /cerebro | Visão de CEO por área: números da semana × anterior, metas com semáforo, pendências (Cobrar, prazo), resumo da semana da IA com prioridades, "Analisar agora" (dono) e "O que a área fez". O responsável de área vê só as suas áreas.
-- Agora | /supervisor | Fila em tempo real, quem está online, exportar contatos.
+- Agora — equipe e fila | /supervisor | Fila em tempo real, quem está online, exportar contatos.
 - Relatórios | /relatorios | Atendentes, qualidade, operação, melhorias, comercial e IA; exportar CSV.
 - Funil de vendas | /funil | Instalar o funil pronto (etapas, etiquetas quente/morno/frio, fluxo de qualificação, retornos de 2, 5 e 10 dias em "Proposta enviada"), contatos por etapa e por origem, link de captação do WhatsApp.
 - Avaliações | /avaliacoes | Avaliação automática dos atendimentos pela IA (ligar/desligar).
@@ -26,11 +26,11 @@ TELAS (nome | caminho | para que serve):
 - Configurações | /configuracoes | Central em 6 grupos: onde seus clientes falam; sua empresa; assistente de IA; equipe (inclui Áreas e responsáveis); vendas e cobrança.
 - Áreas e responsáveis | /configuracoes/areas | Áreas de gestão (Vendas, Financeiro…), quem aprova as sugestões de cada uma, substituto, "Agente sugere" e ligar/desligar. "Sugerir áreas pelos setores".
 - Logo e cores | /configuracoes/aparencia | Logo da empresa no topo das telas e cores principal e secundária, com prévia.
-- Números (WhatsApp e e-mail) | /numeros | Conectar número por QR ou pela Meta, caixas de e-mail, saúde de cada número.
+- WhatsApp e e-mail | /numeros | Conectar número por QR ou pela Meta, caixas de e-mail, saúde de cada número.
 - Horário de atendimento | /configuracoes/atendimento | Horário de atendimento e palavras para parar mensagens automáticas.
 - Chave de IA própria | /configuracoes/ia | Opcional: sem ela usa a IA da Clubetec (já incluída). Leitura de imagens/PDF.
-- Agente de IA | /agente | Ligar o assistente, como ele se comporta, follow-up automático e "Testar o agente".
-- Fluxos | /fluxos | Menus, triagem, horário e automações sem código; modelos prontos; bloco "Mover no funil"; publicar.
+- Assistente de IA | /agente | Ligar o assistente, como ele se comporta, follow-up automático e "Testar o agente".
+- Menus e respostas automáticas (fluxos) | /fluxos | Menus, triagem, horário e automações sem código; modelos prontos; bloco "Mover no funil"; publicar.
 - Documentos para a IA | /conhecimento | Documentos que a IA consulta (por setor), documentos modelo do seu tipo de empresa.
 - Arquivos e respostas prontas | /biblioteca | Arquivos e respostas rápidas para enviar no atendimento.
 - Etiquetas e grupos | /etiquetas | Criar, colorir, ícones, etiquetas por setor, juntar duplicadas.

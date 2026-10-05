@@ -171,7 +171,7 @@ export default function EtiquetasGrupos() {
       <AppHeader active="etiquetas" />
       <main className="flex-1 w-full max-w-4xl mx-auto p-4 sm:p-6 space-y-4">
         <div>
-          <h1 className="text-2xl font-semibold flex items-center gap-2"><Tags className="w-6 h-6" /> Etiquetas e grupos</h1>
+          <h1 className="font-brand text-2xl leading-tight">Etiquetas e grupos</h1>
           <p className="text-sm text-muted-foreground">Clique no nome colorido para trocar cor e ícone. Em cada etiqueta, marque os setores que podem usá-la:
             o atendente só vê as gerais e as do seu setor. As etiquetas <b>padrão</b> são um ponto de partida — edite, troque os setores ou crie outras.
             Excluir só tira a marcação: o cliente continua cadastrado.</p>
