@@ -284,6 +284,9 @@ Meta liberar as permissões) → 19b Google Agenda (🙋 precisa de credencial O
   sem marca igual (classe 35 tem "DEIXA COMIGO" registrada → fora por ora); 3 pedidos: mista classe 42, nominativa
   classe 42, mista classe 9 (GRU código 389 por pedido). Logos prontos em docs/marca/inpi (JPG 945×945, 300 dpi,
   fundo branco; versões horizontal e empilhada). Depois: logo novo da Clubetec (o registro atual tem as cores antigas).
+  **GRUs emitidas em 05/10 (código 389, R$ 440 cada com desconto de ME/EPP, cadastro da Clubetec no INPI):**
+  29409172365635001 (mista 42), 29409172365635095 (nominativa 42), 29409172365635265 (mista 9). 🙋 Dono: pagar as 3
+  guias; depois da compensação, protocolar os 3 pedidos no e-Marcas (a guia tem de estar paga antes do envio).
 - ⏳ **Google Agenda mais fácil para o cliente:** hoje já é "Conectar" + login do Google; falta a Clubetec publicar o
   app (tela de consentimento, domínio próprio verificado, política de privacidade publicada) e passar na verificação
   do Google (escopo sensível de agenda: vídeo de demonstração e justificativa). No piloto, modo teste (até 100 e-mails).
