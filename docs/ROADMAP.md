@@ -279,6 +279,12 @@ nicho); 12. API aberta + webhooks (n8n/Make/Zapier); 13. executar o plano de mar
 e-mail) → 18 Diagnóstico 2ª parte (o cérebro com delegação já ficou pronto nas fatias 1–7) → 19a Chat da equipe e
 Campanhas → 15 telefonia genérica → 17 franquias, white label e implantação → 14 Messenger/Instagram (testar quando a
 Meta liberar as permissões) → 19b Google Agenda (🙋 precisa de credencial OAuth do Google criada pelo dono).
+**Fase 3 — andamento (05/10):** ✅ 16 relatórios · ✅ 18 Diagnóstico 2ª parte · ✅ 19a Chat e Campanhas · ✅ 15 telefonia
+genérica · ✅ 17 franquias, white label e antes × depois (testes 87–93, todos no ar). Faltam 14 Messenger/Instagram e 19b
+Google Agenda, que dependem de liberação externa: 🙋 (a) na Meta, pedir as permissões pages_messaging,
+instagram_manage_messages e pages_manage_metadata (nova análise do app) e ter uma Página do Facebook/Instagram de
+teste ligada; (b) no Google Cloud, criar o projeto, a tela de consentimento e o cliente OAuth (Web) com o endereço de
+retorno que o sistema indicar. O código pode ser feito antes e testado quando isso chegar.
 
 **Decisões e fatos de 03/10:** domínios comprados pelo dono ✅ (falta o pedido no INPI com agente de propriedade
 industrial); limite de gasto de US$ 20 na OpenAI ✅; Supabase continua Free no piloto (Pro no lançamento); backup
