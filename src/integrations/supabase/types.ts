@@ -3420,6 +3420,36 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_company: {
+        Row: {
+          cnpj: string
+          extra: Json
+          id: boolean
+          official: Json
+          refresh_error: string | null
+          refreshed_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          cnpj: string
+          extra?: Json
+          id?: boolean
+          official?: Json
+          refresh_error?: string | null
+          refreshed_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cnpj?: string
+          extra?: Json
+          id?: boolean
+          official?: Json
+          refresh_error?: string | null
+          refreshed_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       platform_operators: {
         Row: {
           created_at: string
@@ -5029,6 +5059,10 @@ export type Database = {
       }
       platform_secret_status: { Args: never; Returns: Json }
       platform_security_email: { Args: never; Returns: string }
+      platform_set_company_extra: {
+        Args: { p_extra: Json }
+        Returns: undefined
+      }
       platform_set_connector_app: {
         Args: { client_id: string; client_secret: string; connector: string }
         Returns: undefined

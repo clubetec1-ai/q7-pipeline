@@ -287,6 +287,13 @@ Meta liberar as permissões) → 19b Google Agenda (🙋 precisa de credencial O
   **GRUs emitidas em 05/10 (código 389, R$ 440 cada com desconto de ME/EPP, cadastro da Clubetec no INPI):**
   29409172365635001 (mista 42), 29409172365635095 (nominativa 42), 29409172365635265 (mista 9). 🙋 Dono: pagar as 3
   guias; depois da compensação, protocolar os 3 pedidos no e-Marcas (a guia tem de estar paga antes do envio).
+- ✅ **Dados da Clubetec no banco, sempre atualizados (05/10):** tabela platform_company com o que a Receita mostra do
+  CNPJ 31.778.487/0001-61 (razão social CLUBETEC SOLUÇÕES E SERVIÇOS DE TECNOLOGIA LTDA, Rua Padre Vieira, 697 – Centro,
+  Campinas/SP, CEP 13015-301, EPP, CNAEs), atualizada toda segunda pela consulta pública do CNPJ, mais site e encarregado
+  de dados (Plataforma → Planos → Dados da Clubetec). Fonte única para termos, privacidade, cobranças e e-mails.
+  ⚠ Os CNAEs atuais não incluem software (principal 43.21-5 instalação elétrica; secundários de comércio/reparo de
+  informática): para o registro da marca nas classes 42/9 e para a operação do SaaS, avaliar com o contador incluir
+  62.03-1, 62.02-3 e/ou 63.11-9.
 - ⏳ **Google Agenda mais fácil para o cliente:** hoje já é "Conectar" + login do Google; falta a Clubetec publicar o
   app (tela de consentimento, domínio próprio verificado, política de privacidade publicada) e passar na verificação
   do Google (escopo sensível de agenda: vídeo de demonstração e justificativa). No piloto, modo teste (até 100 e-mails).
