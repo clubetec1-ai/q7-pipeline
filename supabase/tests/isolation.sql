@@ -1523,6 +1523,45 @@ BEGIN
   PERFORM pg_temp.expect((SELECT count(*) FROM public.org_modules m JOIN public.subscriptions s ON s.organization_id = m.organization_id
     WHERE s.asaas_subscription_id = 'sub_iso' AND m.enabled) = 2, 'pagar religa os modulos do plano');
 
+  -- 92. Rede de franquias: unidade entra por codigo; matriz ve so numeros; padrao so configuracao.
+  UPDATE public.organizations SET status = 'active' WHERE id = 'bbbbbbbb-0000-0000-0000-000000000001'; -- um grupo anterior suspende B
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.platform_create_network(%L, %L)', A, 'Rede X'), 'so a Clubetec cria rede');
+  PERFORM pg_temp.run(operator, format('SELECT public.platform_create_network(%L, %L)', A, 'Rede Teste'));
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.network_invite((SELECT id FROM public.networks WHERE hq_org_id = %L))', A), 'atendente da matriz nao convida');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.network_invite((SELECT id FROM public.networks WHERE hq_org_id = %L))', A), 'quem nao e da matriz nao convida');
+  PERFORM set_config('test.code', pg_temp.t(owner_a, format('SELECT public.network_invite((SELECT id FROM public.networks WHERE hq_org_id = %L))', A)), false);
+  PERFORM pg_temp.expect(current_setting('test.code') LIKE 'REDE-%', 'matriz gera codigo');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, 'SELECT code_hash FROM public.network_invites LIMIT 1') LIKE 'err:%', 'navegador nao le o hash do convite');
+  PERFORM pg_temp.expect_error(agent_b, format('SELECT public.network_join(%L, %L)', 'bbbbbbbb-0000-0000-0000-000000000001', current_setting('test.code')), 'atendente nao coloca a empresa na rede');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.network_join(%L, %L)', 'bbbbbbbb-0000-0000-0000-000000000001', 'REDE-0000000000'), 'codigo errado recusado');
+  PERFORM pg_temp.run(owner_b, format('SELECT public.network_join(%L, %L)', 'bbbbbbbb-0000-0000-0000-000000000001', lower(current_setting('test.code'))));
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.network_units WHERE organization_id = 'bbbbbbbb-0000-0000-0000-000000000001') = 1, 'dono da unidade entra com o codigo');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.network_join(%L, %L)', 'bbbbbbbb-0000-0000-0000-000000000001', current_setting('test.code')), 'codigo vale uma vez');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.network_dashboard((SELECT id FROM public.networks WHERE hq_org_id = %L), now() - interval %L, now())', A, '30 days'), 'unidade nao ve o painel da rede');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.network_dashboard((SELECT id FROM public.networks WHERE hq_org_id = %L), now() - interval %L, now())', A, '30 days'), 'atendente da matriz nao ve o painel');
+  PERFORM pg_temp.expect(pg_temp.t(owner_a, format('SELECT jsonb_array_length(public.network_dashboard((SELECT id FROM public.networks WHERE hq_org_id = %L), now() - interval %L, now()))', A, '30 days')) = '1', 'matriz ve uma linha por unidade');
+  PERFORM pg_temp.expect(pg_temp.t(owner_a, format('SELECT (public.network_dashboard((SELECT id FROM public.networks WHERE hq_org_id = %L), now() - interval %L, now()) -> 0) ?| ARRAY[%L, %L, %L]', A, '30 days', 'phone', 'contact_name', 'content')) = 'false', 'painel sem dados de clientes');
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT count(*) FROM public.conversations WHERE organization_id = ''bbbbbbbb-0000-0000-0000-000000000001''') = 0, 'matriz nao le conversas da unidade');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, format('SELECT count(*) FROM public.conversations WHERE organization_id = %L', A)) = 0, 'unidade nao le conversas da matriz');
+  INSERT INTO public.pipeline_stages (organization_id, name, color, position) VALUES (A, 'Etapa da Rede', '#123456', 99);
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.network_publish_standard((SELECT id FROM public.networks WHERE hq_org_id = %L), false)', A), 'unidade nao publica padrao');
+  PERFORM pg_temp.expect(pg_temp.t(owner_a, format('SELECT public.network_publish_standard((SELECT id FROM public.networks WHERE hq_org_id = %L), false)', A)) = '1', 'matriz publica versao 1');
+  PERFORM pg_temp.expect(pg_temp.q(agent_b, 'SELECT count(*) FROM public.network_standards') = 0, 'atendente da unidade nao ve o padrao');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.network_standards') = 1, 'dono da unidade ve o padrao');
+  PERFORM pg_temp.expect(EXISTS (SELECT 1 FROM public.notifications WHERE organization_id = 'bbbbbbbb-0000-0000-0000-000000000001' AND user_id = owner_b AND kind = 'network_standard'), 'unidade e avisada do padrao');
+  PERFORM pg_temp.run(owner_b, format('SELECT public.network_apply_standard(%L)', 'bbbbbbbb-0000-0000-0000-000000000001'));
+  PERFORM pg_temp.expect(EXISTS (SELECT 1 FROM public.pipeline_stages WHERE organization_id = 'bbbbbbbb-0000-0000-0000-000000000001' AND name = 'Etapa da Rede'), 'padrao aplicado na unidade');
+  PERFORM pg_temp.expect(pg_temp.t(outsider, format('SELECT coalesce(public.my_network(%L)::text, %L)', A, 'nulo')) = 'nulo', 'quem nao e da empresa nao ve a rede');
+  PERFORM pg_temp.expect(pg_temp.t(agent_b, format('SELECT public.my_network(%L) ->> %L', 'bbbbbbbb-0000-0000-0000-000000000001', 'role')) = 'unit', 'pessoa da unidade ve a marca da rede');
+  PERFORM pg_temp.run(owner_b, format('SELECT public.network_leave(%L)', 'bbbbbbbb-0000-0000-0000-000000000001'));
+  PERFORM pg_temp.expect(pg_temp.t(owner_a, format('SELECT jsonb_array_length(public.network_dashboard((SELECT id FROM public.networks WHERE hq_org_id = %L), now() - interval %L, now()))', A, '30 days')) = '0', 'unidade sai quando quer');
+
+  -- 93. Implantacao: antes x depois so para quem gerencia.
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.start_implantation(%L)', A), 'atendente nao inicia implantacao');
+  PERFORM pg_temp.run(owner_a, format('SELECT public.start_implantation(%L)', A));
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.implantation_compare(%L)', A), 'outra org nao ve o antes e depois');
+  PERFORM pg_temp.expect(pg_temp.t(owner_a, format('SELECT public.implantation_compare(%L) ? %L', A, 'antes')) = 'true', 'dono ve antes e depois');
+
   -- 91. Telefonia generica: dono cadastra a propria central; outra empresa nao mexe.
   INSERT INTO public.org_modules (organization_id, module, enabled) VALUES (A, 'telefonia', true)
   ON CONFLICT (organization_id, module) DO UPDATE SET enabled = true;

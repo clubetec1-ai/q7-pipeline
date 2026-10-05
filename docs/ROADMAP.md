@@ -74,11 +74,11 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
 8. 🟡 **Modelos por nicho completos:** prontos Software e 3 de cartório; faltam fluxos prontos e etiquetas por nicho, e
    os nichos clínicas/odontologia, advocacia/contabilidade, imobiliária (hoje só funil simples), auto center, escolas.
    🙋 Escolher o próximo nicho depois do cartório.
-9. ⏳ **Rede de franquias:** matriz cria o padrão e replica para as unidades; painel da rede só com números somados.
-10. ⏳ **Implantação com valor agregado:** pacote vendido junto, roteiro por nicho e relatório "antes × depois".
+9. ✅ *(05/10, docs/design/06: rede criada pela Clubetec, unidade entra por código de uso único, painel da matriz só com números por unidade, padrão da rede versionado — opcional ou obrigatório, só acrescenta; testes 92–93)* **Rede de franquias:** matriz cria o padrão e replica para as unidades; painel da rede só com números somados.
+10. ✅ *(05/10: "Antes × depois" no Início — números de partida guardados ao começar e comparados com os 30 dias mais recentes; roteiro por nicho nos Primeiros passos)* **Implantação com valor agregado:** pacote vendido junto, roteiro por nicho e relatório "antes × depois".
 11. 🟡 **Painel "o que o sistema fez por você":** o painel Resultados existe; falta vendas, cobranças recuperadas e
     horas economizadas, em linguagem de dono.
-12. ⏳ **Revenda / white label** para agências e parceiros.
+12. ✅ *(05/10: nome do produto, cores e logo da rede para todos da rede, definidos pela Clubetec em Plataforma → Planos → Redes)* **Revenda / white label** para agências e parceiros.
 13. 🟡 **Regras dos bots:** política fixa, formato de WhatsApp e recusas testadas ✅; falta mostrar a política na tela do
     agente, recusar com mais educação oferecendo uma pessoa, teste de tentativas de burlar e registro delas na auditoria.
 

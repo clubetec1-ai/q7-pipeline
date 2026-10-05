@@ -9,7 +9,7 @@ import { Logo } from "@/components/Logo";
 import { MainNav } from "@/components/MainNav";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { AppAssistant } from "@/components/AppAssistant";
-import { useOrgLogo } from "@/components/OrgTheme";
+import { useOrgLogo, useWhiteLabel } from "@/components/OrgTheme";
 import { useTheme } from "@/components/ThemeProvider";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
@@ -25,11 +25,17 @@ export function AppHeader({ active, extra }: { active: ComponentProps<typeof Mai
   const { invitations, isOperator } = useOrg();
   const { theme, toggleTheme } = useTheme();
   const orgLogo = useOrgLogo();
+  const wl = useWhiteLabel();
   return (
     <header className="border-b px-4 h-14 flex items-center justify-between shrink-0 bg-card sticky top-0 z-40"
       style={{ borderTop: "3px solid hsl(var(--brand-secondary, var(--primary)))" }}>
       <div className="flex items-center gap-3 min-w-0">
-        <Logo horizontal width={26} height={26} />
+        {wl ? (
+          <span className="flex items-center gap-1.5 shrink-0" aria-label={wl.appName}>
+            {wl.logo && <img src={wl.logo} alt="" className="h-7 max-w-[90px] object-contain" />}
+            <span className="font-brand text-base leading-none whitespace-nowrap">{wl.appName}</span>
+          </span>
+        ) : <Logo horizontal width={26} height={26} />}
         {orgLogo && <img src={orgLogo} alt="Logo da empresa" className="h-8 max-w-[110px] object-contain shrink-0 pl-3 border-l" />}
         <MainNav active={active} />
       </div>
