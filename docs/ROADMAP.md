@@ -286,7 +286,9 @@ Meta liberar as permissões) → 19b Google Agenda (🙋 precisa de credencial O
   fundo branco; versões horizontal e empilhada). Depois: logo novo da Clubetec (o registro atual tem as cores antigas).
   **GRUs emitidas em 05/10 (código 389, R$ 440 cada com desconto de ME/EPP, cadastro da Clubetec no INPI):**
   29409172365635001 (mista 42), 29409172365635095 (nominativa 42), 29409172365635265 (mista 9). 🙋 Dono: pagar as 3
-  guias; depois da compensação, protocolar os 3 pedidos no e-Marcas (a guia tem de estar paga antes do envio).
+  guias ✅ pagas (05/10); protocolar os 3 pedidos no e-Marcas depois que o CNPJ tiver CNAE de software (declaração do
+  art. 128). Cadastro da Clubetec no INPI atualizado em 05/10 (razão social sem "e Segurança", Rua Padre Vieira, 697,
+  CEP 13015-301, EPP). 🙋 Dono: custo com o contador para incluir 62.03-1 / 63.11-9 (e 62.02-3).
 - ✅ **Dados da Clubetec no banco, sempre atualizados (05/10):** tabela platform_company com o que a Receita mostra do
   CNPJ 31.778.487/0001-61 (razão social CLUBETEC SOLUÇÕES E SERVIÇOS DE TECNOLOGIA LTDA, Rua Padre Vieira, 697 – Centro,
   Campinas/SP, CEP 13015-301, EPP, CNAEs), atualizada toda segunda pela consulta pública do CNPJ, mais site e encarregado
