@@ -1380,6 +1380,29 @@ BEGIN
   PERFORM pg_temp.expect_error(owner_b, format('SELECT public.brain_overview(%L)', A), 'outra org nao ve o painel de A');
   PERFORM pg_temp.expect_denied(owner_a, format('INSERT INTO public.area_metric_snapshots (organization_id, area_id, metric_key, period_start, value) VALUES (%L, (SELECT id FROM public.org_areas WHERE organization_id = %L LIMIT 1), %L, current_date, 1)', A, A, 'leads_novos'), 'navegador nao grava foto dos numeros');
   PERFORM pg_temp.expect(private.snapshot_area_metrics(A) >= 1, 'backend grava a foto semanal');
+
+  -- 76. Cobrancas do cerebro: avisa so quem deve (mesma empresa), 1x por intervalo, e escala ao dono depois de 2.
+  INSERT INTO public.org_modules (organization_id, module, enabled) VALUES (A, 'gestao', true)
+    ON CONFLICT (organization_id, module) DO UPDATE SET enabled = true;
+  UPDATE public.improvements SET approved_at = now() - interval '8 days', reminded_at = NULL, reminders = 0 WHERE id = 'aaaaaaaa-0000-0000-0074-000000000001';
+  DELETE FROM public.notifications WHERE organization_id = A AND kind = 'brain_reminder';
+  PERFORM private.brain_daily_tick();
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.notifications WHERE organization_id = A AND kind = 'brain_reminder'
+    AND ref ->> 'improvement_id' = 'aaaaaaaa-0000-0000-0074-000000000001' AND user_id = agent_a) = 1, 'responsavel cobrado pela aprovada parada');
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.notifications WHERE kind = 'brain_reminder' AND organization_id <> A
+    AND ref ->> 'improvement_id' = 'aaaaaaaa-0000-0000-0074-000000000001') = 0, 'cobranca nao vaza para outra empresa');
+  PERFORM private.brain_daily_tick();
+  PERFORM pg_temp.expect((SELECT reminders FROM public.improvements WHERE id = 'aaaaaaaa-0000-0000-0074-000000000001') = 1, 'nao cobra de novo antes de 3 dias');
+  UPDATE public.improvements SET reminders = 2, reminded_at = now() - interval '4 days' WHERE id = 'aaaaaaaa-0000-0000-0074-000000000001';
+  PERFORM private.brain_daily_tick();
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.notifications WHERE organization_id = A AND kind = 'brain_reminder'
+    AND (ref ->> 'escalado')::boolean AND user_id = owner_a AND ref ->> 'improvement_id' = 'aaaaaaaa-0000-0000-0074-000000000001') = 1, 'depois de 2 cobrancas escala ao dono');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.nudge_improvement(%L)', 'aaaaaaaa-0000-0000-0074-000000000001'), 'responsavel nao usa Cobrar');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.nudge_improvement(%L)', 'aaaaaaaa-0000-0000-0074-000000000001'), 'Cobrar so 1x a cada 24h');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.brain_pending(%L)', A), 'outra org nao ve pendencias de A');
+  PERFORM pg_temp.expect(pg_temp.t(agent_a, format('SELECT jsonb_array_length(public.brain_pending(%L)) >= 1', A)) = 'true', 'responsavel ve as pendencias da area');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.set_improvement_due(%L, current_date - 1)', 'aaaaaaaa-0000-0000-0074-000000000001'), 'prazo no passado recusado');
+  PERFORM pg_temp.expect(pg_temp.run(agent_a, format('SELECT public.set_improvement_due(%L, current_date + 3)', 'aaaaaaaa-0000-0000-0074-000000000001')) = 'ok:1', 'responsavel define prazo');
   PERFORM pg_temp.expect(pg_temp.run(NULL, format('UPDATE public.conversations SET stage_id = (SELECT id FROM public.pipeline_stages WHERE organization_id = %L AND name = %L) WHERE id = %L',
     A, 'Qualificado', 'aaaaaaaa-0000-0000-0004-000000000001')) = 'ok:1', 'etapa da propria org aceita');
 

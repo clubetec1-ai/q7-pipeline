@@ -1635,17 +1635,22 @@ export type Database = {
       }
       improvements: {
         Row: {
+          agent_key: string | null
           approved_at: string | null
           approved_by: string | null
           area_id: string | null
           artifact_id: string | null
           artifact_kind: string | null
+          brain_run_id: string | null
           closed_at: string | null
           created_at: string
           created_by: string | null
           department_id: string | null
           description: string | null
           discard_reason: string | null
+          due_date: string | null
+          evidence: Json | null
+          goal_id: string | null
           how: string | null
           id: string
           kind: string
@@ -1656,6 +1661,10 @@ export type Database = {
           modelo: string | null
           organization_id: string
           parent_id: string | null
+          priority: number | null
+          process_ref: string | null
+          reminded_at: string | null
+          reminders: number
           result: string | null
           result_note: string | null
           sistema: string | null
@@ -1666,17 +1675,22 @@ export type Database = {
           version: number
         }
         Insert: {
+          agent_key?: string | null
           approved_at?: string | null
           approved_by?: string | null
           area_id?: string | null
           artifact_id?: string | null
           artifact_kind?: string | null
+          brain_run_id?: string | null
           closed_at?: string | null
           created_at?: string
           created_by?: string | null
           department_id?: string | null
           description?: string | null
           discard_reason?: string | null
+          due_date?: string | null
+          evidence?: Json | null
+          goal_id?: string | null
           how?: string | null
           id?: string
           kind?: string
@@ -1687,6 +1701,10 @@ export type Database = {
           modelo?: string | null
           organization_id: string
           parent_id?: string | null
+          priority?: number | null
+          process_ref?: string | null
+          reminded_at?: string | null
+          reminders?: number
           result?: string | null
           result_note?: string | null
           sistema?: string | null
@@ -1697,17 +1715,22 @@ export type Database = {
           version?: number
         }
         Update: {
+          agent_key?: string | null
           approved_at?: string | null
           approved_by?: string | null
           area_id?: string | null
           artifact_id?: string | null
           artifact_kind?: string | null
+          brain_run_id?: string | null
           closed_at?: string | null
           created_at?: string
           created_by?: string | null
           department_id?: string | null
           description?: string | null
           discard_reason?: string | null
+          due_date?: string | null
+          evidence?: Json | null
+          goal_id?: string | null
           how?: string | null
           id?: string
           kind?: string
@@ -1718,6 +1741,10 @@ export type Database = {
           modelo?: string | null
           organization_id?: string
           parent_id?: string | null
+          priority?: number | null
+          process_ref?: string | null
+          reminded_at?: string | null
+          reminders?: number
           result?: string | null
           result_note?: string | null
           sistema?: string | null
@@ -1740,6 +1767,13 @@ export type Database = {
             columns: ["department_id", "organization_id"]
             isOneToOne: false
             referencedRelation: "departments"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "improvements_goal_fk"
+            columns: ["goal_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "area_goals"
             referencedColumns: ["id", "organization_id"]
           },
           {
@@ -3848,6 +3882,7 @@ export type Database = {
         Returns: undefined
       }
       brain_overview: { Args: { org: string }; Returns: Json }
+      brain_pending: { Args: { org: string }; Returns: Json }
       brand_kit: { Args: { org: string }; Returns: Json }
       campaign_audience: {
         Args: { groups: string[]; org: string }
@@ -4057,6 +4092,7 @@ export type Database = {
           organization_id: string
         }[]
       }
+      nudge_improvement: { Args: { improvement: string }; Returns: undefined }
       number_activity: {
         Args: { org: string }
         Returns: {
@@ -4426,6 +4462,10 @@ export type Database = {
       }
       set_improvement_area: {
         Args: { area: string; improvement: string }
+        Returns: undefined
+      }
+      set_improvement_due: {
+        Args: { due: string; improvement: string }
         Returns: undefined
       }
       set_improvement_live: {

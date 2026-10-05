@@ -19,7 +19,10 @@ const TEXT: Record<string, (r: Record<string, string>) => string> = {
   team_mention: (r) => `Você foi mencionado no chat da equipe: ${r.text ?? ""}`,
   process_reminder: (r) => `⏰ Lembrete: implementar "${r.nome ?? ""}"${r.setor ? ` (${r.setor})` : ""} — veja o plano no Diagnóstico`,
   missed_call: (r) => `📞 Ligação perdida de ${r.phone ?? ""} — clique para retornar`,
-  improvement: (r) => `${r.source === "monitor" ? "Correção" : "Melhoria"} para aprovar: ${r.title ?? ""}`,
+  improvement: (r) => `${r.source === "monitor" ? "Correção" : r.source === "cerebro" ? "Sugestão do cérebro" : "Melhoria"} para aprovar: ${r.title ?? ""}`,
+  brain_reminder: (r) => `${String(r.escalado) === "true" ? "⚠ Parada há tempo (escalado ao dono)" : "Lembrete"}: ${r.status === "aprovada" ? "colocar no ar" : "aprovar ou descartar"} "${r.title ?? ""}"`,
+  brain_goal: (r) => `Meta fora do rumo: ${r.title ?? ""}`,
+  brain_weekly: () => "O resumo da semana do cérebro está pronto",
   security_alert: (r) => `⚠ Segurança: ${r.name ?? "alguém da equipe"} tentou exportar contatos sem permissão (bloqueado)`,
   number_health: (r) => `Número ${r.name ?? ""}: ${r.error ?? (r.status === "disconnected" ? "desconectado" : "precisa de atenção")}`,
 };
@@ -55,6 +58,7 @@ export function NotificationsBell() {
     else if (n.kind === "number_health" || n.kind === "email_health") navigate("/numeros");
     else if (n.kind === "security_alert") navigate("/supervisor");
     else if (n.kind === "improvement") navigate("/melhorias");
+    else if (n.kind === "brain_reminder" || n.kind === "brain_goal" || n.kind === "brain_weekly") navigate("/cerebro");
     else if (n.kind === "team_mention") navigate("/chat");
     else if (n.kind === "process_reminder") navigate("/diagnostico");
     else if (n.kind === "missed_call" && n.ref.phone) requestCall(String(n.ref.phone));

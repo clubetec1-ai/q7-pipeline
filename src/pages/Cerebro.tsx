@@ -21,6 +21,11 @@ interface AreaView {
   pending: { sugeridas: number; aprovadas: number; no_ar: number };
 }
 interface Overview { scope: "dono" | "responsavel"; areas: AreaView[] }
+interface Pending { id: string; title: string; status: string; area_id: string | null; due_date: string | null; reminders: number; since: string; motivo: string }
+const MOTIVO: Record<string, string> = {
+  esperando_aprovacao: "Esperando aprovação", aprovada_sem_ir_ao_ar: "Aprovada, falta colocar no ar", prazo_vencido: "Prazo vencido",
+};
+const days = (iso: string) => Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 864e5));
 
 function Delta({ k, now, before }: { k: string; now: unknown; before: unknown }) {
   const a = Number(now), b = Number(before);
@@ -40,6 +45,7 @@ export default function Cerebro() {
   const { org } = useOrg();
   const { toast } = useToast();
   const [ov, setOv] = useState<Overview | null>(null);
+  const [pending, setPending] = useState<Pending[]>([]);
   const [denied, setDenied] = useState(false);
   const [names, setNames] = useState<Map<string, MemberName>>(new Map());
   const [goalFor, setGoalFor] = useState<AreaView | null>(null);
@@ -50,6 +56,8 @@ export default function Cerebro() {
     const { data, error } = await supabase.rpc("brain_overview", { org: org.id });
     if (error) { setDenied(true); return; }
     setOv(data as unknown as Overview);
+    const { data: p } = await supabase.rpc("brain_pending", { org: org.id });
+    setPending((p as unknown as Pending[]) ?? []);
     void memberNames(org.id).then(setNames);
   }, [org]);
   useEffect(() => { void load(); }, [load]);
@@ -74,6 +82,18 @@ export default function Cerebro() {
     setGoalFor(null);
     void load();
   };
+  const nudge = async (p: Pending) => {
+    const { error } = await supabase.rpc("nudge_improvement", { improvement: p.id });
+    if (error) return toast({ variant: "destructive", title: "Não foi possível cobrar", description: error.message });
+    toast({ title: "Cobrança enviada", description: "O responsável recebeu o aviso no sino." });
+    void load();
+  };
+  const setDue = async (p: Pending, due: string) => {
+    const { error } = await supabase.rpc("set_improvement_due", { improvement: p.id, due: due || null });
+    if (error) return toast({ variant: "destructive", title: "Prazo não salvo", description: error.message });
+    void load();
+  };
+  const areaName = (id: string | null) => ov?.areas.find((a) => a.id === id)?.name ?? "Sem área";
   const closeGoal = async (g: Goal) => {
     const { error } = await supabase.rpc("set_area_goal_status", { goal: g.id, new_status: "encerrada" });
     if (error) return toast({ variant: "destructive", title: "Não foi possível", description: error.message });
@@ -110,6 +130,35 @@ export default function Cerebro() {
               {owner ? <>Comece em <Link className="underline" to="/configuracoes/areas">Áreas e responsáveis</Link>: sugira as áreas pelos setores, escolha os responsáveis e ligue.</> : "Peça ao dono para ligar as áreas."}
             </p>
           </div>
+        )}
+
+        {pending.length > 0 && (
+          <section className="rounded-xl border bg-card p-5 space-y-3">
+            <div>
+              <h2 className="text-base font-semibold">Pendências</h2>
+              <p className="text-xs text-muted-foreground">O sistema cobra sozinho a cada 3 dias; depois de 2 cobranças, avisa o dono.</p>
+            </div>
+            <ul className="divide-y">
+              {pending.map((p) => (
+                <li key={p.id} className="flex flex-wrap items-center gap-3 py-2 text-sm">
+                  <span className={`rounded-md px-2 py-0.5 text-xs font-medium ${p.motivo === "prazo_vencido" ? "bg-danger-soft text-danger-text" : "bg-warning-soft text-warning-text"}`}>
+                    {MOTIVO[p.motivo] ?? p.motivo}
+                  </span>
+                  <span className="flex-1 min-w-[12rem]">
+                    <span className="font-medium">{p.title}</span>
+                    <span className="block text-xs text-muted-foreground">{areaName(p.area_id)} · há {days(p.since)} dia(s) · {p.reminders} cobrança(s)</span>
+                  </span>
+                  <label className="text-xs text-muted-foreground flex items-center gap-1">
+                    Prazo
+                    <input type="date" className="h-8 rounded-md border bg-background px-2 text-xs" value={p.due_date ?? ""}
+                      min={new Date().toISOString().slice(0, 10)} onChange={(e) => void setDue(p, e.target.value)} />
+                  </label>
+                  {owner && <Button size="sm" variant="outline" onClick={() => void nudge(p)}>Cobrar</Button>}
+                  <Button asChild size="sm" variant="ghost"><Link to={`/melhorias?area=${p.area_id ?? ""}`}>Abrir</Link></Button>
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
 
         <div className="grid gap-4 lg:grid-cols-2">

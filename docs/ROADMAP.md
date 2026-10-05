@@ -221,6 +221,14 @@ só o Microsoft Teams (item 20) pode ficar para depois. O **cérebro** tem que e
 5. Regras dos bots visíveis na tela (o que a IA nunca faz).
 6. Varredura final: tela a tela (claro/escuro/celular), console, revisão de segurança completa antes da produção.
 
+**Andamento (branch `feat/fase1`, ainda sem merge):** design P2 (barra da conversa, bolhas, Kanban com etiquetas/
+"Mover para…"/Desfazer, abas Resultados e Clientes, Clientes em tabela) ✅; funil 2ª parte (retorno automático por
+etapa 2/5/10 dias + "Gerar proposta") ✅; **cérebro** — fatia 1 áreas e responsáveis ✅, fatia 2 metas e números por
+área + página Cérebro ✅, fatias 3–8 em andamento (cobranças, resultado → Diagnóstico, orquestrador semanal, agentes
+de área, histórico, acabamento). Padrões adotados nas decisões do cérebro (o dono pode mudar): responsável = qualquer
+membro ativo; MFA recomendado; franquia 8 análises/mês e 1 manual/dia; e-mail semanal desligado; cérebro dentro do
+módulo "Qualidade e Gestão".
+
 **Fase 2 — pré-lançamento:** 7. venda autoatendida (planos, assinatura Asaas, teste grátis, cadastro público,
 franquia de IA; 🙋 preços — sugestão em docs/marketing/02); 8. contrato e LGPD (termos, privacidade, contrato de
 tratamento de dados; 🙋 revisão jurídica); 9. Meta: Embedded Signup e nome do app (análise prevista ~14/10);
