@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowDownRight, ArrowUpRight, Plus } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Plus, Sparkles } from "lucide-react";
+import { callFunction } from "@/lib/callFunction";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/contexts/OrgContext";
 import { useToast } from "@/hooks/use-toast";
@@ -25,6 +26,11 @@ interface Pending { id: string; title: string; status: string; area_id: string |
 const MOTIVO: Record<string, string> = {
   esperando_aprovacao: "Esperando aprovação", aprovada_sem_ir_ao_ar: "Aprovada, falta colocar no ar", prazo_vencido: "Prazo vencido",
 };
+interface Run {
+  id: string; kind: string; status: string; started_at: string; error: string | null; calls: number;
+  summary: { resumo?: string; prioridades?: { area_key: string; titulo: string; por_que: string }[]; delegou?: { area_key: string; propostas: number }[]; propostas?: number } | null;
+}
+const RUN_STATUS: Record<string, string> = { ok: "Concluída", pulado: "Sem mudanças", erro: "Não concluiu", rodando: "Em andamento" };
 const days = (iso: string) => Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 864e5));
 
 function Delta({ k, now, before }: { k: string; now: unknown; before: unknown }) {
@@ -46,6 +52,9 @@ export default function Cerebro() {
   const { toast } = useToast();
   const [ov, setOv] = useState<Overview | null>(null);
   const [pending, setPending] = useState<Pending[]>([]);
+  const [runs, setRuns] = useState<Run[]>([]);
+  const [quota, setQuota] = useState(8);
+  const [analyzing, setAnalyzing] = useState(false);
   const [denied, setDenied] = useState(false);
   const [names, setNames] = useState<Map<string, MemberName>>(new Map());
   const [goalFor, setGoalFor] = useState<AreaView | null>(null);
@@ -58,6 +67,16 @@ export default function Cerebro() {
     setOv(data as unknown as Overview);
     const { data: p } = await supabase.rpc("brain_pending", { org: org.id });
     setPending((p as unknown as Pending[]) ?? []);
+    if ((data as unknown as Overview)?.scope === "dono") {
+      const [{ data: r }, { data: m }] = await Promise.all([
+        supabase.from("brain_runs").select("id, kind, status, started_at, error, calls, summary").eq("organization_id", org.id)
+          .order("started_at", { ascending: false }).limit(10),
+        supabase.from("org_modules").select("limits").eq("organization_id", org.id).eq("module", "gestao").maybeSingle(),
+      ]);
+      setRuns((r as unknown as Run[]) ?? []);
+      const lim = Number((m?.limits as { analises_mes?: number } | null)?.analises_mes);
+      setQuota(Number.isFinite(lim) && lim > 0 ? lim : 8);
+    }
     void memberNames(org.id).then(setNames);
   }, [org]);
   useEffect(() => { void load(); }, [load]);
@@ -93,6 +112,18 @@ export default function Cerebro() {
     if (error) return toast({ variant: "destructive", title: "Prazo não salvo", description: error.message });
     void load();
   };
+  const analyze = async () => {
+    setAnalyzing(true);
+    const r = await callFunction<{ propostas: number; skipped: boolean }>("brain", { organization_id: org.id });
+    setAnalyzing(false);
+    if (!r.ok) return toast({ variant: "destructive", title: "Não foi possível analisar", description: r.message });
+    toast({ title: "Análise pronta", description: r.data.propostas ? `${r.data.propostas} sugestão(ões) para aprovar.` : "Sem sugestões novas desta vez." });
+    void load();
+  };
+  const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime();
+  const used = runs.filter((r) => ["ok", "erro", "rodando"].includes(r.status) && new Date(r.started_at).getTime() >= monthStart).length;
+  const latest = runs.find((r) => r.status === "ok");
+  const areaByKey = (k: string) => ov?.areas.find((a) => a.key === k)?.name ?? k;
   const areaName = (id: string | null) => ov?.areas.find((a) => a.id === id)?.name ?? "Sem área";
   const closeGoal = async (g: Goal) => {
     const { error } = await supabase.rpc("set_area_goal_status", { goal: g.id, new_status: "encerrada" });
@@ -113,7 +144,15 @@ export default function Cerebro() {
               sistema; as sugestões da IA chegam como propostas e só seguem com aprovação.
             </p>
           </div>
-          {owner && <Button asChild variant="outline"><Link to="/configuracoes/areas">Áreas e responsáveis</Link></Button>}
+          {owner && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-muted-foreground">{used} de {quota} análises no mês</span>
+              <Button asChild variant="outline"><Link to="/configuracoes/areas">Áreas e responsáveis</Link></Button>
+              <Button disabled={analyzing || used >= quota || !ov?.areas.length} onClick={() => void analyze()}>
+                <Sparkles className="w-4 h-4 mr-1" /> {analyzing ? "Analisando…" : "Analisar agora"}
+              </Button>
+            </div>
+          )}
         </div>
 
         {denied && (
@@ -130,6 +169,27 @@ export default function Cerebro() {
               {owner ? <>Comece em <Link className="underline" to="/configuracoes/areas">Áreas e responsáveis</Link>: sugira as áreas pelos setores, escolha os responsáveis e ligue.</> : "Peça ao dono para ligar as áreas."}
             </p>
           </div>
+        )}
+
+        {owner && latest?.summary && (
+          <section className="rounded-xl border bg-card p-5 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-base font-semibold">Resumo da semana</h2>
+              <span className="rounded-md bg-status-ia-soft text-status-ia-text px-2 py-0.5 text-xs font-medium">Sugestão da IA — a decisão é sua</span>
+            </div>
+            {latest.summary.resumo && <p className="text-sm whitespace-pre-wrap">{latest.summary.resumo}</p>}
+            {!!latest.summary.prioridades?.length && (
+              <ol className="space-y-1.5 list-decimal pl-5 text-sm">
+                {latest.summary.prioridades.map((p, i) => (
+                  <li key={i}><span className="font-medium">{p.titulo}</span> <span className="text-muted-foreground">· {areaByKey(p.area_key)}{p.por_que ? ` — ${p.por_que}` : ""}</span></li>
+                ))}
+              </ol>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Análise de {new Date(latest.started_at).toLocaleDateString("pt-BR")}
+              {latest.summary.propostas ? ` · ${latest.summary.propostas} sugestão(ões) enviada(s) aos responsáveis` : ""}
+            </p>
+          </section>
         )}
 
         {pending.length > 0 && (
@@ -212,6 +272,25 @@ export default function Cerebro() {
             </section>
           ))}
         </div>
+        {owner && runs.length > 0 && (
+          <section className="rounded-xl border bg-card p-5 space-y-2">
+            <h2 className="text-base font-semibold">Histórico de análises</h2>
+            <ul className="divide-y text-sm">
+              {runs.map((r) => (
+                <li key={r.id} className="flex flex-wrap items-center gap-3 py-2">
+                  <span className="w-28 text-muted-foreground">{new Date(r.started_at).toLocaleDateString("pt-BR")}</span>
+                  <span className="w-20">{r.kind === "manual" ? "Manual" : "Semanal"}</span>
+                  <span className={`rounded-md px-2 py-0.5 text-xs ${r.status === "ok" ? "bg-success-soft text-success-text" : r.status === "erro" ? "bg-danger-soft text-danger-text" : "bg-muted text-muted-foreground"}`}>
+                    {RUN_STATUS[r.status] ?? r.status}
+                  </span>
+                  <span className="text-xs text-muted-foreground flex-1">
+                    {r.status === "erro" ? r.error : r.summary?.propostas ? `${r.summary.propostas} sugestão(ões)` : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
       </main>
 
       <Dialog open={!!goalFor} onOpenChange={(o) => !o && setGoalFor(null)}>

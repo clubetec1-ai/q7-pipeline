@@ -49,3 +49,6 @@ verify_jwt = false
 
 [functions.calls-sync]
 verify_jwt = false
+
+[functions.brain]
+verify_jwt = false

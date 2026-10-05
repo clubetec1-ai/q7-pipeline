@@ -1416,6 +1416,36 @@ BEGIN
     WHERE p.organization_id = A AND x ->> 'nome' = 'Confirmar agendamento') = 'agora', 'escolha do dono preservada');
   PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM public.company_profiles p, jsonb_array_elements(coalesce(p.processes, '[]'::jsonb)) x
     WHERE p.organization_id <> A AND x ? 'implantacao' AND x -> 'implantacao' ->> 'melhoria_id' = 'aaaaaaaa-0000-0000-0074-000000000001'), 'nao toca no Diagnostico de outra empresa');
+
+  -- 78. Cerebro so pelo servidor; analises so o dono ve; franquia so o operador grava.
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_brain_packet(%L)', A), 'navegador nao le o pacote do cerebro');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_brain_propose(%L, NULL, %L, %L)', A, 'vendas', '[]'), 'navegador nao grava proposta do cerebro');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_brain_start_run(%L, %L, NULL)', A, 'manual'), 'navegador nao abre analise');
+  PERFORM pg_temp.expect_error(owner_a, 'SELECT * FROM public.service_brain_due()', 'navegador nao lista empresas do cerebro');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.platform_set_module_limits(%L, %L, %L)', A, 'gestao', '{"analises_mes":999}'), 'dono nao muda a propria franquia');
+  PERFORM pg_temp.expect(pg_temp.run(operator, format('SELECT public.platform_set_module_limits(%L, %L, %L)', A, 'gestao', '{"analises_mes":8}')) = 'ok:1', 'operador define a franquia');
+  INSERT INTO public.brain_runs (id, organization_id, kind, status, period_start) VALUES ('aaaaaaaa-0000-0000-0078-000000000001', A, 'manual', 'ok', current_date);
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT count(*) FROM public.brain_runs') = 1, 'dono ve as analises');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, 'SELECT count(*) FROM public.brain_runs') = 0, 'responsavel nao ve o resumo de CEO');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.brain_runs') = 0, 'outra org nao ve analises de A');
+  PERFORM pg_temp.expect_denied(owner_a, format('INSERT INTO public.brain_runs (organization_id, kind) VALUES (%L, %L)', A, 'manual'), 'navegador nao grava analise');
+
+  -- 79. Propostas do cerebro: nascem sugeridas, no maximo 3, avisam o responsavel, e area cheia nao recebe mais.
+  DELETE FROM public.improvements WHERE organization_id = A AND source = 'cerebro' AND status = 'sugerida';
+  PERFORM pg_temp.expect(public.service_brain_propose(A, 'aaaaaaaa-0000-0000-0078-000000000001', 'vendas',
+    '[{"titulo":"P1","tipo":"processo"},{"titulo":"P2","tipo":"automacao","modelo":"followup"},{"titulo":"P3","tipo":"processo"},{"titulo":"P4","tipo":"processo"}]'::jsonb) = 3, 'no maximo 3 por analise');
+  PERFORM pg_temp.expect((SELECT bool_and(status = 'sugerida' AND source = 'cerebro' AND agent_key = 'area:vendas' AND organization_id = A)
+    FROM public.improvements WHERE brain_run_id = 'aaaaaaaa-0000-0000-0078-000000000001'), 'nascem sugeridas, marcadas como do cerebro');
+  PERFORM pg_temp.expect(EXISTS (SELECT 1 FROM public.notifications WHERE organization_id = A AND user_id = agent_a AND kind = 'improvement' AND ref ->> 'title' = 'P1'), 'responsavel avisado');
+  PERFORM pg_temp.expect(public.service_brain_propose(A, 'aaaaaaaa-0000-0000-0078-000000000001', 'vendas', '[{"titulo":"P1"}]'::jsonb) = 0, 'titulo repetido nao duplica');
+  PERFORM public.service_brain_propose(A, 'aaaaaaaa-0000-0000-0078-000000000001', 'vendas', '[{"titulo":"P5"},{"titulo":"P6"}]'::jsonb);
+  PERFORM pg_temp.expect(public.service_brain_propose(A, 'aaaaaaaa-0000-0000-0078-000000000001', 'vendas', '[{"titulo":"P7"}]'::jsonb) = 0, 'area com 5 pendentes nao recebe mais');
+  PERFORM pg_temp.expect(public.service_brain_propose('bbbbbbbb-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0078-000000000001', 'vendas', '[{"titulo":"Z"}]'::jsonb) = 0, 'analise de A nao grava em B');
+
+  -- 80. LGPD do pacote: so agregados, sem telefone nem conteudo de conversa.
+  PERFORM pg_temp.expect(public.service_brain_packet(A)::text NOT LIKE '%5511900000001%', 'pacote sem telefone de cliente');
+  PERFORM pg_temp.expect(public.service_brain_packet(A)::text NOT LIKE '%@%', 'pacote sem e-mail');
+  PERFORM pg_temp.expect(public.service_brain_packet(A)::text NOT LIKE '%"oi"%', 'pacote sem mensagens');
   PERFORM pg_temp.expect(pg_temp.run(NULL, format('UPDATE public.conversations SET stage_id = (SELECT id FROM public.pipeline_stages WHERE organization_id = %L AND name = %L) WHERE id = %L',
     A, 'Qualificado', 'aaaaaaaa-0000-0000-0004-000000000001')) = 'ok:1', 'etapa da propria org aceita');
 

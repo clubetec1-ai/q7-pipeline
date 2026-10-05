@@ -126,6 +126,7 @@ export default function ConfigAreas() {
                   <th className="px-4 py-2.5 font-medium">Responsável</th>
                   <th className="px-4 py-2.5 font-medium">Substituto</th>
                   <th className="px-4 py-2.5 font-medium">Quem aprova</th>
+                  <th className="px-4 py-2.5 font-medium" title="O agente da área sugere melhorias quando o cérebro pedir">Agente sugere</th>
                   <th className="px-4 py-2.5 font-medium">Ligada</th>
                 </tr>
               </thead>
@@ -161,6 +162,10 @@ export default function ConfigAreas() {
                       </select>
                     </td>
                     <td className="px-4 py-3">
+                      <input type="checkbox" className="h-4 w-4" checked={a.agent_enabled} disabled={busy === a.id}
+                        aria-label={`Agente da área ${a.name} sugere melhorias`} onChange={(e) => void save(a, { agent_enabled: e.target.checked })} />
+                    </td>
+                    <td className="px-4 py-3">
                       <input type="checkbox" className="h-4 w-4" checked={a.enabled} disabled={busy === a.id}
                         aria-label={`Ligar a área ${a.name}`} onChange={(e) => void save(a, { enabled: e.target.checked })} />
                     </td>
@@ -170,6 +175,10 @@ export default function ConfigAreas() {
             </table>
           </div>
         )}
+        <p className="text-xs text-muted-foreground">
+          "Agente sugere": toda segunda o cérebro analisa os números e pode pedir ao agente da área até 3 sugestões, sempre com
+          os números que as justificam. Nada vai ao ar sem a aprovação do responsável ou sua.
+        </p>
         <p className="text-xs text-muted-foreground">Recomendado: peça aos responsáveis que liguem a verificação em duas etapas (menu da pessoa → Segurança).</p>
       </main>
     </div>

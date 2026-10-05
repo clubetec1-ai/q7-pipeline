@@ -363,6 +363,68 @@ export type Database = {
           },
         ]
       }
+      brain_runs: {
+        Row: {
+          calls: number
+          error: string | null
+          finished_at: string | null
+          id: string
+          kind: string
+          model: string | null
+          organization_id: string
+          packet_hash: string | null
+          period_start: string
+          started_at: string
+          status: string
+          summary: Json | null
+          tokens_in: number
+          tokens_out: number
+          triggered_by: string | null
+        }
+        Insert: {
+          calls?: number
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          kind: string
+          model?: string | null
+          organization_id: string
+          packet_hash?: string | null
+          period_start?: string
+          started_at?: string
+          status?: string
+          summary?: Json | null
+          tokens_in?: number
+          tokens_out?: number
+          triggered_by?: string | null
+        }
+        Update: {
+          calls?: number
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          kind?: string
+          model?: string | null
+          organization_id?: string
+          packet_hash?: string | null
+          period_start?: string
+          started_at?: string
+          status?: string
+          summary?: Json | null
+          tokens_in?: number
+          tokens_out?: number
+          triggered_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brain_runs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       calls: {
         Row: {
           answered_at: string | null
@@ -1763,6 +1825,13 @@ export type Database = {
             referencedColumns: ["id", "organization_id"]
           },
           {
+            foreignKeyName: "improvements_brain_run_fk"
+            columns: ["brain_run_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "brain_runs"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
             foreignKeyName: "improvements_department_fk"
             columns: ["department_id", "organization_id"]
             isOneToOne: false
@@ -2495,6 +2564,7 @@ export type Database = {
       org_modules: {
         Row: {
           enabled: boolean
+          limits: Json
           module: string
           organization_id: string
           updated_at: string
@@ -2502,6 +2572,7 @@ export type Database = {
         }
         Insert: {
           enabled?: boolean
+          limits?: Json
           module: string
           organization_id: string
           updated_at?: string
@@ -2509,6 +2580,7 @@ export type Database = {
         }
         Update: {
           enabled?: boolean
+          limits?: Json
           module?: string
           organization_id?: string
           updated_at?: string
@@ -4192,6 +4264,10 @@ export type Database = {
         Args: { m: string; on_off: boolean; org: string }
         Returns: undefined
       }
+      platform_set_module_limits: {
+        Args: { lim: Json; m: string; org: string }
+        Returns: undefined
+      }
       platform_set_org_status: {
         Args: { new_status: string; org: string }
         Returns: undefined
@@ -4312,6 +4388,33 @@ export type Database = {
       service_anonymize_contact: {
         Args: { actor: string; contact: string; org: string; reason: string }
         Returns: Json
+      }
+      service_brain_can_run_manual: { Args: { org: string }; Returns: string }
+      service_brain_due: { Args: never; Returns: string[] }
+      service_brain_finish_run: {
+        Args: {
+          org: string
+          p_calls: number
+          p_error: string
+          p_hash: string
+          p_in: number
+          p_model: string
+          p_out: number
+          p_status: string
+          p_summary: Json
+          run: string
+        }
+        Returns: undefined
+      }
+      service_brain_last_hash: { Args: { org: string }; Returns: string }
+      service_brain_packet: { Args: { org: string }; Returns: Json }
+      service_brain_propose: {
+        Args: { items: Json; org: string; p_area_key: string; run: string }
+        Returns: number
+      }
+      service_brain_start_run: {
+        Args: { org: string; p_kind: string; who: string }
+        Returns: string
       }
       service_can_add_number: { Args: { org: string }; Returns: boolean }
       service_create_org: {
