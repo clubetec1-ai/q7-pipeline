@@ -1562,6 +1562,16 @@ BEGIN
   PERFORM pg_temp.expect((SELECT count(*) FROM public.inpi_conflicts WHERE rpi = 99095) = 1, 'marca parecida entra; processo nosso nao vira conflito');
   PERFORM pg_temp.expect((SELECT prazo FROM public.inpi_conflicts WHERE numero = '900000096') = '2026-12-05', 'prazo de oposicao de 60 dias');
 
+  -- 96. Diagnostico: rascunho salvo sozinho so na propria empresa; anexo de outra empresa nao entra.
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.save_step_draft(%L, %L, %L, NULL)', A, 'empresa', 'texto de B'), 'outra org nao grava rascunho');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.save_step_draft(%L, %L, %L, NULL)', A, 'empresa', 'x'), 'atendente nao grava rascunho');
+  INSERT INTO public.knowledge_docs (id, organization_id, title) VALUES ('bbbbbbbb-0000-0000-0096-000000000001', 'bbbbbbbb-0000-0000-0000-000000000001', 'doc de B');
+  PERFORM pg_temp.run(owner_a, format('SELECT public.save_step_draft(%L, %L, %L, %L)', A, 'cultura', 'missao e valores',
+    '[{"id":"bbbbbbbb-0000-0000-0096-000000000001","name":"doc de B"}]'));
+  PERFORM pg_temp.expect((SELECT steps -> 'cultura' ->> 'raw' FROM public.company_profiles WHERE organization_id = A) = 'missao e valores', 'rascunho gravado');
+  PERFORM pg_temp.expect((SELECT jsonb_array_length(steps -> 'cultura' -> 'attachments') FROM public.company_profiles WHERE organization_id = A) = 0, 'anexo de outra org nao entra');
+  PERFORM pg_temp.expect((SELECT last_page FROM public.company_profiles WHERE organization_id = A) = 'cultura', 'lembra a etapa onde parou');
+
   -- 92. Rede de franquias: unidade entra por codigo; matriz ve so numeros; padrao so configuracao.
   UPDATE public.organizations SET status = 'active' WHERE id = 'bbbbbbbb-0000-0000-0000-000000000001'; -- um grupo anterior suspende B
   PERFORM pg_temp.expect_error(owner_a, format('SELECT public.platform_create_network(%L, %L)', A, 'Rede X'), 'so a Clubetec cria rede');

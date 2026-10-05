@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Check, Eraser, FileText, Globe, Mic, Paperclip, Pencil, RotateCcw, Sparkles, Square, Target, Undo2, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Eraser, FileText, Globe, Mic, Paperclip, Pencil, RotateCcw, Sparkles, Square, Target, Undo2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/contexts/OrgContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -102,9 +102,9 @@ interface Plan {
 }
 interface Profile {
   sections: Record<string, string>; processes: Proc[]; suggestions: Suggestion[]; use_in_ai: boolean; stage: string;
-  steps: Record<string, StepState>; public_research: { resumo?: string }; plan: Plan; plan_at: string | null;
+  steps: Record<string, StepState>; public_research: { resumo?: string }; plan: Plan; plan_at: string | null; last_page?: string | null;
 }
-const EMPTY: Profile = { sections: {}, processes: [], suggestions: [], use_in_ai: true, stage: "empresa", steps: {}, public_research: {}, plan: {}, plan_at: null };
+const EMPTY: Profile = { sections: {}, processes: [], suggestions: [], use_in_ai: true, stage: "empresa", steps: {}, public_research: {}, plan: {}, plan_at: null, last_page: null };
 const brl = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const TIPO: Record<Auto["tipo"], [string, "secondary" | "default" | "outline"]> = {
   sem_ia: ["Sem IA (sem custo de IA)", "secondary"], ia: ["Com IA", "default"], integracao: ["Integração", "outline"],
@@ -119,6 +119,8 @@ export default function Diagnostico() {
   const { toast } = useToast();
   const [profile, setProfile] = useState<Profile>(EMPTY);
   const [page, setPage] = useState<string>("empresa");
+  // Só mostra/salva o texto da etapa depois que o retrato salvo chegou do banco.
+  const [ready, setReady] = useState(false);
   const [raw, setRaw] = useState("");
   const [draft, setDraft] = useState<{ secoes?: Record<string, string>; processos?: Proc[]; setores?: string[]; horario?: Hours; faltando: string[] } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -142,7 +144,7 @@ export default function Diagnostico() {
   const load = useCallback(async (goTo?: string) => {
     if (!org) return;
     const { data } = await supabase.from("company_profiles")
-      .select("sections, processes, suggestions, use_in_ai, stage, steps, public_research, plan, plan_at").eq("organization_id", org.id).maybeSingle();
+      .select("sections, processes, suggestions, use_in_ai, stage, steps, public_research, plan, plan_at, last_page").eq("organization_id", org.id).maybeSingle();
     const p = data ? { ...EMPTY, ...(data as unknown as Profile) } : EMPTY;
     setProfile(p);
     const [{ data: n }, { data: dp }, { data: o }] = await Promise.all([
@@ -157,12 +159,16 @@ export default function Diagnostico() {
     if (goTo !== undefined) setPage(goTo);
     return p;
   }, [org]);
-  // ?pagina=marca (menu "Marca") abre direto na etapa; senão, onde parou.
+  // ?pagina=marca (menu "Marca") abre direto na etapa; senão, a página onde a pessoa estava (mesmo depois de atualizar).
   const [params] = useSearchParams();
   const wanted = params.get("pagina");
   useEffect(() => {
-    void load().then((p) => p && setPage(wanted && (STEPS.some((s) => s.key === wanted) || wanted.startsWith("proc:")) ? wanted
-      : p.stage === "processos" ? "setores" : p.stage || "empresa"));
+    const ok = (k?: string | null): k is string => !!k && (STEPS.some((s) => s.key === k) || k.startsWith("proc:") || k === "plano");
+    void load().then((p) => {
+      if (!p) return;
+      setPage(ok(wanted) ? wanted : ok(p.last_page) ? p.last_page : p.stage === "processos" ? "setores" : p.stage || "empresa");
+      setReady(true);
+    });
   }, [load, wanted]);
 
   // Setores aprovados viram páginas de processos.
@@ -179,11 +185,37 @@ export default function Diagnostico() {
   const tpl = templateByKey(profile.steps.modelo ? profile.steps.modelo.tpl : orgTpl);
   const outdated = !!profile.plan_at && Object.values(profile.steps).some((s) => s.approved_at && s.approved_at > profile.plan_at!);
 
-  // Ao trocar de página: carrega o texto que o dono escreveu (se houver) e limpa a prévia.
+  // Rascunho salvo sozinho: o texto e os anexos de cada etapa vão para o banco enquanto a pessoa escreve.
+  const [savedAt, setSavedAt] = useState<string | null>(null);
+  const shown = useRef({ page: "", raw: "", atts: "[]" }); // o que está gravado da página aberta
+  const saveDraft = useCallback(async (k: string, text: string, files: { id: string; name: string }[]) => {
+    if (!org || k === "plano") return false;
+    const { error } = await supabase.rpc("save_step_draft", { org: org.id, p_key: k, p_raw: text, p_attachments: files as never });
+    if (error) { setSavedAt(null); return false; }
+    if (shown.current.page === k) shown.current = { page: k, raw: text, atts: JSON.stringify(files) };
+    setProfile((p) => ({ ...p, steps: { ...p.steps, [k]: { ...(p.steps[k] ?? {}), raw: text, attachments: files } } }));
+    setSavedAt(new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }));
+    return true;
+  }, [org]);
   useEffect(() => {
+    const k = shown.current.page;
+    if (!k || k !== page || (raw === shown.current.raw && JSON.stringify(atts) === shown.current.atts)) return;
+    const t = window.setTimeout(() => void saveDraft(k, raw, atts), 800);
+    return () => window.clearTimeout(t);
+  }, [raw, atts, page, saveDraft]);
+
+  // Ao trocar de página: grava o que faltava da anterior, carrega o texto da nova e lembra onde a pessoa está.
+  useEffect(() => {
+    if (!ready) return;
     if (dictating.current) { dictating.current = false; speech.current?.stop(); setRec({ on: false, secs: 0 }); }
-    setRaw(profile.steps[page]?.raw ?? ""); setAtts(profile.steps[page]?.attachments ?? []); setDraft(null);
-  }, [page]); // eslint-disable-line react-hooks/exhaustive-deps
+    const old = shown.current;
+    if (old.page && old.page !== page && (raw !== old.raw || JSON.stringify(atts) !== old.atts)) void saveDraft(old.page, raw, atts);
+    const r = profile.steps[page]?.raw ?? "";
+    const a = profile.steps[page]?.attachments ?? [];
+    shown.current = { page, raw: r, atts: JSON.stringify(a) };
+    setRaw(r); setAtts(a); setDraft(null); setSavedAt(null);
+    if (org) void supabase.rpc("save_step_draft", { org: org.id, p_key: page, p_raw: null as never, p_attachments: null as never });
+  }, [page, ready]); // eslint-disable-line react-hooks/exhaustive-deps
   // Contador enquanto grava.
   useEffect(() => {
     if (!rec.on) return;
@@ -580,6 +612,7 @@ export default function Diagnostico() {
                       ? "Escreva aqui ou clique em 🎤 Falar logo abaixo — o que você falar aparece escrito nesta caixa.\nEx.: 1. O cliente pede orçamento no WhatsApp. 2. O vendedor confere o estoque na planilha..."
                       : "Escreva aqui do seu jeito ou clique em 🎤 Falar logo abaixo — o que você falar aparece escrito nesta caixa. Depois a IA organiza para você revisar."} />
                   <p className="text-xs text-muted-foreground">
+                    {savedAt && <span className="text-success-text">✓ Salvo às {savedAt}. </span>}
                     ✍️ Você pode <b>escrever</b> ou clicar em <b>🎤 Falar</b>: sua fala vira texto aqui em cima, para você conferir e corrigir.
                     Quando terminar, clique em <b>Organizar com IA</b>.
                   </p>
@@ -612,6 +645,19 @@ export default function Diagnostico() {
                   <div className="flex flex-wrap gap-2">
                     {prev && <Button variant="ghost" onClick={() => setPage(prev)}><ArrowLeft className="w-4 h-4 mr-1" /> Voltar</Button>}
                     {!draft && <Button variant="ghost" onClick={skipStep} title="Pular por agora; dá para voltar depois">Não sei / pular</Button>}
+                    {!draft && (raw.trim() || atts.length > 0) && (
+                      <Button variant="outline" disabled={busy === "next"} title="Guarda o que você escreveu e vai para a próxima etapa; organize e aprove quando quiser"
+                        onClick={async () => {
+                          setBusy("next");
+                          const ok = await saveDraft(page, raw, atts);
+                          setBusy(null);
+                          if (!ok) return toast({ variant: "destructive", title: "Não consegui salvar agora", description: "Confira a internet e tente de novo." });
+                          toast({ title: "Etapa salva", description: "Quando quiser, volte nela para organizar com IA e aprovar." });
+                          setPage(next);
+                        }}>
+                        {busy === "next" ? "Salvando..." : <>Salvar e próxima etapa <ArrowRight className="w-4 h-4 ml-1" /></>}
+                      </Button>
+                    )}
                     <Button variant={draft ? "outline" : "default"} disabled={busy === "format" || (raw.trim().length < 10 && !atts.length)} onClick={organize}>
                       <Sparkles className="w-4 h-4 mr-1" /> {busy === "format" ? "Organizando..." : draft ? "Organizar de novo" : "Organizar com IA"}
                     </Button>
