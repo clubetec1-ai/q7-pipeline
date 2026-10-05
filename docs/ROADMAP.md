@@ -83,8 +83,8 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
     agente, recusar com mais educação oferecendo uma pessoa, teste de tentativas de burlar e registro delas na auditoria.
 
 ### P2 — cérebro e profundidade do produto
-14. ⏳ **Cérebro com delegação por área** + aprovador por setor + resultado das melhorias voltando ao Diagnóstico.
-15. ⏳ **Diagnóstico, 2ª parte:** Sistemas e dados, Pós-venda, Publicar e medir, convite ao responsável do setor,
+14. ✅ *(fatias 1–7, 04/10)* **Cérebro com delegação por área** + aprovador por setor + resultado das melhorias voltando ao Diagnóstico.
+15. ✅ *(05/10: etapas Pós-venda, Sistemas e dados com LGPD, Publicar e medir com textos para Google Meu Negócio e redes; convite ao responsável do setor — vê só o setor dele, teste 88; planejamento em PDF)* **Diagnóstico, 2ª parte:** Sistemas e dados, Pós-venda, Publicar e medir, convite ao responsável do setor,
     planejamento em PDF, Google Meu Negócio e redes sociais. (A escolha Haiku/Sonnet saiu: decisão de uma IA só.)
 16. 🟡 **Base de conhecimento:** preencher contrato/orçamento com dados do cliente, enviar documento "enviável" pelo
     atendimento, PDF digitalizado (OCR), setores da base por bloco de IA, vídeo e anexos de e-mail.

@@ -22,6 +22,10 @@ export const SECTIONS: Record<string, { label: string; public: boolean }> = {
   areas: { label: "Áreas, pessoas e responsáveis", public: false },
   sistemas: { label: "Sistemas usados", public: false },
   metas: { label: "Volumes, metas e maiores dores", public: false },
+  dados: { label: "Dados dos clientes: onde ficam, quem acessa, por quanto tempo e consentimento (LGPD)", public: false },
+  pos_venda: { label: "Pós-venda: entrega, suporte, garantia, recompra, avaliações e indicação", public: false },
+  presenca: { label: "Onde a empresa aparece: Google, redes sociais, site e o que publica", public: false },
+  medicao: { label: "O que medir, com que frequência e quem acompanha", public: false },
 };
 
 /** Etapas da consultoria, em ordem; cada uma diz o que perguntar e onde salvar. */
@@ -30,12 +34,16 @@ export const STAGES: { key: string; label: string; sections: string[]; guide: st
     guide: "Confirme o que veio de dados públicos (se houver) e complete: o que a empresa faz, para quem, onde; canais e horários; produtos/serviços e preços ou regra de orçamento; políticas; dúvidas frequentes dos clientes." },
   { key: "clientes", label: "Clientes e jornada", sections: ["clientes"],
     guide: "Entenda quem compra e como compra: perfil dos clientes (quem são, de onde vêm, o que buscam), por onde chegam (WhatsApp, Instagram, indicação, site), as perguntas que fazem antes de comprar, as objeções mais comuns (preço, prazo, confiança) e as etapas do primeiro contato até fechar e voltar a comprar. Use isso para sugerir as etapas do funil e o que o agente deve perguntar para qualificar." },
+  { key: "posvenda", label: "Pós-venda", sections: ["pos_venda"],
+    guide: "Entenda o que acontece depois da venda: entrega ou execução do serviço (prazos e avisos), suporte e reclamações (por onde chegam, quem resolve, em quanto tempo), garantia e trocas, como pede avaliação e indicação, e como traz o cliente de volta (recompra, renovação, lembretes). Aponte onde o cliente fica sem resposta." },
   { key: "marca", label: "Identidade da marca", sections: ["marca_visual", "marca_voz"],
     guide: "Monte o manual da marca: cores (nome e código, ex.: Azul #1E40AF), fontes, logos e onde usar cada versão; e o tom de voz: como a marca fala (formal ou próximo, com ou sem emoji, tratamento você/senhor), palavras e expressões que usa e que evita, e 2 ou 3 exemplos de frases. Se ainda não tiver, ajude a propor a partir do que o dono contar (marque como proposta)." },
   { key: "cultura", label: "Cultura", sections: ["cultura"],
     guide: "Pergunte se a empresa já tem cultura definida e como ela aparece no dia a dia. Peça missão, visão e valores; se não tiver, ajude a escrever a partir do que o dono contar (marque como proposta para ele aprovar)." },
-  { key: "situacao", label: "Onde está hoje", sections: ["situacao", "metas", "sistemas"],
-    guide: "Entenda a situação atual: tamanho da equipe, volumes (mensagens, pedidos, atendimentos por mês), faturamento aproximado se ele quiser dizer, sistemas usados, maiores dores e o que já funciona bem." },
+  { key: "situacao", label: "Onde está hoje", sections: ["situacao", "metas"],
+    guide: "Entenda a situação atual: tamanho da equipe, volumes (mensagens, pedidos, atendimentos por mês), faturamento aproximado se ele quiser dizer, maiores dores e o que já funciona bem." },
+  { key: "sistemas", label: "Sistemas e dados", sections: ["sistemas", "dados"],
+    guide: "Mapeie os sistemas e planilhas (pedidos, estoque, agenda, financeiro, emissão de nota), o que conversa com o quê e o que é digitado duas vezes. Depois, os dados dos clientes: onde ficam, quem tem acesso, por quanto tempo guarda, se pede consentimento para mensagens e como atende quem pede para apagar os dados (LGPD). Não peça senhas nem dados de clientes reais." },
   { key: "objetivos", label: "Objetivos", sections: ["objetivos"],
     guide: "Pergunte quais resultados quer buscar nos próximos 6 a 12 meses (vendas, atendimento, tempo, custo, crescimento) e como vai medir cada um." },
   { key: "setores", label: "Setores", sections: ["setores", "areas"],
@@ -44,6 +52,8 @@ export const STAGES: { key: string; label: string; sections: string[]; guide: st
     guide: "Entre em um setor por vez, na ordem do mapa de setores. Para cada processo peça para descrever COMO SE ESTIVESSE ENSINANDO UMA PESSOA NOVA: passo a passo, quem faz, com que ferramenta, quanto tempo, onde trava e as exceções. Dê um exemplo curto na primeira vez (ex.: '1. Cliente pede orçamento no WhatsApp; 2. Vendedor confere estoque na planilha; 3. ...'). Quando o setor acabar, confirme e passe ao próximo." },
   { key: "regras", label: "Regras do atendimento e limites da IA", sections: ["regras_ia"],
     guide: "Defina as regras que os agentes de IA devem seguir SEMPRE: o que podem responder e resolver sozinhos; o que NUNCA podem fazer ou prometer (ex.: dar desconto, prometer prazo, falar de assunto jurídico/médico, pedir senha ou dados de cartão); quando passar para uma pessoa (cliente irritado, reclamação, pedido de humano, valor alto, assunto sensível); horários e prazos de resposta; o que fazer fora do horário; dados sensíveis que não devem ser pedidos nem repetidos. Escreva como regras curtas e diretas." },
+  { key: "publicar", label: "Publicar e medir", sections: ["presenca", "medicao"],
+    guide: "Veja onde a empresa aparece (perfil no Google/Google Meu Negócio, Instagram, Facebook, site, marketplaces), com que frequência publica e o que funciona. Depois, o que acompanhar para saber se está melhorando (ex.: tempo de resposta, vendas por mês, avaliação), de quanto em quanto tempo olhar e quem acompanha. Use os objetivos já aprovados como base." },
 ];
 
 const MAX_KNOWLEDGE = 6000;

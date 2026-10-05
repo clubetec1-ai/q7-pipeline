@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Check, Eraser, Globe, LogOut, Mic, Paperclip, Pencil, RotateCcw, Sparkles, Square, Target, Undo2, X } from "lucide-react";
+import { ArrowLeft, Check, Eraser, FileText, Globe, Mic, Paperclip, Pencil, RotateCcw, Sparkles, Square, Target, Undo2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/contexts/OrgContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -22,6 +22,7 @@ import { ImplementationBoard, type Priority } from "./diagnostico/Implementation
 import { TEMPLATES, templateByKey } from "./diagnostico/templates";
 import { HoursEditor, hoursValid, type Hours } from "@/components/HoursEditor";
 import { VoiceInterview } from "./diagnostico/VoiceInterview";
+import { PresenceTexts, SectorDelegation } from "./diagnostico/Part2";
 
 /** Rótulo das seções (as mesmas do servidor, _shared/company.ts); 🌐 = pode ir para a IA de atendimento. */
 const SECTION_LABEL: Record<string, [string, boolean]> = {
@@ -34,24 +35,35 @@ const SECTION_LABEL: Record<string, [string, boolean]> = {
   situacao: ["Onde a empresa está hoje", false], metas: ["Volumes, metas e maiores dores", false],
   sistemas: ["Sistemas usados", false], objetivos: ["Resultados que quer alcançar", false],
   setores: ["Setores e responsáveis", false], areas: ["Áreas, pessoas e responsáveis", false],
+  dados: ["Dados dos clientes e LGPD (onde ficam, quem acessa, por quanto tempo)", false],
+  pos_venda: ["Pós-venda: entrega, suporte, garantia, recompra e indicação", false],
+  presenca: ["Onde a empresa aparece: Google, redes sociais e site", false], medicao: ["O que medir e quem acompanha", false],
 };
 /** Etapas de texto: o que contar e onde o texto organizado é guardado. */
 /** Blocos da entrevista: conhecer → identidade → como funciona hoje → agentes. */
-const BLOCKS: Record<string, string> = { conhecer: "1 · Conhecer", identidade: "2 · Identidade", hoje: "3 · Como funciona hoje", agentes: "4 · Agentes" };
+const BLOCKS: Record<string, string> = { conhecer: "1 · Conhecer", identidade: "2 · Identidade", hoje: "3 · Como funciona hoje", agentes: "4 · Agentes",
+  publicar: "5 · Publicar, medir e planejar" };
 const STEPS: { key: string; label: string; sections: string[]; ask: string[]; block: string; min: number; afterProcs?: boolean }[] = [
   { key: "empresa", label: "Empresa", block: "conhecer", min: 5, sections: ["empresa", "atendimento", "produtos", "politicas", "faq"],
     ask: ["O que a empresa faz, para quem e onde", "Canais e horários de atendimento", "Produtos/serviços e preços (ou como faz orçamento)", "Políticas: troca, cancelamento, pagamento, garantia", "Dúvidas que os clientes mais perguntam"] },
   { key: "clientes", label: "Clientes e jornada", block: "conhecer", min: 5, sections: ["clientes"],
     ask: ["Quem são os seus clientes (perfil, de onde vêm, o que buscam)", "Por onde chegam: WhatsApp, Instagram, indicação, site…", "O que perguntam antes de comprar e as objeções mais comuns",
       "As etapas do primeiro contato até fechar (e voltar a comprar)"] },
+  { key: "posvenda", label: "Pós-venda", block: "conhecer", min: 4, sections: ["pos_venda"],
+    ask: ["Entrega ou execução: prazos e como o cliente é avisado", "Suporte e reclamações: por onde chegam, quem resolve e em quanto tempo",
+      "Garantia, trocas e devoluções na prática", "Como pede avaliação e indicação, e como traz o cliente de volta (recompra, renovação, lembretes)"] },
   { key: "marca", label: "Marca", block: "identidade", min: 5, sections: ["marca_visual", "marca_voz"],
     ask: ["Cores da marca (nome e código) e fontes — cadastre no kit abaixo", "Logos (versões e onde usar cada uma) e o manual da marca, se tiver",
       "Tom de voz: como a marca fala (próximo ou formal, com ou sem emoji, você/senhor)", "Palavras e expressões que usa e que evita, e 2 ou 3 frases de exemplo"] },
   { key: "cultura", label: "Cultura (opcional)", block: "identidade", min: 3, sections: ["cultura"],
     ask: ["A empresa já tem cultura definida? Como ela aparece no dia a dia?", "Missão (por que existe)", "Visão (onde quer chegar)", "Valores (o que não abre mão)"] },
-  { key: "situacao", label: "Hoje e números de partida", block: "hoje", min: 5, sections: ["situacao", "metas", "sistemas"],
+  { key: "situacao", label: "Hoje e números de partida", block: "hoje", min: 5, sections: ["situacao", "metas"],
     ask: ["Tamanho da equipe", "Números de hoje: volumes por mês, tempo de resposta, quantos leads viram clientes (a base para medir a melhora)",
-      "Sistemas e planilhas que usa (onde ficam pedidos, estoque, agenda)", "Maiores dores e o que já funciona bem"] },
+      "Maiores dores e o que já funciona bem"] },
+  { key: "sistemas", label: "Sistemas e dados", block: "hoje", min: 4, sections: ["sistemas", "dados"],
+    ask: ["Sistemas e planilhas que usa (pedidos, estoque, agenda, financeiro, nota fiscal) e o que é digitado duas vezes",
+      "Onde ficam os dados dos clientes e quem tem acesso", "Por quanto tempo guarda e se pede autorização para mandar mensagens",
+      "O que faz quando um cliente pede para apagar os dados dele (LGPD) — não escreva senhas nem dados de clientes"] },
   { key: "objetivos", label: "Objetivos", block: "hoje", min: 3, sections: ["objetivos"],
     ask: ["Resultados que quer nos próximos 6 a 12 meses", "Como vai medir cada um (número, prazo)"] },
   { key: "setores", label: "Setores", block: "hoje", min: 3, sections: ["setores", "areas"],
@@ -59,6 +71,10 @@ const STEPS: { key: string; label: string; sections: string[]; ask: string[]; bl
   { key: "regras", label: "Regras e limites da IA", block: "agentes", min: 5, afterProcs: true, sections: ["regras_ia"],
     ask: ["O que a IA pode responder e resolver sozinha", "O que ela NUNCA pode fazer ou prometer (desconto, prazo, pedir senha…)",
       "Quando passar para uma pessoa (pedido do cliente, reclamação, valor alto…)", "Horários, o que fazer fora do horário e dados que não devem ser pedidos"] },
+  { key: "publicar", label: "Publicar e medir", block: "publicar", min: 4, afterProcs: true, sections: ["presenca", "medicao"],
+    ask: ["Onde a empresa aparece: perfil no Google (Google Meu Negócio), Instagram, Facebook, site, marketplaces — e os links",
+      "O que publica, com que frequência e o que dá mais retorno", "O que quer acompanhar para saber se está melhorando (ex.: tempo de resposta, vendas, avaliações)",
+      "De quanto em quanto tempo olhar os números e quem acompanha"] },
 ];
 const PROC_ASK = [
   "Descreva cada processo como se estivesse ensinando uma pessoa nova: passo a passo",
@@ -419,11 +435,14 @@ export default function Diagnostico() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <AppHeader active="diagnostico" />
-      <NumberHealthBanner />
+      <div className="print:hidden">
+        <AppHeader active="diagnostico" />
+        <NumberHealthBanner />
+      </div>
 
-      <main className="flex-1 w-full max-w-6xl mx-auto p-4 sm:p-6 grid gap-6 md:grid-cols-[220px_1fr]">
-        <aside className="space-y-3">
+      <main className="flex-1 w-full max-w-6xl mx-auto p-4 sm:p-6 grid gap-6 md:grid-cols-[220px_1fr] print:block print:p-0 print:max-w-none"
+        style={{ printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" }}>
+        <aside className="space-y-3 print:hidden">
           <p className="text-sm font-semibold">Diagnóstico</p>
           <label className="block text-xs text-muted-foreground space-y-1">
             <span>Modelo do seu tipo de empresa (traz exemplos prontos)</span>
@@ -435,9 +454,9 @@ export default function Diagnostico() {
           <nav className="space-y-0.5" aria-label="Etapas">
             {pages.map((k, i) => {
               const isProc = k.startsWith("proc:");
-              const block = k === "plano" ? "agentes" : isProc ? "hoje" : STEPS.find((s) => s.key === k)?.block ?? "";
+              const block = k === "plano" ? "publicar" : isProc ? "hoje" : STEPS.find((s) => s.key === k)?.block ?? "";
               const prevK = pages[i - 1];
-              const prevBlock = !prevK ? "" : prevK === "plano" ? "agentes" : prevK.startsWith("proc:") ? "hoje" : STEPS.find((s) => s.key === prevK)?.block ?? "";
+              const prevBlock = !prevK ? "" : prevK === "plano" ? "publicar" : prevK.startsWith("proc:") ? "hoje" : STEPS.find((s) => s.key === prevK)?.block ?? "";
               return (
                 <div key={k}>
                 {block !== prevBlock && <p className="pt-2 pb-0.5 px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{BLOCKS[block]}</p>}
@@ -469,6 +488,14 @@ export default function Diagnostico() {
               <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-0.5">
                 {(setor ? PROC_ASK : step?.ask ?? []).map((q) => <li key={q}>{q}</li>)}
               </ul>
+
+              {setor && (
+                <SectorDelegation key={setor} orgId={org.id} setor={setor} onUse={(t) => {
+                  setRaw((r) => (r.trim() ? `${r.trim()}\n\n` : "") + t);
+                  if (approved(page)) edit();
+                }} />
+              )}
+              {page === "publicar" && approved("publicar") && <PresenceTexts orgId={org.id} />}
 
               {page === "marca" && org && (
                 <>
@@ -639,10 +666,14 @@ export default function Diagnostico() {
           {page === "plano" && (
             <div className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h1 className="text-xl font-semibold flex items-center gap-2"><Target className="w-5 h-5" /> Planejamento estratégico</h1>
-                <Button disabled={busy === "plan" || !readyForPlan} onClick={makePlan}>
-                  <Sparkles className="w-4 h-4 mr-1" /> {busy === "plan" ? "Analisando..." : hasPlan ? "Gerar de novo" : "Gerar planejamento"}
-                </Button>
+                <h1 className="text-xl font-semibold flex items-center gap-2"><Target className="w-5 h-5" /> Planejamento estratégico
+                  <span className="hidden print:inline font-normal">— {org.name}</span></h1>
+                <div className="flex gap-2 print:hidden">
+                  {hasPlan && <Button variant="outline" onClick={() => window.print()} title="Abre a impressão: escolha Salvar como PDF"><FileText className="w-4 h-4 mr-1" /> PDF</Button>}
+                  <Button disabled={busy === "plan" || !readyForPlan} onClick={makePlan}>
+                    <Sparkles className="w-4 h-4 mr-1" /> {busy === "plan" ? "Analisando..." : hasPlan ? "Gerar de novo" : "Gerar planejamento"}
+                  </Button>
+                </div>
               </div>
               {!readyForPlan && <p className="text-sm text-muted-foreground">Aprove ao menos Empresa, Setores e os processos de um setor para gerar o planejamento. Quanto mais etapas aprovadas, melhor o resultado.</p>}
               {outdated && <p className="text-sm rounded-md bg-amber-500/10 p-3">Etapas foram alteradas depois deste planejamento. Gere de novo para ele refletir a forma atual de trabalhar.</p>}
@@ -720,10 +751,10 @@ function PlanView({ plan, suggestions, planAt, installing, onInstall, onOpen, on
                 </div>
                 <p className="text-muted-foreground">{a.descricao}</p>
                 {a.custo && <p className="text-xs">≈ {a.custo.volume.toLocaleString("pt-BR")} respostas/mês · Groq {brl(a.custo.groq)}/mês · {a.custo.claude_model} {brl(a.custo.claude)}/mês</p>}
-                {s?.tipo === "pronta" && s.modelo && (s.instalado
+                {s?.tipo === "pronta" && s.modelo && <span className="print:hidden">{s.instalado
                   ? <Button size="sm" variant="ghost" onClick={() => onOpen(s)}>Instalado — abrir rascunho</Button>
-                  : <Button size="sm" variant="outline" disabled={!!installing} onClick={() => onInstall(i)}>{installing === `s${i}` ? "Instalando..." : "Instalar (rascunho)"}</Button>)}
-                {s?.tipo === "integracao" && <Button size="sm" variant="outline" disabled={!!installing} onClick={() => onGuide(i, s)}>Abrir guia de integração</Button>}
+                  : <Button size="sm" variant="outline" disabled={!!installing} onClick={() => onInstall(i)}>{installing === `s${i}` ? "Instalando..." : "Instalar (rascunho)"}</Button>}</span>}
+                {s?.tipo === "integracao" && <Button className="print:hidden" size="sm" variant="outline" disabled={!!installing} onClick={() => onGuide(i, s)}>Abrir guia de integração</Button>}
               </div>
             );
           })}

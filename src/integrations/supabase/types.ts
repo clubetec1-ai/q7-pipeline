@@ -1346,6 +1346,50 @@ export type Database = {
           },
         ]
       }
+      diag_delegations: {
+        Row: {
+          created_at: string
+          id: string
+          invited_by: string | null
+          organization_id: string
+          raw: string | null
+          setor: string
+          status: string
+          submitted_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invited_by?: string | null
+          organization_id: string
+          raw?: string | null
+          setor: string
+          status?: string
+          submitted_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invited_by?: string | null
+          organization_id?: string
+          raw?: string | null
+          setor?: string
+          status?: string
+          submitted_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diag_delegations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_accounts: {
         Row: {
           address: string
@@ -4407,6 +4451,18 @@ export type Database = {
       }
       delete_webhook_endpoint: {
         Args: { endpoint: string }
+        Returns: undefined
+      }
+      diag_close_delegation: {
+        Args: { delegation: string; p_used: boolean }
+        Returns: undefined
+      }
+      diag_invite_sector: {
+        Args: { org: string; p_setor: string; uid: string }
+        Returns: string
+      }
+      diag_submit_sector: {
+        Args: { delegation: string; p_raw: string }
         Returns: undefined
       }
       discard_improvement: {
