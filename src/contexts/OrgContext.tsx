@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -52,6 +52,10 @@ function readStoredOrg(): string | null {
 
 export function OrgProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
+  // Só o id importa: a sessão renovada (ao voltar para a aba) traz um objeto novo do mesmo usuário
+  // e não pode desmontar a tela (perdia entrevista, rascunhos e formulários em andamento).
+  const uid = user?.id ?? null;
+  const loadedFor = useRef<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [orgs, setOrgs] = useState<OrgSummary[]>([]);
   const [orgId, setOrgId] = useState<string | null>(readStoredOrg());
@@ -60,7 +64,8 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
   const [invitations, setInvitations] = useState<Invitation[]>([]);
 
   const reload = useCallback(async () => {
-    if (!user) {
+    if (!uid) {
+      loadedFor.current = null;
       setOrgs([]);
       setPermissions([]);
       setIsOperator(false);
@@ -68,14 +73,15 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
       return;
     }
-    setLoading(true);
+    // Tela de carregando só na primeira vez (ou outro usuário); depois atualiza por baixo.
+    if (loadedFor.current !== uid) setLoading(true);
     const [{ data: members }, { data: op }, { data: inv }] = await Promise.all([
       supabase
         .from("organization_members")
         .select("organization_id, role, organizations(name)")
-        .eq("user_id", user.id)
+        .eq("user_id", uid)
         .eq("status", "active"),
-      supabase.from("platform_operators").select("user_id").eq("user_id", user.id).maybeSingle(),
+      supabase.from("platform_operators").select("user_id").eq("user_id", uid).maybeSingle(),
       supabase.rpc("my_invitations"),
     ]);
     const list: OrgSummary[] = (members ?? [])
@@ -108,10 +114,11 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
     } else {
       setPermissions([]);
     }
+    loadedFor.current = uid;
     setLoading(false);
     // orgId de fora de propósito: esta função é que decide a organização.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [uid]);
 
   useEffect(() => {
     reload();
@@ -127,18 +134,27 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
     supabase.rpc("my_permissions", { org: id }).then(({ data }) => setPermissions((data as string[] | null) ?? []));
   }, []);
 
-  const org = useMemo(() => orgs.find((o) => o.id === orgId) ?? null, [orgs, orgId]);
+  // Mesmo objeto enquanto a empresa não muda: telas que dependem de "org" não recarregam do zero
+  // quando a lista é atualizada por baixo (ex.: sessão renovada ao voltar para a aba).
+  const prevOrg = useRef<OrgSummary | null>(null);
+  const org = useMemo(() => {
+    const found = orgs.find((o) => o.id === orgId) ?? null;
+    const p = prevOrg.current;
+    if (found && p && found.id === p.id && found.name === p.name && found.role === p.role) return p;
+    prevOrg.current = found;
+    return found;
+  }, [orgs, orgId]);
 
   // Sinal de vida por minuto em qualquer tela do sistema: sem ele há 3 min, a
   // distribuição automática considera a pessoa ausente. (O builder do
   // supabase-js só dispara a chamada quando alguém aguarda o resultado.)
   useEffect(() => {
-    if (!org || !user) return;
+    if (!org || !uid) return;
     const beat = () => { void supabase.rpc("heartbeat", { org: org.id }).then(() => undefined); };
     beat();
     const id = window.setInterval(beat, 60_000);
     return () => window.clearInterval(id);
-  }, [org, user]);
+  }, [org, uid]);
   const can = useCallback((perm: string) => permissions.includes(perm), [permissions]);
 
   // Módulos ativos da empresa (antes de carregar, não esconde nada para não piscar).

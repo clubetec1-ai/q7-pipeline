@@ -91,30 +91,39 @@ Deno.serve(async (req) => {
 
     // Entrevista por voz: a pergunta da IA vira fala. Voz natural da OpenAI quando houver chave
     // (própria ou da IA da Clubetec); senão o navegador fala com a voz dele (audio: null).
-    if (action === "speak") {
-      const text = clip(body?.text, 600);
-      if (!text) throw new HttpError(400, "Texto vazio");
+    // Voz da entrevista (OpenAI): voz escolhida pela pessoa, sotaque brasileiro, tom simpático.
+    // Volta null se não der (a tela mostra o texto e segue); limite curto para não travar a conversa.
+    const VOICES = ["nova", "shimmer", "coral", "sage", "ash", "verse"];
+    const synth = async (text: string, voiceIn: unknown): Promise<string | null> => {
       const own = await providerKey(admin, orgId, "openai");
       const tts: ResolvedAI | undefined = own
         ? { provider: "openai", apiKey: own, model: "", source: "propria", orgId, admin }
         : (await platformChain(admin, orgId)).find((a) => a.provider === "openai");
-      if (!tts) return json({ ok: true, audio: null });
+      if (!tts) return null;
+      const voice = VOICES.includes(String(voiceIn)) ? String(voiceIn) : "nova";
       const res = await fetch("https://api.openai.com/v1/audio/speech", {
         method: "POST",
         headers: { Authorization: `Bearer ${tts.apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "gpt-4o-mini-tts", voice: "coral", input: text, response_format: "mp3",
-          instructions: "Fale em português do Brasil, com tom acolhedor, calmo e natural, como um consultor numa entrevista." }),
-        signal: AbortSignal.timeout(30_000),
+        body: JSON.stringify({ model: "gpt-4o-mini-tts", voice, input: text, response_format: "mp3",
+          instructions: "Fale em português do Brasil, com sotaque brasileiro natural (sem sotaque estrangeiro). Voz simpática, sorridente e acolhedora, " +
+            "ritmo de conversa tranquilo, como uma consultora gentil numa entrevista. Pronuncie bem as palavras em português." }),
+        signal: AbortSignal.timeout(15_000),
       }).catch(() => null);
       if (!res?.ok) {
         console.error("[interviewer] voz falhou", { status: res?.status });
-        return json({ ok: true, audio: null });
+        return null;
       }
       const bytes = new Uint8Array(await res.arrayBuffer());
       let bin = "";
       for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
       await recordUsage(tts, undefined, 1);
-      return json({ ok: true, audio: btoa(bin), mime: "audio/mpeg" });
+      return btoa(bin);
+    };
+    if (action === "speak") {
+      const text = clip(body?.text, 600);
+      if (!text) throw new HttpError(400, "Texto vazio");
+      const audio = await synth(text, body?.voice);
+      return json({ ok: true, audio, mime: "audio/mpeg" });
     }
 
     const { data: orgRow } = await admin.from("organizations").select("name, settings").eq("id", orgId).maybeSingle();
@@ -153,7 +162,9 @@ Deno.serve(async (req) => {
       );
       const question = clip(out.pergunta, 500);
       if (!question) throw new HttpError(502, "A IA não formulou a pergunta. Tente de novo.");
-      return json({ ok: true, question, done: !!out.terminou || qa.length >= 8 });
+      // Texto e voz juntos (uma chamada só): a pergunta aparece e já começa a ser falada.
+      const audio = body?.voice === "browser" ? null : await synth(question, body?.voice);
+      return json({ ok: true, question, done: !!out.terminou || qa.length >= 8, audio, mime: "audio/mpeg" });
     }
 
     // Retrato atual + o que já está no CRM (para não perguntar de novo).

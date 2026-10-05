@@ -5109,6 +5109,10 @@ export type Database = {
         Args: { ch: string; org: string; p_members: string[]; p_name: string }
         Returns: string
       }
+      save_voice_progress: {
+        Args: { org: string; p_key: string; p_qa: Json }
+        Returns: undefined
+      }
       save_webhook_endpoint: {
         Args: {
           endpoint: string
