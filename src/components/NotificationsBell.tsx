@@ -27,6 +27,7 @@ const TEXT: Record<string, (r: Record<string, string>) => string> = {
   billing_expired: () => "A assinatura venceu: os atendimentos automáticos pararam (seus dados estão guardados)",
   billing_overdue: () => "O pagamento da assinatura está em atraso",
   billing_paid: () => "Pagamento da assinatura confirmado. Obrigado!",
+  webhook_paused: (p) => `Webhook pausado depois de muitas falhas: ${p.url ?? "endereço"}. Confira e religue em API e webhooks`,
   security_alert: (r) => `⚠ Segurança: ${r.name ?? "alguém da equipe"} tentou exportar contatos sem permissão (bloqueado)`,
   number_health: (r) => `Número ${r.name ?? ""}: ${r.error ?? (r.status === "disconnected" ? "desconectado" : "precisa de atenção")}`,
 };
@@ -64,6 +65,7 @@ export function NotificationsBell() {
     else if (n.kind === "improvement") navigate("/melhorias");
     else if (n.kind === "brain_reminder" || n.kind === "brain_goal" || n.kind === "brain_weekly") navigate("/cerebro");
     else if (n.kind.startsWith("billing_")) navigate("/configuracoes/plano");
+    else if (n.kind === "webhook_paused") navigate("/configuracoes/api");
     else if (n.kind === "team_mention") navigate("/chat");
     else if (n.kind === "process_reminder") navigate("/diagnostico");
     else if (n.kind === "missed_call" && n.ref.phone) requestCall(String(n.ref.phone));

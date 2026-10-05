@@ -55,3 +55,9 @@ verify_jwt = false
 
 [functions.billing-webhook]
 verify_jwt = false
+
+[functions.api]
+verify_jwt = false
+
+[functions.webhooks-dispatch]
+verify_jwt = false

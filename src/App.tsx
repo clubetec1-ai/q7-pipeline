@@ -47,6 +47,7 @@ import ConfigCobrancas from "./pages/ConfigCobrancas";
 import ConfigIA from "./pages/ConfigIA";
 import ConfigAtendimento from "./pages/ConfigAtendimento";
 import ConfigAparencia from "./pages/ConfigAparencia";
+import ConfigApi from "./pages/ConfigApi";
 import ConfigAreas from "./pages/ConfigAreas";
 import Cerebro from "./pages/Cerebro";
 import FlowEditor from "./pages/FlowEditor";
@@ -98,6 +99,7 @@ const App = () => (
             <Route path="/configuracoes" element={<ProtectedRoute><Configuracoes /></ProtectedRoute>} />
             <Route path="/configuracoes/atendimento" element={<ProtectedRoute><ConfigAtendimento /></ProtectedRoute>} />
             <Route path="/configuracoes/aparencia" element={<ProtectedRoute><ConfigAparencia /></ProtectedRoute>} />
+            <Route path="/configuracoes/api" element={<ProtectedRoute><ConfigApi /></ProtectedRoute>} />
             <Route path="/configuracoes/plano" element={<ProtectedRoute><ConfigPlano /></ProtectedRoute>} />
             <Route path="/configuracoes/areas" element={<ProtectedRoute><ModuleGate m="gestao"><ConfigAreas /></ModuleGate></ProtectedRoute>} />
             <Route path="/cerebro" element={<ProtectedRoute><ModuleGate m="gestao"><Cerebro /></ModuleGate></ProtectedRoute>} />

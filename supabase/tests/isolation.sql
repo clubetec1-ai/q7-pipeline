@@ -1523,6 +1523,32 @@ BEGIN
   PERFORM pg_temp.expect((SELECT count(*) FROM public.org_modules m JOIN public.subscriptions s ON s.organization_id = m.organization_id
     WHERE s.asaas_subscription_id = 'sub_iso' AND m.enabled) = 2, 'pagar religa os modulos do plano');
 
+  -- 86. API e webhooks: chave so do dono, guardada por hash; eventos so para os enderecos da propria empresa.
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.create_api_key(%L, %L, %L)', A, 'n8n', '{contacts:read}'), 'atendente nao cria chave');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.create_api_key(%L, %L, %L)', A, 'n8n', '{contacts:read}'), 'outra org nao cria chave em A');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.create_api_key(%L, %L, %L)', A, 'n8n', '{admin:all}'), 'permissao fora da lista recusada');
+  PERFORM pg_temp.expect(pg_temp.t(owner_a, format('SELECT public.create_api_key(%L, %L, %L) ->> %L LIKE %L', A, 'n8n', '{contacts:read,messages:send}', 'key', 'dca_%')) = 'true', 'dono cria chave');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.api_keys') = 0, 'outra org nao ve chaves de A');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, 'SELECT key_hash FROM public.api_keys LIMIT 1') LIKE 'err:%', 'navegador nao le o hash da chave');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_api_key_lookup(%L)', repeat('a', 64)), 'navegador nao valida chave');
+  PERFORM pg_temp.expect(public.service_api_key_lookup((SELECT key_hash FROM public.api_keys WHERE organization_id = A LIMIT 1)) ->> 'organization_id' = A::text, 'servidor acha a empresa da chave');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.revoke_api_key(%L)', (SELECT id FROM public.api_keys WHERE organization_id = A LIMIT 1)), 'outra org nao revoga chave de A');
+  UPDATE public.api_keys SET revoked_at = now() WHERE organization_id = A;
+  PERFORM pg_temp.expect(public.service_api_key_lookup((SELECT key_hash FROM public.api_keys WHERE organization_id = A LIMIT 1)) IS NULL, 'chave revogada nao vale');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.save_webhook_endpoint(%L, NULL, %L, %L, true)', A, 'http://x.com/h', '{contact.created}'), 'webhook sem https recusado');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.save_webhook_endpoint(%L, NULL, %L, %L, true)', A, 'https://10.0.0.5/h', '{contact.created}'), 'webhook para IP interno recusado');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.save_webhook_endpoint(%L, NULL, %L, %L, true)', A, 'https://localhost/h', '{contact.created}'), 'webhook para localhost recusado');
+  PERFORM pg_temp.expect(pg_temp.t(owner_a, format('SELECT public.save_webhook_endpoint(%L, NULL, %L, %L, true) ->> %L LIKE %L', A, 'https://hooks.exemplo.com/a', '{contact.created,message.received}', 'secret', 'whsec_%')) = 'true', 'dono cadastra webhook');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.save_webhook_endpoint(%L, NULL, %L, %L, true)', A, 'https://hooks.exemplo.com/b', '{contact.created}'), 'atendente nao cadastra webhook');
+  INSERT INTO public.contacts (organization_id, name, phone) VALUES (A, 'Cliente Webhook', '5511977776666');
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.webhook_deliveries WHERE organization_id = A AND event = 'contact.created') = 1, 'novo contato entra na fila do webhook de A');
+  INSERT INTO public.contacts (organization_id, name, phone) VALUES ('bbbbbbbb-0000-0000-0000-000000000001', 'Cliente de B', '5511977775555');
+  PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM public.webhook_deliveries WHERE payload::text LIKE '%Cliente de B%'), 'evento de B nao vai para o webhook de A');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.webhook_deliveries') = 0, 'outra org nao ve as entregas de A');
+  PERFORM pg_temp.expect_error(owner_a, 'SELECT * FROM public.service_webhook_claim(10)', 'navegador nao pega a fila');
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.service_webhook_claim(10)) >= 1, 'servidor pega a fila');
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.service_webhook_claim(10)) = 0, 'cada entrega so uma vez');
+
   -- 82. Consumo do cerebro por empresa: so o operador Clubetec.
   PERFORM pg_temp.expect_error(owner_a, format('SELECT public.platform_brain_usage(%L)', current_date), 'dono nao ve consumo das outras empresas');
   PERFORM pg_temp.expect(pg_temp.t(operator, format('SELECT jsonb_typeof(public.platform_brain_usage(%L))', current_date)) = 'array', 'operador ve o consumo');

@@ -175,6 +175,53 @@ export type Database = {
           },
         ]
       }
+      api_keys: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          key_hash: string
+          last_used_at: string | null
+          name: string
+          organization_id: string
+          prefix: string
+          revoked_at: string | null
+          scopes: string[]
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          key_hash: string
+          last_used_at?: string | null
+          name: string
+          organization_id: string
+          prefix: string
+          revoked_at?: string | null
+          scopes: string[]
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          key_hash?: string
+          last_used_at?: string | null
+          name?: string
+          organization_id?: string
+          prefix?: string
+          revoked_at?: string | null
+          scopes?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_keys_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_settings: {
         Row: {
           id: string
@@ -3984,6 +4031,103 @@ export type Database = {
           },
         ]
       }
+      webhook_deliveries: {
+        Row: {
+          attempts: number
+          created_at: string
+          endpoint_id: string
+          error: string | null
+          event: string
+          id: number
+          next_at: string
+          organization_id: string
+          payload: Json
+          response_code: number | null
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          endpoint_id: string
+          error?: string | null
+          event: string
+          id?: never
+          next_at?: string
+          organization_id: string
+          payload: Json
+          response_code?: number | null
+          sent_at?: string | null
+          status?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          endpoint_id?: string
+          error?: string | null
+          event?: string
+          id?: never
+          next_at?: string
+          organization_id?: string
+          payload?: Json
+          response_code?: number | null
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_deliveries_endpoint_fk"
+            columns: ["endpoint_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "webhook_endpoints"
+            referencedColumns: ["id", "organization_id"]
+          },
+        ]
+      }
+      webhook_endpoints: {
+        Row: {
+          active: boolean
+          created_at: string
+          events: string[]
+          failures: number
+          id: string
+          last_at: string | null
+          last_status: number | null
+          organization_id: string
+          url: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          events: string[]
+          failures?: number
+          id?: string
+          last_at?: string | null
+          last_status?: number | null
+          organization_id: string
+          url: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          events?: string[]
+          failures?: number
+          id?: string
+          last_at?: string | null
+          last_status?: number | null
+          organization_id?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_endpoints_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_instances: {
         Row: {
           color: string | null
@@ -4207,6 +4351,10 @@ export type Database = {
         Returns: number
       }
       connector_apps_status: { Args: never; Returns: Json }
+      create_api_key: {
+        Args: { org: string; p_name: string; p_scopes: string[] }
+        Returns: Json
+      }
       create_improvement: {
         Args: {
           department: string
@@ -4220,6 +4368,10 @@ export type Database = {
       }
       delete_http_secret: {
         Args: { org: string; secret_key: string }
+        Returns: undefined
+      }
+      delete_webhook_endpoint: {
+        Args: { endpoint: string }
         Returns: undefined
       }
       discard_improvement: {
@@ -4505,6 +4657,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      revoke_api_key: { Args: { key_id: string }; Returns: undefined }
       sales_funnel_report: {
         Args: { org: string; since: string }
         Returns: Json
@@ -4522,6 +4675,16 @@ export type Database = {
           p_title: string
         }
         Returns: string
+      }
+      save_webhook_endpoint: {
+        Args: {
+          endpoint: string
+          org: string
+          p_active: boolean
+          p_events: string[]
+          p_url: string
+        }
+        Returns: Json
       }
       search_messages: {
         Args: { org: string; q: string }
@@ -4570,6 +4733,8 @@ export type Database = {
         Args: { actor: string; contact: string; org: string; reason: string }
         Returns: Json
       }
+      service_api_key_lookup: { Args: { hash: string }; Returns: Json }
+      service_api_take: { Args: { org: string }; Returns: boolean }
       service_billing_cancel: { Args: { org: string }; Returns: undefined }
       service_billing_event: {
         Args: { due: string; ev: string; event_id: string; sub: string }
@@ -4740,6 +4905,22 @@ export type Database = {
         }
         Returns: string
       }
+      service_webhook_claim: {
+        Args: { lim: number }
+        Returns: {
+          attempts: number
+          endpoint_id: string
+          event: string
+          id: number
+          organization_id: string
+          payload: Json
+          url: string
+        }[]
+      }
+      service_webhook_result: {
+        Args: { code: number; delivery: number; err: string; ok: boolean }
+        Returns: undefined
+      }
       set_area_goal_status: {
         Args: { goal: string; new_status: string }
         Returns: undefined
@@ -4866,6 +5047,7 @@ export type Database = {
           unread: number
         }[]
       }
+      test_webhook_endpoint: { Args: { endpoint: string }; Returns: undefined }
       transfer_ticket: {
         Args: {
           note?: string
