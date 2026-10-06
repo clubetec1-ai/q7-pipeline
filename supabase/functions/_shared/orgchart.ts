@@ -100,6 +100,12 @@ export function buildOrgChart(inp: Input): Agent[] {
       cracha: { dados: ["conversa_em_andamento", "base_conhecimento", "processos"], acoes: ["responder_cliente", "passar_para_pessoa", "enviar_modelo", "pedir_informacao"] },
       autonomia: "A1" }); // sombra: a IA sugere e a pessoa envia (decisão 1 do dono)
   }
+  // O Assistente principal da empresa (Configurações → Assistente de IA) também é um executor: passa pela prova e
+  // pelos degraus de publicação (fatias 6 e 7) mesmo sem processos desenhados.
+  add({ key: "exec:geral", level: "executor", parent: !small && dirOfDept.size && [...dirOfDept.values()].includes("atendimento") ? "dir:atendimento" : "cerebro",
+    papel: "Atendente geral (IA)",
+    cracha: { dados: ["conversa_em_andamento", "base_conhecimento", "diagnostico"], acoes: ["responder_cliente", "passar_para_pessoa", "enviar_modelo"] },
+    autonomia: "A1" });
   for (const [key, papel, cracha, autonomia] of APOIO) add({ key, level: "apoio", parent: "cerebro", papel, cracha, autonomia });
   return out;
 }

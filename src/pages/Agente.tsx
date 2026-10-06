@@ -1,6 +1,7 @@
 import { AiPolicyCard } from "@/components/AiPolicyCard";
 import { callFunction } from "@/lib/callFunction";
 import { MicTextarea } from "@/components/MicTextarea";
+import { PublishMode } from "./agente/PublishMode";
 import { HowItWorks } from "./diagnostico/HowItWorks";
 import { useCallback, useEffect, useState } from "react";
 import { AgentTester } from "./agente/AgentTester";
@@ -190,6 +191,7 @@ export default function Agente() {
               {test && <span className={`text-sm ${test.ok ? "text-emerald-700 dark:text-emerald-400" : "text-red-600"}`}>{test.ok ? "✓ " : "✗ "}{test.text}</span>}
             </div>
 
+            <PublishMode orgId={org.id} />
             <AgentTester orgId={org.id} prompt={prompt} disabled={!hasKey} />
           </>
         )}

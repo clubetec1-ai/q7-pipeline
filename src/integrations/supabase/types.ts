@@ -48,6 +48,8 @@ export type Database = {
           groq_api_key: string | null
           groq_model: string
           organization_id: string
+          publish_mode: string
+          publish_mode_since: string
           system_prompt: string
           updated_at: string
           user_id: string | null
@@ -60,6 +62,8 @@ export type Database = {
           groq_api_key?: string | null
           groq_model?: string
           organization_id: string
+          publish_mode?: string
+          publish_mode_since?: string
           system_prompt?: string
           updated_at?: string
           user_id?: string | null
@@ -72,6 +76,8 @@ export type Database = {
           groq_api_key?: string | null
           groq_model?: string
           organization_id?: string
+          publish_mode?: string
+          publish_mode_since?: string
           system_prompt?: string
           updated_at?: string
           user_id?: string | null
@@ -370,6 +376,95 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "process_designs"
             referencedColumns: ["id", "organization_id"]
+          },
+        ]
+      }
+      ai_breaker_events: {
+        Row: {
+          created_at: string
+          detail: string
+          id: number
+          kind: string
+          organization_id: string
+        }
+        Insert: {
+          created_at?: string
+          detail?: string
+          id?: never
+          kind: string
+          organization_id: string
+        }
+        Update: {
+          created_at?: string
+          detail?: string
+          id?: never
+          kind?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_breaker_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_suggestions: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          guard: string[]
+          id: string
+          mode: string
+          motivo: string
+          organization_id: string
+          ticket_id: string | null
+          used_at: string | null
+          used_by: string | null
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          guard?: string[]
+          id?: string
+          mode: string
+          motivo: string
+          organization_id: string
+          ticket_id?: string | null
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          guard?: string[]
+          id?: string
+          mode?: string
+          motivo?: string
+          organization_id?: string
+          ticket_id?: string | null
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_suggestions_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_suggestions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -5542,6 +5637,7 @@ export type Database = {
           phone: string
         }[]
       }
+      mark_ai_suggestion_used: { Args: { p_id: string }; Returns: undefined }
       merge_groups: {
         Args: { source: string; target: string }
         Returns: number
@@ -5910,6 +6006,18 @@ export type Database = {
         Returns: undefined
       }
       service_ai_slot_ok: { Args: { slot_name: string }; Returns: undefined }
+      service_ai_suggestion_save: {
+        Args: {
+          org: string
+          p_content: string
+          p_conv: string
+          p_guard: string[]
+          p_mode: string
+          p_motivo: string
+          p_ticket: string
+        }
+        Returns: string
+      }
       service_ai_take: { Args: { org: string }; Returns: boolean }
       service_ai_usage_add: {
         Args: {
@@ -5970,6 +6078,10 @@ export type Database = {
       }
       service_brain_start_run: {
         Args: { org: string; p_kind: string; who: string }
+        Returns: string
+      }
+      service_breaker_event: {
+        Args: { org: string; p_detail: string; p_kind: string }
         Returns: string
       }
       service_can_add_number: { Args: { org: string }; Returns: boolean }
@@ -6302,6 +6414,10 @@ export type Database = {
       }
       set_process_design_note: {
         Args: { p_id: string; p_note: string }
+        Returns: undefined
+      }
+      set_publish_mode: {
+        Args: { org: string; p_mode: string }
         Returns: undefined
       }
       set_report_email: {

@@ -60,3 +60,10 @@ Deno.test("áreas do cérebro definem os diretores quando existem", () => {
   });
   assertEquals(out.find((a) => a.key === "coord:d1")!.parent, "dir:comercial");
 });
+
+Deno.test("o Assistente principal sempre entra como Atendente geral (IA), mesmo sem processos", () => {
+  const out = buildOrgChart({ members: 2, departments: [], areas: [], processes: [] });
+  const g = out.find((a) => a.key === "exec:geral")!;
+  assertEquals([g.level, g.parent, g.autonomia], ["executor", "cerebro", "A1"]);
+  assert(g.cracha.acoes.includes("passar_para_pessoa"));
+});

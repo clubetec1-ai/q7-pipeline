@@ -1674,6 +1674,37 @@ BEGIN
   UPDATE public.ai_agents SET updated_at = now() + interval '1 minute' WHERE organization_id = A AND key = 'exec:d1';
   PERFORM pg_temp.expect((pg_temp.t(owner_a, format('SELECT (public.agent_proof_status(%L) ->> %L)', (SELECT id FROM public.ai_agents WHERE organization_id = A AND key = 'exec:d1'), 'ok'))) = 'false', 'agente mudou depois da prova: prova vencida');
   PERFORM pg_temp.expect_error(owner_b, format('SELECT public.agent_proof_status(%L)', (SELECT id FROM public.ai_agents WHERE organization_id = A AND key = 'exec:d1')), 'outra org nao ve a prova');
+  -- 104. Degraus de publicacao, disjuntor e permissoes: navegador nao muda o modo nem apaga tabela inteira.
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, 'TRUNCATE public.messages') LIKE 'err:%', 'ninguem logado apaga uma tabela inteira');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, 'TRUNCATE public.agent_configs') LIKE 'err:%', 'nem a configuracao da IA');
+  INSERT INTO public.agent_configs (organization_id, user_id, system_prompt, enabled) VALUES (A, owner_a, 'x', true) ON CONFLICT (organization_id) DO NOTHING;
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('UPDATE public.agent_configs SET publish_mode = %L WHERE organization_id = %L', 'automatico', A)) LIKE 'err:%', 'navegador nao pula os degraus direto na tabela');
+  PERFORM pg_temp.expect((SELECT publish_mode FROM public.agent_configs WHERE organization_id = A) = 'sombra', 'comeca em sombra');
+  PERFORM public.service_org_chart_save(A, '[{"key":"exec:geral","level":"executor","parent":null,"papel":"Atendente geral (IA)","cracha":{"dados":["conversa_em_andamento"],"acoes":["responder_cliente","passar_para_pessoa"]},"autonomia":"A1"}]');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.set_publish_mode(%L, %L)', A, 'assistido'), 'sem time aprovado e prova em dia nao sai da sombra');
+  UPDATE public.ai_agents SET status = 'ativo' WHERE organization_id = A AND key = 'exec:geral';
+  PERFORM public.service_eval_set(A, (SELECT id FROM public.ai_agents WHERE organization_id = A AND key = 'exec:geral'), '[{"tipo":"fora_do_horario","origem":"fixo","mensagem":"m","esperado":"e"},{"tipo":"reclamacao","origem":"fixo","mensagem":"m","esperado":"e"},{"tipo":"pedido_proibido","origem":"fixo","mensagem":"m","esperado":"e"},{"tipo":"tentativa_de_burla","origem":"fixo","mensagem":"m","esperado":"e"},{"tipo":"dado_de_outro_cliente","origem":"fixo","mensagem":"m","esperado":"e"},{"tipo":"pergunta_comum","origem":"gerado","mensagem":"m","esperado":"e"},{"tipo":"excecao","origem":"gerado","mensagem":"m","esperado":"e"}]');
+  PERFORM public.service_eval_run_save(A, id, 1, 'r', true, 'ok', '[]') FROM public.agent_evals WHERE organization_id = A AND agent_id = (SELECT id FROM public.ai_agents WHERE organization_id = A AND key = 'exec:geral');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.set_publish_mode(%L, %L)', A, 'assistido'), 'atendente nao muda o modo');
+  PERFORM pg_temp.run(owner_a, format('SELECT public.set_publish_mode(%L, %L)', A, 'assistido'));
+  PERFORM pg_temp.expect((SELECT publish_mode FROM public.agent_configs WHERE organization_id = A) = 'assistido', 'com prova em dia vai para assistido');
+  PERFORM pg_temp.expect((SELECT autonomia FROM public.ai_agents WHERE organization_id = A AND key = 'exec:geral') = 'A3', 'assistido = executa com aprovacao');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.set_publish_mode(%L, %L)', A, 'automatico'), 'automatico so depois de 14 dias no assistido sem tropeco');
+  UPDATE public.agent_configs SET publish_mode = 'automatico' WHERE organization_id = A;
+  PERFORM public.service_breaker_event(A, 'guard_block', 'nao_promete');
+  PERFORM public.service_breaker_event(A, 'guard_block', 'nao_promete');
+  PERFORM pg_temp.expect((SELECT publish_mode FROM public.agent_configs WHERE organization_id = A) = 'automatico', 'dois tropecos ainda nao desarmam');
+  PERFORM public.service_breaker_event(A, 'avaliacao_ruim', 'cliente insatisfeito');
+  PERFORM pg_temp.expect((SELECT publish_mode FROM public.agent_configs WHERE organization_id = A) = 'assistido', 'tres tropecos em 24 h: volta um degrau sozinho');
+  PERFORM pg_temp.expect(EXISTS (SELECT 1 FROM public.notifications WHERE organization_id = A AND kind = 'breaker_stepdown'), 'dono e avisado');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.ai_breaker_events') = 0, 'outra org nao ve os tropecos');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_breaker_event(%L, %L, %L)', A, 'manual', 'x'), 'navegador nao registra tropeco');
+  PERFORM pg_temp.run(owner_a, format('SELECT public.set_publish_mode(%L, %L)', A, 'sombra'));
+  PERFORM pg_temp.expect((SELECT publish_mode FROM public.agent_configs WHERE organization_id = A) = 'sombra', 'voltar para a sombra e sempre permitido');
+  INSERT INTO public.ai_suggestions (organization_id, conversation_id, content, mode, motivo)
+    VALUES (A, 'aaaaaaaa-0000-0000-0004-000000000001', 'sugestao', 'sombra', 'sombra');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.ai_suggestions') = 0, 'outra org nao ve as sugestoes');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('INSERT INTO public.ai_suggestions (organization_id, conversation_id, content, mode, motivo) VALUES (%L, %L, %L, %L, %L)', A, 'aaaaaaaa-0000-0000-0004-000000000001', 'x', 'sombra', 'sombra')) LIKE 'err:%', 'navegador nao cria sugestao');
   -- 99. Revisao de area do Diagnostico: so dono/admin ve; so o servidor grava; "esta certo assim" vale.
   PERFORM public.service_diag_findings_save(A, 'empresa', 'Diretor Comercial (IA)', '[{"n":1,"tipo":"incoerencia","gravidade":"critica","texto":"Horario 18h x 24h","etapas":["empresa","posvenda"],"sugestao":"s"},{"n":2,"tipo":"inventado","gravidade":"critica","texto":"x","etapas":[]},{"n":3,"tipo":"risco","gravidade":"baixa","texto":"Promete brinde","etapas":["empresa"],"sugestao":""}]');
   PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT open_critical FROM public.diag_findings WHERE step_key = ''empresa''') = 1, 'dono ve a revisao com 1 critica aberta');

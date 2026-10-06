@@ -361,6 +361,20 @@ export const GUIDES: Guide[] = [
           { state: "salvo", target: "toggle", caption: "Ligue o agente: pronto, ele já atende" },
         ],
       },
+      {
+        title: "A IA sobe um degrau por vez",
+        body: (
+          <>
+            <p>Ligada, a IA começa na <b>Sombra</b>: ela sugere a resposta dentro da conversa e uma pessoa envia (botão <b>Usar sugestão</b>). Depois que o Atendente geral (IA) passa na prova, você pode subir para o <b>Assistido</b>: ela envia o simples e passa reclamação, negociação e exceção para uma pessoa. O <b>Automático</b> libera depois de 14 dias no assistido sem tropeço.</p>
+            <Pointer icon={<ShieldCheck className="w-4 h-4" />} label="Trava e disjuntor" note="resposta que promete, pede senha ou expõe dado nunca sai; 3 tropeços em 24 h e ela volta um degrau sozinha" />
+          </>
+        ),
+        demo: [
+          { state: "degraus", target: "modo-sombra", caption: "Começa na sombra: a IA sugere, você envia" },
+          { state: "degraus", target: "modo-assistido", caption: "Com a prova em dia: assistido" },
+          { state: "degraus", target: "disjuntor", caption: "O disjuntor protege: volta um degrau sozinho" },
+        ],
+      },
     ],
   },
   {

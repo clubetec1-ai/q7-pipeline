@@ -61,7 +61,7 @@ npx supabase functions deploy <funcao> --project-ref ulmndwlralgjbwlebxmo
 | 4 ✅ | Organograma de IA | `ai_agents` + `agent_versions`, crachás do catálogo, cérebro propõe a partir de setores e processos (juntando níveis em empresa pequena), tela com cargo + "(IA)" e apelido, Pausar | Escrever ao começar |
 | 5 ✅ | Guardião de segurança e LGPD | Revisão obrigatória de propostas, agentes e fluxos antes da prova, com motivos; nada reprovado segue | Escrever ao começar |
 | 6 ✅ | Prova (cenários) | 7 cenários obrigatórios por executor, modo teste sem enviar a cliente, regressão a cada mudança, tela Prova | Escrever ao começar |
-| 7 | Degraus + disjuntor + vigia de custo | Sombra → assistido → automático por executor; volta sozinho se errar; botão Parar; aviso de gasto fora do normal com o motivo | Escrever ao começar |
+| 7 ✅ | Degraus + disjuntor + vigia de custo | Sombra → assistido → automático por executor; volta sozinho se errar; botão Parar; aviso de gasto fora do normal com o motivo | Escrever ao começar |
 | 8 | A rede de agentes | `agent_tasks` (pedir informação, revisar, propor, alertar, escalar), profundidade ≤ 3, orçamento, expiração, perguntas voltando ao Diagnóstico | Escrever ao começar |
 | 9 | Implantação pelo organograma | Implementador monta rascunhos por especialista/executor a partir dos processos aprovados | Escrever ao começar |
 | 10 | Acabamento e prova final | Guias e vídeos, revisão de segurança completa (agente revisor), isolamento, Clubetec do zero ponta a ponta, medição de chamados | Escrever ao começar |
@@ -459,3 +459,38 @@ isolamento 103.
 - [x] Tela e guia; `tsc` e `build` ok.
 - [ ] Rodar a prova completa com um agente de verdade: no teste da Clubetec do zero.
 - [ ] Melhoria anotada: o atendimento real passar a receber a situação atual (dia, hora e se está no horário), como a prova já faz.
+
+---
+
+## Fatia 7 — Degraus de publicação, disjuntor, parar e vigia de custo ✅ (06/10)
+
+**Porta única de publicação** (`_shared/publish-gate.ts` + teste, `_shared/publish-apply.ts`): toda resposta da IA ao cliente
+no WhatsApp, Facebook/Instagram e e-mail passa por ela. **Sombra** (padrão): nada sai; a sugestão fica na conversa com
+"Usar sugestão". **Assistido**: sai só o que a IA marcou `[SIMPLES]`; o resto vai para a fila de uma pessoa com um aviso
+curto ao cliente. **Automático**: sai. Em qualquer modo a **trava fixa** (prometer/conceder desconto, pedir senha, expor CPF
+ou cartão) segura a resposta, guarda como sugestão e conta um tropeço. A marca nunca chega ao cliente.
+
+**Travas para subir** (`set_publish_mode`): sair da sombra exige o **Atendente geral (IA)** (novo `exec:geral` no
+organograma — o Assistente principal) ativo e com **prova em dia**; automático só depois de **14 dias no assistido sem
+tropeço**; voltar para a sombra é sempre permitido; o navegador não grava o modo direto na tabela (permissão por coluna).
+**Disjuntor** (`service_breaker_event`): 3 tropeços em 24 h (trava ou atendimento com IA mal avaliado — gatilho em
+`ticket_reviews`) voltam um degrau sozinho e avisam o dono (sino + e-mail) e a Clubetec. **Parar**: a chave "Agente ligado".
+**Vigia de custo** (`private.cost_watch_tick`, todo dia 12h30): uso de IA de ontem 3× acima da média de 14 dias (mín. 50)
+avisa com o motivo provável (mais atendimentos × uso fora do normal sem mais atendimentos).
+
+**Segurança encontrada e corrigida junto:** 36 tabelas davam ao usuário logado TRUNCATE/TRIGGER/REFERENCES (o TRUNCATE
+ignora o isolamento entre empresas); não havia caminho para usar pelo site, mas foi fechado em todas as tabelas e para as
+futuras (`ALTER DEFAULT PRIVILEGES`), com teste.
+
+**Arquivos:** migration `20261006002600_publish_steps.sql` (permissões; `agent_configs.publish_mode/_since`;
+`ai_suggestions` + `service_ai_suggestion_save` + `mark_ai_suggestion_used`; `ai_breaker_events` + `service_breaker_event`
++ gatilho de avaliação ruim; `private.notify_org_admins`; `set_publish_mode`; `private.cost_watch_tick` + cron `cost-watch`;
+e-mail para `breaker_stepdown` e `cost_alert`), `get-ai-config` (modo no perfil), `whatsapp-webhook`, `meta-ai`, `mail-ai`,
+`notify-email`, `orgchart` (Atendente geral), telas `src/pages/agente/PublishMode.tsx` e `src/pages/conversas/AiSuggestion.tsx`,
+sino, guia do Assistente (passo dos degraus), teste de isolamento 104.
+
+- [x] `publish-gate_test.ts` (5) e `orgchart_test.ts` (5) passando; teste 104 visto falhar (o TRUNCATE passava) e depois passar.
+- [x] Publicados: whatsapp-webhook, meta-webhook, sync-email, process-inbound, notify-email, orgchart; webhook responde 200.
+- [x] Telas, sino, e-mail e guia; `tsc` e `build` ok.
+- [ ] Fluxos com bloco de IA também passarem pela porta (fatia 9, implantação).
+- [ ] Prova de ponta a ponta com mensagens reais: no teste da Clubetec do zero.

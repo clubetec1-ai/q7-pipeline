@@ -215,7 +215,10 @@ export const DEFAULT_SYSTEM_PROMPT =
 
 /** Prompt e liga/desliga da IA da empresa, sem depender da chave da Groq. */
 // deno-lint-ignore no-explicit-any
-export async function getAgentProfile(admin: any, orgId: string): Promise<{ systemPrompt: string; enabled: boolean }> {
-  const { data } = await forOrg(admin, orgId).select("agent_configs", "system_prompt, enabled").maybeSingle();
-  return { systemPrompt: data?.system_prompt || DEFAULT_SYSTEM_PROMPT, enabled: !!data?.enabled };
+export async function getAgentProfile(admin: any, orgId: string): Promise<{ systemPrompt: string; enabled: boolean; publishMode: "sombra" | "assistido" | "automatico" }> {
+  const { data } = await forOrg(admin, orgId).select("agent_configs", "system_prompt, enabled, publish_mode").maybeSingle();
+  const m = String(data?.publish_mode ?? "sombra");
+  // Sem modo conhecido, o mais seguro: sombra (a IA só sugere).
+  const publishMode = (m === "assistido" || m === "automatico" ? m : "sombra") as "sombra" | "assistido" | "automatico";
+  return { systemPrompt: data?.system_prompt || DEFAULT_SYSTEM_PROMPT, enabled: !!data?.enabled, publishMode };
 }

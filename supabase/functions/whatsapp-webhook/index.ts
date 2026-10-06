@@ -2,6 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { moduleOn } from "../_shared/modules.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { getAgentProfile } from "../_shared/get-ai-config.ts";
+import { applyPublishGate } from "../_shared/publish-apply.ts";
+import { MODE_RULE } from "../_shared/publish-gate.ts";
 import { audioAI, chatAI, recordUsage, resolveAI } from "../_shared/ai-chat.ts";
 import { cancelPendingFollowups, scheduleInactivityFollowup } from "../_shared/followups.ts";
 import * as providers from "../_shared/providers/index.ts";
@@ -671,7 +673,7 @@ async function handle(req: Request, ctx: QueueCtx): Promise<Response> {
       .limit(20);
 
     const chat = [
-      { role: "system" as const, content: [withProtocol(profileAI.systemPrompt, ticket.protocol), await companyKnowledge(org),
+      { role: "system" as const, content: [withProtocol(profileAI.systemPrompt, ticket.protocol), MODE_RULE, await companyKnowledge(org),
         await knowledgeContext(supabase, orgId, String(text ?? ""), "cliente", ticket.department_id ? [ticket.department_id] : null)].filter(Boolean).join("\n\n") },
       ...(history || []).reverse().map((m: any) => ({
         role: (m.direction === "inbound" ? "user" : "assistant") as "user" | "assistant",
@@ -684,7 +686,10 @@ async function handle(req: Request, ctx: QueueCtx): Promise<Response> {
       console.error("[webhook] groq failed", groq.error);
       return ok();
     }
-    groq.reply = toChatText(groq.reply);
+    // Porta de publicação (fatia 7): sombra só sugere; assistido envia o simples; trava fixa segura o que não pode sair.
+    const publicar = await applyPublishGate(supabase, orgId, profileAI.publishMode, conv, ticket, toChatText(groq.reply));
+    if (!publicar) return ok();
+    groq.reply = publicar;
 
     // Acabamos de RECEBER mensagem do contato: a janela de 24h está aberta.
     const enviado = await providers.sendText(instRow, phone, groq.reply);

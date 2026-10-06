@@ -1,5 +1,7 @@
 import { chatAI, resolveAI } from "./ai-chat.ts";
 import { getAgentProfile } from "./get-ai-config.ts";
+import { applyPublishGate } from "./publish-apply.ts";
+import { MODE_RULE } from "./publish-gate.ts";
 import { companyKnowledge } from "./company.ts";
 import { knowledgeContext } from "./knowledge.ts";
 import { moduleOn } from "./modules.ts";
@@ -42,6 +44,7 @@ export async function replyEmailByAI(p: {
     profile.systemPrompt,
     ticket.protocol ? `Protocolo deste atendimento: ${ticket.protocol}.` : "",
     EMAIL_RULE,
+    MODE_RULE,
     await companyKnowledge(org),
     await knowledgeContext(admin, orgId, p.text.slice(0, 500), "cliente", ticket.department_id ? [ticket.department_id] : null),
   ].filter(Boolean).join("\n\n");
@@ -53,7 +56,9 @@ export async function replyEmailByAI(p: {
   ];
   const r = await chatAI(ai, chat);
   if (!r.ok || !r.reply?.trim()) return false;
-  const reply = plain(r.reply).slice(0, 8000);
+  // Porta de publicação (fatia 7).
+  const reply = await applyPublishGate(admin, orgId, profile.publishMode, conv, ticket, plain(r.reply).slice(0, 8000));
+  if (!reply) return false;
 
   const { sent, fields } = await sendEmailMessage({
     admin, orgId, conv, ticketId: ticket.id, text: reply, mediaPath: null, mediaName: "", libraryId: null,

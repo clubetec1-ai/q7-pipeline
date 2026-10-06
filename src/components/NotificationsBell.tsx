@@ -34,6 +34,8 @@ const TEXT: Record<string, (r: Record<string, string>) => string> = {
   webhook_paused: (p) => `Webhook pausado depois de muitas falhas: ${p.url ?? "endereço"}. Confira e religue em API e webhooks`,
   security_alert: (r) => `⚠ Segurança: ${r.name ?? "alguém da equipe"} tentou exportar contatos sem permissão (bloqueado)`,
   inpi: (r) => `${r.nivel === "urgente" ? "⚠ " : ""}INPI — ${r.label ?? r.numero ?? ""}: ${r.despacho ?? "novo despacho"}${r.prazo ? ` (prazo ${r.prazo})` : ""}`,
+  breaker_stepdown: (r) => `🛡️ A IA voltou um degrau sozinha (${r.de ?? ""} → ${r.para ?? ""}) depois de ${r.tropecos ?? 3} tropeços em 24 h — veja o motivo no Assistente de IA`,
+  cost_alert: (r) => `💰 Uso de IA fora do normal: ${r.ontem ?? "?"} chamadas ontem (média ${r.media ?? "?"}) — ${r.motivo ?? ""}`,
   inpi_conflict: (r) => `INPI: marca parecida com a nossa — "${r.marca ?? ""}" (${r.titulares ?? "outro titular"})`,
   support_ticket: (r) => `${r.urgency === "urgente" || r.urgency === "alta" ? "⚠ " : ""}Chamado ${r.protocol ?? ""} de ${r.org ?? "cliente"} (${r.urgency ?? ""}): ${r.topic ?? ""}`,
   support_received: (r) => `Recebemos seu chamado ${r.protocol ?? ""}: ${r.topic ?? ""}${r.sla_hours ? ` — resposta em até ${r.sla_hours}h` : " — a equipe já foi avisada"}`,
@@ -78,6 +80,7 @@ export function NotificationsBell() {
     else if (n.kind === "team_mention") navigate("/chat");
     else if (n.kind === "inpi" || n.kind === "inpi_conflict" || n.kind === "support_ticket") navigate("/plataforma");
     else if (n.kind === "support_status" || n.kind === "support_received") navigate("/configuracoes/suporte");
+    else if (n.kind === "breaker_stepdown" || n.kind === "cost_alert") navigate("/agente");
     else if (n.kind === "process_reminder") navigate("/diagnostico");
     else if (n.kind === "diag_invite") navigate("/diagnostico/setor");
     else if (n.kind === "network_standard" || n.kind === "network_joined") navigate("/configuracoes/rede");
