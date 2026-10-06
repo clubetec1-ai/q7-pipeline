@@ -8,6 +8,7 @@ import { fetchSiteText, lookupCnpj, monthlyCost, USD_BRL } from "../_shared/cons
 import { extractDocText, knowledgeContext } from "../_shared/knowledge.ts";
 import { pickDocText } from "../_shared/doc-pick.ts";
 import { needsText, specialistFor } from "../_shared/specialists.ts";
+import { parseCoverage } from "../_shared/coverage.ts";
 import { askVision } from "../_shared/media-read.ts";
 import { transcribeAudio } from "../_shared/transcribe.ts";
 
@@ -587,8 +588,18 @@ Deno.serve(async (req) => {
           ? `Você é um ${fspec.papel}. O que os agentes de IA precisam saber nesta etapa (e por quê):\n${needsText(fspec)}\n` +
             "Compare essa lista com o texto, as respostas, os anexos e o kit: os itens de faltando são os da lista que estão faltando ou incompletos, " +
             "do mais importante para o menos (se incompleto, a pergunta cita o que já tem e pede só o que falta). " +
-            'Em porque, uma frase simples dizendo o que o agente não vai conseguir fazer sem essa informação (ex.: "Sem isso, quando um cliente reclamar, o agente não vai saber para quem passar."). '
+            'Em porque, uma frase simples dizendo o que o agente não vai conseguir fazer sem essa informação (ex.: "Sem isso, quando um cliente reclamar, o agente não vai saber para quem passar."). ' +
+            "Em cobertura, para CADA item numerado da lista, {n, status: completo|incompleto|faltando, nota: em poucas palavras o que já tem ou o que falta}, " +
+            "considerando o texto, as respostas da entrevista, os anexos e o kit. "
           : "");
+      // Cobertura (desenho 07, fatia 1): o servidor confere com a lista do especialista e grava; a marca "não temos" do dono fica.
+      const covKey = stepKey === "processos" ? `proc:${clip(body?.setor, 80)}` : stepKey;
+      const saveCoverage = async (v: unknown) => {
+        if (!fspec) return null;
+        const { data, error } = await admin.rpc("service_diag_coverage_save", { org: orgId, p_key: covKey, p_items: parseCoverage(v, fspec) });
+        if (error) { console.error("[interviewer] cobertura não gravada", error.message); return null; }
+        return data;
+      };
       const faltas = (v: unknown, keys: string[]) => (Array.isArray(v) ? v : []).slice(0, 4).map((f) => {
         if (typeof f === "string") return { pergunta: clip(f, 200), exemplo: "", sugestao: "", secao: "", porque: "" };
         const o = (f ?? {}) as Record<string, unknown>;
@@ -625,7 +636,7 @@ Deno.serve(async (req) => {
           `Você organiza a descrição de processos do setor "${setor}" de uma empresa, escrita pelo dono como se ensinasse uma pessoa nova. ` +
           "Separe cada processo e escreva o passo a passo numerado, claro e fiel ao que ele disse (não invente passos). " +
           "Se ele contou como DEVERIA funcionar, registre em como_deveria. " + faltandoRule + "(Ex. do que pode faltar: quem faz, quanto tempo leva, que ferramenta usa, onde trava.) " +
-          'Responda SOMENTE com JSON: {"processos":[{"nome":"","quem_faz":"","frequencia":"","tempo":"","dificuldade":"onde trava","passo_a_passo":"1. ...\n2. ...","como_deveria":""}],"faltando":[{"pergunta":"","porque":"","exemplo":"","sugestao":"","secao":""}]}',
+          'Responda SOMENTE com JSON: {"processos":[{"nome":"","quem_faz":"","frequencia":"","tempo":"","dificuldade":"onde trava","passo_a_passo":"1. ...\n2. ...","como_deveria":""}],"faltando":[{"pergunta":"","porque":"","exemplo":"","sugestao":"","secao":""}],"cobertura":[{"n":1,"status":"","nota":""}]}',
           `Empresa: ${orgRow?.name ?? ""}\nSetores: ${sections.setores ?? ""}\n\nO que o dono escreveu sobre o setor ${setor}:\n${raw}${extra}`,
         );
         const processos = (Array.isArray(out.processos) ? out.processos : []).slice(0, 20).map((p: any) => {
@@ -634,7 +645,7 @@ Deno.serve(async (req) => {
           return item;
         }).filter((p) => p.nome);
         if (!processos.length) throw new HttpError(502, "Não consegui separar os processos. Tente descrever um de cada vez.");
-        return json({ ok: true, processos, faltando: await refine(faltas(out.faltando, []), [], raw) });
+        return json({ ok: true, processos, faltando: await refine(faltas(out.faltando, []), [], raw), cobertura: await saveCoverage(out.cobertura) });
       }
       const stage = STAGES.find((s) => s.key === stepKey && s.key !== "processos");
       if (!stage) throw new HttpError(400, "Etapa inválida");
@@ -646,7 +657,7 @@ Deno.serve(async (req) => {
         faltandoRule +
         (stepKey === "setores" ? 'Em "setores_lista", liste só os nomes dos setores citados. ' : "") +
         (stepKey === "empresa" ? 'Em "horario", o horário de atendimento que o dono contou, por dia da semana (0=domingo, 1=segunda ... 6=sábado), no formato {"1":["08:00","18:00"]}; dia fechado fica de fora; se ele não contou o horário, use {}. ' : "") +
-        `Responda SOMENTE com JSON: {"secoes":{${keys.map((k) => `"${k}":""`).join(",")}},${stepKey === "setores" ? '"setores_lista":[""],' : ""}${stepKey === "empresa" ? '"horario":{},' : ""}"faltando":[{"pergunta":"","porque":"","exemplo":"","sugestao":"","secao":""}]}`,
+        `Responda SOMENTE com JSON: {"secoes":{${keys.map((k) => `"${k}":""`).join(",")}},${stepKey === "setores" ? '"setores_lista":[""],' : ""}${stepKey === "empresa" ? '"horario":{},' : ""}"faltando":[{"pergunta":"","porque":"","exemplo":"","sugestao":"","secao":""}],"cobertura":[{"n":1,"status":"","nota":""}]}`,
         `Empresa: ${orgRow?.name ?? ""}\n${stepKey === "empresa" && profile.public_research?.resumo ? `Dados públicos encontrados: ${profile.public_research.resumo}\n` : ""}\nO que o dono escreveu:\n${raw}${extra}`,
       );
       const secoes: Record<string, string> = {};
@@ -657,6 +668,7 @@ Deno.serve(async (req) => {
         setores: stepKey === "setores" ? (Array.isArray(out.setores_lista) ? out.setores_lista : []).slice(0, 20).map((s) => clip(s, 80)).filter(Boolean) : undefined,
         horario: stepKey === "empresa" ? hoursFrom(out.horario) : undefined,
         faltando: await refine(faltas(out.faltando, keys), keys, Object.values(secoes).filter(Boolean).join("\n")),
+        cobertura: await saveCoverage(out.cobertura),
       });
     }
 

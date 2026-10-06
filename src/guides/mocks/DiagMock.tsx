@@ -55,6 +55,12 @@ export function DiagMock({ state }: { state: string }) {
           </div>
         ) : state === "organizado" ? (
           <div className="rounded border bg-muted/40 p-1.5 space-y-1">
+            <div data-demo="cobertura" className="rounded border bg-background p-1 space-y-0.5">
+              <p><b>📊 Informação completa: 5 de 7</b></p>
+              <span className="block h-1.5 overflow-hidden rounded-full bg-muted"><span className="block h-full w-[70%] bg-primary" /></span>
+              <p className="flex flex-wrap items-center gap-1">○ <b>Trocas e garantia</b> <span className="text-muted-foreground">— sem isso o agente pode prometer errado</span>
+                <B d="btn-nao-temos">Não temos isso</B></p>
+            </div>
             <p className="font-medium">Organizado pela IA — confira:</p>
             <p><b>Empresa:</b> loja de móveis planejados em Campinas.</p>
             <p><b>Atendimento:</b> WhatsApp, seg. a sáb., 8h–18h.</p>

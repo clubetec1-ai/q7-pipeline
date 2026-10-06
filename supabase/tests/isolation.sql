@@ -1580,6 +1580,25 @@ BEGIN
   PERFORM pg_temp.run(owner_a, format('SELECT public.save_step_review(%L, %L, NULL)', A, 'cultura'));
   PERFORM pg_temp.expect((SELECT NOT (steps -> 'cultura' ? 'review') AND steps -> 'cultura' ->> 'raw' = 'missao e valores' FROM public.company_profiles WHERE organization_id = A), 'cancelar tira so a conferencia');
 
+  -- 98. Cobertura do Diagnostico: so dono/admin ve; so o servidor grava; marca do dono vale.
+  PERFORM public.service_diag_coverage_save(A, 'marca', '[{"n":1,"item":"cores","porque":"p","status":"completo","nota":""},{"n":2,"item":"logo","porque":"p","status":"faltando","nota":""}]');
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT complete FROM public.diag_coverage WHERE step_key = ''marca''') = 1, 'dono ve a cobertura');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.diag_coverage') = 0, 'outra org nao ve');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, 'SELECT count(*) FROM public.diag_coverage') = 0, 'atendente nao ve');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('INSERT INTO public.diag_coverage (organization_id, step_key) VALUES (%L, %L)', A, 'x')) LIKE 'err:%', 'navegador nao grava direto');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_diag_coverage_save(%L, %L, %L)', A, 'marca', '[]'), 'navegador nao usa a funcao do servidor');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.set_coverage_item(%L, %L, 2, true)', A, 'marca'), 'outra org nao marca');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.set_coverage_item(%L, %L, 2, true)', A, 'marca'), 'atendente nao marca');
+  PERFORM pg_temp.run(owner_a, format('SELECT public.set_coverage_item(%L, %L, 2, true)', A, 'marca'));
+  PERFORM pg_temp.expect((SELECT complete FROM public.diag_coverage WHERE organization_id = A AND step_key = 'marca') = 2, 'nao temos isso conta como resolvido');
+  PERFORM public.service_diag_coverage_save(A, 'marca', '[{"n":1,"item":"cores","porque":"p","status":"completo","nota":""},{"n":2,"item":"logo","porque":"p","status":"faltando","nota":""}]');
+  PERFORM pg_temp.expect((SELECT items -> 1 ->> 'status' FROM public.diag_coverage WHERE organization_id = A AND step_key = 'marca') = 'nao_tem', 'IA nao apaga a marca do dono');
+  PERFORM public.service_diag_coverage_save(A, 'proc:Pós-venda', '[{"n":1,"item":"a","porque":"p","status":"incompleto","nota":""}]');
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT total FROM public.diag_coverage WHERE step_key = ''proc:Pós-venda''') = 1, 'etapa de setor com acento funciona');
+  INSERT INTO public.company_profiles (organization_id, steps) VALUES (A, '{"empresa":{}}') ON CONFLICT (organization_id) DO UPDATE SET steps = '{"empresa":{}}';
+  PERFORM pg_temp.run(owner_a, format('SELECT public.reset_company_profile(%L)', A));
+  PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM public.diag_coverage WHERE organization_id = A), 'recomecar o Diagnostico apaga a cobertura');
+
   -- 97. Chamados de suporte: so da propria empresa; origem/conversa/resposta so pelo servidor.
   PERFORM pg_temp.expect_error(owner_b, format('INSERT INTO public.service_requests (organization_id, topic, message, created_by) VALUES (%L, %L, %L, %L)', A, 'x', 'y', owner_b), 'outra org nao abre chamado em A');
   PERFORM pg_temp.expect_error(agent_a, format('INSERT INTO public.service_requests (organization_id, topic, message, created_by) VALUES (%L, %L, %L, %L)', A, 'x', 'y', agent_a), 'atendente nao abre chamado direto');
