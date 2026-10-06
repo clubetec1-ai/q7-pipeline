@@ -93,7 +93,9 @@ interface Proc {
 const COMMON_SECTORS = ["Vendas / Comercial", "Atendimento ao cliente", "Financeiro", "Administrativo", "Marketing",
   "Operação / Produção", "Logística / Entregas", "Compras", "RH / Pessoas"];
 /** Conferência da etapa (o que a IA organizou + ajustes do dono), salva até aprovar ou cancelar. */
-type Draft = { secoes?: Record<string, string>; processos?: Proc[]; setores?: string[]; horario?: Hours; faltando: string[] };
+/** O que ainda pode completar: pergunta simples, exemplo e, quando faz sentido, uma sugestão da IA (ex.: slogan). */
+type Falta = string | { pergunta: string; exemplo?: string; sugestao?: string; secao?: string };
+type Draft = { secoes?: Record<string, string>; processos?: Proc[]; setores?: string[]; horario?: Hours; faltando: Falta[] };
 interface StepState { raw?: string; approved_at?: string; skipped_at?: string; setores?: string[]; attachments?: { id: string; name: string }[]; tpl?: string; horario?: Hours; review?: Draft; voice?: unknown }
 interface Suggestion { titulo: string; tipo: "pronta" | "integracao"; modelo: string | null; sistema: string | null; instalado?: { kind: "flow" | "record_type"; id: string } }
 interface Auto { titulo: string; setor: string; tipo: "sem_ia" | "ia" | "integracao"; descricao: string; impacto: string; esforco: string; custo: { volume: number; groq: number; claude: number; claude_model: string } | null }
@@ -354,7 +356,7 @@ export default function Diagnostico() {
 
   const organize = async () => {
     setBusy("format");
-    const r = await callFunction<{ secoes?: Record<string, string>; processos?: Proc[]; setores?: string[]; faltando: string[] }>(
+    const r = await callFunction<{ secoes?: Record<string, string>; processos?: Proc[]; setores?: string[]; faltando: Falta[] }>(
       "interviewer", { action: "format", organization_id: org.id, step: setor ? "processos" : page, setor, text: raw, docs: atts.map((a) => a.id) });
     setBusy(null);
     if (!r.ok) return toast({ variant: "destructive", title: r.message });
@@ -735,8 +737,34 @@ export default function Diagnostico() {
                   ))}
                   {draft.faltando.length > 0 && (
                     <div className="text-sm rounded-md bg-amber-500/10 p-3">
-                      <p className="font-medium text-xs mb-1">Pode completar (opcional): escreva acima e organize de novo</p>
-                      <ul className="list-disc pl-5 space-y-0.5">{draft.faltando.map((f) => <li key={f}>{f}</li>)}</ul>
+                      <p className="font-medium text-xs mb-1">Pode completar (opcional): responda na caixa de cima e clique em Organizar de novo — ou use uma sugestão da IA. Não sabe? Pode deixar em branco e aprovar.</p>
+                      <ul className="list-disc pl-5 space-y-2">{draft.faltando.map((f, i) => {
+                        const it = typeof f === "string" ? { pergunta: f } : f;
+                        const into = it.secao && draft.secoes && it.secao in draft.secoes ? it.secao : (draft.secoes ? Object.keys(draft.secoes)[0] : "");
+                        return (
+                          <li key={i}>
+                            {it.pergunta}
+                            {it.exemplo && <span className="block text-xs text-muted-foreground">Ex.: {it.exemplo}</span>}
+                            {it.sugestao && (
+                              <span className="mt-1 block rounded-md border border-primary/30 bg-background p-2 text-xs space-y-1">
+                                <span className="block">💡 <b>Sugestão da IA</b> — você decide; clique na que gostar:</span>
+                                {it.sugestao.split(" / ").map((op) => op.trim()).filter(Boolean).map((op) => (
+                                  <span key={op} className="flex flex-wrap items-center gap-2">
+                                    <span>“{op}”</span>
+                                    {into && (
+                                      <Button type="button" size="sm" variant="outline" className="h-6 px-2 text-xs"
+                                        onClick={() => setDraft({ ...draft, secoes: { ...draft.secoes!, [into]: `${(draft.secoes![into] ?? "").trim()}\n${it.pergunta.replace(/\?$/, "")}: ${op}`.trim() },
+                                          faltando: draft.faltando.filter((_, j) => j !== i) })}>
+                                        Usar esta
+                                      </Button>
+                                    )}
+                                  </span>
+                                ))}
+                              </span>
+                            )}
+                          </li>
+                        );
+                      })}</ul>
                     </div>
                   )}
                   {page === "empresa" && (

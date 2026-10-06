@@ -521,8 +521,18 @@ Deno.serve(async (req) => {
           ((kit.files ?? []).some((f) => f.kind === "manual") ? "\nManual da marca: enviado" : "");
       }
       // "Pode completar": só o que de fato falta, em linguagem simples.
-      const faltandoRule = "Em faltando, até 3 perguntas curtas, com palavras do dia a dia (sem termos como diretrizes, tom de voz, persona, público-alvo ou posicionamento), " +
-        "só sobre o que é importante e ainda NÃO está no texto, nas respostas da entrevista, nos anexos ou no kit da marca; se nada importante faltar, deixe a lista vazia. ";
+      const faltandoRule = "Em faltando, até 3 itens {pergunta, exemplo, sugestao, secao}: a pergunta curta, com palavras do dia a dia, como numa conversa " +
+        "(NUNCA use termos como tom de voz, diretrizes, persona, público-alvo, posicionamento, branding, material offline, KPI; ex.: em vez de \"qual o tom de voz nas redes?\" " +
+        "pergunte \"quando vocês postam no Instagram, escrevem do mesmo jeito que no WhatsApp?\"); só sobre o que é importante e ainda NÃO está no texto, nas respostas da " +
+        "entrevista, nos anexos ou no kit da marca; se nada importante faltar, deixe a lista vazia. Em exemplo, um exemplo curto de resposta. Em sugestao, quando for algo que " +
+        "a empresa provavelmente ainda não tem e a IA pode propor (ex.: slogan, frase de assinatura, mensagem de boas-vindas), proponha 2 ou 3 opções separadas por \" / \" " +
+        "com base só no que a empresa contou (sem inventar preços, prazos ou números); senão deixe vazio. Em secao, a chave da seção onde a resposta entra. ";
+      const faltas = (v: unknown, keys: string[]) => (Array.isArray(v) ? v : []).slice(0, 3).map((f) => {
+        if (typeof f === "string") return { pergunta: clip(f, 200), exemplo: "", sugestao: "", secao: "" };
+        const o = (f ?? {}) as Record<string, unknown>;
+        const secao = clip(o.secao, 40);
+        return { pergunta: clip(o.pergunta, 200), exemplo: clip(o.exemplo, 200), sugestao: clip(o.sugestao, 500), secao: keys.includes(secao) ? secao : "" };
+      }).filter((f) => f.pergunta);
       if (raw.length < 10 && !docIds.length) throw new HttpError(400, "Escreva, fale ou anexe algo antes de organizar.");
       if (stepKey === "processos") {
         const setor = clip(body?.setor, 80);
@@ -531,7 +541,7 @@ Deno.serve(async (req) => {
           `Você organiza a descrição de processos do setor "${setor}" de uma empresa, escrita pelo dono como se ensinasse uma pessoa nova. ` +
           "Separe cada processo e escreva o passo a passo numerado, claro e fiel ao que ele disse (não invente passos). " +
           "Se ele contou como DEVERIA funcionar, registre em como_deveria. " + faltandoRule + "(Ex. do que pode faltar: quem faz, quanto tempo leva, que ferramenta usa, onde trava.) " +
-          'Responda SOMENTE com JSON: {"processos":[{"nome":"","quem_faz":"","frequencia":"","tempo":"","dificuldade":"onde trava","passo_a_passo":"1. ...\n2. ...","como_deveria":""}],"faltando":[""]}',
+          'Responda SOMENTE com JSON: {"processos":[{"nome":"","quem_faz":"","frequencia":"","tempo":"","dificuldade":"onde trava","passo_a_passo":"1. ...\n2. ...","como_deveria":""}],"faltando":[{"pergunta":"","exemplo":"","sugestao":"","secao":""}]}',
           `Empresa: ${orgRow?.name ?? ""}\nSetores: ${sections.setores ?? ""}\n\nO que o dono escreveu sobre o setor ${setor}:\n${raw}${extra}`,
         );
         const processos = (Array.isArray(out.processos) ? out.processos : []).slice(0, 20).map((p: any) => {
@@ -540,7 +550,7 @@ Deno.serve(async (req) => {
           return item;
         }).filter((p) => p.nome);
         if (!processos.length) throw new HttpError(502, "Não consegui separar os processos. Tente descrever um de cada vez.");
-        return json({ ok: true, processos, faltando: (Array.isArray(out.faltando) ? out.faltando : []).slice(0, 3).map((f) => clip(f, 200)).filter(Boolean) });
+        return json({ ok: true, processos, faltando: faltas(out.faltando, []) });
       }
       const stage = STAGES.find((s) => s.key === stepKey && s.key !== "processos");
       if (!stage) throw new HttpError(400, "Etapa inválida");
@@ -552,7 +562,7 @@ Deno.serve(async (req) => {
         faltandoRule +
         (stepKey === "setores" ? 'Em "setores_lista", liste só os nomes dos setores citados. ' : "") +
         (stepKey === "empresa" ? 'Em "horario", o horário de atendimento que o dono contou, por dia da semana (0=domingo, 1=segunda ... 6=sábado), no formato {"1":["08:00","18:00"]}; dia fechado fica de fora; se ele não contou o horário, use {}. ' : "") +
-        `Responda SOMENTE com JSON: {"secoes":{${keys.map((k) => `"${k}":""`).join(",")}},${stepKey === "setores" ? '"setores_lista":[""],' : ""}${stepKey === "empresa" ? '"horario":{},' : ""}"faltando":[""]}`,
+        `Responda SOMENTE com JSON: {"secoes":{${keys.map((k) => `"${k}":""`).join(",")}},${stepKey === "setores" ? '"setores_lista":[""],' : ""}${stepKey === "empresa" ? '"horario":{},' : ""}"faltando":[{"pergunta":"","exemplo":"","sugestao":"","secao":""}]}`,
         `Empresa: ${orgRow?.name ?? ""}\n${stepKey === "empresa" && profile.public_research?.resumo ? `Dados públicos encontrados: ${profile.public_research.resumo}\n` : ""}\nO que o dono escreveu:\n${raw}${extra}`,
       );
       const secoes: Record<string, string> = {};
@@ -562,7 +572,7 @@ Deno.serve(async (req) => {
         ok: true, secoes,
         setores: stepKey === "setores" ? (Array.isArray(out.setores_lista) ? out.setores_lista : []).slice(0, 20).map((s) => clip(s, 80)).filter(Boolean) : undefined,
         horario: stepKey === "empresa" ? hoursFrom(out.horario) : undefined,
-        faltando: (Array.isArray(out.faltando) ? out.faltando : []).slice(0, 3).map((f) => clip(f, 200)).filter(Boolean),
+        faltando: faltas(out.faltando, keys),
       });
     }
 
