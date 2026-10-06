@@ -1,6 +1,7 @@
-import { CheckCircle2, HelpCircle, LifeBuoy, Mic, MicVocal, Paperclip, Pause, PenLine, Play, PlayCircle, RotateCcw, Save, Sparkles, ThumbsDown, Undo2 } from "lucide-react";
+import { CheckCircle2, Facebook, HelpCircle, LifeBuoy, Mail, Mic, MicVocal, MoreHorizontal, Paperclip, Pause, PenLine, Play, PlayCircle, Plus, QrCode, RotateCcw, Save, ShieldCheck, Sparkles, ThumbsDown, Undo2 } from "lucide-react";
 import { Pointer } from "./Pointer";
 import { DiagMock } from "./mocks/DiagMock";
+import { NumerosMock } from "./mocks/NumerosMock";
 import { SupportMock } from "./mocks/SupportMock";
 import type { Guide } from "./types";
 
@@ -155,6 +156,108 @@ export const GUIDES: Guide[] = [
         ),
         demo: [
           { state: "lista", target: "chamado", caption: "Situação e resposta da equipe em cada chamado", ms: 3600 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "numeros",
+    title: "WhatsApp, e-mail e redes",
+    routes: ["/numeros"],
+    autoOpen: true,
+    mock: (state) => <NumerosMock state={state} />,
+    steps: [
+      {
+        title: "Todos os seus canais num lugar só",
+        body: (
+          <>
+            <p>Aqui você liga os canais por onde os clientes falam com a sua empresa: <b>WhatsApp</b>, <b>e-mail</b>, <b>Facebook</b> e <b>Instagram</b>. Tudo o que chegar por eles cai em Conversas, com a IA respondendo se você quiser.</p>
+            <p>Cada número mostra se está <b>Conectado</b> (verde) ou com problema (vermelho), e quando chegou a última mensagem.</p>
+            <p className="text-muted-foreground">Comece pelo WhatsApp principal da empresa. O resto pode ficar para depois.</p>
+          </>
+        ),
+        demo: [
+          { state: "lista", target: "card-numero", caption: "Cada número com a situação: verde é conectado" },
+          { state: "lista", target: "btn-email", caption: "Embaixo, os e-mails…" },
+          { state: "lista", target: "btn-facebook", caption: "…e o Facebook e o Instagram" },
+        ],
+      },
+      {
+        title: "WhatsApp oficial: o jeito recomendado",
+        body: (
+          <>
+            <Pointer icon={<Plus className="w-4 h-4" />} label="Adicionar número" note="no canto de cima" />
+            <Pointer icon={<ShieldCheck className="w-4 h-4" />} label="WhatsApp oficial (Meta)" note="sem risco de bloqueio" />
+            <Pointer icon={<Facebook className="w-4 h-4" />} label="Conectar o WhatsApp com o Facebook" note="entre com o Facebook da empresa e escolha o número" />
+            <p className="text-muted-foreground">Não precisa copiar código nenhum. Se a Meta pedir, use o mesmo login que administra a página da empresa.</p>
+          </>
+        ),
+        demo: [
+          { state: "lista", target: "btn-adicionar", caption: "Clique em Adicionar número" },
+          { state: "add", target: "opt-meta", caption: "Escolha WhatsApp oficial (recomendado)" },
+          { state: "meta", target: "btn-fb-whatsapp", caption: "Entre com o Facebook e escolha o número" },
+          { state: "lista", target: "card-numero", caption: "Pronto: o número aparece conectado" },
+        ],
+      },
+      {
+        title: "Ou conecte lendo um QR Code",
+        body: (
+          <>
+            <Pointer icon={<QrCode className="w-4 h-4" />} label="Por QR Code" note="para um WhatsApp comum, lendo o código com o celular" />
+            <p>Dê um nome (ex.: Suporte), clique em Continuar e, no celular, abra o WhatsApp → <b>Aparelhos conectados</b> → <b>Conectar aparelho</b> e aponte para o código.</p>
+            <p className="rounded-md bg-warning-soft p-2 text-warning-text">Atenção: esse jeito não é oficial e o WhatsApp pode bloquear o número. Use para números secundários.</p>
+          </>
+        ),
+        demo: [
+          { state: "add", target: "opt-qr", caption: "Escolha Por QR Code" },
+          { state: "qr-nome", target: "btn-continuar", caption: "Dê um nome e clique em Continuar" },
+          { state: "qr", target: "qr", caption: "No celular: Aparelhos conectados → Conectar aparelho", ms: 3400 },
+          { state: "conectado", target: "novo-numero", caption: "Leu o código? O número aparece conectado" },
+        ],
+      },
+      {
+        title: "E-mail da empresa",
+        body: (
+          <>
+            <Pointer icon={<Mail className="w-4 h-4" />} label="Conectar e-mail" note="escolha o provedor (Gmail, Outlook, Hostinger…) e os servidores vêm preenchidos" />
+            <Pointer icon={<CheckCircle2 className="w-4 h-4" />} label="Testar conexão" note="confere antes de salvar; se der erro, a mensagem diz o que corrigir" />
+            <p>Escolha também o <b>setor</b> que recebe esses e-mails. No Gmail, use uma <b>senha de app</b> (Conta Google → Segurança → Senhas de app).</p>
+            <p className="text-muted-foreground">E-mails automáticos (boletos, avisos, newsletters) não viram atendimento.</p>
+          </>
+        ),
+        demo: [
+          { state: "lista", target: "btn-email", caption: "Clique em Conectar e-mail" },
+          { state: "email", target: "provedor", caption: "Escolha o provedor: os servidores já vêm prontos" },
+          { state: "email", target: "btn-testar", caption: "Teste a conexão…" },
+          { state: "email-ok", target: "btn-email", caption: "…salve, e os e-mails chegam em Conversas" },
+        ],
+      },
+      {
+        title: "Facebook e Instagram",
+        body: (
+          <>
+            <Pointer icon={<Facebook className="w-4 h-4" />} label="Conectar com o Facebook" note="entre e escolha a Página da empresa" />
+            <p>O Instagram ligado à Página entra junto. As mensagens do Messenger e do Direct aparecem em Conversas, como o WhatsApp.</p>
+          </>
+        ),
+        demo: [
+          { state: "lista", target: "btn-facebook", caption: "Clique em Conectar com o Facebook" },
+          { state: "pagina-ok", target: "btn-facebook", caption: "Escolha a Página: pronto, Messenger e Instagram ligados" },
+        ],
+      },
+      {
+        title: "Se um número cair",
+        body: (
+          <>
+            <p>Se um número desconectar, ele fica <b>vermelho</b> aqui, aparece um aviso no topo das telas e você recebe um alerta no sino.</p>
+            <Pointer icon={<MoreHorizontal className="w-4 h-4" />} label="⋯ → Reconectar (QR Code)" note="lê o código de novo; as conversas continuam" />
+            <p className="text-muted-foreground">Não resolveu? Clique no <b>?</b> no topo e peça ajuda: a IA mostra o caminho e, se precisar, abre o chamado para a equipe.</p>
+          </>
+        ),
+        demo: [
+          { state: "caiu", target: "card-numero", caption: "Número com problema fica vermelho" },
+          { state: "menu", target: "btn-menu", caption: "Clique em ⋯" },
+          { state: "menu", target: "btn-reconectar", caption: "Reconectar (QR Code) e leia o código de novo" },
         ],
       },
     ],
