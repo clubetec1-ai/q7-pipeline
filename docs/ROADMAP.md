@@ -58,6 +58,17 @@ Próximo: bloco curto da Meta (cadastro em um clique, liberado com o Provedor de
   remetente/SPF/DKIM do domínio próprio. (6) **Supabase**: `app_settings.functions_base_url` e os crons, se as funções
   mudarem de endereço. (7) **Vercel → VPS**: variáveis `VITE_*`, domínio deixacomaia.com.br e HTTPS. Conferir tudo com
   `npm run check` e um teste de ponta a ponta (WhatsApp, e-mail, Facebook, pagamento) antes de desligar o antigo.
+- ✅ **Meta configurada para o cadastro em um clique (06/10):** endereço de retorno do login cadastrado; acesso avançado
+  ao public_profile concedido (declaração de uso e de tratamento de dados enviada pelo dono); configuração "Tech Provider
+  Embedded Signup config" (cadastro incorporado do WhatsApp, token de usuário do sistema que não expira, ID
+  28281929604840131) ligada em Plataforma → Conectores → App da Meta (Ativo); app renomeado para **"Deixa com a IA"** com
+  o ícone novo (fundo transparente, `docs/marca/deixa-com-a-ia-icone-1024-transparente.png`); links de termos e de
+  exclusão de dados corrigidos (apontavam para facebook.com). 🙋 Falta: testar "Conectar com o Facebook" com um número;
+  configuração de Páginas/Instagram depois que a Meta liberar pages_messaging e instagram_manage_messages (análise do app).
+- 📋 **Trocar o nome antigo (ClubeCRM / Q7) nos outros serviços conectados** (pedido do dono, 06/10): GitHub (repositório
+  q7-pipeline), Supabase (projeto q7-pipeline), Vercel (projeto e endereço clubecrm-clubetec — junto com o domínio
+  deixacomaia.com.br na migração para a VPS), Uazapi (nome das instâncias), Asaas (nome exibido nas cobranças), Bling
+  (app), Nvoip, Google Cloud (criar já como "Deixa com a IA"), remetente dos e-mails do sistema.
 - 🟢 **Meta: Provedor de Tecnologia aprovado (06/10).** Destrava o cadastro do WhatsApp em um clique (Embedded Signup);
   o botão "Conectar com o Facebook" já existe desde 05/10 — falta configurar no app da Meta o Login do Facebook para
   Empresas (configuração do cadastro incorporado) e conferir as permissões; testar com um número.
