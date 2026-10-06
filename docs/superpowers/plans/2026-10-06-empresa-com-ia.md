@@ -58,7 +58,7 @@ npx supabase functions deploy <funcao> --project-ref ulmndwlralgjbwlebxmo
 | 1 ✅ | Cobertura do Diagnóstico | Cada etapa mostra "Informação completa: X de Y", a lista com o porquê, "Não temos isso" e o aviso ao aprovar incompleta; tudo gravado só pelo servidor | **Abaixo (Tarefas 1–5)** |
 | 2 ✅ | Revisores de área | Ao organizar uma etapa, um revisor da área aponta incoerências com as etapas aprovadas e lacunas; o dono aceita/corrige; portão F2 | Escrever ao começar |
 | 3 ✅ | Processos como dado + Arquiteto | Tabela `processes` no formato do §3 do desenho, migração dos atuais, matriz de automação por passo, aprovação por processo (dono ou responsável da área) | Escrever ao começar |
-| 4 | Organograma de IA | `ai_agents` + `agent_versions`, crachás do catálogo, cérebro propõe a partir de setores e processos (juntando níveis em empresa pequena), tela com cargo + "(IA)" e apelido, Pausar | Escrever ao começar |
+| 4 ✅ | Organograma de IA | `ai_agents` + `agent_versions`, crachás do catálogo, cérebro propõe a partir de setores e processos (juntando níveis em empresa pequena), tela com cargo + "(IA)" e apelido, Pausar | Escrever ao começar |
 | 5 | Guardião de segurança e LGPD | Revisão obrigatória de propostas, agentes e fluxos antes da prova, com motivos; nada reprovado segue | Escrever ao começar |
 | 6 | Prova (cenários) | 7 cenários obrigatórios por executor, modo teste sem enviar a cliente, regressão a cada mudança, tela Prova | Escrever ao começar |
 | 7 | Degraus + disjuntor + vigia de custo | Sombra → assistido → automático por executor; volta sozinho se errar; botão Parar; aviso de gasto fora do normal com o motivo | Escrever ao começar |
@@ -375,4 +375,29 @@ guia "processos" com `ProcessosMock`, teste de isolamento 100.
 - [x] Função `architect` com `deno check`; publicada.
 - [x] Tela, rota, cartão e guia; `tsc` e `build` ok.
 - [ ] Prova com IA de verdade: no teste da Clubetec do zero (depois de todas as fatias).
-- [ ] Atalho para o responsável de área chegar em /processos (hoje: cartão em Configurações para o dono) — entra na fatia 4 (organograma).
+- [x] Atalho para o responsável de área: botões "Time de IA" e "Processos" no Cérebro (fatia 4).
+
+---
+
+## Fatia 4 — Organograma de IA ✅ (06/10)
+
+**Decisão de projeto:** o cérebro monta o time **por regra, sem IA** (`_shared/orgchart.ts`): nada é inventado e não custa
+IA. Cérebro → diretores (pelas áreas do cérebro ou pelo nome do setor) → coordenadores (um por setor) → especialistas (um por
+processo **aprovado**) → executores (um por setor com passo automatizável: fluxo, modelo ou IA) + equipe de apoio fixa
+(Analista de Diagnóstico, Revisor, Arquiteto, Implementador, Guardião, Auditor, Analista de dados). Empresa pequena (até 5
+pessoas e 2 setores) junta os níveis. Todos começam em A1 (sugere; o Implementador em A2, o Analista de dados em A0).
+
+**Arquivos:** `supabase/migrations/20261006002300_ai_agents.sql` (`ai_agents` com `private.cracha_ok` — catálogo de dados e
+ações, itens de executor só no executor —, cargo sempre com "(IA)", A4 só para executor; `agent_versions` imutável por
+gatilho; `service_org_chart_save` (novo nasce proposto; existente mantém situação, apelido e autonomia; o que saiu do
+desenho e estava ativo fica pausado), `approve_org_chart`, `set_agent_status`, `set_agent_label`, `set_agent_autonomy`
+(A3/A4 recusados até a prova)), `_shared/orgchart.ts` + teste (4), função `orgchart` (ação `propose`, dono, módulo gestão),
+tela `src/pages/Organograma.tsx` (`/organograma`: árvore, crachá em linguagem simples — vê / faz / fala com —, autonomia,
+pausar, apelido, aprovar o time), cartão em Configurações, atalhos "Time de IA" e "Processos" no Cérebro e em Processos,
+guia "organograma" com `OrganogramaMock`, teste de isolamento 101.
+
+- [x] `orgchart_test.ts` (4) visto falhar e depois passar.
+- [x] Teste 101 visto falhar; migration aplicada (2 correções: nome de variável e apelido no teste); bateria completa ok.
+- [x] Função `orgchart` com `deno check`; publicada.
+- [x] Tela, rota, cartões, atalhos e guia; `tsc` e `build` ok.
+- [ ] Prova de ponta a ponta: no teste da Clubetec do zero (com processos aprovados).

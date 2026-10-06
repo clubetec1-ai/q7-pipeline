@@ -126,7 +126,10 @@ export default function Processos() {
               se ele vira <b>fluxo automático</b>, <b>modelo pronto</b>, <b>IA</b> ou fica com uma <b>pessoa</b>. Você (ou o responsável da área) confere e aprova.
             </p>
           </div>
-          <HowItWorks guide="processos" className="" />
+          <div className="flex flex-wrap items-center gap-2">
+            <HowItWorks guide="processos" className="" />
+            <Button asChild variant="outline"><Link to="/organograma">Time de IA</Link></Button>
+          </div>
         </div>
 
         {!loaded ? <Loader2 className="w-5 h-5 animate-spin" /> : bySetor.length === 0 ? (

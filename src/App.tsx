@@ -27,6 +27,7 @@ import Registros from "./pages/Registros";
 import Diagnostico from "./pages/Diagnostico";
 import MarcaManual from "./pages/diagnostico/MarcaManual";
 import Processos from "./pages/Processos";
+import Organograma from "./pages/Organograma";
 import Cobrancas from "./pages/Cobrancas";
 import Integracoes from "./pages/Integracoes";
 import Supervisor from "./pages/Supervisor";
@@ -83,6 +84,7 @@ const App = () => (
             <Route path="/diagnostico/manual-marca" element={<ProtectedRoute><ModuleGate m="diagnostico"><MarcaManual /></ModuleGate></ProtectedRoute>} />
             <Route path="/diagnostico" element={<ProtectedRoute><ModuleGate m="diagnostico"><Diagnostico /></ModuleGate></ProtectedRoute>} />
             <Route path="/processos" element={<ProtectedRoute><ModuleGate m="diagnostico"><Processos /></ModuleGate></ProtectedRoute>} />
+            <Route path="/organograma" element={<ProtectedRoute><ModuleGate m="gestao"><Organograma /></ModuleGate></ProtectedRoute>} />
             <Route path="/cobrancas" element={<ProtectedRoute><ModuleGate m="cobrancas"><Cobrancas /></ModuleGate></ProtectedRoute>} />
             <Route path="/integracoes" element={<ProtectedRoute><Integracoes /></ProtectedRoute>} />
             <Route path="/supervisor" element={<ProtectedRoute><ModuleGate m="gestao"><Supervisor /></ModuleGate></ProtectedRoute>} />
