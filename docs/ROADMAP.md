@@ -23,17 +23,19 @@ Critério: outubro = piloto da Clubetec estável e seguro; fim de outubro = mark
 ANOREG 17–19/11). Primeiro o que trava o piloto e a venda segura, depois o que o lançamento exige, depois profundidade.
 🙋 = depende do dono ou de terceiros. Detalhes de cada item nas seções abaixo.
 
-**Prioridade 1 — agora (piloto da Clubetec e continuidade do projeto)** *(ordem revista pelo dono em 06/10: o item 2
-é a continuidade imediata e as melhorias da Prioridade 2 vêm logo em seguida, antes do lançamento)*
+**Ordem de execução definida pelo dono em 06/10:** 1 → 2 → melhorias do produto → canais e extras → por último
+segurança final, documentos e lançamento.
+
+**Etapa A — agora**
 1. **Montar a Clubetec do zero pelos Primeiros passos e pelo Diagnóstico** 🙋, anotando o que travar (cada trava vira
    correção imediata). Junto: E10 (teste no WhatsApp real com número de teste) e teste com equipe (convidar atendente,
    setores, fila).
-2. **Padrão de autoatendimento nas telas que faltam** (regra do CLAUDE.md) — **próximo no código**: passo a passo +
+2. **Padrão de autoatendimento nas telas que faltam** (regra do CLAUDE.md) — **em andamento no código**: passo a passo +
    vídeo animado + Ajuda em Números (WhatsApp/e-mail/Facebook), Agentes de IA, Fluxos, Equipe, Etiquetas, Funil,
    Cobranças, Integrações, API e Configurações; microfone e "Não entendi" nas caixas grandes; salvar sozinho e
    "Salvar e próximo" onde houver etapas.
 
-**Prioridade 2 — melhorias do produto, antes do lançamento (logo depois do item 2)**
+**Etapa B — melhorias do produto (logo depois do item 2)**
 3. Funil de vendas, resto: acompanhamento do teste grátis, pós-venda (implantação, pesquisa, indicação) e página de captação.
 4. Base de conhecimento: preencher contrato/orçamento com os dados do cliente, enviar documento pelo atendimento, PDF
    digitalizado (OCR), vídeo e anexos de e-mail.
@@ -46,35 +48,36 @@ ANOREG 17–19/11). Primeiro o que trava o piloto e a venda segura, depois o que
 9. Manual da marca completo como complemento pago; paleta e fontes sugeridas para quem não tem logo.
 10. E-mail: Microsoft 365 por OAuth e Google direto.
 
-**Prioridade 3 — segurança, documentos e o que o lançamento exige (novembro)**
-11. **Segurança antes da produção:** varredura completa do código, grants por coluna nas tabelas antigas, caso 55
+**Etapa C — canais e extras (depois da Etapa B)**
+11. Voz: WSS, gravações e transcrição das ligações, agente de voz/URA, fluxos na ligação, avaliação das ligações
+    (🙋 respostas da Handphone e da Nvoip).
+12. Microsoft Teams para ramais.
+13. Site do cliente, revenda Hostinger e posts nas redes atrelados à mensalidade.
+14. Conectores nativos sob demanda (Omie, Tiny, Nuvemshop; validar o Bling com conta real 🙋).
+15. Backup externo/nuvem automático (com o Supabase Pro).
+16. Pesquisa de mercado (diferenciais dos concorrentes e pontos de melhoria) e pesquisa de SLA de suporte.
+
+**Etapa D — no final: segurança final, documentos e lançamento**
+17. **Segurança antes da produção:** varredura completa do código, grants por coluna nas tabelas antigas, caso 55
     intermitente, limite de tentativas de login + CAPTCHA + alerta de muitas tentativas, plano de resposta a incidente,
     aviso de saúde vermelha no sino/e-mail, conferência no celular de verdade 🙋. 🙋 Decidir criptografia por campo.
-12. **Termos de uso, privacidade e contrato de tratamento de dados** com a Clubetec como fornecedora, aceite registrado
+18. **Termos de uso, privacidade e contrato de tratamento de dados** com a Clubetec como fornecedora, aceite registrado
     no cadastro e aviso de nova versão. 🙋 Revisão por advogado.
-13. **Suporte com prazo:** pesquisar e definir o SLA por urgência (app_settings.support_sla), mostrar prazo/atraso no
-    chamado; chamado urgente também no WhatsApp do suporte (liga/desliga).
-14. **Meta** (análise prevista ~14/10): ligar o cadastro de número em poucos cliques (Embedded Signup), nova conversa
-    com modelo aprovado, trocar o nome do app; Messenger/Instagram: pedir as permissões e testar com uma Página real 🙋.
-15. **Produção:** Supabase Pro, site e domínio deixacomaia.com.br (VPS), troca de nome/links restantes, limite da
+19. **Suporte com prazo:** definir o SLA por urgência (app_settings.support_sla), mostrar prazo/atraso no chamado;
+    chamado urgente também no WhatsApp do suporte (liga/desliga).
+20. **Meta:** cadastro de número em poucos cliques (Embedded Signup), nova conversa com modelo aprovado, trocar o nome
+    do app; Messenger/Instagram: pedir as permissões e testar com uma Página real 🙋. (A análise da Meta segue
+    correndo; quando aprovar, o monitoramento avisa.)
+21. **Produção:** Supabase Pro, site e domínio deixacomaia.com.br (VPS), troca de nome/links restantes, limite da
     OpenAI; publicar o app do Google (Agenda) com domínio verificado 🙋.
-16. **Vender e cobrar de verdade:** 🙋 preços, franquia de IA e Condição de Fundador; conectar o Asaas da Clubetec
+22. **Vender e cobrar de verdade:** 🙋 preços, franquia de IA e Condição de Fundador; conectar o Asaas da Clubetec
     (teste → real); liberar cadastro público com confirmação de e-mail; custo da IA em reais por empresa.
-17. **Modelo de cartório completo para a ANOREG** (E7): fluxos e etiquetas prontos por nicho; 🙋 escolher o próximo nicho.
-18. **Executar o plano de marketing** (docs/marketing 01–04) no fim de outubro; validar com 10 entrevistas 🙋.
-19. **Regras dos bots:** recusar com educação oferecendo uma pessoa, teste de tentativas de burlar e registro na auditoria.
-20. **Painel "o que o sistema fez por você":** vendas, cobranças recuperadas e horas economizadas, em linguagem de dono.
-21. 🙋 **CNAE de software** (62.03-1 / 63.11-9 / 62.02-3) com o contador antes da primeira venda; acompanhar o INPI
+23. **Modelo de cartório completo para a ANOREG** (E7): fluxos e etiquetas prontos por nicho; 🙋 escolher o próximo nicho.
+24. **Executar o plano de marketing** (docs/marketing 01–04); validar com 10 entrevistas 🙋.
+25. **Regras dos bots:** recusar com educação oferecendo uma pessoa, teste de tentativas de burlar e registro na auditoria.
+26. **Painel "o que o sistema fez por você":** vendas, cobranças recuperadas e horas economizadas, em linguagem de dono.
+27. 🙋 **CNAE de software** (62.03-1 / 63.11-9 / 62.02-3) com o contador antes da primeira venda; acompanhar o INPI
     (o monitor da RPI avisa por e-mail).
-
-**Prioridade 4 — quando o fornecedor liberar ou o cliente pedir**
-22. Voz: WSS, gravações e transcrição das ligações, agente de voz/URA, fluxos na ligação, avaliação das ligações
-    (🙋 respostas da Handphone e da Nvoip).
-23. Microsoft Teams para ramais.
-24. Site do cliente, revenda Hostinger e posts nas redes atrelados à mensalidade.
-25. Conectores nativos sob demanda (Omie, Tiny, Nuvemshop; validar o Bling com conta real 🙋).
-26. Backup externo/nuvem automático (com o Supabase Pro).
-27. Pesquisa de mercado (diferenciais dos concorrentes e pontos de melhoria) depois que a Clubetec estiver no ar.
 
 ### ✅ Concluído desde o início (resumo)
 - **Base e segurança:** multiempresa com isolamento no banco (65 grupos de testes automáticos), cofre de segredos,
