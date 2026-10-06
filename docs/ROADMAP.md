@@ -310,7 +310,8 @@ Meta liberar as permissões) → 19b Google Agenda (🙋 precisa de credencial O
   mesmo guia em Números, Agentes, Fluxos e Configurações.
 - ✅ **Diagnóstico não perde mais o que foi escrito (05/10):** texto e anexos de cada etapa salvos sozinhos ("✓ Salvo
   às hh:mm"); ao atualizar a página volta para a etapa onde a pessoa estava (antes a caixa abria vazia); botão
-  "Salvar e próxima etapa" (organizar e aprovar depois).
+  "Salvar e próxima etapa" (organizar e aprovar depois). Microfone (🎤 Falar) em todas as caixas da conferência. A **conferência**
+  ("Confira e ajuste") também é salva sozinha e volta ao atualizar; some só ao aprovar ou cancelar.
 - ✅ **Padrão do produto: autoatendimento guiado (05/10, regra do dono — está no CLAUDE.md):** toda tela que o cliente
   usa sai com passo a passo (Próximo/Voltar) + vídeo curto do caminho + botão de Ajuda. Estrutura pronta em src/guides:
   guias por tela (abrem sozinhos na 1ª visita), "vídeo" animado da própria interface (cursor clicando + legenda) ou

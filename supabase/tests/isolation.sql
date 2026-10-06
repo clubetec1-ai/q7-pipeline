@@ -1571,6 +1571,11 @@ BEGIN
   PERFORM pg_temp.expect((SELECT steps -> 'cultura' ->> 'raw' FROM public.company_profiles WHERE organization_id = A) = 'missao e valores', 'rascunho gravado');
   PERFORM pg_temp.expect((SELECT jsonb_array_length(steps -> 'cultura' -> 'attachments') FROM public.company_profiles WHERE organization_id = A) = 0, 'anexo de outra org nao entra');
   PERFORM pg_temp.expect((SELECT last_page FROM public.company_profiles WHERE organization_id = A) = 'cultura', 'lembra a etapa onde parou');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.save_step_review(%L, %L, %L)', A, 'cultura', '{"faltando":[]}'), 'outra org nao grava conferencia');
+  PERFORM pg_temp.run(owner_a, format('SELECT public.save_step_review(%L, %L, %L)', A, 'cultura', '{"secoes":{"cultura":"x"},"faltando":[]}'));
+  PERFORM pg_temp.expect((SELECT steps -> 'cultura' -> 'review' -> 'secoes' ->> 'cultura' FROM public.company_profiles WHERE organization_id = A) = 'x', 'conferencia salva');
+  PERFORM pg_temp.run(owner_a, format('SELECT public.save_step_review(%L, %L, NULL)', A, 'cultura'));
+  PERFORM pg_temp.expect((SELECT NOT (steps -> 'cultura' ? 'review') AND steps -> 'cultura' ->> 'raw' = 'missao e valores' FROM public.company_profiles WHERE organization_id = A), 'cancelar tira so a conferencia');
 
   -- 97. Chamados de suporte: so da propria empresa; origem/conversa/resposta so pelo servidor.
   PERFORM pg_temp.expect_error(owner_b, format('INSERT INTO public.service_requests (organization_id, topic, message, created_by) VALUES (%L, %L, %L, %L)', A, 'x', 'y', owner_b), 'outra org nao abre chamado em A');

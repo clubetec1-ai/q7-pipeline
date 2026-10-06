@@ -5430,6 +5430,10 @@ export type Database = {
         Args: { org: string; p_attachments: Json; p_key: string; p_raw: string }
         Returns: undefined
       }
+      save_step_review: {
+        Args: { org: string; p_key: string; p_review: Json }
+        Returns: undefined
+      }
       save_team_group: {
         Args: { ch: string; org: string; p_members: string[]; p_name: string }
         Returns: string
