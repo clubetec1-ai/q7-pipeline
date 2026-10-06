@@ -33,6 +33,15 @@ Guardião de segurança e LGPD, Auditor de qualidade), ciclo com portões (levan
 → implantação → prova → ir ao ar em degraus → operar → melhorar), níveis de autonomia, crachá de cada agente, rede de
 tarefas entre agentes e 10 fatias. 🙋 Dono aprova o desenho e as 6 decisões do §11; depois as fatias entram antes de
 tudo, na ordem 1 → 10. Prova: a Clubetec do zero sem erro.
+*Decisões de 06/10:* (1) executores começam só sugerindo ✅; (2) responsável da área também aprova processos ✅;
+(3) juntar níveis em empresa pequena — explicado no §11, aguardando o sim; (4) 7 cenários obrigatórios ✅; (5) sem
+mostrar gasto por agente ao cliente, mas com **vigia de custo** que avisa gasto fora do normal, o motivo e se vale
+desligar ✅; (6) cargo + "(IA)" com apelido opcional ✅.
+*Clubetec zerada de novo (06/10, pedido do dono):* Diagnóstico inteiro (etapas, textos, entrevistas, revisões, plano,
+histórico), kit da marca e base de conhecimento (7 documentos + logo) apagados; cópia antes em
+`C:\Users\HP\Backups\deixa-com-a-ia\2026-10-06-clubetec-antes-de-zerar`. Ficaram: números, caixa de e-mail, equipe e
+MFA, Asaas, plano, os setores Comercial e Suporte e 2 conversas de e-mail. Nova ação da base: "limpar arquivos órfãos"
+(só da própria empresa, dono/admin, auditada).
 
 **Etapa A — agora**
 1. **Montar a Clubetec do zero pelos Primeiros passos e pelo Diagnóstico** 🙋, anotando o que travar (cada trava vira
