@@ -18,6 +18,62 @@ Visão de CEO: primeiro o que permite **vender e cobrar com segurança**, depois
 volume** (ticket alto e franquias), depois o "cérebro" e por último canais e extras que dependem de fornecedor ou de
 pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não começado · 🙋 depende do dono. Detalhes nas seções abaixo.
 
+## ⭐ O QUE FALTA, POR PRIORIDADE (revisado em 06/10 — ler isto primeiro)
+Critério: outubro = piloto da Clubetec estável e seguro; fim de outubro = marketing; novembro = lançamento (vitrine
+ANOREG 17–19/11). Primeiro o que trava o piloto e a venda segura, depois o que o lançamento exige, depois profundidade.
+🙋 = depende do dono ou de terceiros. Detalhes de cada item nas seções abaixo.
+
+**Prioridade 1 — agora (piloto da Clubetec, outubro)**
+1. **Montar a Clubetec do zero pelos Primeiros passos e pelo Diagnóstico** 🙋, anotando o que travar (cada trava vira
+   correção imediata). Junto: E10 (teste no WhatsApp real com número de teste) e teste com equipe (convidar atendente,
+   setores, fila).
+2. **Padrão de autoatendimento nas telas que faltam** (regra do CLAUDE.md): passo a passo + vídeo animado + Ajuda em
+   Números (WhatsApp/e-mail/Facebook), Agentes de IA, Fluxos, Equipe, Etiquetas, Funil, Cobranças, Integrações, API e
+   Configurações; microfone e "Não entendi" nas caixas grandes; salvar sozinho e "Salvar e próximo" onde houver etapas.
+3. **Segurança antes da produção:** varredura completa do código, grants por coluna nas tabelas antigas, caso 55
+   intermitente, limite de tentativas de login + CAPTCHA + alerta de muitas tentativas, plano de resposta a incidente,
+   aviso de saúde vermelha no sino/e-mail, conferência no celular de verdade 🙋. 🙋 Decidir criptografia por campo.
+4. **Termos de uso, privacidade e contrato de tratamento de dados** com a Clubetec como fornecedora, aceite registrado
+   no cadastro e aviso de nova versão. 🙋 Revisão por advogado.
+5. **Suporte com prazo:** pesquisar e definir o SLA por urgência (app_settings.support_sla), mostrar prazo/atraso no
+   chamado; chamado urgente também no WhatsApp do suporte (liga/desliga).
+
+**Prioridade 2 — antes do lançamento (novembro)**
+6. **Meta** (análise prevista ~14/10): ligar o cadastro de número em poucos cliques (Embedded Signup), nova conversa
+   com modelo aprovado, trocar o nome do app; Messenger/Instagram: pedir as permissões e testar com uma Página real 🙋.
+7. **Produção:** Supabase Pro, site e domínio deixacomaia.com.br (VPS), troca de nome/links restantes, limite da
+   OpenAI; publicar o app do Google (Agenda) com domínio verificado 🙋.
+8. **Vender e cobrar de verdade:** 🙋 preços, franquia de IA e Condição de Fundador; conectar o Asaas da Clubetec
+   (teste → real); liberar cadastro público com confirmação de e-mail; custo da IA em reais por empresa.
+9. **Modelo de cartório completo para a ANOREG** (E7): fluxos e etiquetas prontos por nicho; 🙋 escolher o próximo nicho.
+10. **Executar o plano de marketing** (docs/marketing 01–04) no fim de outubro; validar com 10 entrevistas 🙋.
+11. **Regras dos bots:** recusar com educação oferecendo uma pessoa, teste de tentativas de burlar e registro na auditoria.
+12. **Painel "o que o sistema fez por você":** vendas, cobranças recuperadas e horas economizadas, em linguagem de dono.
+13. 🙋 **CNAE de software** (62.03-1 / 63.11-9 / 62.02-3) com o contador antes da primeira venda; acompanhar o INPI
+    (o monitor da RPI avisa por e-mail).
+
+**Prioridade 3 — logo depois do lançamento (profundidade)**
+14. Funil de vendas, resto: acompanhamento do teste grátis, pós-venda (implantação, pesquisa, indicação) e página de captação.
+15. Base de conhecimento: preencher contrato/orçamento com os dados do cliente, enviar documento pelo atendimento, PDF
+    digitalizado (OCR), vídeo e anexos de e-mail.
+16. Cobrança: IA gerando cobrança (com permissão), recorrente ligada a "Conta a receber", Mercado Pago/Efí.
+17. Atendimento: convidar outro setor sem transferir, sino para quem ajuda, filtros na busca, anonimização pedida pelo
+    WhatsApp, retenção automática, limite e marca d'água na exportação, gravar áudio no navegador, depuração do bloco
+    HTTP, atendente preferencial na ficha do cliente.
+18. E-mail: Microsoft 365 por OAuth e Google direto.
+19. IA: modelo certo por tarefa (tirar os "llama" fixos), entrevista detectando sozinha o fim da fala.
+20. Vídeos gravados de verdade nas telas principais (hoje são as demonstrações animadas).
+21. Manual da marca completo como complemento pago; paleta e fontes sugeridas para quem não tem logo.
+
+**Prioridade 4 — quando o fornecedor liberar ou o cliente pedir**
+22. Voz: WSS, gravações e transcrição das ligações, agente de voz/URA, fluxos na ligação, avaliação das ligações
+    (🙋 respostas da Handphone e da Nvoip).
+23. Microsoft Teams para ramais.
+24. Site do cliente, revenda Hostinger e posts nas redes atrelados à mensalidade.
+25. Conectores nativos sob demanda (Omie, Tiny, Nuvemshop; validar o Bling com conta real 🙋).
+26. Backup externo/nuvem automático (com o Supabase Pro).
+27. Pesquisa de mercado (diferenciais dos concorrentes e pontos de melhoria) depois que a Clubetec estiver no ar.
+
 ### ✅ Concluído desde o início (resumo)
 - **Base e segurança:** multiempresa com isolamento no banco (65 grupos de testes automáticos), cofre de segredos,
   MFA com códigos de recuperação, conversas que ninguém apaga, exportação só com permissão (e alerta), anonimização LGPD,
@@ -189,7 +245,7 @@ pedido de cliente. Legenda: ✅ concluído · 🟡 parte feita · ⏳ não come�
   por origem com conversão (7/30/90 dias) e **gerador de link de captação** do WhatsApp que marca a origem sozinho
   ("(cód. instagram)" na mensagem). Bloco novo nos fluxos: **"Mover no funil"** (só aceita etapa da própria empresa).
   Serve para a Clubetec e para qualquer cliente. Teste de isolamento 69.
-- ⏳ **Funil de vendas, 2ª parte:** follow-ups automáticos de 2, 5 e 10 dias em "Proposta enviada"; proposta gerada com o
+- 🟡 *(follow-ups 2/5/10 dias e "Gerar proposta" feitos na Fase 1, 04/10; falta o resto)* **Funil de vendas, 2ª parte:** follow-ups automáticos de 2, 5 e 10 dias em "Proposta enviada"; proposta gerada com o
   plano sugerido pelo diagnóstico; acompanhamento do teste grátis; pós-venda (implantação, pesquisa, indicação);
   página de captação (site) com o link do WhatsApp.
 - ⏳ **Integração com Microsoft Teams para ramais (pesquisa 03/10):** caminhos — (1) **Direct Routing**: ligar a central
@@ -427,7 +483,7 @@ Outubro = só estabilidade, segurança, visual e melhorias, com a Clubetec usand
   abrem atendimento e e-mail novo entra sem etapa do funil; cores com contraste WCAG (texto marinho sobre o verde),
   tokens de status (IA violeta, fila âmbar, atendimento azul), tema da empresa com versão escura, fontes Inter +
   Montserrat, texto mínimo de 12px, paleta única de 8 cores para setores e etiquetas.
-- ⏳ **Design P2/P3:** cabeçalho de página, estado vazio e barra de filtros padronizados; barra de ações da conversa
+- ✅ *(Fase 1, 04/10)* **Design P2/P3:** cabeçalho de página, estado vazio e barra de filtros padronizados; barra de ações da conversa
   enxuta (Assumir/Finalizar + "Mais"); bolhas IA × pessoa; Resultados e Clientes com abas; Kanban com etiquetas no
   card e "Mover para…"; instalar funil reordena as etapas; Clientes em tabela; trocar as cores cruas restantes.
 - ✅ **Backup semanal do piloto** *(03/10)*: `npm run backup` exporta os dados de todas as tabelas para
