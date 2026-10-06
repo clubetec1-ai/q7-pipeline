@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Mic, MicVocal, Pause, Paperclip, Play, RotateCcw, Square, Undo2, X } from "lucide-react";
+import { HelpCircle, Mic, MicVocal, Pause, Paperclip, Play, RotateCcw, Square, Undo2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { callFunction } from "@/lib/callFunction";
 import { Button } from "@/components/ui/button";
@@ -66,6 +66,9 @@ export function VoiceInterview({ orgId, step, setor, onDone, onAttach, attached 
   const [question, setQuestion] = useState("");
   // Material que a pessoa citou na última resposta (a IA convida a anexar na hora).
   const [material, setMaterial] = useState("");
+  // Exemplos de resposta (só para inspirar) e "Não entendi a pergunta".
+  const [exemplos, setExemplos] = useState<string[]>([]);
+  const [explaining, setExplaining] = useState(false);
   const attachedRef = useRef(attached);
   attachedRef.current = attached; // lido dentro de callbacks antigos (gravação)
   const [err, setErr] = useState<string | null>(null);
@@ -163,7 +166,7 @@ export function VoiceInterview({ orgId, step, setor, onDone, onAttach, attached 
 
   const ask = async (history: QA[]) => {
     setPhase("pensando"); setErr(null);
-    const r = await callFunction<{ question: string; done: boolean; audio: string | null; material?: string }>("interviewer", {
+    const r = await callFunction<{ question: string; done: boolean; audio: string | null; material?: string; exemplos?: string[] }>("interviewer", {
       action: "voice_turn", organization_id: orgId, step, setor: setor ?? undefined, qa: history, voice: voiceRef.current, anexos: attachedRef.current,
     });
     if (!alive.current) return;
@@ -174,6 +177,7 @@ export function VoiceInterview({ orgId, step, setor, onDone, onAttach, attached 
     // Texto e voz ao mesmo tempo.
     setQuestion(r.data.question);
     setMaterial(r.data.material ?? "");
+    setExemplos(r.data.exemplos ?? []);
     setPhase("falando");
     await sayQuestion(r.data.question, r.data.audio);
     if (!alive.current) return;
@@ -202,6 +206,21 @@ export function VoiceInterview({ orgId, step, setor, onDone, onAttach, attached 
     await ask(next);
   };
 
+  const explain = async () => {
+    setExplaining(true); setErr(null);
+    const r = await callFunction<{ question: string; audio: string | null; exemplos?: string[] }>("interviewer", {
+      action: "voice_turn", explain: true, q: qRef.current, organization_id: orgId, step, setor: setor ?? undefined, voice: voiceRef.current,
+    });
+    setExplaining(false);
+    if (!alive.current) return;
+    if (!r.ok) return setErr(r.message);
+    // A pergunta mais simples passa a ser a pergunta (a resposta fica ligada a ela).
+    qRef.current = r.data.question; lastAudio.current = null;
+    setQuestion(r.data.question); setExemplos(r.data.exemplos ?? []);
+    setPhase("falando");
+    await sayQuestion(r.data.question, r.data.audio);
+    if (alive.current) setPhase("pronto");
+  };
   const pauseRec = () => { if (rec.current?.state === "recording") { rec.current.pause(); setPaused(true); } };
   const resumeRec = () => { if (rec.current?.state === "paused") { rec.current.resume(); setPaused(false); } };
   const dropRec = (how: "restart" | "cancel") => {
@@ -261,6 +280,12 @@ export function VoiceInterview({ orgId, step, setor, onDone, onAttach, attached 
       {question && phase !== "falhou" && (
         <p className="text-sm rounded-md bg-background border p-3">
           <span className="text-xs text-muted-foreground block mb-1">Pergunta {qa.length + (phase === "fim" ? 0 : 1)}</span>{question}
+          {phase !== "fim" && exemplos.length > 0 && (
+            <span className="mt-2 block text-xs text-muted-foreground">
+              <b>Exemplos de resposta</b> (só para inspirar — responda do seu jeito):
+              {exemplos.map((e) => <span key={e} className="block">• {e}</span>)}
+            </span>
+          )}
         </p>
       )}
       <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -273,6 +298,9 @@ export function VoiceInterview({ orgId, step, setor, onDone, onAttach, attached 
             {(lastAudio.current || voice === "browser") && (
               <Button type="button" size="sm" variant="ghost" onClick={() => void (voice === "browser" ? playBrowser(qRef.current) : playMp3(lastAudio.current!))}>Ouvir a pergunta de novo</Button>
             )}
+            <Button type="button" size="sm" variant="ghost" disabled={explaining} onClick={() => void explain()} title="A IA explica a pergunta com palavras mais simples e exemplos">
+              <HelpCircle className="w-4 h-4 mr-1" /> {explaining ? "Explicando…" : "Não entendi a pergunta"}
+            </Button>
             {qa.length > 0 && (
               <Button type="button" size="sm" variant="outline" onClick={redoLast} title="Volta para a pergunta anterior para responder de novo; as outras respostas continuam salvas">
                 <Undo2 className="w-4 h-4 mr-1" /> Pergunta anterior
