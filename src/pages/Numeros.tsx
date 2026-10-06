@@ -24,6 +24,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { AddNumberDialog } from "./numeros/AddNumberDialog";
+import { HowItWorks } from "./diagnostico/HowItWorks";
 import { EmailAccounts } from "./numeros/EmailAccounts";
 import { MetaPages } from "./numeros/MetaPages";
 import { MetaConnectReturn } from "./numeros/MetaConnect";
@@ -135,9 +136,12 @@ export default function Numeros() {
             <h1 className="font-brand text-2xl leading-tight">WhatsApp e e-mail</h1>
             <p className="text-sm text-muted-foreground">Os WhatsApps que atendem pela {org.name}.</p>
           </div>
-          <Button onClick={() => { setReconnectId(null); setAdding(true); }}>
-            <Plus className="w-4 h-4 mr-1" /> Adicionar número
-          </Button>
+          <div className="flex flex-wrap items-center justify-end gap-1">
+            <HowItWorks guide="numeros" className="" />
+            <Button onClick={() => { setReconnectId(null); setAdding(true); }}>
+              <Plus className="w-4 h-4 mr-1" /> Adicionar número
+            </Button>
+          </div>
         </div>
 
         {loading ? (
