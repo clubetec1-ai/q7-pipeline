@@ -4197,6 +4197,8 @@ export type Database = {
           department_id: string | null
           design: Json
           id: string
+          implementation: Json | null
+          implemented_at: string | null
           nome: string
           organization_id: string
           proposed_at: string
@@ -4212,6 +4214,8 @@ export type Database = {
           department_id?: string | null
           design?: Json
           id?: string
+          implementation?: Json | null
+          implemented_at?: string | null
           nome: string
           organization_id: string
           proposed_at?: string
@@ -4227,6 +4231,8 @@ export type Database = {
           department_id?: string | null
           design?: Json
           id?: string
+          implementation?: Json | null
+          implemented_at?: string | null
           nome?: string
           organization_id?: string
           proposed_at?: string
@@ -6303,6 +6309,10 @@ export type Database = {
       service_process_design_save: {
         Args: { org: string; p_design: Json; p_nome: string; p_setor: string }
         Returns: string
+      }
+      service_process_implemented: {
+        Args: { org: string; p_id: string; p_impl: Json }
+        Returns: undefined
       }
       service_put_secret: {
         Args: { secret_name: string; secret_value: string }

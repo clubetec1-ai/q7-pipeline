@@ -1,4 +1,4 @@
-import { CheckCircle2, Clock, Network, PencilRuler, Facebook, FlaskConical, HelpCircle, LifeBuoy, Mail, Mic, MicVocal, MoreHorizontal, Paperclip, Pause, PenLine, Play, PlayCircle, Plus, QrCode, RotateCcw, Save, ShieldCheck, Sparkles, ThumbsDown, Undo2 } from "lucide-react";
+import { CheckCircle2, Clock, Network, PencilRuler, Facebook, FlaskConical, HelpCircle, LifeBuoy, Mail, Mic, MicVocal, MoreHorizontal, Paperclip, Pause, PenLine, Play, PlayCircle, Plus, QrCode, Rocket, RotateCcw, Save, ShieldCheck, Sparkles, ThumbsDown, Undo2, Workflow } from "lucide-react";
 import { Pointer } from "./Pointer";
 import { AgenteMock } from "./mocks/AgenteMock";
 import { DiagMock } from "./mocks/DiagMock";
@@ -438,6 +438,22 @@ export const GUIDES: Guide[] = [
           { state: "desenhado", target: "btn-ajuste", caption: "Algo errado? Peça ajuste e o Arquiteto refaz" },
           { state: "desenhado", target: "btn-aprovar", caption: "Tudo certo? Aprovar processo" },
           { state: "aprovado", target: "processo", caption: "Aprovado: pronto para a implantação" },
+        ],
+      },
+      {
+        title: "Implante no atendimento",
+        body: (
+          <>
+            <Pointer icon={<Rocket className="w-4 h-4" />} label="Implantar no atendimento" note="o processo vira o documento &quot;Como funciona&quot; que o agente usa para responder" />
+            <Pointer icon={<Workflow className="w-4 h-4" />} label="Instalar o fluxo sugerido" note="o fluxo pronto mais adequado, criado como rascunho para você revisar" />
+            <p>O documento leva só o que o cliente precisa saber e <b>quando passar para uma pessoa</b> (ferramentas internas e riscos ficam de fora). O Guardião confere o texto antes.</p>
+            <p className="text-muted-foreground">Mudou o processo? Aparece "Implantação desatualizada": é só implantar de novo.</p>
+          </>
+        ),
+        demo: [
+          { state: "aprovado", target: "btn-implantar", caption: "Clique em Implantar no atendimento" },
+          { state: "implantado", target: "implantado", caption: "Implantado: o agente já usa este processo" },
+          { state: "implantado", target: "btn-fluxo", caption: "Quer automatizar? Instale o fluxo sugerido (rascunho)" },
         ],
       },
     ],

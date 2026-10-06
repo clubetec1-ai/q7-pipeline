@@ -14,6 +14,8 @@ import { companyKnowledge } from "../company.ts";
 import { aiRecordsContext } from "../records.ts";
 import { withMediaText } from "../media-read.ts";
 import { knowledgeContext } from "../knowledge.ts";
+import { applyPublishGate } from "../publish-apply.ts";
+import { HANDOFF_TEXT, MODE_RULE } from "../publish-gate.ts";
 
 const DEFAULT_PROMPT = "Você é um assistente de atendimento simpático e objetivo.";
 const FIELDS: Record<string, { label: string; kind: string }> = {
@@ -103,6 +105,7 @@ export async function runAiAgent(p: {
   const docs = await knowledgeContext(admin, orgId, lastIn, "cliente", ticket?.department_id ? [ticket.department_id] : null);
   const system = [
     String(d.prompt || agent.systemPrompt || DEFAULT_PROMPT),
+    MODE_RULE,
     ticket.protocol ? `Protocolo deste atendimento: ${ticket.protocol}. Informe ao cliente se ele pedir.` : "",
     first ? `Primeiro nome do cliente: ${first}.` : "",
     aiContactContext(defs, contactRow?.custom as Record<string, unknown> | null),
@@ -157,12 +160,20 @@ export async function runAiAgent(p: {
     results.push({ role: "tool", tool_call_id: c.id, content: outcome });
   }
 
-  if (r.reply) await send(toChatText(r.reply));
+  // Porta única de publicação (fatia 7/9): a resposta do bloco de IA passa pelo mesmo modo e trava do atendimento.
+  // Se a porta segurou (sombra, precisa de pessoa ou bloqueio), o atendimento já foi para a fila: o fluxo para aqui.
+  let held = false;
+  const publish = async (raw: string) => {
+    const out = await applyPublishGate(admin, orgId, agent.publishMode, conv, ticket, toChatText(raw));
+    if (out === null || out === HANDOFF_TEXT) held = true;
+    if (out) await send(out);
+  };
+  if (r.reply) await publish(r.reply);
   else if (results.length && !terminal) {
     // Só ferramentas, sem texto: pede a resposta ao cliente já sabendo o resultado.
     const again = await chatAI(ai, [...messages, r.raw, ...results]);
-    if (again.ok && again.reply) await send(toChatText(again.reply));
+    if (again.ok && again.reply) await publish(again.reply);
   }
   if (terminal) { await route(terminal); return { ended: true }; }
-  return { ended: false };
+  return { ended: held };
 }
