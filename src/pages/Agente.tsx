@@ -1,4 +1,6 @@
 import { AiPolicyCard } from "@/components/AiPolicyCard";
+import { MicTextarea } from "@/components/MicTextarea";
+import { HowItWorks } from "./diagnostico/HowItWorks";
 import { useCallback, useEffect, useState } from "react";
 import { AgentTester } from "./agente/AgentTester";
 import { Link, Navigate } from "react-router-dom";
@@ -12,7 +14,6 @@ import { NumberHealthBanner } from "@/components/NumberHealthBanner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
 import { PROVIDER_LABEL } from "./fluxos/blocks";
 
 const SUGGESTED = "Você é o atendente virtual da empresa. Responda de forma cordial, curta e objetiva, sempre em português. " +
@@ -104,9 +105,12 @@ export default function Agente() {
       <AppHeader active="agente" />
       <NumberHealthBanner />
       <main className="flex-1 w-full max-w-3xl mx-auto p-4 sm:p-6 space-y-4">
-        <div>
-          <h1 className="font-brand text-2xl leading-tight">Assistente de IA</h1>
-          <p className="text-sm text-muted-foreground">A IA atende os clientes na hora e passa para uma pessoa quando precisa.</p>
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <h1 className="font-brand text-2xl leading-tight">Assistente de IA</h1>
+            <p className="text-sm text-muted-foreground">A IA atende os clientes na hora e passa para uma pessoa quando precisa.</p>
+          </div>
+          <HowItWorks guide="agente" className="" />
         </div>
 
         <AiPolicyCard />
@@ -138,7 +142,7 @@ export default function Agente() {
                 Escreva em poucas linhas o papel do agente. O <b>tom de voz da marca</b>, as <b>regras e limites</b> e o <b>perfil dos clientes</b> que você
                 aprovou no <Link to="/diagnostico" className="underline">Diagnóstico</Link> entram sozinhos — não precisa repetir aqui.
               </p>
-              <Textarea rows={6} value={prompt} maxLength={4000} onChange={(e) => setPrompt(e.target.value)} />
+              <MicTextarea orgId={org.id} rows={6} value={prompt} maxLength={4000} onChange={setPrompt} />
               <button type="button" className="text-xs underline text-muted-foreground inline-flex items-center gap-1" onClick={() => setPrompt(SUGGESTED)}>
                 <Sparkles className="w-3 h-3" /> Usar texto sugerido
               </button>
