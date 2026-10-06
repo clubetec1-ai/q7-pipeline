@@ -99,6 +99,39 @@ nenhuma correção de código vai ao ar sem revisão e aprovação humana com te
   o botão "Conectar com o Facebook" já existe desde 05/10 — falta configurar no app da Meta o Login do Facebook para
   Empresas (configuração do cadastro incorporado) e conferir as permissões; testar com um número.
 
+**🔎 Achados da análise unificada do sistema (06/10) — para DEPOIS da implementação do cérebro (decisão do dono), salvo o
+que for urgente.** Fontes: alertas do Supabase (segurança e desempenho), registros de erro de 24 h, rotinas agendadas,
+dependências e leitura do código.
+- ✅ *Feito na hora (urgente):* backup semanal voltou a funcionar (tinha parado com o problema de conexão de 05/10; o de
+  segunda falharia) — rodado em 06/10: 104 tabelas.
+- 🔴 **Cota das funções do servidor:** 8 rotinas rodam a cada minuto (+2 a cada 5/15 min) ≈ 12 mil chamadas/dia ≈ 357 mil/mês,
+  ~70% da cota do plano Free (500 mil/mês) antes de qualquer cliente. Fazer: o banco só chama a função quando há trabalho
+  pendente (checagem em SQL antes do pg_net) ou um despachante único; acompanhar no vigia de custo. Antes do 2º cliente.
+- 🔴 **sync-email:** 90 erros/24 h "conexão fechada sem encerramento" (servidor de e-mail fecha a conexão segura); fechar a
+  conexão IMAP corretamente (LOGOUT) e tratar a queda, para não perder e-mail nem encher o registro de erros.
+- 🟠 **Teste automático das 155 funções do banco que o usuário pode chamar:** garantir, a cada mudança, que toda função
+  SECURITY DEFINER pública confere permissão (has_permission, operador ou o próprio usuário) ou é só do servidor — hoje é
+  regra de código, sem verificação automática.
+- 🟠 **Testes automáticos a cada envio (GitHub Actions):** tipos, build e testes Deno sem segredo nenhum; a bateria de
+  isolamento contra um banco de teste (ramo do Supabase) quando assinar o Pro.
+- 🟠 **Desempenho para crescer:** 113 chaves estrangeiras sem índice (criar nas tabelas quentes: conversas, mensagens,
+  atendimentos, fluxos, base de conhecimento), 19 tabelas com regras de leitura duplicadas (juntar), 11 índices sem uso
+  (revisar depois de uso real).
+- 🟡 **Dependências do site:** 8 alertas (6 altos) nas ferramentas de montagem (Tailwind e afins), não no que roda no
+  navegador; mover o Tailwind para dependências de desenvolvimento e `npm audit fix`.
+- 🟡 **Segredos com prazo:** idade de cada chave/token no cofre e lembrete de troca (ex.: 90 dias); avisar chave sem uso.
+- 🟡 **LGPD — direito de acesso do titular:** além de anonimizar, gerar o relatório "o que temos sobre você" de um contato
+  (art. 18), e a retenção automática por política da empresa (já no roadmap).
+- 🟢 **"Pronto para atender" (um placar só):** juntar cobertura do Diagnóstico, processos aprovados, time aprovado,
+  Guardião, prova em dia, números conectados e horário num único placar no Início, mostrando o que falta para ligar a IA.
+- 🟢 **Perguntas que a IA não soube responder:** quando o agente passa para uma pessoa por não saber, a pergunta vira
+  "Ainda falta saber" no Diagnóstico ou sugestão de documento na base (liga com a fatia 8, a rede).
+- 🟢 **Primeiros passos no novo caminho:** Diagnóstico → Processos → Time de IA → Prova → ligar a IA (hoje: WhatsApp →
+  empresa → horário → IA → equipe).
+- 🟢 **Situação atual no atendimento real** (dia, hora, se está no horário) — já anotado na fatia 6.
+- ✔️ Conferidos e corretos: webhooks de entrada autenticados (Meta por assinatura; Uazapi por token da instância); 21
+  rotinas agendadas sem falha em 24 h; 13 tabelas só do servidor sem leitura pelo navegador (intencional).
+
 **Etapa A — agora**
 1. **Montar a Clubetec do zero pelos Primeiros passos e pelo Diagnóstico** 🙋, anotando o que travar (cada trava vira
    correção imediata). Junto: E10 (teste no WhatsApp real com número de teste) e teste com equipe (convidar atendente,
