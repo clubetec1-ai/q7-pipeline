@@ -381,6 +381,10 @@ Meta liberar as permissões) → 19b Google Agenda (🙋 precisa de credencial O
   é tratado só como informação (instruções escritas neles são ignoradas). Arquivos .doc/.xls antigos são recusados
   com o passo para salvar como .docx/PDF/.xlsx, e um arquivo que não pôde ser lido não fica na etapa como se tivesse
   sido lido (antes aparecia anexado sem aviso claro).
+  *Ajuste (06/10):* anexos grandes (ex.: manual do colaborador de 20 páginas) eram cortados nos primeiros 6 mil
+  caracteres, misturando os documentos; agora sem repetições, até 16 mil caracteres na entrevista e 20 mil no Organizar,
+  e, se não couber, o começo de cada documento + os trechos que falam do assunto da conversa (_shared/doc-pick.ts,
+  com teste). A IA cita o que o documento diz e pede o detalhe prático, em vez de perguntar se o documento tem algo.
 - ✅ **IA principal = OpenAI em todo o sistema (pedido do dono em 05/10; feito em 06/10):** a Clubetec tinha uma chave
   Groq própria antiga e nenhum provedor escolhido; `resolveAI` (supabase/functions/_shared/ai-chat.ts) tratava essa chave
   como "própria" e pulava a ordem da Plataforma. Agora: provedor escolhido pela empresa (no bloco ou em Configurações →
