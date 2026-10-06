@@ -1,5 +1,7 @@
 import { chatAI, resolveAI } from "./ai-chat.ts";
 import { getAgentProfile } from "./get-ai-config.ts";
+import { applyPublishGate } from "./publish-apply.ts";
+import { MODE_RULE } from "./publish-gate.ts";
 import { companyKnowledge } from "./company.ts";
 import { knowledgeContext } from "./knowledge.ts";
 import { moduleOn } from "./modules.ts";
@@ -43,6 +45,7 @@ export async function replyMetaByAI(p: {
     profile.systemPrompt,
     ticket.protocol ? `Protocolo deste atendimento: ${ticket.protocol}.` : "",
     CHAT_RULE,
+    MODE_RULE,
     await companyKnowledge(org),
     await knowledgeContext(admin, orgId, p.text.slice(0, 500), "cliente", ticket.department_id ? [ticket.department_id] : null),
   ].filter(Boolean).join("\n\n");
@@ -54,7 +57,9 @@ export async function replyMetaByAI(p: {
   ];
   const r = await chatAI(ai, chat);
   if (!r.ok || !r.reply?.trim()) return false;
-  const reply = plain(r.reply).slice(0, 2000);
+  // Porta de publicação (fatia 7).
+  const reply = await applyPublishGate(admin, orgId, profile.publishMode, conv, ticket, plain(r.reply).slice(0, 2000));
+  if (!reply) return false;
   const sent = await sendMetaText(token, conv.contact_external_id, reply);
   await org.insert("messages", {
     conversation_id: conv.id, ticket_id: ticket.id, direction: "outbound", sender: "ai", content: reply,

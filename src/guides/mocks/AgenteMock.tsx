@@ -29,6 +29,15 @@ export function AgenteMock({ state }: { state: string }) {
         <p className="flex items-center justify-between rounded border p-1"><span><Clock className="inline h-2.5 w-2.5" /> Follow-up automático: depois de 60 min</span><Toggle on d="toggle-follow" /></p>
       )}
       <p className="flex gap-1"><B d="btn-salvar" primary>Salvar</B> {state === "salvo" && <span className="text-success-text">✓ Salvo</span>}</p>
+      {state === "degraus" && (
+        <div data-demo="degraus" className="rounded border p-1.5 space-y-0.5">
+          <p className="font-medium">Como a IA publica as respostas</p>
+          <p data-demo="modo-sombra" className="rounded border border-primary bg-primary/5 px-1"><b>1. Sombra</b> — a IA sugere, você envia <span className="text-primary-text">(em uso)</span></p>
+          <p data-demo="modo-assistido" className="rounded border px-1"><b>2. Assistido</b> — a IA envia o simples</p>
+          <p className="rounded border px-1"><b>3. Automático</b> — depois de 14 dias sem tropeço</p>
+          <p data-demo="disjuntor" className="rounded bg-muted px-1">Disjuntor: 3 tropeços em 24 h → volta um degrau sozinha</p>
+        </div>
+      )}
       {(state === "teste" || state === "resposta") && (
         <div className="rounded border p-1.5 space-y-0.5">
           <p className="font-medium"><FlaskConical className="inline h-2.5 w-2.5" /> Testar o agente</p>

@@ -14,7 +14,8 @@ function ok(body: unknown = { ok: true }, status = 200) {
 }
 
 const STATUS: Record<string, string> = { disconnected: "desconectado" };
-const KINDS = ["number_health", "email_health", "security_alert", "brain_weekly", "brain_goal", "brain_reminder", "support_ticket", "support_received", "support_status"];
+const KINDS = ["number_health", "email_health", "security_alert", "brain_weekly", "brain_goal", "brain_reminder", "support_ticket", "support_received", "support_status",
+  "breaker_stepdown", "cost_alert"];
 const URG_PT: Record<string, string> = { baixa: "baixa", media: "média", alta: "alta", urgente: "urgente" };
 const STATUS_PT: Record<string, string> = { open: "aberto", in_progress: "em andamento", done: "resolvido", canceled: "cancelado" };
 
@@ -67,6 +68,17 @@ Deno.serve(async (req) => {
     text = `Olá!\n\n${corpo}\n\n${link ? `Acompanhe em Configurações → Suporte: ${link}` : "Acompanhe em Configurações → Suporte."}\n\nDeixa com a IA`;
     html = `<p>Olá!</p><p>${esc(corpo).replace(/\n/g, "<br>")}</p>` +
       `<p>${link ? `<a href="${esc(link)}">Acompanhar em Configurações → Suporte</a>` : "Acompanhe em Configurações → Suporte."}</p><p>Deixa com a IA</p>`;
+  } else if (n.kind === "breaker_stepdown" || n.kind === "cost_alert") {
+    // Disjuntor e vigia de custo (fatia 7): avisos de segurança e de gasto da IA.
+    const link = base ? `${base}/agente` : "";
+    const corpo = n.kind === "breaker_stepdown"
+      ? `A IA voltou um degrau sozinha (${r.de ?? ""} → ${r.para ?? ""}) depois de ${r.tropecos ?? 3} tropeços em 24 horas ` +
+        "(resposta segurada pela trava de segurança ou atendimento mal avaliado). Ela continua atendendo com mais cuidado; confira o motivo antes de subir de novo."
+      : `O uso de IA ontem foi ${r.ontem ?? "?"} chamadas, bem acima da média de ${r.media ?? "?"} por dia.\n\nMotivo provável: ${r.motivo ?? ""}`;
+    subject = n.kind === "breaker_stepdown" ? "[Deixa com a IA] A IA voltou um degrau (disjuntor)" : "[Deixa com a IA] Uso de IA fora do normal";
+    text = `Olá!\n\n${corpo}\n\n${link ? `Veja em Assistente de IA: ${link}` : "Veja em Assistente de IA."}\n\nDeixa com a IA`;
+    html = `<p>Olá!</p><p>${esc(corpo).replace(/\n/g, "<br>")}</p>` +
+      `<p>${link ? `<a href="${esc(link)}">Ver em Assistente de IA</a>` : "Veja em Assistente de IA."}</p><p>Deixa com a IA</p>`;
   } else if (n.kind.startsWith("brain_")) {
     const link = base ? `${base}/cerebro` : "";
     const empresa = o?.name ?? "";

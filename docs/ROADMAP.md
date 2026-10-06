@@ -69,7 +69,12 @@ atende sem passar para pessoa); a IA só aponta atenção; aprovar processo ou t
 motivos nas telas; teste 102 + testes Deno; provado no servidor. ✅ **Fatia 6 — Prova (06/10):** no Time de IA, cada agente
 que atende tem 7 cenários obrigatórios (5 fixos + 2 dos processos) e os do dono; roda em modo teste com a mesma montagem do
 atendimento real; regras fixas + avaliador de IA (só passa com os dois); prova vence quando algo muda; executar com aprovação
-(A3) só com prova em dia; teste 103 + testes Deno. Próximo: Fatia 7 — degraus de publicação, disjuntor e vigia de custo.
+(A3) só com prova em dia; teste 103 + testes Deno. ✅ **Fatia 7 — Degraus, disjuntor e vigia de custo (06/10):** toda resposta
+da IA (WhatsApp, Facebook/Instagram, e-mail) passa pela porta única — sombra (sugere, a pessoa envia com "Usar sugestão"),
+assistido (envia o simples), automático; trava fixa segura promessa, pedido de senha e dado pessoal; subir exige o
+Atendente geral (IA) com prova em dia e, para automático, 14 dias sem tropeço; disjuntor volta um degrau após 3 tropeços em
+24 h e avisa; vigia de custo diário; e fechadas permissões de TRUNCATE/TRIGGER que 36 tabelas davam ao usuário logado.
+Teste 104. Próximo: Fatia 8 — a rede de agentes.
 🧠 **Fatia 11 nova — Cérebro da plataforma (pedido do dono, 06/10; desenho 07 §12):** o cérebro também gerencia o software
 inteiro para todas as empresas — saúde, falhas, bugs, alertas, correções e melhorias —, com equipes de IA de engenharia
 (front-end, back-end, integrações), segurança, qualidade, design e suporte; só metadados (nunca conversa de cliente);

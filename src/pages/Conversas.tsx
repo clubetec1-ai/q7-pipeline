@@ -1,4 +1,5 @@
 import { StatusBadge } from "@/components/layout/StatusBadge";
+import { AiSuggestion } from "./conversas/AiSuggestion";
 import { firstName, memberNames } from "@/lib/memberNames";
 import { AppHeader } from "@/components/AppHeader";
 import { NumberHealthBanner } from "@/components/NumberHealthBanner";
@@ -926,6 +927,7 @@ export default function Conversas() {
                   </Button>
                 </div>
               )}
+              <AiSuggestion conversationId={active.id} refresh={messages.length} onUse={(t) => setInput(t)} />
               {(() => {
                 const tk = byConversation.get(active.id);
                 return tk?.assigned_to && tk.assigned_to !== user?.id;
