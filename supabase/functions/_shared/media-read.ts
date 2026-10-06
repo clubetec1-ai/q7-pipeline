@@ -41,6 +41,36 @@ async function visionModel(provider: string, apiKey: string, chosen: string): Pr
   return null;
 }
 
+/** Pergunta qualquer coisa sobre uma imagem à IA com visão da empresa (falha = null). */
+// deno-lint-ignore no-explicit-any
+export async function askVision(admin: any, orgId: string, bytes: Uint8Array, mime: string, prompt: string, maxTokens = 400): Promise<string | null> {
+  if (bytes.length > MAX_IMAGE) return null;
+  const ai = await resolveAI(admin, orgId);
+  if (!ai) return null;
+  const model = await visionModel(ai.provider, ai.apiKey, ai.provider === "groq" ? "" : ai.model);
+  if (!model) return null;
+  const endpoint = (AI_PROVIDERS[ai.provider] ?? AI_PROVIDERS.groq).endpoint;
+  try {
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${ai.apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model, max_tokens: maxTokens,
+        messages: [{ role: "user", content: [
+          { type: "text", text: prompt },
+          { type: "image_url", image_url: { url: `data:${mime};base64,${toBase64(bytes)}` } },
+        ] }],
+      }),
+      signal: AbortSignal.timeout(25_000),
+    });
+    if (!res.ok) { console.log("[media-read] visão indisponível", { provider: ai.provider, status: res.status }); return null; }
+    const out = String((await res.json())?.choices?.[0]?.message?.content ?? "").trim();
+    return out || null;
+  } catch {
+    return null;
+  }
+}
+
 // deno-lint-ignore no-explicit-any
 async function describeImage(admin: any, orgId: string, bytes: Uint8Array, mime: string, caption: string): Promise<string | null> {
   if (bytes.length > MAX_IMAGE) return null;

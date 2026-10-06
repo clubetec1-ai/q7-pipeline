@@ -312,6 +312,13 @@ Meta liberar as permissões) → 19b Google Agenda (🙋 precisa de credencial O
   às hh:mm"); ao atualizar a página volta para a etapa onde a pessoa estava (antes a caixa abria vazia); botão
   "Salvar e próxima etapa" (organizar e aprovar depois). Microfone (🎤 Falar) em todas as caixas da conferência. A **conferência**
   ("Confira e ajuste") também é salva sozinha e volta ao atualizar; some só ao aprovar ou cancelar.
+- ✅ **Marca no Diagnóstico começa pelo logo (05/10, pedido do dono):** o dono envia o logo (e o manual, se tiver) e o
+  sistema sugere: cores com código lidas do logo no próprio navegador (sem IA, o arquivo não sai), fontes parecidas com
+  a do logo e que combinam (IA com visão) e, do manual em PDF, cores/fontes/tom de voz definidos; o dono confere e clica
+  em "Usar estas sugestões". A entrevista não pergunta mais códigos de cor nem fontes. **Manual da marca gerado pelo
+  sistema** (logo sobre fundo claro e na cor principal, cores com HEX/RGB, tipografia, identidade e tom de voz), pronto
+  para salvar em PDF — hoje como bônus. 📌 Depois: vender o manual completo como **complemento pago** (mais páginas:
+  aplicações, área de proteção medida, versões do logo, mockups), e sugerir paleta/fontes para quem ainda não tem logo.
 - ✅ **Padrão do produto: autoatendimento guiado (05/10, regra do dono — está no CLAUDE.md):** toda tela que o cliente
   usa sai com passo a passo (Próximo/Voltar) + vídeo curto do caminho + botão de Ajuda. Estrutura pronta em src/guides:
   guias por tela (abrem sozinhos na 1ª visita), "vídeo" animado da própria interface (cursor clicando + legenda) ou
