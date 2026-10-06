@@ -66,9 +66,9 @@ Deno.serve(async (req) => {
       const { data: t, error } = await admin.from("service_requests").insert({
         organization_id: orgId, topic, message, urgency, source: "assistente", page: page || null, created_by: ctx.user.id,
         transcript: msgs.map((m: { role: string; content: string }) => ({ role: m.role, content: m.content.slice(0, 800) })),
-      }).select("id").single();
+      }).select("id, protocol").single();
       if (error) throw new Error(error.message);
-      return json({ ok: true, id: t.id, urgency, topic });
+      return json({ ok: true, id: t.id, protocol: t.protocol, urgency, topic });
     }
 
     if (!msgs.length || msgs[msgs.length - 1].role !== "user") throw new HttpError(400, "Escreva sua dúvida.");

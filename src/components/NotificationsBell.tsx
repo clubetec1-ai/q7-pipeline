@@ -35,8 +35,9 @@ const TEXT: Record<string, (r: Record<string, string>) => string> = {
   security_alert: (r) => `⚠ Segurança: ${r.name ?? "alguém da equipe"} tentou exportar contatos sem permissão (bloqueado)`,
   inpi: (r) => `${r.nivel === "urgente" ? "⚠ " : ""}INPI — ${r.label ?? r.numero ?? ""}: ${r.despacho ?? "novo despacho"}${r.prazo ? ` (prazo ${r.prazo})` : ""}`,
   inpi_conflict: (r) => `INPI: marca parecida com a nossa — "${r.marca ?? ""}" (${r.titulares ?? "outro titular"})`,
-  support_ticket: (r) => `${r.urgency === "urgente" || r.urgency === "alta" ? "⚠ " : ""}Chamado de ${r.org ?? "cliente"} (${r.urgency ?? ""}): ${r.topic ?? ""}`,
-  support_status: (r) => `Seu chamado "${r.topic ?? ""}" está ${({ open: "aberto", in_progress: "em andamento", done: "resolvido", canceled: "cancelado" } as Record<string, string>)[r.status ?? ""] ?? r.status}${r.reply ? ` — ${r.reply}` : ""}`,
+  support_ticket: (r) => `${r.urgency === "urgente" || r.urgency === "alta" ? "⚠ " : ""}Chamado ${r.protocol ?? ""} de ${r.org ?? "cliente"} (${r.urgency ?? ""}): ${r.topic ?? ""}`,
+  support_received: (r) => `Recebemos seu chamado ${r.protocol ?? ""}: ${r.topic ?? ""}${r.sla_hours ? ` — resposta em até ${r.sla_hours}h` : " — a equipe já foi avisada"}`,
+  support_status: (r) => `Seu chamado ${r.protocol ?? ""} "${r.topic ?? ""}" está ${({ open: "aberto", in_progress: "em andamento", done: "resolvido", canceled: "cancelado" } as Record<string, string>)[r.status ?? ""] ?? r.status}${r.reply ? ` — ${r.reply}` : ""}`,
   number_health: (r) => `Número ${r.name ?? ""}: ${r.error ?? (r.status === "disconnected" ? "desconectado" : "precisa de atenção")}`,
 };
 
@@ -76,7 +77,7 @@ export function NotificationsBell() {
     else if (n.kind === "webhook_paused") navigate("/configuracoes/api");
     else if (n.kind === "team_mention") navigate("/chat");
     else if (n.kind === "inpi" || n.kind === "inpi_conflict" || n.kind === "support_ticket") navigate("/plataforma");
-    else if (n.kind === "support_status") navigate("/configuracoes/suporte");
+    else if (n.kind === "support_status" || n.kind === "support_received") navigate("/configuracoes/suporte");
     else if (n.kind === "process_reminder") navigate("/diagnostico");
     else if (n.kind === "diag_invite") navigate("/diagnostico/setor");
     else if (n.kind === "network_standard" || n.kind === "network_joined") navigate("/configuracoes/rede");

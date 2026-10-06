@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
-interface Ticket { id: string; topic: string; message: string; status: string; urgency: string; source: string; page: string | null; reply: string | null; created_at: string; updated_at: string }
+interface Ticket { id: string; protocol: string | null; topic: string; message: string; status: string; urgency: string; source: string; page: string | null; reply: string | null; created_at: string; updated_at: string }
 
 const URGENCY: Record<string, [string, string, string]> = {
   baixa: ["Baixa", "bg-muted text-muted-foreground", "sugestão ou melhoria"],
@@ -36,7 +36,7 @@ export default function ConfigSuporte() {
   const load = useCallback(async () => {
     if (!org) return;
     const { data } = await supabase.from("service_requests")
-      .select("id, topic, message, status, urgency, source, page, reply, created_at, updated_at")
+      .select("id, protocol, topic, message, status, urgency, source, page, reply, created_at, updated_at")
       .eq("organization_id", org.id).order("created_at", { ascending: false }).limit(50);
     setRows((data ?? []) as Ticket[]);
   }, [org]);
@@ -48,13 +48,13 @@ export default function ConfigSuporte() {
   const open = async () => {
     if (!form.topic.trim() || !form.message.trim()) return;
     setBusy(true);
-    const { error } = await supabase.from("service_requests").insert({
+    const { data, error } = await supabase.from("service_requests").insert({
       organization_id: org.id, topic: form.topic.trim().slice(0, 120), message: form.message.trim().slice(0, 2000),
       urgency: form.urgency, page: "/configuracoes/suporte", created_by: user?.id,
-    });
+    }).select("protocol").single();
     setBusy(false);
     if (error) return toast({ variant: "destructive", title: "Não abriu o chamado", description: error.message });
-    toast({ title: "Chamado aberto", description: "A equipe Clubetec foi avisada. A resposta aparece aqui e no sino." });
+    toast({ title: `Chamado ${data?.protocol ?? ""} aberto`, description: "A equipe Clubetec foi avisada. Você recebe a confirmação por e-mail e a resposta aparece aqui e no sino." });
     setForm({ topic: "", message: "", urgency: "media" });
     void load();
   };
@@ -92,6 +92,7 @@ export default function ConfigSuporte() {
           {rows.map((t) => (
             <details key={t.id} className="rounded-md border p-3 text-sm">
               <summary className="cursor-pointer flex flex-wrap items-center gap-2">
+                {t.protocol && <span className="font-mono text-xs text-muted-foreground">{t.protocol}</span>}
                 <span className="font-medium">{t.topic}</span>
                 <span className={`rounded px-1.5 py-0.5 text-xs ${URGENCY[t.urgency]?.[1] ?? ""}`}>{URGENCY[t.urgency]?.[0] ?? t.urgency}</span>
                 <span className={`rounded px-1.5 py-0.5 text-xs ${STATUS[t.status]?.[1] ?? ""}`}>{STATUS[t.status]?.[0] ?? t.status}</span>

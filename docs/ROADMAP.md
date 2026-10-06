@@ -322,8 +322,13 @@ Meta liberar as permissões) → 19b Google Agenda (🙋 precisa de credencial O
   conversa, a tela e a urgência avaliada pela IA (baixa/média/alta/urgente). Chamados em Configurações → Suporte
   (situação + resposta da equipe; aviso no sino quando muda). Equipe Clubetec: sino a cada chamado, e-mail nos de
   urgência alta/urgente, Plataforma → Pedidos de ajuda ordenado por urgência, com a conversa e campo de resposta.
-  📌 Depois: aviso do chamado urgente também no **WhatsApp do suporte** (quando o número/grupo do suporte estiver
-  configurado na Clubetec).
+  **Atualizado (05/10, pedido do dono):** todo chamado ganha **protocolo (CH-000001)**, vai **por e-mail para a
+  equipe** (todas as urgências) e o cliente recebe na hora a **resposta automática** (sino + e-mail: "recebemos seu
+  chamado nº…", urgência e prazo); cada mudança de situação/resposta da equipe também vai por e-mail ao cliente. O
+  prazo usa o SLA de app_settings.support_sla (horas por urgência) assim que for definido; até lá, "vamos responder o
+  mais rápido possível".
+  📌 Depois: (1) definir o SLA (pesquisa abaixo) e mostrar prazo/atraso no chamado; (2) chamado urgente também no
+  **WhatsApp do suporte**, com opção de ligar/desligar, quando o número/grupo do suporte estiver configurado.
 - 📌 **Pesquisas para depois que a Clubetec estiver no ar (pedido do dono, 05/10):**
   (1) **SLA de suporte** de softwares parecidos (prazo de primeira resposta e de solução por urgência, canais,
   horário) para definir o nosso e mostrar o prazo no chamado; (2) **pesquisa de mercado**: diferenciais dos

@@ -1579,6 +1579,10 @@ BEGIN
   PERFORM pg_temp.expect_error(owner_a, format('INSERT INTO public.service_requests (organization_id, topic, message, created_by, transcript) VALUES (%L, %L, %L, %L, %L)', A, 'x', 'y', owner_a, '[]'), 'navegador nao grava conversa');
   PERFORM pg_temp.run(owner_a, format('INSERT INTO public.service_requests (organization_id, topic, message, created_by, urgency, page) VALUES (%L, %L, %L, %L, %L, %L)', A, 'Teste 97', 'ajuda', owner_a, 'urgente', '/x'));
   PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.service_requests WHERE topic = ''Teste 97''') = 0, 'outra org nao ve o chamado');
+  PERFORM pg_temp.expect((SELECT protocol ~ '^CH-[0-9]{6,}$' FROM public.service_requests WHERE topic = 'Teste 97'), 'chamado ganha protocolo');
+  PERFORM pg_temp.expect_error(owner_a, format('INSERT INTO public.service_requests (organization_id, topic, message, created_by, protocol) VALUES (%L, %L, %L, %L, %L)', A, 'x', 'y', owner_a, 'CH-1'), 'navegador nao escolhe o protocolo');
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.notifications WHERE kind = 'support_received' AND user_id = owner_a
+    AND ref ->> 'protocol' = (SELECT protocol FROM public.service_requests WHERE topic = 'Teste 97')) = 1, 'quem abriu recebe a confirmacao com o protocolo');
   PERFORM pg_temp.expect_error(owner_a, format('SELECT public.platform_set_request_status((SELECT id FROM public.service_requests WHERE topic = %L), %L, %L)', 'Teste 97', 'done', 'x'), 'cliente nao muda a situacao');
   PERFORM pg_temp.run(operator, format('SELECT public.platform_set_request_status((SELECT id FROM public.service_requests WHERE topic = %L), %L, %L)', 'Teste 97', 'done', 'Resolvido'));
   PERFORM pg_temp.expect((SELECT count(*) FROM public.notifications WHERE kind = 'support_status' AND user_id = owner_a AND ref ->> 'reply' = 'Resolvido') = 1, 'quem abriu recebe a resposta');

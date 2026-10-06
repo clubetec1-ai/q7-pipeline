@@ -33,7 +33,7 @@ interface OrgRow {
   members: number; numbers: number; mailboxes: number; conversations_30d: number;
   last_activity: string | null; support_until: string | null;
 }
-interface HelpRequest { id: string; organization_id: string; topic: string; message: string; status: string; created_at: string; urgency: string; source: string; page: string | null; reply: string | null; transcript: { role: string; content: string }[] | null }
+interface HelpRequest { id: string; protocol: string | null; organization_id: string; topic: string; message: string; status: string; created_at: string; urgency: string; source: string; page: string | null; reply: string | null; transcript: { role: string; content: string }[] | null }
 const URG: Record<string, [string, string]> = { baixa: ["Baixa", "bg-muted text-muted-foreground"], media: ["Média", "bg-info-soft text-info-text"], alta: ["Alta", "bg-warning-soft text-warning-text"], urgente: ["Urgente", "bg-danger-soft text-danger-text"] };
 const URG_ORDER: Record<string, number> = { urgente: 0, alta: 1, media: 2, baixa: 3 };
 const REQ_STATUS: Record<string, string> = { open: "Novo", in_progress: "Em andamento", done: "Concluído", canceled: "Cancelado" };
@@ -67,7 +67,7 @@ export default function Plataforma() {
     const [o, t, rq] = await Promise.all([
       supabase.rpc("platform_org_overview"),
       supabase.from("org_templates").select("key, name").eq("active", true).order("name"),
-      supabase.from("service_requests").select("id, organization_id, topic, message, status, created_at, urgency, source, page, reply, transcript").order("created_at", { ascending: false }).limit(100),
+      supabase.from("service_requests").select("id, protocol, organization_id, topic, message, status, created_at, urgency, source, page, reply, transcript").order("created_at", { ascending: false }).limit(100),
     ]);
     // Abertos primeiro, por urgência; depois os demais.
     setRequests(((rq.data ?? []) as unknown as HelpRequest[]).sort((a, b) =>
@@ -257,6 +257,7 @@ export default function Plataforma() {
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-medium">{rows.find((o) => o.id === r.organization_id)?.name ?? "Empresa"}</span>
                 <span className={`rounded px-1.5 py-0.5 text-xs ${URG[r.urgency]?.[1] ?? ""}`}>{URG[r.urgency]?.[0] ?? r.urgency}</span>
+                {r.protocol && <span className="font-mono text-xs">{r.protocol}</span>}
                 <span className="text-muted-foreground">· {r.topic} · {when(r.created_at)}{r.source === "assistente" ? " · aberto pela Ajuda" : ""}{r.page ? ` · tela ${r.page}` : ""}</span>
                 <select className="ml-auto h-8 rounded-md border bg-background px-2 text-xs" value={r.status}
                   onChange={async (e) => {
