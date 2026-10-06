@@ -23,8 +23,8 @@ Critério: outubro = piloto da Clubetec estável e seguro; fim de outubro = mark
 ANOREG 17–19/11). Primeiro o que trava o piloto e a venda segura, depois o que o lançamento exige, depois profundidade.
 🙋 = depende do dono ou de terceiros. Detalhes de cada item nas seções abaixo.
 
-**Ordem de execução definida pelo dono em 06/10:** 1 → 2 → melhorias do produto → canais e extras → por último
-segurança final, documentos e lançamento.
+**Ordem de execução definida pelo dono em 06/10:** item 2 (com o dono fazendo o item 1) → Etapa B (melhorias) →
+Etapa C (canais e extras) → Etapa D (segurança, documentos e SLA) → Etapa E (lançamento).
 
 **Etapa A — agora**
 1. **Montar a Clubetec do zero pelos Primeiros passos e pelo Diagnóstico** 🙋, anotando o que travar (cada trava vira
@@ -57,7 +57,7 @@ segurança final, documentos e lançamento.
 15. Backup externo/nuvem automático (com o Supabase Pro).
 16. Pesquisa de mercado (diferenciais dos concorrentes e pontos de melhoria) e pesquisa de SLA de suporte.
 
-**Etapa D — no final: segurança final, documentos e lançamento**
+**Etapa D — segurança final, documentos e suporte (depois da Etapa C)**
 17. **Segurança antes da produção:** varredura completa do código, grants por coluna nas tabelas antigas, caso 55
     intermitente, limite de tentativas de login + CAPTCHA + alerta de muitas tentativas, plano de resposta a incidente,
     aviso de saúde vermelha no sino/e-mail, conferência no celular de verdade 🙋. 🙋 Decidir criptografia por campo.
@@ -65,6 +65,7 @@ segurança final, documentos e lançamento.
     no cadastro e aviso de nova versão. 🙋 Revisão por advogado.
 19. **Suporte com prazo:** definir o SLA por urgência (app_settings.support_sla), mostrar prazo/atraso no chamado;
     chamado urgente também no WhatsApp do suporte (liga/desliga).
+**Etapa E — por último: lançamento**
 20. **Meta:** cadastro de número em poucos cliques (Embedded Signup), nova conversa com modelo aprovado, trocar o nome
     do app; Messenger/Instagram: pedir as permissões e testar com uma Página real 🙋. (A análise da Meta segue
     correndo; quando aprovar, o monitoramento avisa.)
