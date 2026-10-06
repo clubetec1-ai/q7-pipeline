@@ -64,10 +64,11 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const action = String(body?.action ?? "");
-    if (!["message", "suggest", "research", "plan", "format", "transcribe", "brand_write", "sector_priority", "voice_turn", "speak", "presence_texts", "brand_suggest"].includes(action)) throw new HttpError(400, "Ação inválida");
+    if (!["message", "suggest", "research", "plan", "format", "transcribe", "brand_write", "sector_priority", "voice_turn", "speak", "presence_texts", "brand_suggest", "explain_ask"].includes(action)) throw new HttpError(400, "Ação inválida");
     const ctx = await requireUser(req);
     const orgId = await resolveOrg(ctx, body?.organization_id);
-    await requirePermission(ctx, orgId, "org.settings");
+    // Explicar as perguntas e transcrever a fala também servem a quem foi convidado a contar os processos do setor.
+    if (action !== "explain_ask" && action !== "transcribe") await requirePermission(ctx, orgId, "org.settings");
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     await requireModule(admin, orgId, action === "brand_write" ? "campanhas" : "diagnostico");
     const org = forOrg(admin, orgId);
@@ -273,6 +274,23 @@ Deno.serve(async (req) => {
       }
       if (!cores.length && !fontes && !voz) throw new HttpError(502, notas || "Não consegui ler o logo/manual agora. As cores tiradas do logo continuam valendo.");
       return json({ ok: true, cores, fontes, voz, notas });
+    }
+
+    // "Não entendi": reescreve a lista do que responder na etapa com palavras do dia a dia e um exemplo.
+    if (action === "explain_ask") {
+      const items = (Array.isArray(body?.items) ? body.items : []).map((x: unknown) => clip(x, 300)).filter(Boolean).slice(0, 10);
+      if (!items.length) throw new HttpError(400, "Nada para explicar");
+      const out = await ask(
+        "Um dono de pequena empresa (ou alguém da equipe) não entendeu o que responder numa etapa de um diagnóstico da empresa. " +
+        "Reescreva CADA item com palavras do dia a dia, curto e concreto, sem termos de marketing ou de gestão, e dê um exemplo curto de resposta " +
+        "(genérico, sem inventar dados da empresa). Mantenha a mesma ordem e a mesma quantidade de itens. " +
+        'Responda SOMENTE com JSON: {"itens":[{"pergunta":"","exemplo":""}]}',
+        `Etapa: ${clip(body?.setor, 80) ? `processos do setor ${clip(body?.setor, 80)}` : clip(body?.step, 40)}\nItens:\n${items.map((x: string, i: number) => `${i + 1}. ${x}`).join("\n")}`);
+      const itens = (Array.isArray(out.itens) ? out.itens : []).slice(0, 10)
+        .map((x: { pergunta?: string; exemplo?: string }) => ({ pergunta: clip(x?.pergunta, 300), exemplo: clip(x?.exemplo, 300) }))
+        .filter((x: { pergunta: string }) => x.pergunta);
+      if (!itens.length) throw new HttpError(502, "Não consegui explicar agora. Tente de novo.");
+      return json({ ok: true, itens });
     }
 
     if (action === "presence_texts") {

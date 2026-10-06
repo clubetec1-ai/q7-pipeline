@@ -23,6 +23,7 @@ import { TEMPLATES, templateByKey } from "./diagnostico/templates";
 import { HoursEditor, hoursValid, type Hours } from "@/components/HoursEditor";
 import { VoiceInterview } from "./diagnostico/VoiceInterview";
 import { MicTextarea } from "@/components/MicTextarea";
+import { ExplainAsk } from "./diagnostico/ExplainAsk";
 import { HowItWorks } from "./diagnostico/HowItWorks";
 import { PresenceTexts, SectorDelegation } from "./diagnostico/Part2";
 
@@ -560,9 +561,7 @@ export default function Diagnostico() {
                   <span className="ml-2 text-xs font-normal text-muted-foreground">~{setor ? 5 : step?.min ?? 5} min</span></h1>
                 {approved(page) && <Badge>Aprovado</Badge>}
               </div>
-              <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-0.5">
-                {(setor ? PROC_ASK : step?.ask ?? []).map((q) => <li key={q}>{q}</li>)}
-              </ul>
+              <ExplainAsk key={page} orgId={org.id} step={setor ? "processos" : page} setor={setor} items={setor ? PROC_ASK : step?.ask ?? []} />
 
               {setor && (
                 <SectorDelegation key={setor} orgId={org.id} setor={setor} onUse={(t) => {
