@@ -1,7 +1,8 @@
-import { CheckCircle2, Clock, Facebook, FlaskConical, HelpCircle, LifeBuoy, Mail, Mic, MicVocal, MoreHorizontal, Paperclip, Pause, PenLine, Play, PlayCircle, Plus, QrCode, RotateCcw, Save, ShieldCheck, Sparkles, ThumbsDown, Undo2 } from "lucide-react";
+import { CheckCircle2, Clock, PencilRuler, Facebook, FlaskConical, HelpCircle, LifeBuoy, Mail, Mic, MicVocal, MoreHorizontal, Paperclip, Pause, PenLine, Play, PlayCircle, Plus, QrCode, RotateCcw, Save, ShieldCheck, Sparkles, ThumbsDown, Undo2 } from "lucide-react";
 import { Pointer } from "./Pointer";
 import { AgenteMock } from "./mocks/AgenteMock";
 import { DiagMock } from "./mocks/DiagMock";
+import { ProcessosMock } from "./mocks/ProcessosMock";
 import { NumerosMock } from "./mocks/NumerosMock";
 import { SupportMock } from "./mocks/SupportMock";
 import type { Guide } from "./types";
@@ -357,6 +358,69 @@ export const GUIDES: Guide[] = [
         demo: [
           { state: "followup", target: "btn-salvar", caption: "Clique em Salvar" },
           { state: "salvo", target: "toggle", caption: "Ligue o agente: pronto, ele já atende" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "processos",
+    title: "Processos da empresa",
+    routes: ["/processos"],
+    autoOpen: true,
+    mock: (state) => <ProcessosMock state={state} />,
+    steps: [
+      {
+        title: "Do Diagnóstico para o passo a passo",
+        body: (
+          <>
+            <p>Aqui aparecem os processos que você contou no <b>Diagnóstico</b>, separados por setor. O <b>Arquiteto de processos (IA)</b> transforma cada um num passo a passo claro: o que dispara, quem faz, com que ferramenta, em quanto tempo e os casos diferentes.</p>
+            <Pointer icon={<PencilRuler className="w-4 h-4" />} label="Desenhar com o Arquiteto" note="um processo por vez, ou Desenhar os que faltam do setor" />
+          </>
+        ),
+        demo: [
+          { state: "lista", target: "processo", caption: "Cada processo que você contou no Diagnóstico" },
+          { state: "lista", target: "btn-desenhar", caption: "Clique em Desenhar com o Arquiteto" },
+        ],
+      },
+      {
+        title: "Cada passo diz o que vira automático",
+        body: (
+          <>
+            <p>Em cada passo o Arquiteto indica o caminho mais simples e seguro:</p>
+            <p><b>Fluxo automático</b> (regra fixa, sem IA) · <b>Modelo pronto</b> · <b>IA</b> (responde com a base de conhecimento) · <b>Pessoa</b> (decisão da equipe).</p>
+            <p className="text-muted-foreground">Ele sempre explica o porquê de cada escolha.</p>
+          </>
+        ),
+        demo: [
+          { state: "desenhado", target: "passos", caption: "Cada passo com a decisão: automático, IA ou pessoa", ms: 3600 },
+        ],
+      },
+      {
+        title: "Travas de segurança que não mudam",
+        body: (
+          <>
+            <Pointer icon={<ShieldCheck className="w-4 h-4" />} label="Dinheiro, contrato, saúde ou jurídico" note="sempre fica com uma pessoa — a IA só prepara o resumo" />
+            <Pointer icon={<ShieldCheck className="w-4 h-4" />} label="Dados sensíveis do cliente" note="CPF, saúde, dados financeiros ficam marcados, com a base legal da LGPD" />
+          </>
+        ),
+        demo: [
+          { state: "desenhado", target: "trava", caption: "Desconto é decisão de pessoa: regra fixa" },
+          { state: "desenhado", target: "dados", caption: "Dado sensível sempre marcado" },
+        ],
+      },
+      {
+        title: "Aprove ou peça ajuste",
+        body: (
+          <>
+            <Pointer icon={<CheckCircle2 className="w-4 h-4" />} label="Aprovar processo" note="você ou o responsável da área do setor" />
+            <Pointer icon={<Mic className="w-4 h-4" />} label="Pedir ajuste e redesenhar" note="escreva ou fale o que mudar; o Arquiteto refaz" />
+            <p className="text-muted-foreground">Processo aprovado é o que vai virar agentes e fluxos na implantação. Se você mudar algo depois, ele volta para aprovar, com versão nova.</p>
+          </>
+        ),
+        demo: [
+          { state: "desenhado", target: "btn-ajuste", caption: "Algo errado? Peça ajuste e o Arquiteto refaz" },
+          { state: "desenhado", target: "btn-aprovar", caption: "Tudo certo? Aprovar processo" },
+          { state: "aprovado", target: "processo", caption: "Aprovado: pronto para a implantação" },
         ],
       },
     ],
