@@ -18,6 +18,7 @@ export function ProcessosMock({ state }: { state: string }) {
           <p className="flex items-center justify-between gap-1"><b>Orçamento</b>
             {!desenhado ? <B d="btn-desenhar" primary><PencilRuler className="h-2.5 w-2.5" /> Desenhar com o Arquiteto</B>
               : state === "aprovado" ? <Chip c="bg-success-soft text-success-text">Aprovado · v1</Chip> : <Chip c="bg-warning-soft text-warning-text">Para aprovar</Chip>}
+            {desenhado && <span data-demo="guardiao-selo" className="rounded bg-success-soft px-1 text-success-text">🛡️ Guardião: aprovado</span>}
           </p>
           {desenhado && (
             <>

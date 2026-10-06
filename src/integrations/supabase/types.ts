@@ -2057,6 +2057,47 @@ export type Database = {
           },
         ]
       }
+      guardian_reviews: {
+        Row: {
+          department_id: string | null
+          findings: Json
+          organization_id: string
+          reviewed_at: string
+          status: string
+          subject_id: string
+          subject_type: string
+          subject_version: number
+        }
+        Insert: {
+          department_id?: string | null
+          findings?: Json
+          organization_id: string
+          reviewed_at?: string
+          status: string
+          subject_id: string
+          subject_type: string
+          subject_version?: number
+        }
+        Update: {
+          department_id?: string | null
+          findings?: Json
+          organization_id?: string
+          reviewed_at?: string
+          status?: string
+          subject_id?: string
+          subject_type?: string
+          subject_version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guardian_reviews_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       improvements: {
         Row: {
           agent_key: string | null
@@ -5836,6 +5877,16 @@ export type Database = {
         Returns: Json
       }
       service_get_secret: { Args: { secret_name: string }; Returns: string }
+      service_guardian_save: {
+        Args: {
+          org: string
+          p_findings: Json
+          p_id: string
+          p_type: string
+          p_version: number
+        }
+        Returns: string
+      }
       service_has_secret: { Args: { secret_name: string }; Returns: boolean }
       service_http_take: { Args: { org: string }; Returns: boolean }
       service_inpi_recipients: { Args: never; Returns: Json }
