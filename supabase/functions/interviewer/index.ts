@@ -506,7 +506,23 @@ Deno.serve(async (req) => {
           .in("doc_id", docIds).order("ord").limit(40);
         anexos = (ch ?? []).map((c: { content: string }) => c.content).join("\n\n").slice(0, 8000);
       }
-      const extra = anexos ? `\n\nDocumentos anexados pelo dono nesta etapa (use como fonte; não copie dados pessoais):\n${anexos}` : "";
+      let extra = anexos ? `\n\nDocumentos anexados pelo dono nesta etapa (use como fonte; não copie dados pessoais):\n${anexos}` : "";
+      // Respostas da entrevista por voz desta etapa que ainda não estão no texto também contam.
+      const stepState = (profile.steps ?? {})[stepKey === "processos" ? `proc:${clip(body?.setor, 80)}` : stepKey] as { voice?: { qa?: { q: string; a: string }[] } } | undefined;
+      const voz = (stepState?.voice?.qa ?? []).filter((x) => x?.a && !raw.includes(String(x.a).slice(0, 60)));
+      if (voz.length) extra += `\n\nRespostas da entrevista por voz:\n${voz.map((x) => `Pergunta: ${clip(x.q, 400)}\nResposta: ${clip(x.a, 2000)}`).join("\n")}`.slice(0, 8000);
+      // Marca: o kit (cores, fontes, logos) já cadastrado entra na identidade visual.
+      const kit = (profile.brand ?? {}) as { colors?: { name?: string; hex?: string }[]; fonts?: string; files?: { name?: string; kind?: string }[] };
+      if (stepKey === "marca" && (kit.colors?.length || kit.fonts || kit.files?.length)) {
+        extra += "\n\nKit da marca já cadastrado (é o que vale; use na identidade visual e NÃO pergunte de novo):" +
+          (kit.colors?.length ? `\nCores: ${kit.colors.map((c) => `${clip(c.name, 40) || "cor"} ${clip(c.hex, 7)}`).join(", ")}` : "") +
+          (kit.fonts ? `\nFontes: ${clip(kit.fonts, 200)}` : "") +
+          ((kit.files ?? []).some((f) => f.kind === "logo") ? `\nLogos enviados: ${(kit.files ?? []).filter((f) => f.kind === "logo").map((f) => clip(f.name, 80)).join(", ")}` : "") +
+          ((kit.files ?? []).some((f) => f.kind === "manual") ? "\nManual da marca: enviado" : "");
+      }
+      // "Pode completar": só o que de fato falta, em linguagem simples.
+      const faltandoRule = "Em faltando, até 3 perguntas curtas, com palavras do dia a dia (sem termos como diretrizes, tom de voz, persona, público-alvo ou posicionamento), " +
+        "só sobre o que é importante e ainda NÃO está no texto, nas respostas da entrevista, nos anexos ou no kit da marca; se nada importante faltar, deixe a lista vazia. ";
       if (raw.length < 10 && !docIds.length) throw new HttpError(400, "Escreva, fale ou anexe algo antes de organizar.");
       if (stepKey === "processos") {
         const setor = clip(body?.setor, 80);
@@ -514,7 +530,7 @@ Deno.serve(async (req) => {
         const out = await ask(
           `Você organiza a descrição de processos do setor "${setor}" de uma empresa, escrita pelo dono como se ensinasse uma pessoa nova. ` +
           "Separe cada processo e escreva o passo a passo numerado, claro e fiel ao que ele disse (não invente passos). " +
-          "Se ele contou como DEVERIA funcionar, registre em como_deveria. Em faltando, até 3 perguntas curtas sobre o que ficou vago (quem faz, tempo, ferramenta, onde trava). " +
+          "Se ele contou como DEVERIA funcionar, registre em como_deveria. " + faltandoRule + "(Ex. do que pode faltar: quem faz, quanto tempo leva, que ferramenta usa, onde trava.) " +
           'Responda SOMENTE com JSON: {"processos":[{"nome":"","quem_faz":"","frequencia":"","tempo":"","dificuldade":"onde trava","passo_a_passo":"1. ...\n2. ...","como_deveria":""}],"faltando":[""]}',
           `Empresa: ${orgRow?.name ?? ""}\nSetores: ${sections.setores ?? ""}\n\nO que o dono escreveu sobre o setor ${setor}:\n${raw}${extra}`,
         );
@@ -533,7 +549,7 @@ Deno.serve(async (req) => {
         `Você organiza o que o dono de uma empresa escreveu na etapa "${stage.label}" de um diagnóstico. Objetivo da etapa: ${stage.guide} ` +
         "Reescreva em tópicos curtos e claros, fiel ao que ele disse (não invente nada; mantenha números e nomes de setores). " +
         `Distribua nas seções: ${keys.map((k) => `${k} (${SECTIONS[k].label})`).join(", ")}; deixe vazia a seção sem informação. ` +
-        "Em faltando, até 3 perguntas curtas sobre o que ficou vago ou faltou para esta etapa. " +
+        faltandoRule +
         (stepKey === "setores" ? 'Em "setores_lista", liste só os nomes dos setores citados. ' : "") +
         (stepKey === "empresa" ? 'Em "horario", o horário de atendimento que o dono contou, por dia da semana (0=domingo, 1=segunda ... 6=sábado), no formato {"1":["08:00","18:00"]}; dia fechado fica de fora; se ele não contou o horário, use {}. ' : "") +
         `Responda SOMENTE com JSON: {"secoes":{${keys.map((k) => `"${k}":""`).join(",")}},${stepKey === "setores" ? '"setores_lista":[""],' : ""}${stepKey === "empresa" ? '"horario":{},' : ""}"faltando":[""]}`,
