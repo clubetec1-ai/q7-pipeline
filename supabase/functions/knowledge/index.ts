@@ -46,6 +46,39 @@ Deno.serve(async (req) => {
     const audit = (a: string, target: string, meta: Record<string, unknown> = {}) =>
       admin.from("audit_log").insert({ organization_id: orgId, actor_id: ctx.user.id, action: a, target, meta });
 
+    // Limpeza: apaga só arquivos DESTA empresa que não pertencem a nenhum documento da base
+    // (ex.: documento apagado por fora da tela). Dono ou administrador; fica na auditoria.
+    if (action === "purge_orphans") {
+      await canManage(null);
+      const bucket = admin.storage.from("knowledge");
+      const { data: folders, error } = await bucket.list(orgId, { limit: 1000 });
+      if (error) throw new HttpError(500, "Não consegui listar os arquivos");
+      const { data: docs } = await org.select("knowledge_docs", "id");
+      const known = new Set(((docs ?? []) as { id: string }[]).map((d) => d.id));
+      const paths: string[] = [];
+      for (const f of folders ?? []) {
+        if (!/^[0-9a-f-]{36}$/i.test(f.name) || known.has(f.name)) continue;
+        const { data: files } = await bucket.list(`${orgId}/${f.name}`, { limit: 100 });
+        for (const x of files ?? []) paths.push(`${orgId}/${f.name}/${x.name}`);
+      }
+      if (paths.length) await bucket.remove(paths);
+      // Kit da marca: arquivos desta empresa que nem o kit, nem o logo das telas, nem uma rede usam mais.
+      const brandBucket = admin.storage.from("brand");
+      const { data: bfiles } = await brandBucket.list(orgId, { limit: 1000 });
+      const { data: prof } = await org.select("company_profiles", "brand").maybeSingle();
+      const kit = (prof?.brand ?? {}) as { files?: { path?: string }[]; theme?: { logo?: string } };
+      const used = new Set([...(kit.files ?? []).map((f) => String(f.path ?? "")), String(kit.theme?.logo ?? "")]);
+      const candidates = (bfiles ?? []).filter((f) => f.id && !used.has(`${orgId}/${f.name}`)).map((f) => `${orgId}/${f.name}`);
+      const { data: nets } = candidates.length
+        ? await admin.from("networks").select("brand").in("brand->>logo", candidates)
+        : { data: [] };
+      const netUsed = new Set(((nets ?? []) as { brand: { logo?: string } }[]).map((n) => String(n.brand?.logo ?? "")));
+      const brandPaths = candidates.filter((p) => !netUsed.has(p));
+      if (brandPaths.length) await brandBucket.remove(brandPaths);
+      await audit("knowledge.purge_orphans", orgId, { files: paths.length, brand_files: brandPaths.length });
+      return json({ ok: true, removed: paths.length, brand_removed: brandPaths.length });
+    }
+
     if (action === "upload") {
       const dept = await deptOf(body?.department_id);
       await canManage(dept);
