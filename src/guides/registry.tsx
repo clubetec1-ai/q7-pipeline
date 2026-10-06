@@ -1,5 +1,6 @@
-import { CheckCircle2, Facebook, HelpCircle, LifeBuoy, Mail, Mic, MicVocal, MoreHorizontal, Paperclip, Pause, PenLine, Play, PlayCircle, Plus, QrCode, RotateCcw, Save, ShieldCheck, Sparkles, ThumbsDown, Undo2 } from "lucide-react";
+import { CheckCircle2, Clock, Facebook, FlaskConical, HelpCircle, LifeBuoy, Mail, Mic, MicVocal, MoreHorizontal, Paperclip, Pause, PenLine, Play, PlayCircle, Plus, QrCode, RotateCcw, Save, ShieldCheck, Sparkles, ThumbsDown, Undo2 } from "lucide-react";
 import { Pointer } from "./Pointer";
+import { AgenteMock } from "./mocks/AgenteMock";
 import { DiagMock } from "./mocks/DiagMock";
 import { NumerosMock } from "./mocks/NumerosMock";
 import { SupportMock } from "./mocks/SupportMock";
@@ -258,6 +259,85 @@ export const GUIDES: Guide[] = [
           { state: "caiu", target: "card-numero", caption: "Número com problema fica vermelho" },
           { state: "menu", target: "btn-menu", caption: "Clique em ⋯" },
           { state: "menu", target: "btn-reconectar", caption: "Reconectar (QR Code) e leia o código de novo" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "agente",
+    title: "Assistente de IA",
+    routes: ["/agente"],
+    autoOpen: true,
+    mock: (state) => <AgenteMock state={state} />,
+    steps: [
+      {
+        title: "Uma IA atendendo seus clientes na hora",
+        body: (
+          <>
+            <p>O assistente responde os clientes no WhatsApp, no e-mail e nas redes <b>na hora, a qualquer horário</b>, e passa para uma pessoa da equipe quando precisa.</p>
+            <p>Ele usa o que você contou no <b>Diagnóstico</b>: produtos, horários, regras, jeito de falar da marca e perfil dos clientes. Quanto mais completo o Diagnóstico, melhor ele atende.</p>
+            <Pointer icon={<ShieldCheck className="w-4 h-4" />} label="O que a IA nunca faz" note="regras fixas de segurança: sem desconto, sem prometer prazo, sem pedir dados de cartão" />
+          </>
+        ),
+        demo: [
+          { state: "inicio", target: "regras", caption: "Regras fixas: o que a IA nunca faz" },
+          { state: "inicio", target: "toggle", caption: "Comece desligado e teste antes" },
+        ],
+      },
+      {
+        title: "Diga como ele deve se comportar",
+        body: (
+          <>
+            <Pointer icon={<Sparkles className="w-4 h-4" />} label="Usar texto sugerido" note="um ponto de partida pronto; ajuste do seu jeito" />
+            <Pointer icon={<Mic className="w-4 h-4" />} label="Falar" note="prefere falar? clique e fale, o texto aparece na caixa" />
+            <p>Escreva em poucas linhas o papel dele (ex.: "você é o atendente da loja, simpático, tira dúvidas e passa para o vendedor quando o cliente quer orçamento").</p>
+            <p className="text-muted-foreground">Não precisa repetir o que já está no Diagnóstico: tom de voz, regras e perfil dos clientes entram sozinhos.</p>
+          </>
+        ),
+        demo: [
+          { state: "inicio", target: "btn-sugerido", caption: "Use o texto sugerido…" },
+          { state: "sugerido", target: "caixa", caption: "…e ajuste do seu jeito" },
+          { state: "sugerido", target: "btn-falar", caption: "Ou fale e o texto aparece" },
+        ],
+      },
+      {
+        title: "Teste antes de ligar",
+        body: (
+          <>
+            <Pointer icon={<FlaskConical className="w-4 h-4" />} label="Testar o agente" note="no fim da página: escreva como se fosse o cliente" />
+            <p>Faça as perguntas que seus clientes mais fazem e veja as respostas. Teste também um pedido difícil (desconto, reclamação) para ver se ele passa para uma pessoa.</p>
+            <p className="text-muted-foreground">Nada é enviado para clientes de verdade. O teste usa o texto da caixa mesmo antes de salvar.</p>
+          </>
+        ),
+        demo: [
+          { state: "teste", target: "btn-enviar", caption: "Escreva como cliente e envie" },
+          { state: "resposta", target: "resposta", caption: "Veja a resposta. Não gostou? Ajuste o texto e teste de novo", ms: 3400 },
+        ],
+      },
+      {
+        title: "Retomar quem parou de responder",
+        body: (
+          <>
+            <Pointer icon={<Clock className="w-4 h-4" />} label="Follow-up automático" note="o agente retoma a conversa sozinho depois do tempo que você escolher" />
+            <p className="text-muted-foreground">Comece com 1 vez por conversa. Mais que isso pode incomodar o cliente.</p>
+          </>
+        ),
+        demo: [
+          { state: "followup", target: "toggle-follow", caption: "Ligue e escolha depois de quantos minutos" },
+        ],
+      },
+      {
+        title: "Salve e ligue",
+        body: (
+          <>
+            <Pointer icon={<Save className="w-4 h-4" />} label="Salvar" note="guarda o comportamento e o follow-up" />
+            <p>Testou e gostou? Ligue o agente na chave do topo. A partir daí ele responde os atendimentos que estão com a IA. Se um cliente pedir uma pessoa, ou o assunto for difícil, ele passa para a equipe.</p>
+            <p className="text-muted-foreground">Dá para desligar a qualquer momento: os atendimentos vão direto para a equipe.</p>
+          </>
+        ),
+        demo: [
+          { state: "followup", target: "btn-salvar", caption: "Clique em Salvar" },
+          { state: "salvo", target: "toggle", caption: "Ligue o agente: pronto, ele já atende" },
         ],
       },
     ],
