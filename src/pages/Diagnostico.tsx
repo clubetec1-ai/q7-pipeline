@@ -342,6 +342,13 @@ export default function Diagnostico() {
   // Anexo: vai para a base de conhecimento (setor da página, interno) e é lido ao organizar.
   const attach = async (file: File) => {
     if (file.size > 10 * 1024 * 1024) return toast({ variant: "destructive", title: "Arquivo acima de 10 MB" });
+    // Formatos antigos do Office não são lidos: pede para salvar no formato novo antes de enviar.
+    const old = /\.(doc|xls|ppt|pptx|odt|rtf|pages)$/i.exec(file.name)?.[1]?.toLowerCase();
+    if (old) return toast({ variant: "destructive", title: `Não consigo ler arquivos .${old}`,
+      description: old === "doc" || old === "odt" || old === "rtf" || old === "pages"
+        ? "Abra no Word e use Arquivo → Salvar como → Documento do Word (.docx) ou PDF, e anexe de novo."
+        : old === "xls" ? "Abra no Excel e salve como Pasta de Trabalho do Excel (.xlsx) ou CSV, e anexe de novo."
+        : "Salve como PDF e anexe de novo." });
     setBusy("attach");
     const dept = setor ? depts.find((d) => d.name.toLowerCase() === setor.toLowerCase())?.id ?? null : null;
     const r = await callFunction<{ id: string; status: string; error?: string }>("knowledge", {
@@ -350,8 +357,10 @@ export default function Diagnostico() {
     });
     setBusy(null);
     if (!r.ok) return toast({ variant: "destructive", title: r.message });
-    if (r.data.status === "failed") toast({ variant: "destructive", title: "Guardei, mas não consegui ler o texto", description: r.data.error });
+    // Sem texto lido, o anexo não ajuda a IA: não entra na etapa (fica só na base de conhecimento).
+    if (r.data.status === "failed") return toast({ variant: "destructive", title: "Não consegui ler este arquivo", description: `${r.data.error ?? ""} Salve como PDF ou .docx e anexe de novo.`.trim() });
     setAtts((a) => [...a, { id: r.data.id, name: file.name }]);
+    toast({ title: "Arquivo lido", description: "A entrevista e o Organizar com IA vão usar o que está nele." });
   };
 
   const organize = async () => {
@@ -675,7 +684,7 @@ export default function Diagnostico() {
                     </Button>
                     <VoiceInterview key={page} orgId={org.id} step={setor ? "processos" : page} setor={setor}
                       onDone={(text) => setRaw((r) => (r.trim() ? `${r.trim()}\n\n` : "") + text)}
-                      onAttach={() => fileInput.current?.click()} attached={atts.map((a) => a.name)} />
+                      onAttach={() => fileInput.current?.click()} attached={atts.map((a) => a.name)} docs={atts.map((a) => a.id)} />
                     <input ref={fileInput} type="file" className="hidden" accept=".pdf,.docx,.xlsx,.csv,.txt,.md"
                       onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void attach(f); }} />
                     {atts.map((a) => (

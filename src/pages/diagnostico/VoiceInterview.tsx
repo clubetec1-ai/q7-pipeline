@@ -53,10 +53,12 @@ function browserVoice(): SpeechSynthesisVoice | null {
  * respostas entram na caixa da etapa para conferir e "Organizar com IA".
  * Nada de áudio fica guardado.
  */
-export function VoiceInterview({ orgId, step, setor, onDone, onAttach, attached = [] }: {
+export function VoiceInterview({ orgId, step, setor, onDone, onAttach, attached = [], docs = [] }: {
   orgId: string; step: string; setor?: string | null; onDone: (text: string) => void;
   /** Abre o anexo da etapa (mesmo "Anexar materiais" da página). */
   onAttach?: () => void; attached?: string[];
+  /** Ids dos anexos da etapa: a IA lê o conteúdo antes de perguntar. */
+  docs?: string[];
 }) {
   const key = setor ? `proc:${setor}` : step;
   const [open, setOpen] = useState(false);
@@ -71,6 +73,8 @@ export function VoiceInterview({ orgId, step, setor, onDone, onAttach, attached 
   const [explaining, setExplaining] = useState(false);
   const attachedRef = useRef(attached);
   attachedRef.current = attached; // lido dentro de callbacks antigos (gravação)
+  const docsRef = useRef(docs);
+  docsRef.current = docs;
   const [err, setErr] = useState<string | null>(null);
   const [secs, setSecs] = useState(0);
   // Gravando a resposta: pausar (deu um branco), recomeçar só esta resposta ou cancelar.
@@ -167,7 +171,7 @@ export function VoiceInterview({ orgId, step, setor, onDone, onAttach, attached 
   const ask = async (history: QA[]) => {
     setPhase("pensando"); setErr(null);
     const r = await callFunction<{ question: string; done: boolean; audio: string | null; material?: string; exemplos?: string[] }>("interviewer", {
-      action: "voice_turn", organization_id: orgId, step, setor: setor ?? undefined, qa: history, voice: voiceRef.current, anexos: attachedRef.current,
+      action: "voice_turn", organization_id: orgId, step, setor: setor ?? undefined, qa: history, voice: voiceRef.current, anexos: attachedRef.current, docs: docsRef.current,
     });
     if (!alive.current) return;
     // Falhou ao gerar a próxima pergunta: não deixa a pergunta antiga na tela (a resposta dela já foi salva).
