@@ -70,6 +70,10 @@ export function VoiceInterview({ orgId, step, setor, onDone, onAttach, attached 
   const [material, setMaterial] = useState("");
   // Exemplos de resposta (só para inspirar) e "Não entendi a pergunta".
   const [exemplos, setExemplos] = useState<string[]>([]);
+  // O especialista diz por que pergunta (o que o agente não resolve sem isso) e o que ainda falta saber.
+  const [porque, setPorque] = useState("");
+  const [faltam, setFaltam] = useState<string[]>([]);
+  const faltamRef = useRef<string[]>([]);
   const [explaining, setExplaining] = useState(false);
   const attachedRef = useRef(attached);
   attachedRef.current = attached; // lido dentro de callbacks antigos (gravação)
@@ -170,8 +174,9 @@ export function VoiceInterview({ orgId, step, setor, onDone, onAttach, attached 
 
   const ask = async (history: QA[]) => {
     setPhase("pensando"); setErr(null);
-    const r = await callFunction<{ question: string; done: boolean; audio: string | null; material?: string; exemplos?: string[] }>("interviewer", {
+    const r = await callFunction<{ question: string; done: boolean; audio: string | null; material?: string; exemplos?: string[]; porque?: string; faltam?: string[] }>("interviewer", {
       action: "voice_turn", organization_id: orgId, step, setor: setor ?? undefined, qa: history, voice: voiceRef.current, anexos: attachedRef.current, docs: docsRef.current,
+      faltam: faltamRef.current,
     });
     if (!alive.current) return;
     // Falhou ao gerar a próxima pergunta: não deixa a pergunta antiga na tela (a resposta dela já foi salva).
@@ -182,6 +187,9 @@ export function VoiceInterview({ orgId, step, setor, onDone, onAttach, attached 
     setQuestion(r.data.question);
     setMaterial(r.data.material ?? "");
     setExemplos(r.data.exemplos ?? []);
+    setPorque(r.data.porque ?? "");
+    faltamRef.current = r.data.faltam ?? [];
+    setFaltam(faltamRef.current);
     setPhase("falando");
     await sayQuestion(r.data.question, r.data.audio);
     if (!alive.current) return;
@@ -255,6 +263,7 @@ export function VoiceInterview({ orgId, step, setor, onDone, onAttach, attached 
     const base = resume ? saved : [];
     if (!resume && saved.length) persist([]); // começar de novo apaga a entrevista salva desta etapa
     alive.current = true; qaRef.current = base; qRef.current = "";
+    faltamRef.current = []; setFaltam([]); setPorque("");
     setOpen(true); setQa(base); setQuestion(""); void ask(base);
   };
   const close = () => { alive.current = false; stopAll(); setOpen(false); void loadSaved(); };
@@ -284,10 +293,19 @@ export function VoiceInterview({ orgId, step, setor, onDone, onAttach, attached 
       {question && phase !== "falhou" && (
         <p className="text-sm rounded-md bg-background border p-3">
           <span className="text-xs text-muted-foreground block mb-1">Pergunta {qa.length + (phase === "fim" ? 0 : 1)}</span>{question}
+          {phase !== "fim" && porque && (
+            <span className="mt-2 block rounded bg-primary/10 px-2 py-1 text-xs">💡 <b>Por que pergunto:</b> {porque}</span>
+          )}
           {phase !== "fim" && exemplos.length > 0 && (
             <span className="mt-2 block text-xs text-muted-foreground">
               <b>Exemplos de resposta</b> (só para inspirar — responda do seu jeito):
               {exemplos.map((e) => <span key={e} className="block">• {e}</span>)}
+            </span>
+          )}
+          {faltam.length > 0 && (
+            <span className="mt-2 block text-xs text-muted-foreground">
+              <b>{phase === "fim" ? "Ficou faltando" : "Ainda falta saber"}:</b> {faltam.join(" · ")}
+              {phase === "fim" && " — sem isso, o agente pode não conseguir resolver esses casos. Complete quando puder: escreva, fale ou anexe um documento."}
             </span>
           )}
         </p>

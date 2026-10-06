@@ -36,6 +36,17 @@ Etapa C (canais e extras) → Etapa D (segurança, documentos e SLA) → Etapa E
    "Salvar e próximo" onde houver etapas.
 
 **Etapa B — melhorias do produto (logo depois do item 2)**
+- 🧠 **Primeiro da Etapa B — a empresa completa com IA (visão do dono, 06/10):** o software é uma "rede" de agentes
+  organizada como uma empresa: o **cérebro** no topo (visão de CEO, ao lado do dono), abaixo **diretores e coordenadores**
+  por área e **especialistas** por setor e por processo, conversando entre si. O cérebro decide quais agentes cada empresa
+  precisa, delega, busca as informações que faltam, confere segurança e qualidade antes de qualquer coisa ir ao ar, e só
+  deixa para as pessoas o que não vale automatizar. Já existe: cérebro com áreas, metas, cobranças e agentes de área que
+  propõem melhorias (fatias 1–7) e, desde 06/10, um especialista por etapa do Diagnóstico. Falta: (1) desenho da hierarquia
+  (papéis, quem fala com quem, o que cada nível pode decidir — tudo continua só propondo e o dono aprova); (2) o cérebro
+  montando o organograma de agentes a partir do Diagnóstico (setores → processos → especialista de cada um) e revisando o
+  Diagnóstico com os especialistas de área (segunda opinião antes de aprovar); (3) os agentes trocando informações entre
+  si com registro e auditoria; (4) o painel do organograma de IA para o dono. Fazer o desenho (docs/design) para o dono
+  aprovar antes do código.
 3. Funil de vendas, resto: acompanhamento do teste grátis, pós-venda (implantação, pesquisa, indicação) e página de captação.
 4. Base de conhecimento: preencher contrato/orçamento com os dados do cliente, enviar documento pelo atendimento, PDF
    digitalizado (OCR), vídeo e anexos de e-mail.
@@ -385,6 +396,14 @@ Meta liberar as permissões) → 19b Google Agenda (🙋 precisa de credencial O
   caracteres, misturando os documentos; agora sem repetições, até 16 mil caracteres na entrevista e 20 mil no Organizar,
   e, se não couber, o começo de cada documento + os trechos que falam do assunto da conversa (_shared/doc-pick.ts,
   com teste). A IA cita o que o documento diz e pede o detalhe prático, em vez de perguntar se o documento tem algo.
+- ✅ **Entrevistador especialista por etapa (06/10, pedido do dono, todas as etapas):** cada etapa tem um especialista
+  (atendimento, vendas, pós-venda, marketing, cultura, gestão, sistemas/LGPD, estratégia, organização, processos do setor,
+  IA e conformidade, marketing digital) com a lista do que os agentes precisam saber e o porquê (_shared/specialists.ts,
+  com teste). Antes de cada pergunta ele compara a lista com as etapas já aprovadas, o texto da etapa, os anexos e as
+  respostas; pergunta o item mais importante que falta ou está incompleto (citando o que já tem), mostra "Por que
+  pergunto" (o que o agente não resolve sem isso) e "Ainda falta saber"; aceita "não tenho" sem insistir; até 12
+  perguntas; no fim diz o que ficou faltando e o risco. O "Pode completar" do Organizar usa a mesma lista e mostra
+  "Por que importa".
 - ✅ **IA principal = OpenAI em todo o sistema (pedido do dono em 05/10; feito em 06/10):** a Clubetec tinha uma chave
   Groq própria antiga e nenhum provedor escolhido; `resolveAI` (supabase/functions/_shared/ai-chat.ts) tratava essa chave
   como "própria" e pulava a ordem da Plataforma. Agora: provedor escolhido pela empresa (no bloco ou em Configurações →

@@ -94,7 +94,7 @@ const COMMON_SECTORS = ["Vendas / Comercial", "Atendimento ao cliente", "Finance
   "Operação / Produção", "Logística / Entregas", "Compras", "RH / Pessoas"];
 /** Conferência da etapa (o que a IA organizou + ajustes do dono), salva até aprovar ou cancelar. */
 /** O que ainda pode completar: pergunta simples, exemplo e, quando faz sentido, uma sugestão da IA (ex.: slogan). */
-type Falta = string | { pergunta: string; exemplo?: string; sugestao?: string; secao?: string };
+type Falta = string | { pergunta: string; exemplo?: string; sugestao?: string; secao?: string; porque?: string };
 type Draft = { secoes?: Record<string, string>; processos?: Proc[]; setores?: string[]; horario?: Hours; faltando: Falta[] };
 interface StepState { raw?: string; approved_at?: string; skipped_at?: string; setores?: string[]; attachments?: { id: string; name: string }[]; tpl?: string; horario?: Hours; review?: Draft; voice?: unknown }
 interface Suggestion { titulo: string; tipo: "pronta" | "integracao"; modelo: string | null; sistema: string | null; instalado?: { kind: "flow" | "record_type"; id: string } }
@@ -753,6 +753,7 @@ export default function Diagnostico() {
                         return (
                           <li key={i}>
                             {it.pergunta}
+                            {it.porque && <span className="block text-xs">💡 <b>Por que importa:</b> {it.porque}</span>}
                             {it.exemplo && <span className="block text-xs text-muted-foreground">Ex.: {it.exemplo}</span>}
                             {it.sugestao && (
                               <span className="mt-1 block rounded-md border border-primary/30 bg-background p-2 text-xs space-y-1">
