@@ -93,7 +93,7 @@ const COMMON_SECTORS = ["Vendas / Comercial", "Atendimento ao cliente", "Finance
   "Operação / Produção", "Logística / Entregas", "Compras", "RH / Pessoas"];
 /** Conferência da etapa (o que a IA organizou + ajustes do dono), salva até aprovar ou cancelar. */
 type Draft = { secoes?: Record<string, string>; processos?: Proc[]; setores?: string[]; horario?: Hours; faltando: string[] };
-interface StepState { raw?: string; approved_at?: string; skipped_at?: string; setores?: string[]; attachments?: { id: string; name: string }[]; tpl?: string; horario?: Hours; review?: Draft }
+interface StepState { raw?: string; approved_at?: string; skipped_at?: string; setores?: string[]; attachments?: { id: string; name: string }[]; tpl?: string; horario?: Hours; review?: Draft; voice?: unknown }
 interface Suggestion { titulo: string; tipo: "pronta" | "integracao"; modelo: string | null; sistema: string | null; instalado?: { kind: "flow" | "record_type"; id: string } }
 interface Auto { titulo: string; setor: string; tipo: "sem_ia" | "ia" | "integracao"; descricao: string; impacto: string; esforco: string; custo: { volume: number; groq: number; claude: number; claude_model: string } | null }
 interface Plan {
@@ -260,6 +260,13 @@ export default function Diagnostico() {
   const next = pages[idx + 1] ?? "plano";
   const prev = pages[idx - 1];
 
+  // Etapas como estão no banco agora: a entrevista por voz, o rascunho e a conferência são salvos
+  // à parte enquanto a pessoa trabalha; gravar a partir da cópia antiga da página apagava isso.
+  const freshSteps = async (): Promise<Record<string, StepState>> => {
+    const { data } = await supabase.from("company_profiles").select("steps").eq("organization_id", org.id).maybeSingle();
+    return { ...profile.steps, ...((data?.steps ?? {}) as Record<string, StepState>) };
+  };
+
   const ensureRow = async () => {
     const { data } = await supabase.from("company_profiles").select("organization_id").eq("organization_id", org.id).maybeSingle();
     if (!data) await supabase.from("company_profiles").insert({ organization_id: org.id });
@@ -360,7 +367,9 @@ export default function Diagnostico() {
     setBusy("approve");
     await ensureRow();
     const horario = page === "empresa" ? draft.horario ?? profile.steps.empresa?.horario : undefined;
-    const steps = { ...profile.steps, [page]: { raw, attachments: atts, approved_at: new Date().toISOString(), ...(draft.setores ? { setores: draft.setores } : {}), ...(horario ? { horario } : {}) } };
+    const fresh = await freshSteps();
+    // Aprovar mantém a entrevista por voz da etapa (dá para continuar depois) e tira só a conferência.
+    const steps = { ...fresh, [page]: { ...(fresh[page]?.voice ? { voice: fresh[page].voice } : {}), raw, attachments: atts, approved_at: new Date().toISOString(), ...(draft.setores ? { setores: draft.setores } : {}), ...(horario ? { horario } : {}) } };
     const patch: Record<string, unknown> = { steps, stage: next.startsWith("proc:") ? "processos" : next === "plano" ? "plano" : next };
     if (draft.secoes) patch.sections = { ...profile.sections, ...Object.fromEntries(Object.entries(draft.secoes).filter(([, v]) => v.trim())) };
     if (setor && draft.processos) {
@@ -424,7 +433,8 @@ export default function Diagnostico() {
   // "Não sei / pular": marca a etapa como pulada (dá para voltar depois) e segue.
   const skipStep = async () => {
     await ensureRow();
-    const steps = { ...profile.steps, [page]: { ...(profile.steps[page] ?? {}), raw, skipped_at: new Date().toISOString() } };
+    const fresh = await freshSteps();
+    const steps = { ...fresh, [page]: { ...(fresh[page] ?? {}), raw, skipped_at: new Date().toISOString() } };
     const { error } = await supabase.from("company_profiles").update({ steps } as never).eq("organization_id", org.id);
     if (error) return toast({ variant: "destructive", title: "Não foi possível", description: error.message });
     toast({ title: "Etapa pulada", description: "Você pode voltar nela quando quiser." });
@@ -433,7 +443,7 @@ export default function Diagnostico() {
   // Modelo por tipo de empresa: traz exemplos prontos para cada etapa.
   const chooseTemplate = async (key: string) => {
     await ensureRow();
-    const steps = { ...profile.steps, modelo: { tpl: key } };
+    const steps = { ...(await freshSteps()), modelo: { tpl: key } };
     const { error } = await supabase.from("company_profiles").update({ steps } as never).eq("organization_id", org.id);
     if (error) return toast({ variant: "destructive", title: "Não foi possível", description: error.message });
     await load(page);
@@ -443,7 +453,7 @@ export default function Diagnostico() {
   const redoStep = async () => {
     if (!window.confirm("Refazer só esta etapa? O texto e o resultado dela são apagados; as outras etapas continuam.")) return;
     await ensureRow();
-    const steps = { ...profile.steps };
+    const steps = await freshSteps();
     delete steps[page];
     const patch: Record<string, unknown> = { steps };
     if (step) patch.sections = Object.fromEntries(Object.entries(profile.sections).filter(([k]) => !step.sections.includes(k)));
@@ -674,7 +684,7 @@ export default function Diagnostico() {
                     ))}
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {prev && <Button variant="ghost" onClick={() => setPage(prev)}><ArrowLeft className="w-4 h-4 mr-1" /> Voltar</Button>}
+                    {prev && <Button variant="ghost" onClick={() => setPage(prev)} title={`Volta para a etapa ${pageLabel(prev)} (o que você fez aqui fica salvo)`}><ArrowLeft className="w-4 h-4 mr-1" /> Etapa anterior</Button>}
                     {!draft && <Button variant="ghost" onClick={skipStep} title="Pular por agora; dá para voltar depois">Não sei / pular</Button>}
                     {!draft && (raw.trim() || atts.length > 0) && (
                       <Button variant="outline" disabled={busy === "next"} title="Guarda o que você escreveu e vai para a próxima etapa; organize e aprove quando quiser"

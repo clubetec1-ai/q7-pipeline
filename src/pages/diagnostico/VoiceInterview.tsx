@@ -211,7 +211,7 @@ export function VoiceInterview({ orgId, step, setor, onDone, onAttach, attached 
   // A resposta anterior saiu errada: apaga só ela e volta para a mesma pergunta (as outras ficam).
   const redoLast = () => {
     const last = qaRef.current[qaRef.current.length - 1];
-    if (!last || !window.confirm("Refazer a resposta da pergunta anterior? Só a resposta dela é apagada; as outras continuam salvas.")) return;
+    if (!last || !window.confirm(`Voltar para a pergunta anterior e responder de novo?\n\n"${last.q}"\n\nSó a resposta dela é refeita; as outras continuam salvas.`)) return;
     const next = qaRef.current.slice(0, -1);
     qaRef.current = next; setQa(next); persist(next);
     stopAll();
@@ -273,8 +273,8 @@ export function VoiceInterview({ orgId, step, setor, onDone, onAttach, attached 
               <Button type="button" size="sm" variant="ghost" onClick={() => void (voice === "browser" ? playBrowser(qRef.current) : playMp3(lastAudio.current!))}>Ouvir a pergunta de novo</Button>
             )}
             {qa.length > 0 && (
-              <Button type="button" size="sm" variant="ghost" onClick={redoLast} title="Apaga só a resposta anterior e volta para aquela pergunta">
-                <Undo2 className="w-4 h-4 mr-1" /> Refazer a resposta anterior
+              <Button type="button" size="sm" variant="outline" onClick={redoLast} title="Volta para a pergunta anterior para responder de novo; as outras respostas continuam salvas">
+                <Undo2 className="w-4 h-4 mr-1" /> Pergunta anterior
               </Button>
             )}
           </>
