@@ -157,18 +157,36 @@ Deno.serve(async (req) => {
       const bye = "Muito obrigado! Com isso já tenho o suficiente desta etapa. Vou organizar as suas respostas para você conferir. " +
         "Se tiver algum material desta etapa, como modelos, planilhas ou documentos, pode anexar logo abaixo.";
       const sayBye = async () => json({ ok: true, question: bye, done: true, audio: body?.voice === "browser" ? null : await synth(bye, body?.voice), mime: "audio/mpeg" });
+      const exemplosDe = (v: unknown) => (Array.isArray(v) ? v : []).map((x) => clip(x, 160)).filter(Boolean).slice(0, 3);
+      // "Não entendi a pergunta": a mesma pergunta em palavras mais simples, com exemplos (não conta como resposta).
+      if (body?.explain) {
+        const q = clip(body?.q, 500);
+        if (!q) throw new HttpError(400, "Pergunta vazia");
+        const out = await ask(
+          `Um dono de empresa não entendeu esta pergunta de uma entrevista sobre a empresa dele (etapa "${tema}"): "${q}". ` +
+          "Reescreva a MESMA pergunta com palavras do dia a dia, curta (até 2 frases), sem termos de marketing, de um jeito concreto, " +
+          "como se explicasse para alguém que nunca ouviu falar do assunto. Dê 3 exemplos curtos de resposta para inspirar (genéricos, sem inventar dados da empresa). " +
+          'Responda SOMENTE com JSON: {"pergunta":"","exemplos":["","",""]}', `Empresa: ${orgRow?.name ?? ""}`);
+        const simple = clip(out.pergunta, 500) || q;
+        const audio = body?.voice === "browser" ? null : await synth(simple, body?.voice);
+        return json({ ok: true, question: simple, done: false, audio, mime: "audio/mpeg", exemplos: exemplosDe(out.exemplos) });
+      }
       // Depois de 8 respostas, encerra sem pedir outra.
       if (qa.length >= 8) return await sayBye();
       const turn = () => ask(
         `Você é um consultor entrevistando o dono da empresa POR VOZ, na etapa "${tema}" de um diagnóstico. Objetivo da etapa: ${stage.guide} ` +
         "Faça UMA pergunta por vez, curta (no máximo 2 frases), natural como numa conversa falada em português do Brasil, sem listas, sem símbolos e sem emojis. " +
+        "Use palavras do dia a dia: o dono pode não entender de marketing. NÃO use termos técnicos como tom de voz, público-alvo, persona, proposta de valor, jornada, " +
+        "posicionamento, branding, KPI ou funil; transforme o assunto numa pergunta concreta sobre o dia a dia (ex.: em vez de \"como a marca fala com o público?\", " +
+        "pergunte \"quando vocês respondem um cliente no WhatsApp, chamam de você ou de senhor? usam emoji?\"). " +
+        'Em "exemplos", dê 2 ou 3 exemplos curtos de resposta para inspirar (genéricos, sem inventar dados da empresa); na despedida, "exemplos" fica vazio. ' +
         "Na primeira pergunta, cumprimente e diga em uma frase o tema. Use as respostas anteriores para aprofundar só o que ficou vago ou faltou; não repita o que ele já disse. " +
         "Quando tiver o suficiente para a etapa (ou depois de 7 perguntas), encerre agradecendo e dizendo que vai organizar as respostas para ele conferir; " +
         'ao encerrar, use "terminou": true, escreva a despedida no campo "pergunta" e NÃO faça nenhuma pergunta; na despedida, convide a anexar materiais desta etapa logo abaixo. Se ainda for perguntar algo, "terminou" é false. ' +
         "Quando a última resposta citar um documento ou material que a empresa tem (modelo de orçamento, tabela de preços, contrato, manual, roteiro de atendimento, " +
         'missão/visão/valores, planilha, fluxograma), preencha "material" com o nome curto dele e, junto da próxima pergunta, diga em poucas palavras que ele pode anexar esse arquivo aqui embaixo. ' +
         'Não peça de novo um material já pedido ou já anexado; nos outros casos "material" fica vazio. ' +
-        'Responda SOMENTE com JSON: {"pergunta":"","terminou":false,"material":""}',
+        'Responda SOMENTE com JSON: {"pergunta":"","terminou":false,"material":"","exemplos":["",""]}',
         `Empresa: ${orgRow?.name ?? ""}\n` +
           (anexos.length ? `Arquivos já anexados nesta etapa: ${anexos.join(", ")}\n` : "") + "Respostas até agora:\n" +
           (qa.map((x: { q: string; a: string }, i: number) => `${i + 1}. Pergunta: ${x.q}\nResposta: ${x.a}`).join("\n") || "(nenhuma ainda)"),
@@ -185,7 +203,7 @@ Deno.serve(async (req) => {
       // Se a IA disse que terminou mas ainda fez uma pergunta, deixa o dono responder (a próxima volta encerra).
       const done = !!out.terminou && !question.includes("?");
       const material = done ? "" : clip(out.material, 60);
-      return json({ ok: true, question, done, audio, mime: "audio/mpeg", ...(material ? { material } : {}) });
+      return json({ ok: true, question, done, audio, mime: "audio/mpeg", ...(material ? { material } : {}), exemplos: done ? [] : exemplosDe(out.exemplos) });
     }
 
     // Retrato atual + o que já está no CRM (para não perguntar de novo).

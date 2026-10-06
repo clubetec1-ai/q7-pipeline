@@ -56,7 +56,7 @@ const STEPS: { key: string; label: string; sections: string[]; ask: string[]; bl
       "Garantia, trocas e devoluções na prática", "Como pede avaliação e indicação, e como traz o cliente de volta (recompra, renovação, lembretes)"] },
   { key: "marca", label: "Marca", block: "identidade", min: 5, sections: ["marca_visual", "marca_voz"],
     ask: ["Comece enviando o logo (e o manual da marca, se tiver) no kit abaixo: o sistema sugere as cores e as fontes", "Onde usa cada versão do logo e se as cores sugeridas representam a marca",
-      "Tom de voz: como a marca fala (próximo ou formal, com ou sem emoji, você/senhor)", "Palavras e expressões que usa e que evita, e 2 ou 3 frases de exemplo"] },
+      "Como vocês falam com os clientes: chamam de \"você\" ou de \"senhor\"? Usam emoji? Mais sério ou mais descontraído?", "Palavras que vocês sempre usam e as que evitam, e 2 ou 3 frases que vocês costumam mandar (ex.: a saudação do WhatsApp)"] },
   { key: "cultura", label: "Cultura (opcional)", block: "identidade", min: 3, sections: ["cultura"],
     ask: ["A empresa já tem cultura definida? Como ela aparece no dia a dia?", "Missão (por que existe)", "Visão (onde quer chegar)", "Valores (o que não abre mão)"] },
   { key: "situacao", label: "Hoje e números de partida", block: "hoje", min: 5, sections: ["situacao", "metas"],
