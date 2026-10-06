@@ -3896,6 +3896,7 @@ export type Database = {
           message: string
           organization_id: string
           page: string | null
+          protocol: string | null
           reply: string | null
           source: string
           status: string
@@ -3912,6 +3913,7 @@ export type Database = {
           message: string
           organization_id: string
           page?: string | null
+          protocol?: string | null
           reply?: string | null
           source?: string
           status?: string
@@ -3928,6 +3930,7 @@ export type Database = {
           message?: string
           organization_id?: string
           page?: string | null
+          protocol?: string | null
           reply?: string | null
           source?: string
           status?: string

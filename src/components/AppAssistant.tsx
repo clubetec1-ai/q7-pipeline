@@ -48,7 +48,7 @@ export function AppAssistant() {
   // Depois da resposta: null = ainda não disse; "sim"; "nao" (mostra o chamado); "aberto" (chamado criado).
   const [solved, setSolved] = useState<null | "sim" | "nao" | "aberto">(null);
   const [note, setNote] = useState("");
-  const [ticket, setTicket] = useState<{ urgency: string; topic: string } | null>(null);
+  const [ticket, setTicket] = useState<{ urgency: string; topic: string; protocol?: string } | null>(null);
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => { end.current?.scrollIntoView({ block: "nearest" }); }, [msgs, busy, solved]);
   useEffect(() => {
@@ -72,7 +72,7 @@ export function AppAssistant() {
   };
   const escalate = async () => {
     setBusy(true); setErr(null);
-    const r = await callFunction<{ urgency: string; topic: string }>("app-assistant", {
+    const r = await callFunction<{ urgency: string; topic: string; protocol?: string }>("app-assistant", {
       action: "escalate", organization_id: org.id, messages: msgs, page: pathname, note,
     });
     setBusy(false);
@@ -152,7 +152,8 @@ export function AppAssistant() {
           )}
           {solved === "aberto" && ticket && (
             <div className="rounded-md bg-primary/10 p-2 text-sm space-y-1">
-              <p><b>Chamado aberto</b> (urgência {URG[ticket.urgency] ?? ticket.urgency}): {ticket.topic}</p>
+              <p><b>Chamado {ticket.protocol ?? ""} aberto</b> (urgência {URG[ticket.urgency] ?? ticket.urgency}): {ticket.topic}</p>
+              <p className="text-muted-foreground">Você recebe a confirmação por e-mail e a resposta da equipe chega no sino.</p>
               {manager
                 ? <Link to="/configuracoes/suporte" onClick={() => setOpen(false)} className="underline">Acompanhar em Configurações → Suporte</Link>
                 : <p className="text-muted-foreground">O responsável pela empresa acompanha em Configurações → Suporte. A resposta também chega no sino.</p>}

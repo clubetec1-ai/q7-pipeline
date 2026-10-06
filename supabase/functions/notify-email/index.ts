@@ -14,7 +14,9 @@ function ok(body: unknown = { ok: true }, status = 200) {
 }
 
 const STATUS: Record<string, string> = { disconnected: "desconectado" };
-const KINDS = ["number_health", "email_health", "security_alert", "brain_weekly", "brain_goal", "brain_reminder", "support_ticket"];
+const KINDS = ["number_health", "email_health", "security_alert", "brain_weekly", "brain_goal", "brain_reminder", "support_ticket", "support_received", "support_status"];
+const URG_PT: Record<string, string> = { baixa: "baixa", media: "média", alta: "alta", urgente: "urgente" };
+const STATUS_PT: Record<string, string> = { open: "aberto", in_progress: "em andamento", done: "resolvido", canceled: "cancelado" };
 
 Deno.serve(async (req) => {
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -37,16 +39,34 @@ Deno.serve(async (req) => {
   let subject: string, text: string, html: string;
 
   if (n.kind === "support_ticket") {
-    // Chamado de suporte alta/urgente: vai para os operadores da Clubetec (o gatilho só manda esses).
+    // Chamado de suporte novo: vai para os operadores da Clubetec (todos os chamados).
     const { data: t } = await admin.from("service_requests").select("topic, message, urgency, source, page, created_at")
       .eq("id", String(r.id ?? "")).maybeSingle();
     const link = base ? `${base}/plataforma` : "";
     const urg = String(t?.urgency ?? r.urgency ?? "").toUpperCase();
-    subject = `[Deixa com a IA] ${urg} — chamado de ${r.org ?? "cliente"}: ${t?.topic ?? r.topic ?? ""}`;
-    const corpo = `Empresa: ${r.org ?? ""}\nUrgência: ${urg}\nAberto ${t?.source === "assistente" ? "pelo assistente (a pessoa disse que não resolveu)" : "pela pessoa"}${t?.page ? ` na tela ${t.page}` : ""}.\n\n${t?.message ?? ""}`;
+    subject = `[Deixa com a IA] ${urg} — chamado ${r.protocol ?? ""} de ${r.org ?? "cliente"}: ${t?.topic ?? r.topic ?? ""}`;
+    const corpo = `Protocolo: ${r.protocol ?? ""}\nEmpresa: ${r.org ?? ""}\nUrgência: ${urg}\nAberto ${t?.source === "assistente" ? "pelo assistente (a pessoa disse que não resolveu)" : "pela pessoa"}${t?.page ? ` na tela ${t.page}` : ""}.\n\n${t?.message ?? ""}`;
     text = `Olá!\n\nNovo chamado de suporte.\n\n${corpo}\n\n${link ? `Responder em Plataforma → Pedidos de ajuda: ${link}` : "Responda em Plataforma → Pedidos de ajuda."}\n\nDeixa com a IA`;
     html = `<p>Olá!</p><p><b>Novo chamado de suporte — ${esc(urg)}</b></p><p>${esc(corpo).replace(/\n/g, "<br>")}</p>` +
       `<p>${link ? `<a href="${esc(link)}">Responder em Plataforma → Pedidos de ajuda</a>` : "Responda em Plataforma → Pedidos de ajuda."}</p><p>Deixa com a IA</p>`;
+  } else if (n.kind === "support_received" || n.kind === "support_status") {
+    // Resposta automática ao cliente: protocolo, urgência e prazo (SLA, quando definido); e cada mudança de situação.
+    const link = base ? `${base}/configuracoes/suporte` : "";
+    const sla = Number(r.sla_hours);
+    let corpo: string;
+    if (n.kind === "support_received") {
+      subject = `[Deixa com a IA] Recebemos seu chamado ${r.protocol ?? ""}`;
+      corpo = `Recebemos o seu chamado e ele já está com a equipe Clubetec.\n\nProtocolo: ${r.protocol ?? ""}\nAssunto: ${r.topic ?? ""}\nUrgência: ${URG_PT[r.urgency] ?? r.urgency ?? ""}\n` +
+        (sla > 0 ? `Prazo para a primeira resposta: até ${sla} hora(s).` : "Vamos responder o mais rápido possível.") +
+        "\n\nGuarde o número do protocolo. A resposta chega por aqui e no sino do sistema.";
+    } else {
+      subject = `[Deixa com a IA] Chamado ${r.protocol ?? ""}: ${STATUS_PT[r.status] ?? r.status ?? ""}`;
+      corpo = `Seu chamado ${r.protocol ?? ""} (${r.topic ?? ""}) está ${STATUS_PT[r.status] ?? r.status ?? ""}.` +
+        (r.reply ? `\n\nResposta da equipe Clubetec: ${r.reply}` : "");
+    }
+    text = `Olá!\n\n${corpo}\n\n${link ? `Acompanhe em Configurações → Suporte: ${link}` : "Acompanhe em Configurações → Suporte."}\n\nDeixa com a IA`;
+    html = `<p>Olá!</p><p>${esc(corpo).replace(/\n/g, "<br>")}</p>` +
+      `<p>${link ? `<a href="${esc(link)}">Acompanhar em Configurações → Suporte</a>` : "Acompanhe em Configurações → Suporte."}</p><p>Deixa com a IA</p>`;
   } else if (n.kind.startsWith("brain_")) {
     const link = base ? `${base}/cerebro` : "";
     const empresa = o?.name ?? "";
