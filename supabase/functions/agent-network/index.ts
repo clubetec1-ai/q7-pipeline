@@ -1,3 +1,4 @@
+import { fence } from "../_shared/fence.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { getSecret, safeEqual } from "../_shared/secrets.ts";
 import { forOrg } from "../_shared/tenant.ts";
@@ -51,7 +52,7 @@ Deno.serve(async (req) => {
       const ai = allowed === false ? null : await resolveAI(admin, orgId);
       if (!ai) continue; // sem IA agora: tenta na próxima rodada (o prazo e o limite de tentativas sobem a pergunta)
       const r = await chatAI(ai, [{ role: "system", content: ANSWER_PROMPT }, { role: "user", content:
-        `Pergunta do colega: <dados>${t.pergunta}</dados>\n\nInformações que você pode ver:\n<dados>\n${partes.join("\n\n")}\n</dados>` }],
+        `Pergunta do colega: <dados>${fence(t.pergunta)}</dados>\n\nInformações que você pode ver:\n<dados>\n${fence(partes.join("\n\n"))}\n</dados>` }],
         undefined, { json: true, timeoutMs: 45_000 });
       const ans = r.ok ? parseAnswer(parse(r.reply)) : { sabe: false, resposta: "", fonte: "" };
       if (ans.sabe) {

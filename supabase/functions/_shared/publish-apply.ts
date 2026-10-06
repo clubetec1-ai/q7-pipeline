@@ -27,7 +27,7 @@ export async function applyPublishGate(admin: any, orgId: string, mode: Mode,
     await admin.rpc("service_ai_suggestion_save", {
       org: orgId, p_conv: conv.id, p_ticket: ticket?.id ?? null, p_content: g.suggestion || "(sem texto)", p_mode: mode, p_motivo: g.motivo, p_guard: g.guard,
     });
-    if (g.motivo === "bloqueio") await admin.rpc("service_breaker_event", { org: orgId, p_kind: "guard_block", p_detail: g.guard.join(",") });
+    if (g.motivo === "bloqueio") await admin.rpc("service_breaker_event", { org: orgId, p_kind: "guard_block", p_detail: g.guard.join(","), p_conv: conv.id });
     if (ticket) await admin.rpc("service_ticket_route", { ticket: ticket.id, action: "queue", dept: ticket.department_id ?? null });
   } catch (e) {
     console.error("[publish] não registrou a sugestão", e instanceof Error ? e.message : e);

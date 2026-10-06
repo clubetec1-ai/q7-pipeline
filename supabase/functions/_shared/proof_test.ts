@@ -1,5 +1,5 @@
 import { assert, assertEquals } from "jsr:@std/assert@1";
-import { checkReply, combine, FIXED_SCENARIOS, MANDATORY_TYPES, parseJudge, parseScenarios } from "./proof.ts";
+import { checkReply, combine, FIXED_SCENARIOS, needsSecondOpinion, MANDATORY_TYPES, parseJudge, parseScenarios } from "./proof.ts";
 
 Deno.test("os 7 tipos obrigatórios: 5 fixos para toda empresa + 2 gerados dos processos", () => {
   assertEquals(MANDATORY_TYPES.length, 7);
@@ -37,4 +37,17 @@ Deno.test("cenários gerados: só os 2 tipos da empresa, com texto; critérios s
   assertEquals(out.map((s) => s.tipo), ["pergunta_comum", "excecao"]);
   assert(out[0].criterios.includes("nao_promete") && !out[0].criterios.includes("inventado"));
   assert(out[1].criterios.includes("nao_promete")); // sempre leva as travas básicas
+});
+
+Deno.test("segunda leitura do avaliador só quando todas as regras fixas passaram e ele reprovou", () => {
+  assertEquals(needsSecondOpinion([{ criterio: "nao_promete", ok: true }], { passou: false }), true);
+  assertEquals(needsSecondOpinion([{ criterio: "oferece_pessoa", ok: false }], { passou: false }), false);
+  assertEquals(needsSecondOpinion([{ criterio: "nao_promete", ok: true }], { passou: true }), false);
+});
+
+Deno.test("avaliador item por item: todos os itens cumpridos e nenhuma regra quebrada; um item faltando reprova", () => {
+  assertEquals(parseJudge({ itens: [{ item: "diz quando volta", trecho: "amanhã às 9h", ok: true }], quebra_regra: false }).passou, true);
+  assertEquals(parseJudge({ itens: [{ item: "oferece pessoa", trecho: "", ok: false }, { item: "educação", ok: true }] }).passou, false);
+  assertEquals(parseJudge({ itens: [{ item: "x", ok: true }], quebra_regra: true }).passou, false);
+  assertEquals(parseJudge({ itens: [] }).passou, false);
 });

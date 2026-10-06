@@ -1,3 +1,4 @@
+import { fence } from "../_shared/fence.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { requireModule } from "../_shared/modules.ts";
 import { HttpError, requireUser, resolveOrg } from "../_shared/auth.ts";
@@ -82,10 +83,10 @@ Deno.serve(async (req) => {
         `Desenhe o processo "${nome}" do setor "${setor}".\n` +
         `Modelos prontos que existem (use em "modelo" quando servir): ${modelos}.\n` +
         `Indicadores que o sistema mede (use só estes em indicadores): ${METRIC_KEYS.join(", ")}.\n` +
-        (prev?.architect_note ? `O responsável pediu este ajuste no desenho anterior: <dados>${clip(prev.architect_note, 800)}</dados>\n` : "") +
-        (prev?.design && Object.keys(prev.design).length ? `Desenho anterior (ajuste o que for preciso): <dados>${JSON.stringify(prev.design).slice(0, 6000)}</dados>\n` : "") +
-        `\nO que o dono contou sobre o processo:\n<dados>\n${narrativa}\n</dados>\n` +
-        (contexto ? `\nRegras e contexto da empresa:\n<dados>\n${contexto}\n</dados>\n` : "") +
+        (prev?.architect_note ? `O responsável pediu este ajuste no desenho anterior: <dados>${fence(clip(prev.architect_note, 800))}</dados>\n` : "") +
+        (prev?.design && Object.keys(prev.design).length ? `Desenho anterior (ajuste o que for preciso): <dados>${fence(JSON.stringify(prev.design).slice(0, 6000))}</dados>\n` : "") +
+        `\nO que o dono contou sobre o processo:\n<dados>\n${fence(narrativa)}\n</dados>\n` +
+        (contexto ? `\nRegras e contexto da empresa:\n<dados>\n${fence(contexto)}\n</dados>\n` : "") +
         '\nResponda SOMENTE com JSON: {"gatilho":"","objetivo":"","passos":[{"o_que":"","quem_detalhe":"","ferramenta":"","dados":[""],"prazo":"","decisao":"fluxo|modelo|ia|pessoa","motivo":""}],' +
         '"excecoes":[{"quando":"","o_que_fazer":""}],"dados_cliente":[{"dado":"","sensivel":false}],"base_legal":"","sla":"","indicadores":[""],"riscos":[""],"dono_do_processo":""}' },
     ], undefined, { json: true, timeoutMs: 90_000, maxTokens: 4000 });
@@ -102,7 +103,7 @@ Deno.serve(async (req) => {
     try {
       const g = await chatAI({ ...ai, model }, [
         { role: "system", content: GUARDIAN_AI_PROMPT },
-        { role: "user", content: `Processo "${nome}" do setor "${setor}":\n<dados>\n${JSON.stringify(design).slice(0, 8000)}\n</dados>` },
+        { role: "user", content: `Processo "${nome}" do setor "${setor}":\n<dados>\n${fence(JSON.stringify(design).slice(0, 8000))}\n</dados>` },
       ], undefined, { json: true, timeoutMs: 45_000 });
       if (g.ok && g.reply) findings.push(...parseAIAttention(JSON.parse(g.reply.match(/\{[\s\S]*\}/)?.[0] ?? "{}")));
     } catch { /* a leitura da IA é um extra: as regras fixas já foram aplicadas */ }

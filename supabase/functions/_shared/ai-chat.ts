@@ -34,7 +34,7 @@ const FAILOVER = new Set([400, 404, 413, 422, 429, 500, 502, 503, 504]);
 const JSON_MODE = new Set(["groq", "openai", "openrouter", "gemini", "deepseek"]);
 
 /** json: pede resposta em JSON válido (quando o provedor aceita); timeoutMs/maxTokens para respostas longas. */
-export interface ChatOpts { json?: boolean; timeoutMs?: number; maxTokens?: number }
+export interface ChatOpts { json?: boolean; timeoutMs?: number; maxTokens?: number; temperature?: number }
 
 async function once(endpoint: string, apiKey: string, model: string, messages: ChatMsg[], tools?: ToolDef[], opts: ChatOpts & { jsonMode?: boolean } = {}): Promise<ChatResult> {
   try {
@@ -46,6 +46,7 @@ async function once(endpoint: string, apiKey: string, model: string, messages: C
         ...(tools?.length ? { tools: tools.map((t) => ({ type: "function", function: t })), tool_choice: "auto" } : {}),
         ...(opts.jsonMode ? { response_format: { type: "json_object" } } : {}),
         ...(opts.maxTokens ? { max_tokens: opts.maxTokens } : {}),
+        ...(typeof opts.temperature === "number" ? { temperature: opts.temperature } : {}),
       }),
       signal: AbortSignal.timeout(opts.timeoutMs ?? 30_000),
     });

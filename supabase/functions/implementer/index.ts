@@ -77,17 +77,16 @@ Deno.serve(async (req) => {
         .eq("id", String(body?.process_id ?? "")).maybeSingle();
       if (!proc) throw new HttpError(404, "Processo não encontrado");
       if (proc.status !== "aprovado") throw new HttpError(422, "Aprove o processo antes de implantar");
+      // Confere o Guardião ANTES de publicar o documento (o banco confere de novo ao registrar).
+      const { data: rev } = await org.select("guardian_reviews", "status").eq("subject_type", "processo").eq("subject_id", proc.id).maybeSingle();
+      if (!rev || rev.status === "reprovado") throw new HttpError(422, "O Guardião de segurança precisa aprovar este processo antes da implantação");
       const design = proc.design as ProcessDesign;
       const text = processDocText(proc.nome, proc.setor, design);
       // Guardião: o documento vira instrução de quem fala com o cliente.
       const bloqueios = checkText(text, "documento do processo").filter((f) => f.gravidade === "bloqueia");
       if (bloqueios.length) throw new HttpError(422, `O Guardião de segurança não deixou implantar: ${bloqueios.map((f) => f.texto).join(" ")}`);
-      // Troca o documento anterior deste processo (se houver).
+      // O documento anterior deste processo só sai depois que o novo estiver registrado.
       const oldDoc = (proc.implementation as { doc_id?: string } | null)?.doc_id;
-      if (oldDoc) {
-        await org.delete("knowledge_chunks").eq("doc_id", oldDoc);
-        await org.delete("knowledge_docs").eq("id", oldDoc);
-      }
       const chunks = chunkText(sanitize(text));
       const { data: doc, error: dErr } = await org.insert("knowledge_docs", {
         department_id: proc.department_id, title: `Como funciona: ${proc.nome}`.slice(0, 160), kind: "script", visibility: "atendimento",
@@ -96,10 +95,14 @@ Deno.serve(async (req) => {
       }).select("id").single();
       if (dErr || !doc) throw new HttpError(500, "Não consegui criar o documento do processo");
       const { error: cErr } = await admin.from("knowledge_chunks").insert(chunks.map((content, ord) => ({ organization_id: orgId, doc_id: doc.id, ord, content })));
-      if (cErr) throw new HttpError(500, "Não consegui indexar o documento do processo");
       const template = pickTemplate(proc.nome, design);
-      const { error: iErr } = await admin.rpc("service_process_implemented", { org: orgId, p_id: proc.id, p_impl: { doc_id: doc.id, template } });
-      if (iErr) throw new HttpError(422, iErr.message);
+      const { error: iErr } = cErr ? { error: cErr } : await admin.rpc("service_process_implemented", { org: orgId, p_id: proc.id, p_impl: { doc_id: doc.id, template } });
+      if (iErr) {
+        // Não deixa documento órfão no atendimento: desfaz (os trechos saem junto).
+        await org.delete("knowledge_docs").eq("id", doc.id);
+        throw new HttpError(422, cErr ? "Não consegui indexar o documento do processo" : iErr.message);
+      }
+      if (oldDoc && oldDoc !== doc.id) await org.delete("knowledge_docs").eq("id", oldDoc);
       return json({ ok: true, doc_id: doc.id, template, template_name: template ? TEMPLATES[template]?.name ?? null : null });
     }
 

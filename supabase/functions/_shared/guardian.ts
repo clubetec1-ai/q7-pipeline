@@ -9,7 +9,8 @@ export type Gravidade = "bloqueia" | "atencao";
 export interface Finding { regra: string; gravidade: Gravidade; texto: string; onde: string }
 export type Verdict = "aprovado" | "atencao" | "reprovado";
 
-const NEGA = /(nunca|n[ãa]o|jamais|proibid[oa]|evite|sem)\s+(\S+\s+){0,4}$/i;
+// Negação vale só para até 2 palavras logo antes, na mesma frase ("Não tenha dúvida: garantimos…" não é negação).
+const NEGA = /(nunca|n[ãa]o|jamais|proibid[oa]|evite|sem)\s+([^\s.,:;!?]+\s+){0,2}$/i;
 const negated = (text: string, idx: number) => NEGA.test(text.slice(Math.max(0, idx - 40), idx));
 export function hit(text: string, re: RegExp): boolean {
   const g = new RegExp(re.source, re.flags.includes("g") ? re.flags : re.flags + "g");
@@ -21,6 +22,27 @@ export const PROMESSA = /(garant(o|imos|e)\b[^.!?]{0,40}(resultado|lucro|cura|ap
 export const SENHA = /(senha|\bcvv\b|c[oó]digo de seguran[çc]a do cart|n[uú]mero do cart[ãa]o|dados do cart[ãa]o|token do banco)/i;
 export const CPF = /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/;
 export const CARTAO = /\b(?:\d[ -]?){15,16}\b/;
+
+/** CPF de verdade (dígitos verificadores certos): telefone ou protocolo com 11 dígitos não conta. */
+export function hasCPF(text: string): boolean {
+  for (const m of String(text ?? "").matchAll(new RegExp(CPF.source, "g"))) {
+    const d = m[0].replace(/\D/g, "");
+    if (/^(\d)\1{10}$/.test(d)) continue;
+    const dv = (n: number) => { let s = 0; for (let i = 0; i < n; i++) s += Number(d[i]) * (n + 1 - i); const r = (s * 10) % 11; return r === 10 ? 0 : r; };
+    if (dv(9) === Number(d[9]) && dv(10) === Number(d[10])) return true;
+  }
+  return false;
+}
+/** Número de cartão de verdade (passa no Luhn). */
+export function hasCard(text: string): boolean {
+  for (const m of String(text ?? "").matchAll(new RegExp(CARTAO.source, "g"))) {
+    const d = m[0].replace(/\D/g, "");
+    let s = 0;
+    for (let i = 0; i < d.length; i++) { let x = Number(d[d.length - 1 - i]); if (i % 2) { x *= 2; if (x > 9) x -= 9; } s += x; }
+    if (s % 10 === 0) return true;
+  }
+  return false;
+}
 const BURLA = /(ignore (as |todas as )?(regras|instru[çc][õo]es)|sem restri[çc][õo]es|modo desenvolvedor|finja que n[ãa]o (h[áa]|existem) regras|esque[çc]a (as )?regras)/i;
 
 /** Texto que vai para o cliente ou vira instrução de agente. */
@@ -30,7 +52,7 @@ export function checkText(text: string, onde: string): Finding[] {
   const add = (regra: string, texto: string) => out.push({ regra, gravidade: "bloqueia", texto, onde });
   if (hit(t, PROMESSA)) add("promessa_proibida", "Promete resultado garantido ou \"sem risco\" — o agente não pode prometer o que a empresa não controla.");
   if (hit(t, SENHA)) add("pede_senha_ou_cartao", "Pede senha ou dados de cartão — nunca se pede isso por mensagem (golpe e LGPD).");
-  if (CPF.test(t) || CARTAO.test(t)) add("dado_pessoal_no_texto", "Tem um CPF ou número de cartão escrito no texto — dado pessoal não pode ficar em instrução nem em mensagem pronta.");
+  if (hasCPF(t) || hasCard(t)) add("dado_pessoal_no_texto", "Tem um CPF ou número de cartão escrito no texto — dado pessoal não pode ficar em instrução nem em mensagem pronta.");
   if (BURLA.test(t)) add("tentativa_de_burla", "Tem uma instrução para ignorar as regras — isso é tentativa de burlar a segurança.");
   return out;
 }

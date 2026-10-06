@@ -17,6 +17,7 @@ import { PlansPanel } from "./plataforma/PlansPanel";
 import { NetworksPanel } from "./plataforma/NetworksPanel";
 import { CompanyPanel } from "./plataforma/CompanyPanel";
 import { InpiPanel } from "./plataforma/InpiPanel";
+import { SupportMetricsPanel } from "./plataforma/SupportMetricsPanel";
 import { MainNav } from "@/components/MainNav";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Badge } from "@/components/ui/badge";
@@ -248,7 +249,8 @@ export default function Plataforma() {
           </div>
         </section>
           </TabsContent>
-          <TabsContent value="ajuda" className="pt-4">
+          <TabsContent value="ajuda" className="pt-4 space-y-4">
+        <SupportMetricsPanel />
         <section className="space-y-2">
           <h2 className="font-semibold">Pedidos de ajuda (serviço Clubetec)</h2>
           {requests.length === 0 && <p className="text-sm text-muted-foreground">Nenhum pedido.</p>}

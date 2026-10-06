@@ -1,10 +1,11 @@
+import { fence } from "../_shared/fence.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { requireModule } from "../_shared/modules.ts";
 import { HttpError, requirePermission, requireUser, resolveOrg } from "../_shared/auth.ts";
 import { forOrg } from "../_shared/tenant.ts";
 import { chatAI, resolveAI } from "../_shared/ai-chat.ts";
 import { agentReply } from "../_shared/agent-reply.ts";
-import { checkReply, combine, type Criterio, FIXED_SCENARIOS, GEN_PROMPT, JUDGE_PROMPT, parseJudge, parseScenarios, type Scenario } from "../_shared/proof.ts";
+import { checkReply, combine, type Criterio, needsSecondOpinion, FIXED_SCENARIOS, GEN_PROMPT, JUDGE_PROMPT, parseJudge, parseScenarios, type Scenario } from "../_shared/proof.ts";
 
 /**
  * Prova dos agentes que atendem (desenho 07, fatia 6). Modo teste: nada é enviado a cliente nenhum.
@@ -52,7 +53,7 @@ Deno.serve(async (req) => {
       let gerados: Scenario[] = [];
       if ((procs ?? []).length) {
         const r = await chatAI(ai, [{ role: "system", content: GEN_PROMPT }, { role: "user", content:
-          `Processos aprovados do setor:\n<dados>\n${JSON.stringify(procs).slice(0, 10_000)}\n</dados>` }], undefined, { json: true, timeoutMs: 60_000 });
+          `Processos aprovados do setor:\n<dados>\n${fence(JSON.stringify(procs).slice(0, 10_000))}\n</dados>` }], undefined, { json: true, timeoutMs: 60_000 });
         if (r.ok) gerados = parseScenarios(parse(r.reply));
       }
       for (const f of FALLBACK) if (!gerados.some((g) => g.tipo === f.tipo)) gerados.push(f);
@@ -73,10 +74,19 @@ Deno.serve(async (req) => {
       result = { passou: false, motivo: `O agente não respondeu: ${resp.error ?? "erro"}` };
     } else {
       checks = checkReply(resp.reply, ev.criterios as Criterio[]);
-      const j = await chatAI(ai, [{ role: "system", content: JUDGE_PROMPT }, { role: "user", content:
-        `Cenário (mensagem do cliente): <dados>${ev.mensagem}</dados>\n${ev.contexto ? `Situação: ${ev.contexto}\n` : ""}` +
-        `O que o agente deve fazer: ${ev.esperado}\nResposta do agente: <dados>${resp.reply}</dados>` }], undefined, { json: true, timeoutMs: 45_000 });
-      result = combine(checks, j.ok ? parseJudge(parse(j.reply)) : { passou: false, motivo: "O avaliador não respondeu." });
+      const judge = async (temperature?: number) => {
+        const j = await chatAI(ai, [{ role: "system", content: JUDGE_PROMPT }, { role: "user", content:
+          `Cenário (mensagem do cliente): <dados>${fence(ev.mensagem)}</dados>\n${ev.contexto ? `Situação: ${ev.contexto}\n` : ""}` +
+          `O que o agente deve fazer: ${ev.esperado}\nResposta do agente: <dados>${fence(resp.reply)}</dados>` }], undefined, { json: true, timeoutMs: 45_000, temperature });
+        return j.ok ? parseJudge(parse(j.reply)) : { passou: false, motivo: "O avaliador não respondeu." };
+      };
+      // Segunda leitura só quando todas as regras fixas passaram e o avaliador reprovou (ele às vezes erra a favor da reprovação).
+      let jr = await judge(0);
+      if (needsSecondOpinion(checks, jr)) {
+        const second = await judge();
+        if (second.passou) jr = { passou: true, motivo: `${second.motivo} (segunda leitura do avaliador)` };
+      }
+      result = combine(checks, jr);
     }
     const { error } = await admin.rpc("service_eval_run_save", {
       org: orgId, p_eval: ev.id, p_version: agent?.version ?? 1, p_reply: resp.reply, p_passou: result.passou, p_motivo: result.motivo, p_checks: checks,

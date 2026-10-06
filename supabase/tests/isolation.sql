@@ -1686,6 +1686,8 @@ BEGIN
   PERFORM public.service_eval_set(A, (SELECT id FROM public.ai_agents WHERE organization_id = A AND key = 'exec:geral'), '[{"tipo":"fora_do_horario","origem":"fixo","mensagem":"m","esperado":"e"},{"tipo":"reclamacao","origem":"fixo","mensagem":"m","esperado":"e"},{"tipo":"pedido_proibido","origem":"fixo","mensagem":"m","esperado":"e"},{"tipo":"tentativa_de_burla","origem":"fixo","mensagem":"m","esperado":"e"},{"tipo":"dado_de_outro_cliente","origem":"fixo","mensagem":"m","esperado":"e"},{"tipo":"pergunta_comum","origem":"gerado","mensagem":"m","esperado":"e"},{"tipo":"excecao","origem":"gerado","mensagem":"m","esperado":"e"}]');
   PERFORM public.service_eval_run_save(A, id, 1, 'r', true, 'ok', '[]') FROM public.agent_evals WHERE organization_id = A AND agent_id = (SELECT id FROM public.ai_agents WHERE organization_id = A AND key = 'exec:geral');
   PERFORM pg_temp.expect_error(agent_a, format('SELECT public.set_publish_mode(%L, %L)', A, 'assistido'), 'atendente nao muda o modo');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.set_publish_mode(%L, %L)', A, 'assistido'), 'sem o Guardiao aprovar o Atendente geral nao sobe');
+  PERFORM public.service_guardian_save(A, 'agente', (SELECT id FROM public.ai_agents WHERE organization_id = A AND key = 'exec:geral'), 1, '[]');
   PERFORM pg_temp.run(owner_a, format('SELECT public.set_publish_mode(%L, %L)', A, 'assistido'));
   PERFORM pg_temp.expect((SELECT publish_mode FROM public.agent_configs WHERE organization_id = A) = 'assistido', 'com prova em dia vai para assistido');
   PERFORM pg_temp.expect((SELECT autonomia FROM public.ai_agents WHERE organization_id = A AND key = 'exec:geral') = 'A3', 'assistido = executa com aprovacao');
@@ -1739,6 +1741,53 @@ BEGIN
   PERFORM pg_temp.expect(pg_temp.q(owner_a, format('SELECT count(*) FROM public.process_designs WHERE implemented_at IS NOT NULL AND id = %L', (SELECT id FROM public.process_designs WHERE organization_id = A AND nome = 'Proc Impl'))) = 1, 'dono ve a implantacao');
   UPDATE public.guardian_reviews SET status = 'reprovado' WHERE organization_id = A AND subject_type = 'processo' AND subject_id = (SELECT id FROM public.process_designs WHERE organization_id = A AND nome = 'Proc Impl');
   PERFORM pg_temp.expect(pg_temp.run(NULL, format('SELECT public.service_process_implemented(%L, %L, %L)', A, (SELECT id FROM public.process_designs WHERE organization_id = A AND nome = 'Proc Impl'), '{}')) LIKE 'err:%', 'reprovado pelo Guardiao nao se implanta');
+  -- 107. Funcoes privilegiadas (SECURITY DEFINER) do schema public: nenhuma aberta a anonimo; service_* so para o servidor;
+  -- toda funcao que o usuario logado pode chamar confere permissao/membro (ou esta na lista curta de leitura publica revisada).
+  PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public' AND p.prosecdef AND has_function_privilege('anon', p.oid, 'EXECUTE')), 'nenhuma funcao privilegiada aberta a anonimo');
+  PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public' AND p.proname LIKE 'service\_%' AND has_function_privilege('authenticated', p.oid, 'EXECUTE')), 'service_* nao executavel pelo navegador');
+  PERFORM pg_temp.expect(coalesce((SELECT string_agg(p.proname, ',') FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public' AND p.prosecdef AND has_function_privilege('authenticated', p.oid, 'EXECUTE')
+      AND p.proname NOT IN ('connector_apps_status', 'signup_templates')
+      AND p.prosrc !~* '(has_permission|is_platform|auth\.uid\(\)|is_org_member|is_member|is_network_hq|can_approve|can_design|current_org|private\.[a-z_]*(member|perm|admin|owner|can_))'), '') = '',
+    'toda funcao privilegiada chamavel pelo navegador confere quem chama');
+  -- 108. Medicao de chamados (fatia 10): so a equipe da plataforma ve; dono de empresa nao.
+  PERFORM pg_temp.expect_error(owner_a, 'SELECT public.platform_support_metrics()', 'dono nao ve chamados das outras empresas');
+  PERFORM pg_temp.expect(pg_temp.t(operator, 'SELECT jsonb_typeof(public.platform_support_metrics())') = 'array', 'operador ve a medicao de chamados');
+  -- 109. Revisao de seguranca (fatia 10): documento implantado sai quando o processo muda; disjuntor conta uma vez por conversa;
+  -- descer de degrau sem prova; pausar o Atendente geral volta para a sombra; dono descarta pergunta da rede; anonimizar apaga sugestao.
+  INSERT INTO public.knowledge_docs (id, organization_id, title, kind, visibility, status) VALUES ('aaaaaaaa-0000-0000-0109-000000000001', A, 'Como funciona: Proc Impl', 'script', 'atendimento', 'ready');
+  UPDATE public.guardian_reviews SET status = 'aprovado' WHERE organization_id = A AND subject_type = 'processo' AND subject_id = (SELECT id FROM public.process_designs WHERE organization_id = A AND nome = 'Proc Impl');
+  PERFORM public.service_process_implemented(A, (SELECT id FROM public.process_designs WHERE organization_id = A AND nome = 'Proc Impl'), '{"doc_id":"aaaaaaaa-0000-0000-0109-000000000001"}');
+  UPDATE public.process_designs SET status = 'arquivado' WHERE id = (SELECT id FROM public.process_designs WHERE organization_id = A AND nome = 'Proc Impl');
+  PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM public.knowledge_docs WHERE id = 'aaaaaaaa-0000-0000-0109-000000000001'), 'processo arquivado: documento sai do atendimento');
+  PERFORM pg_temp.expect((SELECT implementation FROM public.process_designs WHERE id = (SELECT id FROM public.process_designs WHERE organization_id = A AND nome = 'Proc Impl')) IS NULL, 'implantacao limpa');
+  UPDATE public.agent_configs SET publish_mode = 'automatico' WHERE organization_id = A;
+  DELETE FROM public.ai_breaker_events WHERE organization_id = A;
+  PERFORM public.service_breaker_event(A, 'guard_block', 'x', 'aaaaaaaa-0000-0000-0004-000000000001'::uuid);
+  PERFORM public.service_breaker_event(A, 'guard_block', 'x', 'aaaaaaaa-0000-0000-0004-000000000001'::uuid);
+  PERFORM public.service_breaker_event(A, 'guard_block', 'x', 'aaaaaaaa-0000-0000-0004-000000000001'::uuid);
+  PERFORM pg_temp.expect((SELECT publish_mode FROM public.agent_configs WHERE organization_id = A) = 'automatico', 'um cliente sozinho nao derruba o degrau');
+  DELETE FROM public.agent_eval_runs WHERE organization_id = A;
+  PERFORM pg_temp.run(owner_a, format('SELECT public.set_publish_mode(%L, %L)', A, 'assistido'));
+  PERFORM pg_temp.expect((SELECT publish_mode FROM public.agent_configs WHERE organization_id = A) = 'assistido', 'descer de degrau nao exige prova');
+  PERFORM pg_temp.run(owner_a, format('SELECT public.set_agent_status(%L, %L)', (SELECT id FROM public.ai_agents WHERE organization_id = A AND key = 'exec:geral'), 'pausado'));
+  PERFORM pg_temp.expect((SELECT publish_mode FROM public.agent_configs WHERE organization_id = A) = 'sombra', 'pausar o Atendente geral volta para a sombra');
+  UPDATE public.guardian_reviews SET status = 'reprovado' WHERE organization_id = A AND subject_type = 'agente' AND subject_id = (SELECT id FROM public.ai_agents WHERE organization_id = A AND key = 'exec:geral');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.set_agent_status(%L, %L)', (SELECT id FROM public.ai_agents WHERE organization_id = A AND key = 'exec:geral'), 'ativo'), 'agente reprovado pelo Guardiao nao e ativado');
+  INSERT INTO public.agent_tasks (id, organization_id, kind, pergunta) VALUES ('aaaaaaaa-0000-0000-0109-000000000002', A, 'pedir_informacao', 'lixo de cliente');
+  PERFORM pg_temp.expect_error(owner_b, 'SELECT public.dismiss_agent_task(''aaaaaaaa-0000-0000-0109-000000000002'')', 'outra org nao descarta pergunta de A');
+  PERFORM pg_temp.run(owner_a, 'SELECT public.dismiss_agent_task(''aaaaaaaa-0000-0000-0109-000000000002'')');
+  PERFORM pg_temp.expect((SELECT status FROM public.agent_tasks WHERE id = 'aaaaaaaa-0000-0000-0109-000000000002') = 'expirada', 'dono descarta pergunta');
+  UPDATE public.contacts SET anonymized_at = now() WHERE id = (SELECT contact_id FROM public.conversations WHERE id = 'aaaaaaaa-0000-0000-0004-000000000001');
+  PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM public.ai_suggestions WHERE conversation_id = 'aaaaaaaa-0000-0000-0004-000000000001' AND content <> '[removido — LGPD]'), 'anonimizar apaga o texto das sugestoes da IA');
+  UPDATE public.contacts SET anonymized_at = NULL WHERE id = (SELECT contact_id FROM public.conversations WHERE id = 'aaaaaaaa-0000-0000-0004-000000000001');
+  PERFORM pg_temp.expect(NOT has_function_privilege('authenticated', 'private.coverage_write(uuid,text,jsonb)', 'EXECUTE')
+    AND NOT has_function_privilege('authenticated', 'private.notify_org_admins(uuid,text,jsonb)', 'EXECUTE'), 'funcoes internas fechadas');
+  -- 110. Setor do Diagnostico com nome mais longo casa com o setor cadastrado (achado da prova de ponta a ponta).
+  PERFORM public.service_process_design_save(A, (SELECT name FROM public.departments WHERE id = 'aaaaaaaa-0000-0000-0001-000000000001') || ' e pedidos a distancia', 'Proc Setor', '{}');
+  PERFORM pg_temp.expect((SELECT department_id FROM public.process_designs WHERE organization_id = A AND nome = 'Proc Setor') = 'aaaaaaaa-0000-0000-0001-000000000001', 'processo ganha o setor cadastrado');
   -- 99. Revisao de area do Diagnostico: so dono/admin ve; so o servidor grava; "esta certo assim" vale.
   PERFORM public.service_diag_findings_save(A, 'empresa', 'Diretor Comercial (IA)', '[{"n":1,"tipo":"incoerencia","gravidade":"critica","texto":"Horario 18h x 24h","etapas":["empresa","posvenda"],"sugestao":"s"},{"n":2,"tipo":"inventado","gravidade":"critica","texto":"x","etapas":[]},{"n":3,"tipo":"risco","gravidade":"baixa","texto":"Promete brinde","etapas":["empresa"],"sugestao":""}]');
   PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT open_critical FROM public.diag_findings WHERE step_key = ''empresa''') = 1, 'dono ve a revisao com 1 critica aberta');

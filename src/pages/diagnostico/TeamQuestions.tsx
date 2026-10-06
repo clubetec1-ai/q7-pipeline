@@ -35,6 +35,15 @@ export function TeamQuestions({ orgId, labelOf, onAnswered }: { orgId: string; l
     void load();
   };
 
+  // Pergunta sem sentido (ou que não vale responder) sai da lista; a do dono também vence sozinha em 14 dias.
+  const dismiss = async (t: Task) => {
+    setBusy(t.id);
+    const { error } = await supabase.rpc("dismiss_agent_task", { p_task: t.id });
+    setBusy(null);
+    if (error) return toast({ variant: "destructive", title: "Não descartei", description: error.message });
+    void load();
+  };
+
   return (
     <section data-demo="perguntas-time" className="rounded-xl border border-primary/40 bg-primary/5 p-3 space-y-2">
       <p className="font-medium flex items-center gap-2 text-sm"><MessagesSquare className="w-4 h-4" /> Perguntas do time de IA ({tasks.length})</p>
@@ -45,7 +54,10 @@ export function TeamQuestions({ orgId, labelOf, onAnswered }: { orgId: string; l
             <p><b>{t.pergunta}</b> <span className="text-xs text-muted-foreground">· vai para a etapa {labelOf(t.etapa ?? "empresa")}</span></p>
             <MicTextarea orgId={orgId} rows={2} maxLength={2000} placeholder="Sua resposta. Ex.: Sim, aos sábados das 8h às 12h." value={text[t.id] ?? ""}
               onChange={(v) => setText({ ...text, [t.id]: v })} />
-            <Button size="sm" disabled={busy === t.id || (text[t.id] ?? "").trim().length < 2} onClick={() => void answer(t)}>Responder</Button>
+            <div className="flex gap-2">
+              <Button size="sm" disabled={busy === t.id || (text[t.id] ?? "").trim().length < 2} onClick={() => void answer(t)}>Responder</Button>
+              <Button size="sm" variant="ghost" disabled={busy === t.id} title="A pergunta não faz sentido ou não vale responder" onClick={() => void dismiss(t)}>Descartar</Button>
+            </div>
           </li>
         ))}
       </ul>

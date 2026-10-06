@@ -466,6 +466,7 @@ export type Database = {
       }
       ai_breaker_events: {
         Row: {
+          conversation_id: string | null
           created_at: string
           detail: string
           id: number
@@ -473,6 +474,7 @@ export type Database = {
           organization_id: string
         }
         Insert: {
+          conversation_id?: string | null
           created_at?: string
           detail?: string
           id?: never
@@ -480,6 +482,7 @@ export type Database = {
           organization_id: string
         }
         Update: {
+          conversation_id?: string | null
           created_at?: string
           detail?: string
           id?: never
@@ -5666,6 +5669,7 @@ export type Database = {
         Args: { improvement: string; reason: string }
         Returns: undefined
       }
+      dismiss_agent_task: { Args: { p_task: string }; Returns: undefined }
       ensure_team_channels: { Args: { org: string }; Returns: undefined }
       export_contacts: { Args: { org: string }; Returns: Json }
       flow_stats: {
@@ -5964,6 +5968,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      platform_support_metrics: { Args: never; Returns: Json }
       publish_flow: { Args: { flow: string }; Returns: number }
       report: {
         Args: {
@@ -6229,7 +6234,7 @@ export type Database = {
         Returns: string
       }
       service_breaker_event: {
-        Args: { org: string; p_detail: string; p_kind: string }
+        Args: { org: string; p_conv?: string; p_detail: string; p_kind: string }
         Returns: string
       }
       service_can_add_number: { Args: { org: string }; Returns: boolean }

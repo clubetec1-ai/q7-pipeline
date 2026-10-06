@@ -74,3 +74,10 @@ Deno.test("leitura da IA: só categorias da lista, sempre como atenção (a IA n
   assertEquals(out[0].regra, "ia_promessa");
   assertEquals(parseAIAttention("lixo"), []);
 });
+
+Deno.test("revisão de segurança: telefone com 11 dígitos não é CPF; negação de outra frase não salva promessa", () => {
+  assertEquals(checkText("Pode ligar no 11999999999 ou 11987654321, protocolo 20261006142.", "x"), []);
+  assert(checkText("Não tenha dúvida: garantimos o resultado.", "x").some((f) => f.regra === "promessa_proibida"));
+  assert(checkText("CPF 123.456.789-09", "x").some((f) => f.regra === "dado_pessoal_no_texto"));
+  assert(checkText("cartão 4111 1111 1111 1111", "x").some((f) => f.regra === "dado_pessoal_no_texto"));
+});
