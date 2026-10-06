@@ -7,7 +7,7 @@
  * Qualquer falha devolve null e a mensagem segue com o rótulo ("[imagem]").
  * Liga/desliga por empresa: settings.ai_read_media (padrão ligado).
  */
-import { AI_PROVIDERS, resolveAI } from "./ai-chat.ts";
+import { AI_PROVIDERS, platformChain, resolveAI, type ResolvedAI } from "./ai-chat.ts";
 import { listChatModels } from "./get-ai-config.ts";
 
 const MAX_IMAGE = 3_500_000; // limite prático das APIs com visão (base64 ≈ +33%)
@@ -33,74 +33,57 @@ function toBase64(bytes: Uint8Array): string {
 
 async function visionModel(provider: string, apiKey: string, chosen: string): Promise<string | null> {
   if (provider === "groq") {
+    // Só um modelo que a Groq listar como ativo (os de visão mudam de nome e são descontinuados).
     const ids = await listChatModels(apiKey);
-    return ids.find((m) => /llama-4-scout/i.test(m)) ?? ids.find((m) => /llama-4|vision/i.test(m))
-      ?? "meta-llama/llama-4-scout-17b-16e-instruct";
+    return ids.find((m) => /llama-4-scout/i.test(m)) ?? ids.find((m) => /llama-4|vision|maverick/i.test(m)) ?? null;
   }
   if (provider in VISION_DEFAULT) return chosen && provider !== "deepseek" ? chosen : VISION_DEFAULT[provider];
   return null;
 }
 
-/** Pergunta qualquer coisa sobre uma imagem à IA com visão da empresa (falha = null). */
+/**
+ * Pergunta qualquer coisa sobre uma imagem à IA com visão. Tenta a IA da empresa e, se ela
+ * não tiver visão ou falhar, as IAs da plataforma na ordem (ex.: Groq sem modelo de visão → OpenAI).
+ * Nunca derruba nada: falha = null.
+ */
 // deno-lint-ignore no-explicit-any
 export async function askVision(admin: any, orgId: string, bytes: Uint8Array, mime: string, prompt: string, maxTokens = 400): Promise<string | null> {
   if (bytes.length > MAX_IMAGE) return null;
-  const ai = await resolveAI(admin, orgId);
-  if (!ai) return null;
-  const model = await visionModel(ai.provider, ai.apiKey, ai.provider === "groq" ? "" : ai.model);
-  if (!model) return null;
-  const endpoint = (AI_PROVIDERS[ai.provider] ?? AI_PROVIDERS.groq).endpoint;
-  try {
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${ai.apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model, max_tokens: maxTokens,
-        messages: [{ role: "user", content: [
-          { type: "text", text: prompt },
-          { type: "image_url", image_url: { url: `data:${mime};base64,${toBase64(bytes)}` } },
-        ] }],
-      }),
-      signal: AbortSignal.timeout(25_000),
-    });
-    if (!res.ok) { console.log("[media-read] visão indisponível", { provider: ai.provider, status: res.status }); return null; }
-    const out = String((await res.json())?.choices?.[0]?.message?.content ?? "").trim();
-    return out || null;
-  } catch {
-    return null;
+  const first = await resolveAI(admin, orgId);
+  const pool: ResolvedAI[] = [...(first ? [first, ...(first.fallbacks ?? [])] : []), ...(await platformChain(admin, orgId))];
+  const seen = new Set<string>();
+  const image = `data:${mime};base64,${toBase64(bytes)}`;
+  for (const ai of pool) {
+    const id = `${ai.provider}:${ai.apiKey.slice(-6)}`;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const model = await visionModel(ai.provider, ai.apiKey, ai.provider === "groq" ? "" : ai.model);
+    if (!model) continue;
+    const endpoint = (AI_PROVIDERS[ai.provider] ?? AI_PROVIDERS.groq).endpoint;
+    try {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${ai.apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model, max_tokens: maxTokens,
+          messages: [{ role: "user", content: [{ type: "text", text: prompt }, { type: "image_url", image_url: { url: image } }] }],
+        }),
+        signal: AbortSignal.timeout(25_000),
+      });
+      if (!res.ok) { console.log("[media-read] visão indisponível", { provider: ai.provider, model, status: res.status }); continue; }
+      const out = String((await res.json())?.choices?.[0]?.message?.content ?? "").trim();
+      if (out) return out;
+    } catch {
+      // tenta a próxima
+    }
   }
+  return null;
 }
 
 // deno-lint-ignore no-explicit-any
 async function describeImage(admin: any, orgId: string, bytes: Uint8Array, mime: string, caption: string): Promise<string | null> {
-  if (bytes.length > MAX_IMAGE) return null;
-  const ai = await resolveAI(admin, orgId);
-  if (!ai) return null;
-  const model = await visionModel(ai.provider, ai.apiKey, ai.provider === "groq" ? "" : ai.model);
-  if (!model) return null;
-  const endpoint = (AI_PROVIDERS[ai.provider] ?? AI_PROVIDERS.groq).endpoint;
-  try {
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${ai.apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model, max_tokens: 400,
-        messages: [{ role: "user", content: [
-          { type: "text", text: caption ? `${PROMPT}\nLegenda enviada junto: ${caption.slice(0, 300)}` : PROMPT },
-          { type: "image_url", image_url: { url: `data:${mime};base64,${toBase64(bytes)}` } },
-        ] }],
-      }),
-      signal: AbortSignal.timeout(25_000),
-    });
-    if (!res.ok) {
-      console.log("[media-read] visão indisponível", { provider: ai.provider, status: res.status });
-      return null;
-    }
-    const out = String((await res.json())?.choices?.[0]?.message?.content ?? "").trim();
-    return out ? out.slice(0, MAX_TEXT) : null;
-  } catch {
-    return null;
-  }
+  const out = await askVision(admin, orgId, bytes, mime, caption ? `${PROMPT}\nLegenda enviada junto: ${caption.slice(0, 300)}` : PROMPT, 400);
+  return out ? out.slice(0, MAX_TEXT) : null;
 }
 
 async function pdfText(bytes: Uint8Array): Promise<string | null> {
