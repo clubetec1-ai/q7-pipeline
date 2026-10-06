@@ -19,7 +19,15 @@ export function OrganogramaMock({ state }: { state: string }) {
           {proposto && <B d="btn-aprovar-time" primary><Check className="h-2.5 w-2.5" /> Aprovar o time (6)</B>}
         </span>
       </p>
-      {!montado ? <p className="rounded border border-dashed p-2 text-muted-foreground">Ainda não há time.</p> : (
+      {state === "rede" && (
+        <div data-demo="rede" className="rounded border p-1.5 space-y-0.5">
+          <p className="font-medium">Rede do time de IA</p>
+          <p>Atendente (IA) → Coordenador (IA) → Cérebro (IA) → <b>você</b></p>
+          <p className="rounded bg-muted px-1">“Vocês atendem aos sábados?” — <span className="text-success-text">resolvida pelo time (fonte: Diagnóstico)</span></p>
+          <p data-demo="pergunta-voce" className="rounded bg-primary/10 px-1">“Fazem entrega em outra cidade?” — <b>esperando você no Diagnóstico</b></p>
+        </div>
+      )}
+      {state === "rede" ? null : !montado ? <p className="rounded border border-dashed p-2 text-muted-foreground">Ainda não há time.</p> : (
         <div className="space-y-1">
           <Card d="agente-cerebro" cls="border-primary bg-primary/5"><b>Cérebro — visão de CEO (IA)</b> {proposto && <span className="rounded bg-warning-soft px-1 text-warning-text">Para aprovar</span>}</Card>
           <div className="ml-3 space-y-1 border-l pl-2">

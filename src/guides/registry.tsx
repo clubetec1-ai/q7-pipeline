@@ -506,6 +506,19 @@ export const GUIDES: Guide[] = [
           { state: "prova", target: "btn-rodar", caption: "Rodar a prova: nada vai para cliente de verdade" },
         ],
       },
+      {
+        title: "O time conversa entre si",
+        body: (
+          <>
+            <p>Quando um cliente pergunta algo que não está nas informações da empresa, o agente que atende anota a dúvida (sem dados do cliente). Ela <b>sobe pelo time</b>: cada nível tenta responder com o que pode ver (Diagnóstico, processos, base de conhecimento). Se ninguém souber, chega a <b>você</b>, em "Perguntas do time de IA" no Diagnóstico.</p>
+            <p className="text-muted-foreground">Sua resposta entra na etapa certa do Diagnóstico — organize de novo e o agente passa a saber. O resumo da rede fica no Cérebro.</p>
+          </>
+        ),
+        demo: [
+          { state: "rede", target: "rede", caption: "A dúvida sobe pelo time; muitas o próprio time resolve" },
+          { state: "rede", target: "pergunta-voce", caption: "O que ninguém sabe chega a você no Diagnóstico" },
+        ],
+      },
     ],
   },
 ];

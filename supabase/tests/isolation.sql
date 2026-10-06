@@ -1705,6 +1705,28 @@ BEGIN
     VALUES (A, 'aaaaaaaa-0000-0000-0004-000000000001', 'sugestao', 'sombra', 'sombra');
   PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.ai_suggestions') = 0, 'outra org nao ve as sugestoes');
   PERFORM pg_temp.expect(pg_temp.run(owner_a, format('INSERT INTO public.ai_suggestions (organization_id, conversation_id, content, mode, motivo) VALUES (%L, %L, %L, %L, %L)', A, 'aaaaaaaa-0000-0000-0004-000000000001', 'x', 'sombra', 'sombra')) LIKE 'err:%', 'navegador nao cria sugestao');
+  -- 105. Rede de agentes: pergunta sobe pela hierarquia; dono responde e a resposta entra no Diagnostico.
+  PERFORM public.service_org_chart_save(A, '[{"key":"cerebro","level":"cerebro","parent":null,"papel":"Cerebro (IA)","cracha":{"dados":["diagnostico"],"acoes":["delegar"]},"autonomia":"A1"},{"key":"exec:geral","level":"executor","parent":"cerebro","papel":"Atendente geral (IA)","cracha":{"dados":["conversa_em_andamento"],"acoes":["responder_cliente","passar_para_pessoa"]},"autonomia":"A1"}]');
+  PERFORM public.service_agent_task_create(A, 'exec:geral', 'pedir_informacao', 'Voces atendem aos sabados?', 'cliente perguntou', 'empresa');
+  PERFORM pg_temp.expect((SELECT ag.key FROM public.agent_tasks t JOIN public.ai_agents ag ON ag.id = t.to_agent WHERE t.organization_id = A AND t.pergunta = 'Voces atendem aos sabados?') = 'cerebro', 'pergunta sobe para o superior');
+  PERFORM public.service_agent_task_create(A, 'exec:geral', 'pedir_informacao', 'voces atendem aos sabados?', 'de novo', 'empresa');
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.agent_tasks WHERE organization_id = A AND lower(pergunta) = 'voces atendem aos sabados?') = 1, 'pergunta igual nao se repete');
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT count(*) FROM public.agent_tasks') >= 1, 'dono ve a rede');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.agent_tasks') = 0, 'outra org nao ve a rede');
+  PERFORM pg_temp.expect(pg_temp.q(agent2_a, 'SELECT count(*) FROM public.agent_tasks') = 0, 'atendente nao ve a rede');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('INSERT INTO public.agent_tasks (organization_id, kind, pergunta) VALUES (%L, %L, %L)', A, 'alertar', 'x')) LIKE 'err:%', 'navegador nao cria tarefa direto');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_agent_task_escalate(%L, %L)', A, (SELECT id FROM public.agent_tasks WHERE organization_id = A AND pergunta = 'Voces atendem aos sabados?')), 'navegador nao escala');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.answer_agent_task(%L, %L)', (SELECT id FROM public.agent_tasks WHERE organization_id = A AND pergunta = 'Voces atendem aos sabados?'), 'Sim'), 'nao responde o que ainda esta com um agente');
+  PERFORM public.service_agent_task_escalate(A, (SELECT id FROM public.agent_tasks WHERE organization_id = A AND pergunta = 'Voces atendem aos sabados?'));
+  PERFORM pg_temp.expect((SELECT to_agent IS NULL AND depth = 1 FROM public.agent_tasks WHERE id = (SELECT id FROM public.agent_tasks WHERE organization_id = A AND pergunta = 'Voces atendem aos sabados?')), 'do cerebro sobe para o dono');
+  PERFORM pg_temp.expect(EXISTS (SELECT 1 FROM public.notifications WHERE organization_id = A AND kind = 'agent_question'), 'dono e avisado');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.answer_agent_task(%L, %L)', (SELECT id FROM public.agent_tasks WHERE organization_id = A AND pergunta = 'Voces atendem aos sabados?'), 'Sim'), 'atendente nao responde pelo dono');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.answer_agent_task(%L, %L)', (SELECT id FROM public.agent_tasks WHERE organization_id = A AND pergunta = 'Voces atendem aos sabados?'), 'Sim'), 'outra org nao responde');
+  PERFORM pg_temp.run(owner_a, format('SELECT public.answer_agent_task(%L, %L)', (SELECT id FROM public.agent_tasks WHERE organization_id = A AND pergunta = 'Voces atendem aos sabados?'), 'Sim, das 8h as 12h'));
+  PERFORM pg_temp.expect((SELECT status FROM public.agent_tasks WHERE id = (SELECT id FROM public.agent_tasks WHERE organization_id = A AND pergunta = 'Voces atendem aos sabados?')) = 'respondida', 'dono responde');
+  PERFORM pg_temp.expect((SELECT steps -> 'empresa' ->> 'raw' FROM public.company_profiles WHERE organization_id = A) LIKE '%das 8h as 12h%', 'resposta entra na etapa do Diagnostico');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.answer_agent_task(%L, %L)', (SELECT id FROM public.agent_tasks WHERE organization_id = A AND pergunta = 'Voces atendem aos sabados?'), 'de novo'), 'pergunta respondida nao se responde de novo');
+  PERFORM pg_temp.expect(public.service_agent_task_create(A, 'inexistente', 'pedir_informacao', 'x?', '', 'empresa') IS NULL, 'agente que nao existe nao cria pergunta');
   -- 99. Revisao de area do Diagnostico: so dono/admin ve; so o servidor grava; "esta certo assim" vale.
   PERFORM public.service_diag_findings_save(A, 'empresa', 'Diretor Comercial (IA)', '[{"n":1,"tipo":"incoerencia","gravidade":"critica","texto":"Horario 18h x 24h","etapas":["empresa","posvenda"],"sugestao":"s"},{"n":2,"tipo":"inventado","gravidade":"critica","texto":"x","etapas":[]},{"n":3,"tipo":"risco","gravidade":"baixa","texto":"Promete brinde","etapas":["empresa"],"sugestao":""}]');
   PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT open_critical FROM public.diag_findings WHERE step_key = ''empresa''') = 1, 'dono ve a revisao com 1 critica aberta');

@@ -62,7 +62,7 @@ npx supabase functions deploy <funcao> --project-ref ulmndwlralgjbwlebxmo
 | 5 ✅ | Guardião de segurança e LGPD | Revisão obrigatória de propostas, agentes e fluxos antes da prova, com motivos; nada reprovado segue | Escrever ao começar |
 | 6 ✅ | Prova (cenários) | 7 cenários obrigatórios por executor, modo teste sem enviar a cliente, regressão a cada mudança, tela Prova | Escrever ao começar |
 | 7 ✅ | Degraus + disjuntor + vigia de custo | Sombra → assistido → automático por executor; volta sozinho se errar; botão Parar; aviso de gasto fora do normal com o motivo | Escrever ao começar |
-| 8 | A rede de agentes | `agent_tasks` (pedir informação, revisar, propor, alertar, escalar), profundidade ≤ 3, orçamento, expiração, perguntas voltando ao Diagnóstico | Escrever ao começar |
+| 8 ✅ | A rede de agentes | `agent_tasks` (pedir informação, revisar, propor, alertar, escalar), profundidade ≤ 3, orçamento, expiração, perguntas voltando ao Diagnóstico | Escrever ao começar |
 | 9 | Implantação pelo organograma | Implementador monta rascunhos por especialista/executor a partir dos processos aprovados | Escrever ao começar |
 | 10 | Acabamento e prova final | Guias e vídeos, revisão de segurança completa (agente revisor), isolamento, Clubetec do zero ponta a ponta, medição de chamados | Escrever ao começar |
 | 11 | Cérebro da plataforma (pedido do dono, 06/10 — desenho §12) | Sinais → incidentes → equipe de IA dona → diagnóstico → correção proposta → revisão → aprovação humana → verificação; só metadados; nenhum deploy sozinho | Escrever ao começar |
@@ -494,3 +494,29 @@ sino, guia do Assistente (passo dos degraus), teste de isolamento 104.
 - [x] Telas, sino, e-mail e guia; `tsc` e `build` ok.
 - [ ] Fluxos com bloco de IA também passarem pela porta (fatia 9, implantação).
 - [ ] Prova de ponta a ponta com mensagens reais: no teste da Clubetec do zero.
+
+---
+
+## Fatia 8 — A rede de agentes ✅ (06/10)
+
+**Como funciona:** quando o agente que atende não acha a informação nos dados da empresa, ele marca `[FALTA: …]` (a marca
+sai da resposta ao cliente; a pergunta passa por `redact` e perde nome/telefone/e-mail — `_shared/network.ts`). A pergunta
+vira tarefa (`agent_tasks`) e **sobe pela hierarquia**: vai para o superior de quem perguntou; cada nível tenta responder
+**só com o que o próprio crachá vê** (Diagnóstico, processos do seu setor, base de conhecimento interna) — função
+`agent-network`, chamada pelo agendamento a cada 5 min **só quando há tarefa com agente** (economia de cota). Sabe → responde
+(com a fonte). Não sabe, passou do prazo (1 dia) ou de 2 tentativas → sobe; do cérebro (ou acima de 3 níveis) → **dono**:
+aviso no sino e "Perguntas do time de IA" no Diagnóstico, com microfone. A resposta do dono entra no texto da etapa certa
+(`guessStage`) — a tela acompanha o mesmo texto para o salvar sozinho não apagar. Perguntas iguais não se repetem; no máximo
+30 abertas por empresa. Executor nunca recebe pergunta de colega (só fala com cliente). Resumo da rede no Cérebro.
+
+**Arquivos:** migration `20261006002700_agent_network.sql` (`agent_tasks`; `service_agent_task_create/answer/escalate/
+claim`; `answer_agent_task` (dono; grava na etapa); `private.agent_network_tick` + cron `agent-network`), `_shared/network.ts`
++ teste (3), `publish-gate` (instrução `[FALTA: …]`), `publish-apply` (cria a tarefa), função nova `agent-network`
+(verify_jwt=false + segredo do cron; recusa sem segredo — 401), telas `src/pages/diagnostico/TeamQuestions.tsx` e
+`src/pages/cerebro/NetworkPanel.tsx`, sino (`agent_question`), guia do Time de IA (passo da rede), teste de isolamento 105.
+
+- [x] `network_test.ts` (3) passando; teste 105 visto falhar e passar; bateria completa ok.
+- [x] Publicados: agent-network, whatsapp-webhook, meta-webhook, sync-email, process-inbound; a rede recusa chamada sem segredo.
+- [x] Telas, sino e guia; `tsc` e `build` ok.
+- [ ] Ver a rede respondendo de verdade (time montado, processos aprovados, mensagens reais): no teste da Clubetec do zero.
+- [ ] Próximo uso da rede: o cérebro semanal delegar tarefas por ela (pedir revisão a diretores, alertas) — junto com a fatia 9.

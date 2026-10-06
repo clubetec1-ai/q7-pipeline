@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { memberNames, type MemberName } from "@/lib/memberNames";
 import { AppHeader } from "@/components/AppHeader";
 import { SectionTabs } from "@/components/layout/SectionTabs";
+import { NetworkPanel } from "./cerebro/NetworkPanel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -160,6 +161,7 @@ export default function Cerebro() {
             <Button asChild variant="outline" size="sm"><Link to="/organograma">Time de IA</Link></Button>
             <Button asChild variant="outline" size="sm"><Link to="/processos">Processos</Link></Button>
           </div>
+          {owner && org && <div className="w-full"><NetworkPanel orgId={org.id} /></div>}
           {owner && (
             <div className="flex flex-wrap items-center gap-2">
               <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer" title="Resumo da semana, metas fora do rumo e propostas paradas no seu e-mail">

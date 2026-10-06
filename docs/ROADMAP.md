@@ -74,7 +74,10 @@ da IA (WhatsApp, Facebook/Instagram, e-mail) passa pela porta única — sombra 
 assistido (envia o simples), automático; trava fixa segura promessa, pedido de senha e dado pessoal; subir exige o
 Atendente geral (IA) com prova em dia e, para automático, 14 dias sem tropeço; disjuntor volta um degrau após 3 tropeços em
 24 h e avisa; vigia de custo diário; e fechadas permissões de TRUNCATE/TRIGGER que 36 tabelas davam ao usuário logado.
-Teste 104. Próximo: Fatia 8 — a rede de agentes.
+Teste 104. ✅ **Fatia 8 — A rede de agentes (06/10):** o que o agente que atende não encontra vira pergunta (sem dados do
+cliente) que sobe pelo time; cada nível tenta responder com o que o crachá dele vê; o que ninguém sabe chega ao dono em
+"Perguntas do time de IA" no Diagnóstico e a resposta entra na etapa certa; resumo no Cérebro; roda a cada 5 min só quando
+há pergunta; teste 105. Próximo: Fatia 9 — implantação pelo organograma.
 🧠 **Fatia 11 nova — Cérebro da plataforma (pedido do dono, 06/10; desenho 07 §12):** o cérebro também gerencia o software
 inteiro para todas as empresas — saúde, falhas, bugs, alertas, correções e melhorias —, com equipes de IA de engenharia
 (front-end, back-end, integrações), segurança, qualidade, design e suporte; só metadados (nunca conversa de cliente);
