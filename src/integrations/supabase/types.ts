@@ -248,6 +248,91 @@ export type Database = {
           },
         ]
       }
+      agent_tasks: {
+        Row: {
+          answered_by: string | null
+          answered_by_agent: string | null
+          calls_used: number
+          contexto: string
+          created_at: string
+          depth: number
+          done_at: string | null
+          due_at: string
+          etapa: string | null
+          fonte: string | null
+          from_agent: string | null
+          id: string
+          kind: string
+          organization_id: string
+          pergunta: string
+          resposta: string | null
+          status: string
+          to_agent: string | null
+        }
+        Insert: {
+          answered_by?: string | null
+          answered_by_agent?: string | null
+          calls_used?: number
+          contexto?: string
+          created_at?: string
+          depth?: number
+          done_at?: string | null
+          due_at?: string
+          etapa?: string | null
+          fonte?: string | null
+          from_agent?: string | null
+          id?: string
+          kind: string
+          organization_id: string
+          pergunta: string
+          resposta?: string | null
+          status?: string
+          to_agent?: string | null
+        }
+        Update: {
+          answered_by?: string | null
+          answered_by_agent?: string | null
+          calls_used?: number
+          contexto?: string
+          created_at?: string
+          depth?: number
+          done_at?: string | null
+          due_at?: string
+          etapa?: string | null
+          fonte?: string | null
+          from_agent?: string | null
+          id?: string
+          kind?: string
+          organization_id?: string
+          pergunta?: string
+          resposta?: string | null
+          status?: string
+          to_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_tasks_from_fk"
+            columns: ["from_agent", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "agent_tasks_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_tasks_to_fk"
+            columns: ["to_agent", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id", "organization_id"]
+          },
+        ]
+      }
       agent_versions: {
         Row: {
           agent_id: string
@@ -5407,6 +5492,10 @@ export type Database = {
       add_default_tags: { Args: { org: string }; Returns: number }
       agent_proof_status: { Args: { p_agent: string }; Returns: Json }
       ai_keys_status: { Args: { org: string }; Returns: Json }
+      answer_agent_task: {
+        Args: { p_resposta: string; p_task: string }
+        Returns: undefined
+      }
       approve_improvement: { Args: { improvement: string }; Returns: undefined }
       approve_org_chart: { Args: { org: string }; Returns: number }
       approve_process_design: { Args: { p_id: string }; Returns: undefined }
@@ -5996,6 +6085,59 @@ export type Database = {
           src: string
         }
         Returns: number
+      }
+      service_agent_task_answer: {
+        Args: {
+          org: string
+          p_fonte: string
+          p_resposta: string
+          p_task: string
+        }
+        Returns: undefined
+      }
+      service_agent_task_create: {
+        Args: {
+          org: string
+          p_contexto: string
+          p_etapa: string
+          p_from_key: string
+          p_kind: string
+          p_pergunta: string
+        }
+        Returns: string
+      }
+      service_agent_task_escalate: {
+        Args: { org: string; p_task: string }
+        Returns: undefined
+      }
+      service_agent_tasks_claim: {
+        Args: { p_limit: number }
+        Returns: {
+          answered_by: string | null
+          answered_by_agent: string | null
+          calls_used: number
+          contexto: string
+          created_at: string
+          depth: number
+          done_at: string | null
+          due_at: string
+          etapa: string | null
+          fonte: string | null
+          from_agent: string | null
+          id: string
+          kind: string
+          organization_id: string
+          pergunta: string
+          resposta: string | null
+          status: string
+          to_agent: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "agent_tasks"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       service_ai_failover_alert: {
         Args: { slot_name: string }

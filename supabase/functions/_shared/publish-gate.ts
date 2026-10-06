@@ -14,7 +14,8 @@ export interface GateOut { send: boolean; reply: string; suggestion: string; mot
 
 export const MODE_RULE = "Ao final da resposta, numa linha separada, escreva [SIMPLES] se ela é uma informação direta que está nas " +
   "informações da empresa, ou [PESSOA] se o caso precisa de uma pessoa (reclamação, negociação, exceção, algo que você não sabe ou não " +
-  "pode decidir). Essa marca é interna e não aparece para o cliente.";
+  "pode decidir). Se o cliente perguntou algo sobre a empresa que NÃO está nas informações, escreva também, numa linha " +
+  "separada, [FALTA: a pergunta curta, sem nome, telefone ou dado do cliente]. Essas marcas são internas e não aparecem para o cliente.";
 export const HANDOFF_TEXT = "Vou chamar alguém da nossa equipe para te ajudar, só um instante.";
 
 const MARK = /\[(SIMPLES|PESSOA)\]/gi;

@@ -76,3 +76,6 @@ verify_jwt = false
 
 [functions.inpi-watch]
 verify_jwt = false
+
+[functions.agent-network]
+verify_jwt = false

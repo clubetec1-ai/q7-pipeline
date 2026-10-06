@@ -26,6 +26,7 @@ import { MicTextarea } from "@/components/MicTextarea";
 import { ExplainAsk } from "./diagnostico/ExplainAsk";
 import { CoverageBar, loadCoverage, pendingOf } from "./diagnostico/CoverageBar";
 import { ReviewPanel, loadReview, openCriticalOf } from "./diagnostico/ReviewPanel";
+import { TeamQuestions } from "./diagnostico/TeamQuestions";
 import { HowItWorks } from "./diagnostico/HowItWorks";
 import { PresenceTexts, SectorDelegation } from "./diagnostico/Part2";
 
@@ -587,6 +588,10 @@ export default function Diagnostico() {
                   <span className="ml-2 text-xs font-normal text-muted-foreground">~{setor ? 5 : step?.min ?? 5} min</span></h1>
                 {approved(page) && <Badge>Aprovado</Badge>}
               </div>
+              <TeamQuestions orgId={org.id} labelOf={pageLabel} onAnswered={(etapa, add) => {
+                setProfile((p) => ({ ...p, steps: { ...p.steps, [etapa]: { ...(p.steps[etapa] ?? {}), raw: `${(p.steps[etapa]?.raw ?? "").trim()}\n\n${add}`.trim() } } }));
+                if (etapa === page) setRaw((r) => `${r.trim()}\n\n${add}`.trim());
+              }} />
               <ExplainAsk key={page} orgId={org.id} step={setor ? "processos" : page} setor={setor} items={setor ? PROC_ASK : step?.ask ?? []} />
               {page !== "plano" && <CoverageBar key={`cov-${page}`} orgId={org.id} stepKey={page} refresh={covTick} />}
               {page !== "plano" && <ReviewPanel key={`rev-${page}`} orgId={org.id} stepKey={page} refresh={covTick}
