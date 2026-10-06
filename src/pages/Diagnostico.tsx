@@ -91,7 +91,9 @@ interface Proc {
 /** Setores que quase toda empresa tem: ponto de partida para o dono editar (como as etiquetas padrão). */
 const COMMON_SECTORS = ["Vendas / Comercial", "Atendimento ao cliente", "Financeiro", "Administrativo", "Marketing",
   "Operação / Produção", "Logística / Entregas", "Compras", "RH / Pessoas"];
-interface StepState { raw?: string; approved_at?: string; skipped_at?: string; setores?: string[]; attachments?: { id: string; name: string }[]; tpl?: string; horario?: Hours }
+/** Conferência da etapa (o que a IA organizou + ajustes do dono), salva até aprovar ou cancelar. */
+type Draft = { secoes?: Record<string, string>; processos?: Proc[]; setores?: string[]; horario?: Hours; faltando: string[] };
+interface StepState { raw?: string; approved_at?: string; skipped_at?: string; setores?: string[]; attachments?: { id: string; name: string }[]; tpl?: string; horario?: Hours; review?: Draft }
 interface Suggestion { titulo: string; tipo: "pronta" | "integracao"; modelo: string | null; sistema: string | null; instalado?: { kind: "flow" | "record_type"; id: string } }
 interface Auto { titulo: string; setor: string; tipo: "sem_ia" | "ia" | "integracao"; descricao: string; impacto: string; esforco: string; custo: { volume: number; groq: number; claude: number; claude_model: string } | null }
 interface Plan {
@@ -123,7 +125,7 @@ export default function Diagnostico() {
   // Só mostra/salva o texto da etapa depois que o retrato salvo chegou do banco.
   const [ready, setReady] = useState(false);
   const [raw, setRaw] = useState("");
-  const [draft, setDraft] = useState<{ secoes?: Record<string, string>; processos?: Proc[]; setores?: string[]; horario?: Hours; faltando: string[] } | null>(null);
+  const [draft, setDraft] = useState<Draft | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [research, setResearch] = useState({ site: "", cnpj: "" });
   const [copies, setCopies] = useState(0);
@@ -205,16 +207,41 @@ export default function Diagnostico() {
     return () => window.clearTimeout(t);
   }, [raw, atts, page, saveDraft]);
 
+  // A conferência também é salva sozinha (some só ao aprovar ou cancelar).
+  const reviewShown = useRef({ page: "", json: "null" });
+  const saveReview = useCallback(async (k: string, d: Draft | null) => {
+    if (!org || k === "plano") return;
+    const { error } = await supabase.rpc("save_step_review", { org: org.id, p_key: k, p_review: d as never });
+    if (error) return;
+    if (reviewShown.current.page === k) reviewShown.current = { page: k, json: JSON.stringify(d) };
+    setProfile((p) => {
+      const st: StepState = { ...(p.steps[k] ?? {}) };
+      if (d) st.review = d; else delete st.review;
+      return { ...p, steps: { ...p.steps, [k]: st } };
+    });
+    if (d) setSavedAt(new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }));
+  }, [org]);
+  useEffect(() => {
+    const k = reviewShown.current.page;
+    if (!k || k !== page || JSON.stringify(draft) === reviewShown.current.json) return;
+    const t = window.setTimeout(() => void saveReview(k, draft), 800);
+    return () => window.clearTimeout(t);
+  }, [draft, page, saveReview]);
+
   // Ao trocar de página: grava o que faltava da anterior, carrega o texto da nova e lembra onde a pessoa está.
   useEffect(() => {
     if (!ready) return;
     if (dictating.current) { dictating.current = false; speech.current?.stop(); setRec({ on: false, secs: 0 }); }
     const old = shown.current;
     if (old.page && old.page !== page && (raw !== old.raw || JSON.stringify(atts) !== old.atts)) void saveDraft(old.page, raw, atts);
+    const oldR = reviewShown.current;
+    if (oldR.page && oldR.page !== page && JSON.stringify(draft) !== oldR.json) void saveReview(oldR.page, draft);
+    const rv = profile.steps[page]?.review ?? null;
+    reviewShown.current = { page, json: JSON.stringify(rv) };
     const r = profile.steps[page]?.raw ?? "";
     const a = profile.steps[page]?.attachments ?? [];
     shown.current = { page, raw: r, atts: JSON.stringify(a) };
-    setRaw(r); setAtts(a); setDraft(null); setSavedAt(null);
+    setRaw(r); setAtts(a); setDraft(rv); setSavedAt(null);
     if (org) void supabase.rpc("save_step_draft", { org: org.id, p_key: page, p_raw: null as never, p_attachments: null as never });
   }, [page, ready]); // eslint-disable-line react-hooks/exhaustive-deps
   // Contador enquanto grava.
@@ -324,6 +351,7 @@ export default function Diagnostico() {
     setBusy(null);
     if (!r.ok) return toast({ variant: "destructive", title: r.message });
     setDraft(r.data);
+    void saveReview(page, r.data); // a conferência fica salva na hora
   };
 
   // Aprovar: grava o texto organizado (e o que o dono escreveu) e segue para a próxima página.
@@ -346,6 +374,8 @@ export default function Diagnostico() {
     const { error } = await supabase.from("company_profiles").update(patch as never).eq("organization_id", org.id);
     setBusy(null);
     if (error) return toast({ variant: "destructive", title: "Não salvo", description: error.message });
+    // Aprovada: a conferência já saiu do banco junto (a etapa foi gravada sem ela); não regravar ao trocar de página.
+    reviewShown.current = { page, json: JSON.stringify(draft) };
     toast({ title: "Etapa aprovada", description: "O retrato da empresa foi atualizado." });
     // Com horário sugerido e a empresa ainda sem horário: fica na etapa para o dono conferir e usar.
     if (page === "empresa" && horario && !orgHasHours) {
@@ -668,7 +698,7 @@ export default function Diagnostico() {
 
               {draft && (
                 <div className="rounded-lg border p-4 space-y-3">
-                  <p className="font-medium">Confira e ajuste antes de aprovar</p>
+                  <p className="font-medium">Confira e ajuste antes de aprovar {savedAt && <span className="ml-1 text-xs font-normal text-success-text">✓ Salvo às {savedAt} — pode atualizar a página sem perder</span>}</p>
                   <p className="text-xs text-muted-foreground">Pode escrever direto nas caixas ou clicar em <b>🎤 Falar</b> em qualquer uma delas: o que você falar entra no fim do texto.</p>
                   {draft.secoes && Object.entries(draft.secoes).map(([k, v]) => (
                     <div key={k} className="space-y-1">
@@ -706,7 +736,7 @@ export default function Diagnostico() {
                     </label>
                   )}
                   <div className="flex gap-2 justify-end">
-                    <Button variant="ghost" onClick={() => setDraft(null)}>Cancelar</Button>
+                    <Button variant="ghost" onClick={() => { setDraft(null); void saveReview(page, null); }}>Cancelar</Button>
                     <Button disabled={busy === "approve"} onClick={approve}><Check className="w-4 h-4 mr-1" /> {busy === "approve" ? "Salvando..." : "Aprovar e seguir"}</Button>
                   </div>
                 </div>
