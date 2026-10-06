@@ -533,6 +533,27 @@ Deno.serve(async (req) => {
         const secao = clip(o.secao, 40);
         return { pergunta: clip(o.pergunta, 200), exemplo: clip(o.exemplo, 200), sugestao: clip(o.sugestao, 500), secao: keys.includes(secao) ? secao : "" };
       }).filter((f) => f.pergunta);
+      // Segunda chamada curta e focada: reescreve o "Pode completar" em linguagem simples, com exemplo
+      // e sugestão (ex.: slogan). Modelos menores ignoram essas regras quando vêm no meio do prompt grande.
+      type Falta = { pergunta: string; exemplo: string; sugestao: string; secao: string };
+      const refine = async (list: Falta[], keys: string[], resumo: string): Promise<Falta[]> => {
+        if (!list.length || list.every((f) => f.exemplo)) return list;
+        try {
+          const out = await ask(
+            "Reescreva perguntas de um diagnóstico para um dono de pequena empresa que NÃO entende de marketing nem de gestão. Para cada pergunta: " +
+            "1) pergunta: a mesma ideia em palavras do dia a dia, curta e concreta, como numa conversa (proibido: tom de voz, diretrizes, persona, público-alvo, " +
+            "posicionamento, branding, offline, KPI, identidade); 2) exemplo: um exemplo curto de resposta; 3) sugestao: se for algo que a empresa pode ainda não ter " +
+            "(slogan, frase de assinatura, frase das redes, mensagem padrão), 2 ou 3 opções prontas separadas por \" / \", feitas a partir do resumo da empresa, " +
+            "sem inventar preços, prazos ou números; senão vazio; 4) secao: copie a seção indicada. Mantenha a ordem e a quantidade. " +
+            'Responda SOMENTE com JSON: {"itens":[{"pergunta":"","exemplo":"","sugestao":"","secao":""}]}',
+            `Empresa: ${orgRow?.name ?? ""}\nResumo do que já sabemos:\n${resumo.slice(0, 2500)}\n\nSeções possíveis: ${keys.join(", ") || "(nenhuma)"}\nPerguntas:\n` +
+              list.map((f, i) => `${i + 1}. ${f.pergunta} (seção: ${f.secao || keys[0] || ""})`).join("\n"));
+          const items = faltas(out.itens, keys);
+          return items.length === list.length ? items.map((f, i) => ({ ...f, secao: f.secao || list[i].secao })) : list;
+        } catch {
+          return list; // sem a reescrita, fica a pergunta original (nada trava)
+        }
+      };
       if (raw.length < 10 && !docIds.length) throw new HttpError(400, "Escreva, fale ou anexe algo antes de organizar.");
       if (stepKey === "processos") {
         const setor = clip(body?.setor, 80);
@@ -550,7 +571,7 @@ Deno.serve(async (req) => {
           return item;
         }).filter((p) => p.nome);
         if (!processos.length) throw new HttpError(502, "Não consegui separar os processos. Tente descrever um de cada vez.");
-        return json({ ok: true, processos, faltando: faltas(out.faltando, []) });
+        return json({ ok: true, processos, faltando: await refine(faltas(out.faltando, []), [], raw) });
       }
       const stage = STAGES.find((s) => s.key === stepKey && s.key !== "processos");
       if (!stage) throw new HttpError(400, "Etapa inválida");
@@ -572,7 +593,7 @@ Deno.serve(async (req) => {
         ok: true, secoes,
         setores: stepKey === "setores" ? (Array.isArray(out.setores_lista) ? out.setores_lista : []).slice(0, 20).map((s) => clip(s, 80)).filter(Boolean) : undefined,
         horario: stepKey === "empresa" ? hoursFrom(out.horario) : undefined,
-        faltando: faltas(out.faltando, keys),
+        faltando: await refine(faltas(out.faltando, keys), keys, Object.values(secoes).filter(Boolean).join("\n")),
       });
     }
 
