@@ -64,7 +64,8 @@ suporte na dúvida. Toda funcionalidade nova ou alterada que o cliente usa preci
 3. **Botão de ajuda acessível**: o "?" do cabeçalho reúne os passo a passo e vídeos da
    tela atual, a base de conhecimento (assistente "Como faço…?") e o pedido ao suporte.
 4. **O caminho mais simples possível**: modelos prontos, caixas de texto grandes com
-   microfone (`MicTextarea`: falar é tão fácil quanto escrever), validação com mensagem amigável,
+   microfone (`MicTextarea`: falar é tão fácil quanto escrever), perguntas em linguagem do dia a dia
+   com exemplos e o botão "Não entendi" que reescreve em palavras simples (`ExplainAsk`), validação com mensagem amigável,
    botões de testar, salvar sozinho (nada se perde ao atualizar a página) e "Salvar e
    próximo" ao fim de cada etapa.
 5. **Segurança acima de tudo**: as regras de isolamento entre empresas, RLS e segredos

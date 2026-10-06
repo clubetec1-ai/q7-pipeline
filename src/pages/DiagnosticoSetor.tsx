@@ -5,7 +5,8 @@ import { useOrg } from "@/contexts/OrgContext";
 import { useToast } from "@/hooks/use-toast";
 import { AppHeader } from "@/components/AppHeader";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { MicTextarea } from "@/components/MicTextarea";
+import { ExplainAsk } from "./diagnostico/ExplainAsk";
 
 interface Invite { id: string; setor: string; status: string; raw: string | null; submitted_at: string | null }
 
@@ -64,8 +65,8 @@ export default function DiagnosticoSetor() {
               <p className="font-medium">Setor: {r.setor}</p>
               {r.status === "submitted" && <span className="text-xs rounded-full px-2 py-0.5 bg-success-soft text-success-text">Enviado em {new Date(r.submitted_at!).toLocaleDateString("pt-BR")}</span>}
             </div>
-            <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-0.5">{ASK.map((q) => <li key={q}>{q}</li>)}</ul>
-            <Textarea rows={12} maxLength={12000} value={text[r.id] ?? ""} onChange={(e) => setText({ ...text, [r.id]: e.target.value })}
+            <ExplainAsk orgId={org.id} step="processos" setor={r.setor} items={ASK} />
+            <MicTextarea orgId={org.id} rows={12} maxLength={12000} value={text[r.id] ?? ""} onChange={(t) => setText({ ...text, [r.id]: t })}
               placeholder={"Ex.: Orçamento\n1. O cliente pede pelo WhatsApp.\n2. Confiro o estoque na planilha.\n3. ..."} />
             <div className="flex justify-end">
               <Button disabled={busy === r.id || (text[r.id] ?? "").trim().length < 10} onClick={() => void send(r)}>
