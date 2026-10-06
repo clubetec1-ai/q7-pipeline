@@ -109,17 +109,21 @@ export const GUIDES: Guide[] = [
         ],
       },
       {
-        title: "Veja o que ainda falta",
+        title: "Veja o que falta e a revisão do diretor",
         body: (
           <>
             <p>Depois de organizar, aparece a barra <b>📊 Informação completa</b>: o que os agentes de IA precisam saber desta etapa, o que já está completo e o que ainda falta, com o <b>porquê</b> de cada item.</p>
             <Pointer icon={<CheckCircle2 className="w-4 h-4" />} label="Não temos isso" note="a empresa não tem aquilo? marque: conta como resolvido e a IA não pergunta mais" />
+            <p>Logo abaixo, o <b>🧐 diretor da área (IA)</b> dá uma segunda opinião: aponta o que não bate com as outras etapas e os riscos (ex.: uma promessa que o agente não pode fazer).</p>
+            <Pointer icon={<CheckCircle2 className="w-4 h-4" />} label="Corrigi / Está certo assim" note="ajustou o texto? marque Corrigi. Não é problema? Está certo assim — a IA não aponta mais"/>
             <p className="text-muted-foreground">Dá para aprovar com algo faltando — o sistema avisa o que o agente pode não conseguir resolver, e você completa quando puder (escrevendo, falando ou anexando).</p>
           </>
         ),
         demo: [
           { state: "organizado", target: "cobertura", caption: "Informação completa: o que já tem e o que falta" },
           { state: "organizado", target: "btn-nao-temos", caption: "Não tem isso na empresa? Marque Não temos isso" },
+          { state: "organizado", target: "revisao", caption: "O diretor da área revisa e aponta o que não bate" },
+          { state: "organizado", target: "btn-certo", caption: "Corrigi ou Está certo assim — você decide" },
           { state: "organizado", target: "btn-aprovar", caption: "Aprove — se faltar algo, o sistema avisa antes" },
         ],
       },

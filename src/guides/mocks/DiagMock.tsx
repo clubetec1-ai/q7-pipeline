@@ -61,6 +61,11 @@ export function DiagMock({ state }: { state: string }) {
               <p className="flex flex-wrap items-center gap-1">○ <b>Trocas e garantia</b> <span className="text-muted-foreground">— sem isso o agente pode prometer errado</span>
                 <B d="btn-nao-temos">Não temos isso</B></p>
             </div>
+            <div data-demo="revisao" className="rounded border bg-background p-1 space-y-0.5">
+              <p>🧐 <b>Revisão do Diretor Comercial (IA)</b>: 1 ponto</p>
+              <p><span className="rounded bg-danger-soft px-1 text-danger-text">importante</span> Aqui diz atendimento até 18h, mas no Pós-venda diz suporte 24h.</p>
+              <p className="flex gap-1"><B d="btn-corrigi">Corrigi</B> <B d="btn-certo">Está certo assim</B></p>
+            </div>
             <p className="font-medium">Organizado pela IA — confira:</p>
             <p><b>Empresa:</b> loja de móveis planejados em Campinas.</p>
             <p><b>Atendimento:</b> WhatsApp, seg. a sáb., 8h–18h.</p>
