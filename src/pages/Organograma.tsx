@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { HowItWorks } from "./diagnostico/HowItWorks";
+import { ProofPanel } from "./organograma/ProofPanel";
 import { GuardianBadge, GuardianFindings, type GuardianReview } from "@/components/GuardianBadge";
 
 type Level = "cerebro" | "diretor" | "coordenador" | "especialista" | "executor" | "apoio";
@@ -123,6 +124,7 @@ export default function Organograma() {
             {guard.get(a.id)?.status !== "aprovado" && <GuardianBadge review={guard.get(a.id)} />}
           </div>
           <GuardianFindings review={guard.get(a.id)} />
+          {owner && org && a.level === "executor" && a.status !== "proposto" && <ProofPanel orgId={org.id} agentId={a.id} />}
           <p className="text-xs"><b>Vê:</b> {a.cracha.dados.map((d) => DADOS[d] ?? d).join(", ") || "nada"}</p>
           <p className="text-xs"><b>Faz:</b> {a.cracha.acoes.map((d) => ACOES[d] ?? d).join(", ") || "só acompanha"}</p>
           {talks.length > 0 && <p className="text-xs text-muted-foreground"><b>Fala com:</b> {talks.join(" · ")}</p>}
@@ -132,7 +134,7 @@ export default function Organograma() {
               <select data-demo="autonomia" className="h-7 rounded border bg-background px-1" value={a.autonomia} disabled={busy === a.id}
                 onChange={(e) => void rpc("set_agent_autonomy", { p_id: a.id, p_autonomia: e.target.value }, a.id)}>
                 {(["A0", "A1", "A2"] as const).map((k) => <option key={k} value={k}>{AUTONOMIA[k]}</option>)}
-                <option value="A3" disabled>{AUTONOMIA.A3} — depois da prova</option>
+                <option value="A3" disabled={a.level !== "executor"}>{AUTONOMIA.A3}{a.level === "executor" ? " (precisa da prova em dia)" : " — só quem atende"}</option>
                 {a.level === "executor" && <option value="A4" disabled>{AUTONOMIA.A4} — depois da prova</option>}
               </select>
             ) : <span>{AUTONOMIA[a.autonomia]}</span>}

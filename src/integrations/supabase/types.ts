@@ -86,6 +86,114 @@ export type Database = {
           },
         ]
       }
+      agent_eval_runs: {
+        Row: {
+          agent_version: number
+          checks: Json
+          eval_id: string
+          id: number
+          motivo: string
+          organization_id: string
+          passou: boolean
+          ran_at: string
+          reply: string
+        }
+        Insert: {
+          agent_version: number
+          checks?: Json
+          eval_id: string
+          id?: never
+          motivo?: string
+          organization_id: string
+          passou: boolean
+          ran_at?: string
+          reply?: string
+        }
+        Update: {
+          agent_version?: number
+          checks?: Json
+          eval_id?: string
+          id?: never
+          motivo?: string
+          organization_id?: string
+          passou?: boolean
+          ran_at?: string
+          reply?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_eval_runs_eval_fk"
+            columns: ["eval_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "agent_evals"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "agent_eval_runs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_evals: {
+        Row: {
+          agent_id: string
+          ativo: boolean
+          contexto: string
+          created_at: string
+          criterios: string[]
+          esperado: string
+          id: string
+          mensagem: string
+          organization_id: string
+          origem: string
+          tipo: string
+        }
+        Insert: {
+          agent_id: string
+          ativo?: boolean
+          contexto?: string
+          created_at?: string
+          criterios?: string[]
+          esperado: string
+          id?: string
+          mensagem: string
+          organization_id: string
+          origem: string
+          tipo: string
+        }
+        Update: {
+          agent_id?: string
+          ativo?: boolean
+          contexto?: string
+          created_at?: string
+          criterios?: string[]
+          esperado?: string
+          id?: string
+          mensagem?: string
+          organization_id?: string
+          origem?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_evals_agent_fk"
+            columns: ["agent_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "agent_evals_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_presence: {
         Row: {
           last_assigned_at: string | null
@@ -5197,7 +5305,12 @@ export type Database = {
     }
     Functions: {
       accept_invitation: { Args: { org: string }; Returns: boolean }
+      add_custom_eval: {
+        Args: { p_agent: string; p_esperado: string; p_mensagem: string }
+        Returns: string
+      }
       add_default_tags: { Args: { org: string }; Returns: number }
+      agent_proof_status: { Args: { p_agent: string }; Returns: Json }
       ai_keys_status: { Args: { org: string }; Returns: Json }
       approve_improvement: { Args: { improvement: string }; Returns: undefined }
       approve_org_chart: { Args: { org: string }; Returns: number }
@@ -5876,6 +5989,22 @@ export type Database = {
         Args: { org: string; p_items: Json; p_key: string; p_reviewer: string }
         Returns: Json
       }
+      service_eval_run_save: {
+        Args: {
+          org: string
+          p_checks: Json
+          p_eval: string
+          p_motivo: string
+          p_passou: boolean
+          p_reply: string
+          p_version: number
+        }
+        Returns: undefined
+      }
+      service_eval_set: {
+        Args: { org: string; p_agent: string; p_scenarios: Json }
+        Returns: number
+      }
       service_get_secret: { Args: { secret_name: string }; Returns: string }
       service_guardian_save: {
         Args: {
@@ -6096,6 +6225,10 @@ export type Database = {
       }
       set_email_password: {
         Args: { account: string; secret_value: string }
+        Returns: undefined
+      }
+      set_eval_active: {
+        Args: { p_ativo: boolean; p_eval: string }
         Returns: undefined
       }
       set_extension_mode: {

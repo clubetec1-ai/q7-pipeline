@@ -66,7 +66,10 @@ dono aprova o time, pausa e ajusta a autonomia (executar sozinho só depois da p
 Arquiteto), cada agente do time e o texto de comportamento do Assistente de IA; só regra fixa bloqueia (promessa proibida,
 pedir senha/cartão, CPF escrito, burla, dado sensível sem base legal, decisão proibida automatizada, cargo sem "(IA)", quem
 atende sem passar para pessoa); a IA só aponta atenção; aprovar processo ou time exige a revisão e recusa reprovado; selo e
-motivos nas telas; teste 102 + testes Deno; provado no servidor. Próximo: Fatia 6 — Prova (cenários de teste).
+motivos nas telas; teste 102 + testes Deno; provado no servidor. ✅ **Fatia 6 — Prova (06/10):** no Time de IA, cada agente
+que atende tem 7 cenários obrigatórios (5 fixos + 2 dos processos) e os do dono; roda em modo teste com a mesma montagem do
+atendimento real; regras fixas + avaliador de IA (só passa com os dois); prova vence quando algo muda; executar com aprovação
+(A3) só com prova em dia; teste 103 + testes Deno. Próximo: Fatia 7 — degraus de publicação, disjuntor e vigia de custo.
 🧠 **Fatia 11 nova — Cérebro da plataforma (pedido do dono, 06/10; desenho 07 §12):** o cérebro também gerencia o software
 inteiro para todas as empresas — saúde, falhas, bugs, alertas, correções e melhorias —, com equipes de IA de engenharia
 (front-end, back-end, integrações), segurança, qualidade, design e suporte; só metadados (nunca conversa de cliente);
