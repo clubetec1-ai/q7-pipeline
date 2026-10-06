@@ -56,6 +56,8 @@ export default function Configuracoes() {
         icon: Palette, color: "#22C1A4", state: "optional", show: manage },
     ] },
     { title: "3. Assistente de IA", cards: [
+      { title: "Time de IA (organograma)", desc: "O cérebro monta a equipe de agentes: diretores, especialistas por processo e quem atende. Você aprova e pausa.",
+        to: "/organograma", icon: Network, color: "#22C1A4", state: "optional", show: manage && hasModule("gestao") },
       { title: "Ligar e testar o assistente", desc: "Ligar a IA, como ela se comporta, teste e retomar conversas paradas.", to: "/agente", icon: Bot, color: "#6C8EF5",
         state: s.aiOn ? "ok" : "pending", detail: s.aiOn ? "Assistente ligado" : "Assistente desligado", show: manage && hasModule("ia") },
       { title: "Menus e respostas automáticas", desc: "Menus, triagem, horário e automações sem código (fluxos).", to: "/fluxos", icon: Workflow, color: "#3FB8BE",

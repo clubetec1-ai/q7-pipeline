@@ -134,6 +134,137 @@ export type Database = {
           },
         ]
       }
+      agent_versions: {
+        Row: {
+          agent_id: string
+          at: string
+          changed_by: string | null
+          id: number
+          organization_id: string
+          snapshot: Json
+          version: number
+        }
+        Insert: {
+          agent_id: string
+          at?: string
+          changed_by?: string | null
+          id?: never
+          organization_id: string
+          snapshot: Json
+          version: number
+        }
+        Update: {
+          agent_id?: string
+          at?: string
+          changed_by?: string | null
+          id?: never
+          organization_id?: string
+          snapshot?: Json
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_versions_agent_fk"
+            columns: ["agent_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "agent_versions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_agents: {
+        Row: {
+          apelido: string | null
+          area_key: string | null
+          autonomia: string
+          cracha: Json
+          created_at: string
+          department_id: string | null
+          id: string
+          key: string
+          level: string
+          organization_id: string
+          papel: string
+          parent_id: string | null
+          process_id: string | null
+          status: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          apelido?: string | null
+          area_key?: string | null
+          autonomia?: string
+          cracha?: Json
+          created_at?: string
+          department_id?: string | null
+          id?: string
+          key: string
+          level: string
+          organization_id: string
+          papel: string
+          parent_id?: string | null
+          process_id?: string | null
+          status?: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          apelido?: string | null
+          area_key?: string | null
+          autonomia?: string
+          cracha?: Json
+          created_at?: string
+          department_id?: string | null
+          id?: string
+          key?: string
+          level?: string
+          organization_id?: string
+          papel?: string
+          parent_id?: string | null
+          process_id?: string | null
+          status?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_agents_department_fk"
+            columns: ["department_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "ai_agents_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_agents_parent_fk"
+            columns: ["parent_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "ai_agents_process_fk"
+            columns: ["process_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "process_designs"
+            referencedColumns: ["id", "organization_id"]
+          },
+        ]
+      }
       ai_usage_daily: {
         Row: {
           audio_calls: number
@@ -5028,6 +5159,7 @@ export type Database = {
       add_default_tags: { Args: { org: string }; Returns: number }
       ai_keys_status: { Args: { org: string }; Returns: Json }
       approve_improvement: { Args: { improvement: string }; Returns: undefined }
+      approve_org_chart: { Args: { org: string }; Returns: number }
       approve_process_design: { Args: { p_id: string }; Returns: undefined }
       archive_process_design: { Args: { p_id: string }; Returns: undefined }
       area_activity: {
@@ -5729,6 +5861,10 @@ export type Database = {
       }
       service_meta_page_forget: { Args: { page: string }; Returns: undefined }
       service_module_on: { Args: { m: string; org: string }; Returns: boolean }
+      service_org_chart_save: {
+        Args: { org: string; p_agents: Json }
+        Returns: Json
+      }
       service_platform_alert_recipients: { Args: never; Returns: string[] }
       service_process_design_save: {
         Args: { org: string; p_design: Json; p_nome: string; p_setor: string }
@@ -5877,6 +6013,18 @@ export type Database = {
       }
       service_webhook_result: {
         Args: { code: number; delivery: number; err: string; ok: boolean }
+        Returns: undefined
+      }
+      set_agent_autonomy: {
+        Args: { p_autonomia: string; p_id: string }
+        Returns: undefined
+      }
+      set_agent_label: {
+        Args: { p_apelido: string; p_id: string }
+        Returns: undefined
+      }
+      set_agent_status: {
+        Args: { p_id: string; p_status: string }
         Returns: undefined
       }
       set_area_goal_status: {

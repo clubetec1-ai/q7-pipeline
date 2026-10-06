@@ -57,7 +57,12 @@ tela Processos (Configurações → Processos desenhados): o Arquiteto (IA) tran
 a passo com a decisão de cada passo (fluxo automático, modelo pronto, IA ou pessoa) e o porquê, exceções, dados do cliente
 (sensíveis marcados), base legal, prazo, indicadores e riscos; travas fixas (dinheiro, contrato, saúde e jurídico ficam com
 pessoa); dono ou responsável da área aprova ou pede ajuste (com microfone) e o Arquiteto refaz; mudança em aprovado gera
-versão nova; teste 100 + testes Deno. Próximo: Fatia 4 — Organograma de IA.
+versão nova; teste 100 + testes Deno. ✅ **Fatia 4 — Organograma de IA (06/10):** tela Time de IA (Configurações e
+Cérebro): o cérebro monta o time por regra, sem custo de IA — diretores, coordenadores, um especialista por processo
+aprovado, quem atende os clientes e a equipe de apoio; empresa pequena junta os níveis; crachá de cada agente (vê / faz /
+fala com) conferido no banco contra o catálogo (só quem atende vê a conversa); cargo com "(IA)" e apelido opcional;
+dono aprova o time, pausa e ajusta a autonomia (executar sozinho só depois da prova); toda mudança vira versão; teste
+101 + testes Deno. Próximo: Fatia 5 — Guardião de segurança e LGPD.
 - 📋 **Checklist da migração para a VPS (HostGator, pedido do dono em 06/10) — atualizar em todos os serviços:**
   (1) **Meta** (app 1661911518843097): URIs de redirecionamento do OAuth (hoje
   `https://ulmndwlralgjbwlebxmo.supabase.co/functions/v1/meta-connect-callback`), URL do webhook do WhatsApp/Messenger/

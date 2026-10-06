@@ -156,6 +156,10 @@ export default function Cerebro() {
               sistema; as sugestões da IA chegam como propostas e só seguem com aprovação.
             </p>
           </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button asChild variant="outline" size="sm"><Link to="/organograma">Time de IA</Link></Button>
+            <Button asChild variant="outline" size="sm"><Link to="/processos">Processos</Link></Button>
+          </div>
           {owner && (
             <div className="flex flex-wrap items-center gap-2">
               <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer" title="Resumo da semana, metas fora do rumo e propostas paradas no seu e-mail">

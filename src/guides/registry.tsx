@@ -1,7 +1,8 @@
-import { CheckCircle2, Clock, PencilRuler, Facebook, FlaskConical, HelpCircle, LifeBuoy, Mail, Mic, MicVocal, MoreHorizontal, Paperclip, Pause, PenLine, Play, PlayCircle, Plus, QrCode, RotateCcw, Save, ShieldCheck, Sparkles, ThumbsDown, Undo2 } from "lucide-react";
+import { CheckCircle2, Clock, Network, PencilRuler, Facebook, FlaskConical, HelpCircle, LifeBuoy, Mail, Mic, MicVocal, MoreHorizontal, Paperclip, Pause, PenLine, Play, PlayCircle, Plus, QrCode, RotateCcw, Save, ShieldCheck, Sparkles, ThumbsDown, Undo2 } from "lucide-react";
 import { Pointer } from "./Pointer";
 import { AgenteMock } from "./mocks/AgenteMock";
 import { DiagMock } from "./mocks/DiagMock";
+import { OrganogramaMock } from "./mocks/OrganogramaMock";
 import { ProcessosMock } from "./mocks/ProcessosMock";
 import { NumerosMock } from "./mocks/NumerosMock";
 import { SupportMock } from "./mocks/SupportMock";
@@ -421,6 +422,58 @@ export const GUIDES: Guide[] = [
           { state: "desenhado", target: "btn-ajuste", caption: "Algo errado? Peça ajuste e o Arquiteto refaz" },
           { state: "desenhado", target: "btn-aprovar", caption: "Tudo certo? Aprovar processo" },
           { state: "aprovado", target: "processo", caption: "Aprovado: pronto para a implantação" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "organograma",
+    title: "Time de IA",
+    routes: ["/organograma"],
+    autoOpen: true,
+    mock: (state) => <OrganogramaMock state={state} />,
+    steps: [
+      {
+        title: "Uma equipe de IA, organizada como a sua empresa",
+        body: (
+          <>
+            <p>O <b>cérebro</b> monta o time de agentes a partir dos seus setores e dos processos aprovados: diretores por área, coordenadores por setor, um <b>especialista para cada processo</b> e quem <b>atende os clientes</b>. Tem também a equipe de apoio (Arquiteto, Revisor, Guardião de segurança…).</p>
+            <Pointer icon={<Network className="w-4 h-4" />} label="Montar o time com o cérebro" note="sem custo de IA: o time sai dos seus dados, nada é inventado" />
+            <p className="text-muted-foreground">Empresa pequena? O cérebro junta os níveis: sem diretores e coordenadores sobrando.</p>
+          </>
+        ),
+        demo: [
+          { state: "vazio", target: "btn-montar", caption: "Clique em Montar o time com o cérebro" },
+          { state: "proposto", target: "agente-cerebro", caption: "O cérebro no topo, ao seu lado" },
+          { state: "proposto", target: "agente-especialista", caption: "Um especialista para cada processo aprovado" },
+        ],
+      },
+      {
+        title: "Cada um com o seu crachá",
+        body: (
+          <>
+            <p>Cada agente mostra o que <b>vê</b>, o que <b>faz</b> e com quem <b>fala</b>. Só quem atende o cliente vê a conversa — e só a conversa que está atendendo. Diretores e o cérebro veem só números, sem nomes de pessoas.</p>
+            <p className="text-muted-foreground">O nome sempre termina com "(IA)", e você pode dar um apelido (ex.: Bia).</p>
+          </>
+        ),
+        demo: [
+          { state: "proposto", target: "agente-executor", caption: "Quem atende vê só a conversa que está atendendo" },
+          { state: "proposto", target: "apoio", caption: "A equipe de apoio cuida de segurança e qualidade" },
+        ],
+      },
+      {
+        title: "Você aprova e controla",
+        body: (
+          <>
+            <Pointer icon={<CheckCircle2 className="w-4 h-4" />} label="Aprovar o time" note="todos começam só sugerindo: você decide o que vai para o cliente" />
+            <Pointer icon={<Pause className="w-4 h-4" />} label="Pausar" note="desliga um agente na hora" />
+            <p className="text-muted-foreground">"Executa sozinho" só fica disponível depois que o agente passar na prova dos cenários de teste.</p>
+          </>
+        ),
+        demo: [
+          { state: "proposto", target: "btn-aprovar-time", caption: "Confira e clique em Aprovar o time" },
+          { state: "ativo", target: "autonomia", caption: "Autonomia: começa sugerindo" },
+          { state: "ativo", target: "btn-pausar", caption: "Pause qualquer agente quando quiser" },
         ],
       },
     ],
