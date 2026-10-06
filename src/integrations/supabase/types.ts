@@ -1381,6 +1381,41 @@ export type Database = {
           },
         ]
       }
+      diag_coverage: {
+        Row: {
+          complete: number
+          items: Json
+          organization_id: string
+          step_key: string
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          complete?: number
+          items?: Json
+          organization_id: string
+          step_key: string
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          complete?: number
+          items?: Json
+          organization_id?: string
+          step_key?: string
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diag_coverage_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       diag_delegations: {
         Row: {
           created_at: string
@@ -5553,6 +5588,10 @@ export type Database = {
         Args: { instance: string }
         Returns: undefined
       }
+      service_diag_coverage_save: {
+        Args: { org: string; p_items: Json; p_key: string }
+        Returns: Json
+      }
       service_get_secret: { Args: { secret_name: string }; Returns: string }
       service_has_secret: { Args: { secret_name: string }; Returns: boolean }
       service_http_take: { Args: { org: string }; Returns: boolean }
@@ -5736,6 +5775,10 @@ export type Database = {
       set_campaign_status: {
         Args: { campaign: string; new_status: string }
         Returns: undefined
+      }
+      set_coverage_item: {
+        Args: { org: string; p_key: string; p_n: number; p_nao_tem: boolean }
+        Returns: Json
       }
       set_email_password: {
         Args: { account: string; secret_value: string }

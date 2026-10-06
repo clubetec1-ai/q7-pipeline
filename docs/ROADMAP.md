@@ -42,6 +42,15 @@ histórico), kit da marca e base de conhecimento (7 documentos + logo) apagados;
 `C:\Users\HP\Backups\deixa-com-a-ia\2026-10-06-clubetec-antes-de-zerar`. Ficaram: números, caixa de e-mail, equipe e
 MFA, Asaas, plano, os setores Comercial e Suporte e 2 conversas de e-mail. Nova ação da base: "limpar arquivos órfãos"
 (só da própria empresa, dono/admin, auditada).
+**Andamento da arquitetura (plano `docs/superpowers/plans/2026-10-06-empresa-com-ia.md`):** ✅ **Fatia 1 — Cobertura do
+Diagnóstico (06/10):** ao organizar, o especialista avalia cada item do que os agentes precisam (completo, incompleto,
+faltando); o servidor confere com a lista fechada e grava em `diag_coverage` (só dono/admin lê; navegador não grava;
+"Não temos isso" do dono vale e a IA não apaga; recomeçar o Diagnóstico apaga junto — teste 98 + teste Deno).
+Barra "Informação completa: X de Y" com o porquê de cada item e aviso ao aprovar etapa incompleta; passo novo no guia.
+Próximo: bloco curto da Meta (cadastro em um clique, liberado com o Provedor de Tecnologia em 06/10) e depois a Fatia 2.
+- 🟢 **Meta: Provedor de Tecnologia aprovado (06/10).** Destrava o cadastro do WhatsApp em um clique (Embedded Signup);
+  o botão "Conectar com o Facebook" já existe desde 05/10 — falta configurar no app da Meta o Login do Facebook para
+  Empresas (configuração do cadastro incorporado) e conferir as permissões; testar com um número.
 
 **Etapa A — agora**
 1. **Montar a Clubetec do zero pelos Primeiros passos e pelo Diagnóstico** 🙋, anotando o que travar (cada trava vira

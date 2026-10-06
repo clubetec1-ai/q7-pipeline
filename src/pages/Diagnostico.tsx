@@ -24,6 +24,7 @@ import { HoursEditor, hoursValid, type Hours } from "@/components/HoursEditor";
 import { VoiceInterview } from "./diagnostico/VoiceInterview";
 import { MicTextarea } from "@/components/MicTextarea";
 import { ExplainAsk } from "./diagnostico/ExplainAsk";
+import { CoverageBar, loadCoverage, pendingOf } from "./diagnostico/CoverageBar";
 import { HowItWorks } from "./diagnostico/HowItWorks";
 import { PresenceTexts, SectorDelegation } from "./diagnostico/Part2";
 
@@ -129,6 +130,7 @@ export default function Diagnostico() {
   const [ready, setReady] = useState(false);
   const [raw, setRaw] = useState("");
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [covTick, setCovTick] = useState(0); // recarrega a cobertura depois de organizar
   const [busy, setBusy] = useState<string | null>(null);
   const [research, setResearch] = useState({ site: "", cnpj: "" });
   const [copies, setCopies] = useState(0);
@@ -371,11 +373,18 @@ export default function Diagnostico() {
     if (!r.ok) return toast({ variant: "destructive", title: r.message });
     setDraft(r.data);
     void saveReview(page, r.data); // a conferência fica salva na hora
+    setCovTick((t) => t + 1);
   };
 
   // Aprovar: grava o texto organizado (e o que o dono escreveu) e segue para a próxima página.
   const approve = async () => {
     if (!draft) return;
+    // Portão do levantamento (desenho 07): avisa o que ainda falta antes de aprovar.
+    const pend = pendingOf(await loadCoverage(org.id, page));
+    if (pend.length && !window.confirm(
+      `Ainda falta informação nesta etapa:\n\n${pend.map((x) => `• ${x.item} — ${x.porque}`).join("\n")}\n\n` +
+      "Sem isso, o agente pode não conseguir resolver esses casos. Aprovar mesmo assim? Você pode completar depois " +
+      "(ou marcar \"Não temos isso\").")) return;
     setBusy("approve");
     await ensureRow();
     const horario = page === "empresa" ? draft.horario ?? profile.steps.empresa?.horario : undefined;
@@ -573,6 +582,7 @@ export default function Diagnostico() {
                 {approved(page) && <Badge>Aprovado</Badge>}
               </div>
               <ExplainAsk key={page} orgId={org.id} step={setor ? "processos" : page} setor={setor} items={setor ? PROC_ASK : step?.ask ?? []} />
+              {page !== "plano" && <CoverageBar key={`cov-${page}`} orgId={org.id} stepKey={page} refresh={covTick} />}
 
               {setor && (
                 <SectorDelegation key={setor} orgId={org.id} setor={setor} onUse={(t) => {
