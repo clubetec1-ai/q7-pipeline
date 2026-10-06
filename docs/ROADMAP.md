@@ -116,7 +116,7 @@ Próximo: bloco curto da Meta (cadastro em um clique, liberado com o Provedor de
 20. **Meta:** cadastro de número em poucos cliques (Embedded Signup), nova conversa com modelo aprovado, trocar o nome
     do app; Messenger/Instagram: pedir as permissões e testar com uma Página real 🙋. (A análise da Meta segue
     correndo; quando aprovar, o monitoramento avisa.)
-21. **Produção:** Supabase Pro, site e domínio deixacomaia.com.br (VPS), troca de nome/links restantes, limite da
+21. **Produção (migração para a VPS da HostGator + atualização dos dados em todos os serviços — seguir o "📋 Checklist da migração para a VPS" abaixo):** Supabase Pro, site e domínio deixacomaia.com.br (VPS), troca de nome/links restantes, limite da
     OpenAI; publicar o app do Google (Agenda) com domínio verificado 🙋.
 22. **Vender e cobrar de verdade:** 🙋 preços, franquia de IA e Condição de Fundador; conectar o Asaas da Clubetec
     (teste → real); liberar cadastro público com confirmação de e-mail; custo da IA em reais por empresa.
