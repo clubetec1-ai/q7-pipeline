@@ -3895,8 +3895,14 @@ export type Database = {
           id: string
           message: string
           organization_id: string
+          page: string | null
+          reply: string | null
+          source: string
           status: string
           topic: string
+          transcript: Json | null
+          updated_at: string
+          urgency: string
         }
         Insert: {
           created_at?: string
@@ -3905,8 +3911,14 @@ export type Database = {
           id?: string
           message: string
           organization_id: string
+          page?: string | null
+          reply?: string | null
+          source?: string
           status?: string
           topic: string
+          transcript?: Json | null
+          updated_at?: string
+          urgency?: string
         }
         Update: {
           created_at?: string
@@ -3915,8 +3927,14 @@ export type Database = {
           id?: string
           message?: string
           organization_id?: string
+          page?: string | null
+          reply?: string | null
+          source?: string
           status?: string
           topic?: string
+          transcript?: Json | null
+          updated_at?: string
+          urgency?: string
         }
         Relationships: [
           {
@@ -5308,7 +5326,7 @@ export type Database = {
         Returns: undefined
       }
       platform_set_request_status: {
-        Args: { new_status: string; request: string }
+        Args: { new_status: string; p_reply?: string; request: string }
         Returns: undefined
       }
       platform_set_security_email: {

@@ -1,6 +1,6 @@
 import { Link, Navigate } from "react-router-dom";
 import {
-  Bot, BookOpen, Braces, Building2, Clock, Facebook, CreditCard, Filter, Network, KeyRound, Library, Mail, MessageSquare, Palette, PhoneCall, Plug, Server, Settings2, Shuffle, Tags, Target, UsersRound, Wallet, Workflow, type LucideIcon,
+  Bot, BookOpen, LifeBuoy, Braces, Building2, Clock, Facebook, CreditCard, Filter, Network, KeyRound, Library, Mail, MessageSquare, Palette, PhoneCall, Plug, Server, Settings2, Shuffle, Tags, Target, UsersRound, Wallet, Workflow, type LucideIcon,
 } from "lucide-react";
 import { useOrg } from "@/contexts/OrgContext";
 import { AppHeader } from "@/components/AppHeader";
@@ -85,6 +85,10 @@ export default function Configuracoes() {
         icon: Braces, color: "#0F766E", state: "optional", show: manage },
       { title: "Rede de franquias", desc: "Entrar na rede da sua franquia com o código, ou — na matriz — ver as unidades e enviar o padrão.", to: "/configuracoes/rede",
         icon: Building2, color: "#9333EA", state: "optional", show: manage },
+    ] },
+    { title: "Ajuda e suporte", cards: [
+      { title: "Suporte", desc: "Chamados da empresa com a equipe Clubetec: abrir, acompanhar e ver a resposta. Dúvidas do dia a dia: use a Ajuda (?) no topo.",
+        to: "/configuracoes/suporte", icon: LifeBuoy, color: "#0EA5E9", state: "optional", show: manage },
     ] },
     { title: "Equipe Clubetec", cards: [
       { title: "Uazapi — servidor global", desc: "Servidor e token de administrador do WhatsApp por QR de toda a plataforma. Só a equipe Clubetec vê.",

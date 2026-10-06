@@ -14,7 +14,7 @@ function ok(body: unknown = { ok: true }, status = 200) {
 }
 
 const STATUS: Record<string, string> = { disconnected: "desconectado" };
-const KINDS = ["number_health", "email_health", "security_alert", "brain_weekly", "brain_goal", "brain_reminder"];
+const KINDS = ["number_health", "email_health", "security_alert", "brain_weekly", "brain_goal", "brain_reminder", "support_ticket"];
 
 Deno.serve(async (req) => {
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -36,7 +36,18 @@ Deno.serve(async (req) => {
   const r = (n.ref ?? {}) as Record<string, string>;
   let subject: string, text: string, html: string;
 
-  if (n.kind.startsWith("brain_")) {
+  if (n.kind === "support_ticket") {
+    // Chamado de suporte alta/urgente: vai para os operadores da Clubetec (o gatilho só manda esses).
+    const { data: t } = await admin.from("service_requests").select("topic, message, urgency, source, page, created_at")
+      .eq("id", String(r.id ?? "")).maybeSingle();
+    const link = base ? `${base}/plataforma` : "";
+    const urg = String(t?.urgency ?? r.urgency ?? "").toUpperCase();
+    subject = `[Deixa com a IA] ${urg} — chamado de ${r.org ?? "cliente"}: ${t?.topic ?? r.topic ?? ""}`;
+    const corpo = `Empresa: ${r.org ?? ""}\nUrgência: ${urg}\nAberto ${t?.source === "assistente" ? "pelo assistente (a pessoa disse que não resolveu)" : "pela pessoa"}${t?.page ? ` na tela ${t.page}` : ""}.\n\n${t?.message ?? ""}`;
+    text = `Olá!\n\nNovo chamado de suporte.\n\n${corpo}\n\n${link ? `Responder em Plataforma → Pedidos de ajuda: ${link}` : "Responda em Plataforma → Pedidos de ajuda."}\n\nDeixa com a IA`;
+    html = `<p>Olá!</p><p><b>Novo chamado de suporte — ${esc(urg)}</b></p><p>${esc(corpo).replace(/\n/g, "<br>")}</p>` +
+      `<p>${link ? `<a href="${esc(link)}">Responder em Plataforma → Pedidos de ajuda</a>` : "Responda em Plataforma → Pedidos de ajuda."}</p><p>Deixa com a IA</p>`;
+  } else if (n.kind.startsWith("brain_")) {
     const link = base ? `${base}/cerebro` : "";
     const empresa = o?.name ?? "";
     let titulo: string, corpo: string;
