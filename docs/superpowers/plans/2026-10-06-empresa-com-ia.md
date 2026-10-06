@@ -57,7 +57,7 @@ npx supabase functions deploy <funcao> --project-ref ulmndwlralgjbwlebxmo
 |---|---|---|---|
 | 1 ✅ | Cobertura do Diagnóstico | Cada etapa mostra "Informação completa: X de Y", a lista com o porquê, "Não temos isso" e o aviso ao aprovar incompleta; tudo gravado só pelo servidor | **Abaixo (Tarefas 1–5)** |
 | 2 ✅ | Revisores de área | Ao organizar uma etapa, um revisor da área aponta incoerências com as etapas aprovadas e lacunas; o dono aceita/corrige; portão F2 | Escrever ao começar |
-| 3 | Processos como dado + Arquiteto | Tabela `processes` no formato do §3 do desenho, migração dos atuais, matriz de automação por passo, aprovação por processo (dono ou responsável da área) | Escrever ao começar |
+| 3 ✅ | Processos como dado + Arquiteto | Tabela `processes` no formato do §3 do desenho, migração dos atuais, matriz de automação por passo, aprovação por processo (dono ou responsável da área) | Escrever ao começar |
 | 4 | Organograma de IA | `ai_agents` + `agent_versions`, crachás do catálogo, cérebro propõe a partir de setores e processos (juntando níveis em empresa pequena), tela com cargo + "(IA)" e apelido, Pausar | Escrever ao começar |
 | 5 | Guardião de segurança e LGPD | Revisão obrigatória de propostas, agentes e fluxos antes da prova, com motivos; nada reprovado segue | Escrever ao começar |
 | 6 | Prova (cenários) | 7 cenários obrigatórios por executor, modo teste sem enviar a cliente, regressão a cada mudança, tela Prova | Escrever ao começar |
@@ -350,3 +350,29 @@ revisão), teste de isolamento 99.
 - [x] Revisor ligado ao Organizar; `deno check`; publicado.
 - [x] Tela + guia; `tsc` e `build` ok.
 - [ ] Prova com IA de verdade: fica para o teste da Clubetec do zero (depois de todas as fatias, decisão do dono).
+
+---
+
+## Fatia 3 — Processos como dado + Arquiteto ✅ (06/10)
+
+**Ajuste ao desenho §3/§8 (sem quebrar o que existe):** `company_profiles.processes` continua sendo a fonte (o que o dono
+contou; lido por Diagnóstico, Setores, Melhorias, Início, painel de implantação e cérebro). O dado estruturado fica numa
+tabela nova, `process_designs` (o desenho do Arquiteto), ligada por setor + nome. As próximas fatias (organograma,
+implantação) leem `process_designs` aprovados.
+
+**Arquivos:** `supabase/migrations/20261006002200_process_designs.sql` (tabela, `private.can_approve_process` — dono ou
+responsável da área ligada ao setor, modo responsável —, `service_process_design_save` (versão nova quando muda um aprovado),
+`approve_process_design`, `set_process_design_note`, `archive_process_design`, `can_design_process`, limpeza no recomeço),
+`_shared/process-design.ts` + teste (`parseDesign`: decisão fluxo|modelo|ia|pessoa, quem segue a decisão, até 20 passos,
+**travas fixas**: dinheiro/contrato/saúde/jurídico → pessoa; dado sensível sempre marcado; sem base legal → risco;
+indicadores só do catálogo `METRIC_KEYS`), função nova `architect` (ação `design`; permissão `can_design_process`; regras
+do Arquiteto com a matriz §2.4; dados em `<dados>`), tela `src/pages/Processos.tsx` (`/processos`: por setor, Desenhar /
+Desenhar os que faltam, ver desenho, Aprovar, Pedir ajuste e redesenhar com microfone, Arquivar), cartão em Configurações,
+guia "processos" com `ProcessosMock`, teste de isolamento 100.
+
+- [x] `process-design_test.ts` (4 testes) visto falhar e depois passar.
+- [x] Teste 100 visto falhar; migration aplicada; bateria completa ok.
+- [x] Função `architect` com `deno check`; publicada.
+- [x] Tela, rota, cartão e guia; `tsc` e `build` ok.
+- [ ] Prova com IA de verdade: no teste da Clubetec do zero (depois de todas as fatias).
+- [ ] Atalho para o responsável de área chegar em /processos (hoje: cartão em Configurações para o dono) — entra na fatia 4 (organograma).

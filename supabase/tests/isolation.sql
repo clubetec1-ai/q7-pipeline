@@ -1580,6 +1580,28 @@ BEGIN
   PERFORM pg_temp.run(owner_a, format('SELECT public.save_step_review(%L, %L, NULL)', A, 'cultura'));
   PERFORM pg_temp.expect((SELECT NOT (steps -> 'cultura' ? 'review') AND steps -> 'cultura' ->> 'raw' = 'missao e valores' FROM public.company_profiles WHERE organization_id = A), 'cancelar tira so a conferencia');
 
+  -- 100. Desenho de processos (Arquiteto): dono e responsavel da area do setor veem e aprovam; so o servidor grava o desenho.
+  UPDATE public.org_areas SET department_id = 'aaaaaaaa-0000-0000-0001-000000000001', approval_mode = 'responsavel' WHERE organization_id = A AND name = 'Vendas';
+  PERFORM public.service_process_design_save(A, 'D1', 'Orcamento', '{"gatilho":"pedido","passos":[{"n":1,"o_que":"responder","decisao":"ia"}]}');
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT count(*) FROM public.process_designs WHERE nome = ''Orcamento'' AND status = ''proposto''') = 1, 'dono ve o desenho proposto');
+  PERFORM pg_temp.expect((SELECT department_id FROM public.process_designs WHERE organization_id = A AND nome = 'Orcamento') = 'aaaaaaaa-0000-0000-0001-000000000001', 'desenho ligado ao setor pelo nome');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, 'SELECT count(*) FROM public.process_designs') = 1, 'responsavel da area do setor ve o desenho');
+  PERFORM pg_temp.expect(pg_temp.q(agent2_a, 'SELECT count(*) FROM public.process_designs') = 0, 'outro atendente nao ve');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.process_designs') = 0, 'outra org nao ve');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('INSERT INTO public.process_designs (organization_id, setor, nome) VALUES (%L, %L, %L)', A, 'D1', 'x')) LIKE 'err:%', 'navegador nao grava desenho direto');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_process_design_save(%L, %L, %L, %L)', A, 'D1', 'x', '{}'), 'navegador nao usa a funcao do servidor');
+  PERFORM pg_temp.expect_error(agent2_a, format('SELECT public.approve_process_design(%L)', (SELECT id FROM public.process_designs WHERE organization_id = A AND nome = 'Orcamento')), 'outro atendente nao aprova');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.approve_process_design(%L)', (SELECT id FROM public.process_designs WHERE organization_id = A AND nome = 'Orcamento')), 'outra org nao aprova');
+  PERFORM pg_temp.run(agent_a, format('SELECT public.approve_process_design(%L)', (SELECT id FROM public.process_designs WHERE organization_id = A AND nome = 'Orcamento')));
+  PERFORM pg_temp.expect((SELECT status FROM public.process_designs WHERE organization_id = A AND nome = 'Orcamento') = 'aprovado', 'responsavel da area aprova');
+  PERFORM public.service_process_design_save(A, 'D1', 'Orcamento', '{"gatilho":"pedido novo","passos":[{"n":1,"o_que":"responder","decisao":"pessoa"}]}');
+  PERFORM pg_temp.expect((SELECT status || ':' || version FROM public.process_designs WHERE organization_id = A AND nome = 'Orcamento') = 'proposto:2', 'desenho aprovado que muda volta a proposto, versao nova');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.set_process_design_note(%L, %L)', (SELECT id FROM public.process_designs WHERE organization_id = A AND nome = 'Orcamento'), repeat('x', 900)), 'pedido de ajuste longo demais recusado');
+  PERFORM pg_temp.run(owner_a, format('SELECT public.set_process_design_note(%L, %L)', (SELECT id FROM public.process_designs WHERE organization_id = A AND nome = 'Orcamento'), 'quem aprova o orcamento e o gerente'));
+  PERFORM pg_temp.expect((SELECT architect_note FROM public.process_designs WHERE organization_id = A AND nome = 'Orcamento') = 'quem aprova o orcamento e o gerente', 'dono pede ajuste ao Arquiteto');
+  INSERT INTO public.company_profiles (organization_id, steps) VALUES (A, '{"empresa":{}}') ON CONFLICT (organization_id) DO UPDATE SET steps = '{"empresa":{}}';
+  PERFORM pg_temp.run(owner_a, format('SELECT public.reset_company_profile(%L)', A));
+  PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM public.process_designs WHERE organization_id = A), 'recomecar o Diagnostico apaga os desenhos');
   -- 99. Revisao de area do Diagnostico: so dono/admin ve; so o servidor grava; "esta certo assim" vale.
   PERFORM public.service_diag_findings_save(A, 'empresa', 'Diretor Comercial (IA)', '[{"n":1,"tipo":"incoerencia","gravidade":"critica","texto":"Horario 18h x 24h","etapas":["empresa","posvenda"],"sugestao":"s"},{"n":2,"tipo":"inventado","gravidade":"critica","texto":"x","etapas":[]},{"n":3,"tipo":"risco","gravidade":"baixa","texto":"Promete brinde","etapas":["empresa"],"sugestao":""}]');
   PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT open_critical FROM public.diag_findings WHERE step_key = ''empresa''') = 1, 'dono ve a revisao com 1 critica aberta');

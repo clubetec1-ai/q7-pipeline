@@ -3729,6 +3729,69 @@ export type Database = {
         }
         Relationships: []
       }
+      process_designs: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          architect_note: string | null
+          department_id: string | null
+          design: Json
+          id: string
+          nome: string
+          organization_id: string
+          proposed_at: string
+          setor: string
+          status: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          architect_note?: string | null
+          department_id?: string | null
+          design?: Json
+          id?: string
+          nome: string
+          organization_id: string
+          proposed_at?: string
+          setor: string
+          status?: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          architect_note?: string | null
+          department_id?: string | null
+          design?: Json
+          id?: string
+          nome?: string
+          organization_id?: string
+          proposed_at?: string
+          setor?: string
+          status?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_designs_department_fk"
+            columns: ["department_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "process_designs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           approved: boolean
@@ -4965,6 +5028,8 @@ export type Database = {
       add_default_tags: { Args: { org: string }; Returns: number }
       ai_keys_status: { Args: { org: string }; Returns: Json }
       approve_improvement: { Args: { improvement: string }; Returns: undefined }
+      approve_process_design: { Args: { p_id: string }; Returns: undefined }
+      archive_process_design: { Args: { p_id: string }; Returns: undefined }
       area_activity: {
         Args: { area: string; org: string; since: string }
         Returns: Json
@@ -4981,6 +5046,10 @@ export type Database = {
         Returns: Json
       }
       campaign_results: { Args: { campaign: string }; Returns: Json }
+      can_design_process: {
+        Args: { org: string; p_setor: string }
+        Returns: boolean
+      }
       can_manage_knowledge: {
         Args: { dept: string; org: string }
         Returns: boolean
@@ -5661,6 +5730,10 @@ export type Database = {
       service_meta_page_forget: { Args: { page: string }; Returns: undefined }
       service_module_on: { Args: { m: string; org: string }; Returns: boolean }
       service_platform_alert_recipients: { Args: never; Returns: string[] }
+      service_process_design_save: {
+        Args: { org: string; p_design: Json; p_nome: string; p_setor: string }
+        Returns: string
+      }
       service_put_secret: {
         Args: { secret_name: string; secret_value: string }
         Returns: undefined
@@ -5893,6 +5966,10 @@ export type Database = {
       }
       set_presence: {
         Args: { new_status: string; org: string; reason?: string }
+        Returns: undefined
+      }
+      set_process_design_note: {
+        Args: { p_id: string; p_note: string }
         Returns: undefined
       }
       set_report_email: {

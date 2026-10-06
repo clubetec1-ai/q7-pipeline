@@ -1,6 +1,6 @@
 import { Link, Navigate } from "react-router-dom";
 import {
-  Bot, BookOpen, LifeBuoy, Braces, Building2, Clock, Facebook, CreditCard, Filter, Network, KeyRound, Library, Mail, MessageSquare, Palette, PhoneCall, Plug, Server, Settings2, Shuffle, Tags, Target, UsersRound, Wallet, Workflow, type LucideIcon,
+  Bot, BookOpen, LifeBuoy, Braces, Building2, Clock, Facebook, CreditCard, Filter, Network, KeyRound, Library, Mail, MessageSquare, Palette, PencilRuler, PhoneCall, Plug, Server, Settings2, Shuffle, Tags, Target, UsersRound, Wallet, Workflow, type LucideIcon,
 } from "lucide-react";
 import { useOrg } from "@/contexts/OrgContext";
 import { AppHeader } from "@/components/AppHeader";
@@ -44,6 +44,8 @@ export default function Configuracoes() {
     { title: "2. Sua empresa (o que a IA precisa saber)", cards: [
       { title: "Conte sobre a empresa", desc: "Diagnóstico guiado (por texto ou voz): serviços, regras, clientes e o jeito de falar.", to: "/diagnostico", icon: Target, color: "#22C1A4",
         state: s.diagApproved ? "ok" : "pending", detail: s.diagApproved ? `${s.diagApproved} etapa(s) aprovada(s)` : "Ainda não começou", show: manage && hasModule("diagnostico") },
+      { title: "Processos desenhados", desc: "O Arquiteto (IA) transforma os processos do Diagnóstico em passo a passo: o que vira automático, IA ou fica com uma pessoa.",
+        to: "/processos", icon: PencilRuler, color: "#0EA5E9", state: "optional", show: manage && hasModule("diagnostico") },
       { title: "Horário de atendimento", desc: "Dias e horas de atendimento. Fora deles, o cliente é avisado que está fechado.",
         to: "/configuracoes/atendimento", icon: Clock, color: "#0EA5E9", state: s.hours ? "ok" : "pending", detail: s.hours ? "Horário definido" : "Sem horário", show: manage },
       { title: "Documentos para a IA", desc: "Tabelas, regras e perguntas frequentes que a IA e a equipe consultam para responder.", to: "/conhecimento", icon: BookOpen, color: "#10B981",

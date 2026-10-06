@@ -52,7 +52,12 @@ Marketing, Atendimento e Pós-venda, Operações, Pessoas, Tecnologia e Dados, C
 incoerências com as etapas aprovadas, riscos (promessa errada, legal, LGPD) e lacunas críticas, com gravidade e como
 resolver; o dono marca "Corrigi" ou "Está certo assim" (a IA não repete); aviso ao aprovar com ponto importante aberto;
 só o servidor grava (`diag_findings`, teste 99 + testes Deno). **Decisão do dono (06/10): terminar todas as fatias antes do
-teste da Clubetec do zero e da migração do site para a VPS.** Próximo: Fatia 3 — processos como dado + Arquiteto.
+teste da Clubetec do zero e da migração do site para a VPS.** ✅ **Fatia 3 — Processos como dado + Arquiteto (06/10):**
+tela Processos (Configurações → Processos desenhados): o Arquiteto (IA) transforma cada processo do Diagnóstico em passo
+a passo com a decisão de cada passo (fluxo automático, modelo pronto, IA ou pessoa) e o porquê, exceções, dados do cliente
+(sensíveis marcados), base legal, prazo, indicadores e riscos; travas fixas (dinheiro, contrato, saúde e jurídico ficam com
+pessoa); dono ou responsável da área aprova ou pede ajuste (com microfone) e o Arquiteto refaz; mudança em aprovado gera
+versão nova; teste 100 + testes Deno. Próximo: Fatia 4 — Organograma de IA.
 - 📋 **Checklist da migração para a VPS (HostGator, pedido do dono em 06/10) — atualizar em todos os serviços:**
   (1) **Meta** (app 1661911518843097): URIs de redirecionamento do OAuth (hoje
   `https://ulmndwlralgjbwlebxmo.supabase.co/functions/v1/meta-connect-callback`), URL do webhook do WhatsApp/Messenger/
