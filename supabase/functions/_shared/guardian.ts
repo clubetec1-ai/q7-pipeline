@@ -11,16 +11,16 @@ export type Verdict = "aprovado" | "atencao" | "reprovado";
 
 const NEGA = /(nunca|n[ãa]o|jamais|proibid[oa]|evite|sem)\s+(\S+\s+){0,4}$/i;
 const negated = (text: string, idx: number) => NEGA.test(text.slice(Math.max(0, idx - 40), idx));
-function hit(text: string, re: RegExp): boolean {
+export function hit(text: string, re: RegExp): boolean {
   const g = new RegExp(re.source, re.flags.includes("g") ? re.flags : re.flags + "g");
   for (const m of text.matchAll(g)) if (!negated(text, m.index ?? 0)) return true;
   return false;
 }
 
-const PROMESSA = /(garant(o|imos|e)\b[^.!?]{0,40}(resultado|lucro|cura|aprova[çc][ãa]o|sucesso|retorno|ganho)|resultado garantido|lucro garantido|sem (nenhum )?risco)/i;
-const SENHA = /(senha|\bcvv\b|c[oó]digo de seguran[çc]a do cart|n[uú]mero do cart[ãa]o|dados do cart[ãa]o|token do banco)/i;
-const CPF = /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/;
-const CARTAO = /\b(?:\d[ -]?){15,16}\b/;
+export const PROMESSA = /(garant(o|imos|e)\b[^.!?]{0,40}(resultado|lucro|cura|aprova[çc][ãa]o|sucesso|retorno|ganho)|resultado garantido|lucro garantido|sem (nenhum )?risco)/i;
+export const SENHA = /(senha|\bcvv\b|c[oó]digo de seguran[çc]a do cart|n[uú]mero do cart[ãa]o|dados do cart[ãa]o|token do banco)/i;
+export const CPF = /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/;
+export const CARTAO = /\b(?:\d[ -]?){15,16}\b/;
 const BURLA = /(ignore (as |todas as )?(regras|instru[çc][õo]es)|sem restri[çc][õo]es|modo desenvolvedor|finja que n[ãa]o (h[áa]|existem) regras|esque[çc]a (as )?regras)/i;
 
 /** Texto que vai para o cliente ou vira instrução de agente. */

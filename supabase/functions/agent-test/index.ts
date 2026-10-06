@@ -1,13 +1,8 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { HttpError, requirePermission, requireUser, resolveOrg } from "../_shared/auth.ts";
 import { requireModule } from "../_shared/modules.ts";
-import { forOrg } from "../_shared/tenant.ts";
-import { getAgentProfile } from "../_shared/get-ai-config.ts";
-import { chatAI, resolveAI } from "../_shared/ai-chat.ts";
-import { withProtocol } from "../_shared/flow/executor.ts";
-import { toChatText } from "../_shared/ai-policy.ts";
-import { companyKnowledge } from "../_shared/company.ts";
-import { knowledgeContext } from "../_shared/knowledge.ts";
+import { resolveAI } from "../_shared/ai-chat.ts";
+import { agentReply } from "../_shared/agent-reply.ts";
 
 /**
  * Testar o agente (dono/admin): conversa simulada com a MESMA montagem do
@@ -45,20 +40,10 @@ Deno.serve(async (req) => {
 
     const ai = await resolveAI(admin, orgId);
     if (!ai) throw new HttpError(400, "Cadastre a chave da IA em Configurações → Chaves de IA.");
-    const profile = await getAgentProfile(admin, orgId);
-    const draft = String(body?.prompt ?? "").trim().slice(0, 4000);
-    const lastUser = msgs[msgs.length - 1].content;
-    const [company, knowledge] = await Promise.all([
-      companyKnowledge(forOrg(admin, orgId)),
-      knowledgeContext(admin, orgId, lastUser, "cliente", null),
-    ]);
-    const system = [withProtocol(draft || profile.systemPrompt, "TESTE"), company, knowledge].filter(Boolean).join("\n\n");
-    const r = await chatAI(ai, [{ role: "system", content: system }, ...msgs]);
-    if (!r.ok || !r.reply) throw new HttpError(502, r.error ?? "A IA não respondeu. Tente de novo.");
-    return json({
-      ok: true, reply: toChatText(String(r.reply)).slice(0, 4000), provider: ai.provider, model: ai.model,
-      used: { empresa: !!company, base: !!knowledge },
-    });
+    // Mesma montagem do atendimento de verdade (e da prova dos cenários).
+    const r = await agentReply(admin, orgId, ai, msgs, { draft: String(body?.prompt ?? "").trim().slice(0, 4000) });
+    if (!r.ok) throw new HttpError(502, r.error ?? "A IA não respondeu. Tente de novo.");
+    return json({ ok: true, reply: r.reply, provider: ai.provider, model: ai.model, used: r.used });
   } catch (e) {
     const status = e instanceof HttpError ? e.status : 500;
     if (status === 500) console.error("agent-test:", e);

@@ -33,6 +33,11 @@ export function OrganogramaMock({ state }: { state: string }) {
                   <span className="mt-0.5 flex items-center gap-1">Autonomia: <span data-demo="autonomia" className="rounded border bg-background px-1">Sugere — você decide ▾</span>
                     <B d="btn-pausar"><Pause className="h-2.5 w-2.5" /> Pausar</B></span>
                 )}
+                {state === "prova" && (
+                  <span data-demo="prova" className="mt-0.5 block rounded border bg-background p-1">🧪 <b>Prova</b> <span className="text-success-text">✓ 7 de 7</span>
+                    <span className="block">✓ Reclamação · ✓ Pedido proibido · ✓ Tentativa de burla · ✓ Dado de outro cliente…</span>
+                    <B d="btn-rodar" primary>Rodar a prova</B></span>
+                )}
               </Card>
             </div>
           </div>

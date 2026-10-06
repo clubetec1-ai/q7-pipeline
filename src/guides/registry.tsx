@@ -478,6 +478,20 @@ export const GUIDES: Guide[] = [
           { state: "ativo", target: "btn-pausar", caption: "Pause qualquer agente quando quiser" },
         ],
       },
+      {
+        title: "A prova antes de executar",
+        body: (
+          <>
+            <p>Cada agente que atende passa por uma <b>prova</b> com 7 cenários: pergunta comum, caso diferente, fora do horário, reclamação, pedido proibido (ex.: desconto), tentativa de burla e pedido de dado de outro cliente. Você pode acrescentar os seus.</p>
+            <Pointer icon={<FlaskConical className="w-4 h-4" />} label="Rodar a prova" note="em modo seguro: nada vai para cliente de verdade" />
+            <p className="text-muted-foreground">Cada resposta é conferida por regras fixas e por um avaliador. Só com a prova em dia o agente pode "executar com aprovação". Mudou o comportamento, a base ou um processo? A prova vence e roda de novo.</p>
+          </>
+        ),
+        demo: [
+          { state: "prova", target: "prova", caption: "7 cenários obrigatórios por agente que atende" },
+          { state: "prova", target: "btn-rodar", caption: "Rodar a prova: nada vai para cliente de verdade" },
+        ],
+      },
     ],
   },
 ];
