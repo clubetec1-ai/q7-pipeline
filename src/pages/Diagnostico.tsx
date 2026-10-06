@@ -22,6 +22,7 @@ import { ImplementationBoard, type Priority } from "./diagnostico/Implementation
 import { TEMPLATES, templateByKey } from "./diagnostico/templates";
 import { HoursEditor, hoursValid, type Hours } from "@/components/HoursEditor";
 import { VoiceInterview } from "./diagnostico/VoiceInterview";
+import { MicTextarea } from "@/components/MicTextarea";
 import { HowItWorks } from "./diagnostico/HowItWorks";
 import { PresenceTexts, SectorDelegation } from "./diagnostico/Part2";
 
@@ -668,10 +669,11 @@ export default function Diagnostico() {
               {draft && (
                 <div className="rounded-lg border p-4 space-y-3">
                   <p className="font-medium">Confira e ajuste antes de aprovar</p>
+                  <p className="text-xs text-muted-foreground">Pode escrever direto nas caixas ou clicar em <b>🎤 Falar</b> em qualquer uma delas: o que você falar entra no fim do texto.</p>
                   {draft.secoes && Object.entries(draft.secoes).map(([k, v]) => (
                     <div key={k} className="space-y-1">
                       <p className="text-xs font-medium">{SECTION_LABEL[k]?.[1] ? "🌐 " : "🔒 "}{SECTION_LABEL[k]?.[0] ?? k}</p>
-                      <Textarea rows={4} value={v} onChange={(e) => setDraft({ ...draft, secoes: { ...draft.secoes!, [k]: e.target.value } })} />
+                      <MicTextarea orgId={org.id} rows={4} value={v} onChange={(t) => setDraft({ ...draft, secoes: { ...draft.secoes!, [k]: t } })} />
                     </div>
                   ))}
                   {draft.setores && (
@@ -684,10 +686,10 @@ export default function Diagnostico() {
                   {draft.processos?.map((p, i) => (
                     <div key={i} className="rounded-md border p-3 space-y-2">
                       <Input value={p.nome} placeholder="Nome do processo" onChange={(e) => setDraft({ ...draft, processos: draft.processos!.map((x, j) => (j === i ? { ...x, nome: e.target.value } : x)) })} />
-                      <Textarea rows={5} value={p.passo_a_passo ?? ""} placeholder="Passo a passo (como funciona hoje)"
-                        onChange={(e) => setDraft({ ...draft, processos: draft.processos!.map((x, j) => (j === i ? { ...x, passo_a_passo: e.target.value } : x)) })} />
-                      <Textarea rows={2} value={p.como_deveria ?? ""} placeholder="Como deveria funcionar (opcional)"
-                        onChange={(e) => setDraft({ ...draft, processos: draft.processos!.map((x, j) => (j === i ? { ...x, como_deveria: e.target.value } : x)) })} />
+                      <MicTextarea orgId={org.id} rows={5} value={p.passo_a_passo ?? ""} placeholder="Passo a passo (como funciona hoje)"
+                        onChange={(t) => setDraft({ ...draft, processos: draft.processos!.map((x, j) => (j === i ? { ...x, passo_a_passo: t } : x)) })} />
+                      <MicTextarea orgId={org.id} rows={2} value={p.como_deveria ?? ""} placeholder="Como deveria funcionar (opcional)"
+                        onChange={(t) => setDraft({ ...draft, processos: draft.processos!.map((x, j) => (j === i ? { ...x, como_deveria: t } : x)) })} />
                       <p className="text-xs text-muted-foreground">{[p.quem_faz && `Quem: ${p.quem_faz}`, p.tempo && `Tempo: ${p.tempo}`, p.dificuldade && `Trava: ${p.dificuldade}`].filter(Boolean).join(" · ")}</p>
                     </div>
                   ))}
