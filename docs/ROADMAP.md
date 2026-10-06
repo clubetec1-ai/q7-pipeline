@@ -48,6 +48,16 @@ faltando); o servidor confere com a lista fechada e grava em `diag_coverage` (s�
 "Não temos isso" do dono vale e a IA não apaga; recomeçar o Diagnóstico apaga junto — teste 98 + teste Deno).
 Barra "Informação completa: X de Y" com o porquê de cada item e aviso ao aprovar etapa incompleta; passo novo no guia.
 Próximo: bloco curto da Meta (cadastro em um clique, liberado com o Provedor de Tecnologia em 06/10) e depois a Fatia 2.
+- 📋 **Checklist da migração para a VPS (HostGator, pedido do dono em 06/10) — atualizar em todos os serviços:**
+  (1) **Meta** (app 1661911518843097): URIs de redirecionamento do OAuth (hoje
+  `https://ulmndwlralgjbwlebxmo.supabase.co/functions/v1/meta-connect-callback`), URL do webhook do WhatsApp/Messenger/
+  Instagram, domínio do app, links da política de privacidade, dos termos e da exclusão de dados, e a **declaração de
+  tratamento de dados** (processadores e país onde os dados ficam) se mudar de onde os dados são guardados; nome e
+  logo "Deixa com a IA". (2) **Google Cloud** (Agenda): URI de redirecionamento, domínio verificado, tela de
+  consentimento. (3) **Uazapi**: webhook das instâncias. (4) **Asaas**: URL do aviso de pagamento. (5) **E-mail**:
+  remetente/SPF/DKIM do domínio próprio. (6) **Supabase**: `app_settings.functions_base_url` e os crons, se as funções
+  mudarem de endereço. (7) **Vercel → VPS**: variáveis `VITE_*`, domínio deixacomaia.com.br e HTTPS. Conferir tudo com
+  `npm run check` e um teste de ponta a ponta (WhatsApp, e-mail, Facebook, pagamento) antes de desligar o antigo.
 - 🟢 **Meta: Provedor de Tecnologia aprovado (06/10).** Destrava o cadastro do WhatsApp em um clique (Embedded Signup);
   o botão "Conectar com o Facebook" já existe desde 05/10 — falta configurar no app da Meta o Login do Facebook para
   Empresas (configuração do cadastro incorporado) e conferir as permissões; testar com um número.
