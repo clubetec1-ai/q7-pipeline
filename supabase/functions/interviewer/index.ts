@@ -152,19 +152,18 @@ Deno.serve(async (req) => {
         .map((x: { q?: string; a?: string }) => ({ q: clip(x?.q, 400), a: clip(x?.a, 2000) })).filter((x: { a: string }) => x.a);
       const anexos = (Array.isArray(body?.anexos) ? body.anexos : []).slice(0, 20).map((x: unknown) => clip(x, 120)).filter(Boolean);
       const tema = stage.key === "processos" && setor ? `${stage.label} — setor "${setor}"` : stage.label;
-      // Depois de 8 respostas, encerra sem pedir outra (a despedida não é pergunta: nada fica sem resposta).
-      if (qa.length >= 8) {
-        const bye = "Muito obrigado! Com isso já tenho o suficiente desta etapa. Vou organizar as suas respostas para você conferir. " +
-          "Se tiver algum material desta etapa, como modelos, planilhas ou documentos, pode anexar logo abaixo.";
-        const audio = body?.voice === "browser" ? null : await synth(bye, body?.voice);
-        return json({ ok: true, question: bye, done: true, audio, mime: "audio/mpeg" });
-      }
-      const out = await ask(
+      // Despedida pronta (não é pergunta: nada fica sem resposta).
+      const bye = "Muito obrigado! Com isso já tenho o suficiente desta etapa. Vou organizar as suas respostas para você conferir. " +
+        "Se tiver algum material desta etapa, como modelos, planilhas ou documentos, pode anexar logo abaixo.";
+      const sayBye = async () => json({ ok: true, question: bye, done: true, audio: body?.voice === "browser" ? null : await synth(bye, body?.voice), mime: "audio/mpeg" });
+      // Depois de 8 respostas, encerra sem pedir outra.
+      if (qa.length >= 8) return await sayBye();
+      const turn = () => ask(
         `Você é um consultor entrevistando o dono da empresa POR VOZ, na etapa "${tema}" de um diagnóstico. Objetivo da etapa: ${stage.guide} ` +
         "Faça UMA pergunta por vez, curta (no máximo 2 frases), natural como numa conversa falada em português do Brasil, sem listas, sem símbolos e sem emojis. " +
         "Na primeira pergunta, cumprimente e diga em uma frase o tema. Use as respostas anteriores para aprofundar só o que ficou vago ou faltou; não repita o que ele já disse. " +
         "Quando tiver o suficiente para a etapa (ou depois de 7 perguntas), encerre agradecendo e dizendo que vai organizar as respostas para ele conferir; " +
-        'ao encerrar, use "terminou": true e NÃO faça nenhuma pergunta; na despedida, convide a anexar materiais desta etapa logo abaixo. Se ainda for perguntar algo, "terminou" é false. ' +
+        'ao encerrar, use "terminou": true, escreva a despedida no campo "pergunta" e NÃO faça nenhuma pergunta; na despedida, convide a anexar materiais desta etapa logo abaixo. Se ainda for perguntar algo, "terminou" é false. ' +
         "Quando a última resposta citar um documento ou material que a empresa tem (modelo de orçamento, tabela de preços, contrato, manual, roteiro de atendimento, " +
         'missão/visão/valores, planilha, fluxograma), preencha "material" com o nome curto dele e, junto da próxima pergunta, diga em poucas palavras que ele pode anexar esse arquivo aqui embaixo. ' +
         'Não peça de novo um material já pedido ou já anexado; nos outros casos "material" fica vazio. ' +
@@ -173,8 +172,13 @@ Deno.serve(async (req) => {
           (anexos.length ? `Arquivos já anexados nesta etapa: ${anexos.join(", ")}\n` : "") + "Respostas até agora:\n" +
           (qa.map((x: { q: string; a: string }, i: number) => `${i + 1}. Pergunta: ${x.q}\nResposta: ${x.a}`).join("\n") || "(nenhuma ainda)"),
       );
+      let out = await turn();
+      // A IA às vezes encerra sem escrever a despedida: usa a pronta. Pergunta vazia: tenta mais uma vez.
+      if (!clip(out.pergunta, 500) && out.terminou) return await sayBye();
+      if (!clip(out.pergunta, 500)) out = await turn();
       const question = clip(out.pergunta, 500);
-      if (!question) throw new HttpError(502, "A IA não formulou a pergunta. Tente de novo.");
+      if (!question && (out.terminou || qa.length >= 5)) return await sayBye();
+      if (!question) throw new HttpError(502, "A IA não formulou a próxima pergunta. Clique em Tentar de novo — suas respostas estão salvas.");
       // Texto e voz juntos (uma chamada só): a pergunta aparece e já começa a ser falada.
       const audio = body?.voice === "browser" ? null : await synth(question, body?.voice);
       // Se a IA disse que terminou mas ainda fez uma pergunta, deixa o dono responder (a próxima volta encerra).

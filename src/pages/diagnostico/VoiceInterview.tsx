@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { callFunction } from "@/lib/callFunction";
 import { Button } from "@/components/ui/button";
 
-type Phase = "pensando" | "falando" | "pronto" | "ouvindo" | "transcrevendo" | "fim";
+type Phase = "pensando" | "falando" | "pronto" | "ouvindo" | "transcrevendo" | "falhou" | "fim";
 const AUTO_KEY = "clubecrm:voz-auto";
 const VOICE_KEY = "clubecrm:voz-entrevista";
 const VOICES: [string, string][] = [
@@ -167,7 +167,8 @@ export function VoiceInterview({ orgId, step, setor, onDone, onAttach, attached 
       action: "voice_turn", organization_id: orgId, step, setor: setor ?? undefined, qa: history, voice: voiceRef.current, anexos: attachedRef.current,
     });
     if (!alive.current) return;
-    if (!r.ok) { setErr(r.message); setPhase("pronto"); return; }
+    // Falhou ao gerar a próxima pergunta: não deixa a pergunta antiga na tela (a resposta dela já foi salva).
+    if (!r.ok) { setErr(r.message); setPhase(history.length && qRef.current ? "falhou" : "pronto"); return; }
     qRef.current = r.data.question;
     lastAudio.current = null;
     // Texto e voz ao mesmo tempo.
@@ -257,7 +258,7 @@ export function VoiceInterview({ orgId, step, setor, onDone, onAttach, attached 
         <p className="text-sm font-medium flex items-center gap-2"><MicVocal className="w-4 h-4" /> Entrevista por voz</p>
         <Button type="button" variant="ghost" size="sm" onClick={close} title="Fechar (as respostas ficam salvas)"><X className="w-4 h-4" /></Button>
       </div>
-      {question && (
+      {question && phase !== "falhou" && (
         <p className="text-sm rounded-md bg-background border p-3">
           <span className="text-xs text-muted-foreground block mb-1">Pergunta {qa.length + (phase === "fim" ? 0 : 1)}</span>{question}
         </p>
@@ -280,6 +281,12 @@ export function VoiceInterview({ orgId, step, setor, onDone, onAttach, attached 
           </>
         )}
         {phase === "transcrevendo" && <span className="text-muted-foreground">Entendendo sua resposta…</span>}
+        {phase === "falhou" && (
+          <>
+            <span className="text-muted-foreground">Sua resposta foi salva ({qa.length} até agora). Faltou só a próxima pergunta:</span>
+            <Button type="button" size="sm" onClick={() => void ask(qaRef.current)}><RotateCcw className="w-4 h-4 mr-1" /> Tentar de novo</Button>
+          </>
+        )}
         {phase === "ouvindo" && (
           <>
             {paused
