@@ -1572,6 +1572,9 @@ BEGIN
   PERFORM pg_temp.expect((SELECT jsonb_array_length(steps -> 'cultura' -> 'attachments') FROM public.company_profiles WHERE organization_id = A) = 0, 'anexo de outra org nao entra');
   PERFORM pg_temp.expect((SELECT last_page FROM public.company_profiles WHERE organization_id = A) = 'cultura', 'lembra a etapa onde parou');
   PERFORM pg_temp.expect_error(owner_b, format('SELECT public.save_step_review(%L, %L, %L)', A, 'cultura', '{"faltando":[]}'), 'outra org nao grava conferencia');
+  PERFORM pg_temp.expect((SELECT bool_and(pg_temp.run(owner_a, format('UPDATE public.company_profiles SET stage = %L WHERE organization_id = %L', s, A)) NOT LIKE 'err:%')
+    FROM unnest(ARRAY['empresa','clientes','posvenda','marca','cultura','situacao','sistemas','objetivos','setores','processos','regras','publicar','plano']) s),
+    'aprovar qualquer etapa grava a proxima (todas as etapas aceitas)');
   PERFORM pg_temp.run(owner_a, format('SELECT public.save_step_review(%L, %L, %L)', A, 'cultura', '{"secoes":{"cultura":"x"},"faltando":[]}'));
   PERFORM pg_temp.expect((SELECT steps -> 'cultura' -> 'review' -> 'secoes' ->> 'cultura' FROM public.company_profiles WHERE organization_id = A) = 'x', 'conferencia salva');
   PERFORM pg_temp.run(owner_a, format('SELECT public.save_step_review(%L, %L, NULL)', A, 'cultura'));
