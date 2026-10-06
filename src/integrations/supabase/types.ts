@@ -1460,6 +1460,44 @@ export type Database = {
           },
         ]
       }
+      diag_findings: {
+        Row: {
+          ignored: Json
+          items: Json
+          open_critical: number
+          organization_id: string
+          reviewer: string
+          step_key: string
+          updated_at: string
+        }
+        Insert: {
+          ignored?: Json
+          items?: Json
+          open_critical?: number
+          organization_id: string
+          reviewer?: string
+          step_key: string
+          updated_at?: string
+        }
+        Update: {
+          ignored?: Json
+          items?: Json
+          open_critical?: number
+          organization_id?: string
+          reviewer?: string
+          step_key?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diag_findings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_accounts: {
         Row: {
           address: string
@@ -5592,6 +5630,10 @@ export type Database = {
         Args: { org: string; p_items: Json; p_key: string }
         Returns: Json
       }
+      service_diag_findings_save: {
+        Args: { org: string; p_items: Json; p_key: string; p_reviewer: string }
+        Returns: Json
+      }
       service_get_secret: { Args: { secret_name: string }; Returns: string }
       service_has_secret: { Args: { secret_name: string }; Returns: boolean }
       service_http_take: { Args: { org: string }; Returns: boolean }
@@ -5787,6 +5829,10 @@ export type Database = {
       set_extension_mode: {
         Args: { ext: string; p_mode: string }
         Returns: undefined
+      }
+      set_finding_status: {
+        Args: { org: string; p_key: string; p_n: number; p_status: string }
+        Returns: Json
       }
       set_http_secret: {
         Args: { org: string; secret_key: string; secret_value: string }

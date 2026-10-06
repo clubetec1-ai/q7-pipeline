@@ -56,7 +56,7 @@ npx supabase functions deploy <funcao> --project-ref ulmndwlralgjbwlebxmo
 | # | Fatia | Pronto quando | Plano detalhado |
 |---|---|---|---|
 | 1 ✅ | Cobertura do Diagnóstico | Cada etapa mostra "Informação completa: X de Y", a lista com o porquê, "Não temos isso" e o aviso ao aprovar incompleta; tudo gravado só pelo servidor | **Abaixo (Tarefas 1–5)** |
-| 2 | Revisores de área | Ao organizar uma etapa, um revisor da área aponta incoerências com as etapas aprovadas e lacunas; o dono aceita/corrige; portão F2 | Escrever ao começar |
+| 2 ✅ | Revisores de área | Ao organizar uma etapa, um revisor da área aponta incoerências com as etapas aprovadas e lacunas; o dono aceita/corrige; portão F2 | Escrever ao começar |
 | 3 | Processos como dado + Arquiteto | Tabela `processes` no formato do §3 do desenho, migração dos atuais, matriz de automação por passo, aprovação por processo (dono ou responsável da área) | Escrever ao começar |
 | 4 | Organograma de IA | `ai_agents` + `agent_versions`, crachás do catálogo, cérebro propõe a partir de setores e processos (juntando níveis em empresa pequena), tela com cargo + "(IA)" e apelido, Pausar | Escrever ao começar |
 | 5 | Guardião de segurança e LGPD | Revisão obrigatória de propostas, agentes e fluxos antes da prova, com motivos; nada reprovado segue | Escrever ao começar |
@@ -331,3 +331,22 @@ const cobertura = fspec
 - [x] Publicar, merge na `main`, conferir no site: organizar uma etapa da Clubetec, ver a barra, marcar "Não temos isso",
   organizar de novo (a marca continua), aprovar incompleta (aviso aparece).
 - [x] ROADMAP: fatia 1 ✅; memória sem mudança (a prioridade segue para a fatia 2).
+
+---
+
+## Fatia 2 — Revisores de área ✅ (06/10)
+
+**Arquivos:** `supabase/migrations/20261006002100_diag_findings.sql` (tabela `diag_findings`, `service_diag_findings_save`,
+`set_finding_status`, limpeza no recomeço), `supabase/functions/_shared/diag-review.ts` + `diag-review_test.ts`
+(`parseFindings`: tipos incoerencia|risco|lacuna_critica, gravidades critica|media|baixa, etapas só da lista, até 5),
+`_shared/specialists.ts` (`REVIEWERS`/`reviewerFor`: o diretor da área de cada etapa), `interviewer/index.ts` (ação
+`format`: revisão em paralelo com o "Pode completar" e a cobertura; o que o dono marcou "Está certo assim" vai para a IA
+não repetir), `src/pages/diagnostico/ReviewPanel.tsx` (painel "🧐 Revisão do …", Corrigi / Está certo assim / Reabrir),
+`src/pages/Diagnostico.tsx` (painel + aviso ao aprovar com ponto importante aberto), guia do Diagnóstico (passo 6 com a
+revisão), teste de isolamento 99.
+
+- [x] Teste 99 escrito e visto falhar; migration aplicada; bateria completa ok ("CHEGOU AO FIM").
+- [x] `diag-review_test.ts` (3 testes) visto falhar e depois passar.
+- [x] Revisor ligado ao Organizar; `deno check`; publicado.
+- [x] Tela + guia; `tsc` e `build` ok.
+- [ ] Prova com IA de verdade: fica para o teste da Clubetec do zero (depois de todas as fatias, decisão do dono).

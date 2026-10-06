@@ -47,7 +47,12 @@ Diagnóstico (06/10):** ao organizar, o especialista avalia cada item do que os 
 faltando); o servidor confere com a lista fechada e grava em `diag_coverage` (só dono/admin lê; navegador não grava;
 "Não temos isso" do dono vale e a IA não apaga; recomeçar o Diagnóstico apaga junto — teste 98 + teste Deno).
 Barra "Informação completa: X de Y" com o porquê de cada item e aviso ao aprovar etapa incompleta; passo novo no guia.
-Próximo: bloco curto da Meta (cadastro em um clique, liberado com o Provedor de Tecnologia em 06/10) e depois a Fatia 2.
+Bloco da Meta ✅ (06/10). ✅ **Fatia 2 — Revisores de área (06/10):** ao organizar, o diretor da área (IA) — Comercial e
+Marketing, Atendimento e Pós-venda, Operações, Pessoas, Tecnologia e Dados, Conformidade ou o Cérebro — dá a segunda opinião:
+incoerências com as etapas aprovadas, riscos (promessa errada, legal, LGPD) e lacunas críticas, com gravidade e como
+resolver; o dono marca "Corrigi" ou "Está certo assim" (a IA não repete); aviso ao aprovar com ponto importante aberto;
+só o servidor grava (`diag_findings`, teste 99 + testes Deno). **Decisão do dono (06/10): terminar todas as fatias antes do
+teste da Clubetec do zero e da migração do site para a VPS.** Próximo: Fatia 3 — processos como dado + Arquiteto.
 - 📋 **Checklist da migração para a VPS (HostGator, pedido do dono em 06/10) — atualizar em todos os serviços:**
   (1) **Meta** (app 1661911518843097): URIs de redirecionamento do OAuth (hoje
   `https://ulmndwlralgjbwlebxmo.supabase.co/functions/v1/meta-connect-callback`), URL do webhook do WhatsApp/Messenger/

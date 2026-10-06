@@ -135,3 +135,27 @@ export function specialistFor(stageKey: string, setor = ""): Specialist | null {
 
 /** Lista para o prompt: um item por linha, com o porquê. */
 export const needsText = (s: Specialist) => s.precisa.map((n, i) => `${i + 1}. ${n.item} — porque ${n.porque}`).join("\n");
+
+/**
+ * Revisor de cada etapa (desenho 07, fatia 2): o diretor da área no organograma de IA, que dá a
+ * segunda opinião sobre o que foi levantado — diferente do especialista que entrevistou.
+ */
+export interface Reviewer { papel: string; foco: string }
+const COMERCIAL: Reviewer = { papel: "Diretor Comercial e de Marketing (IA)", foco: "preços, prazos, condições, políticas e promessas ao cliente coerentes entre si e com o que a empresa faz de verdade" };
+const ATENDIMENTO: Reviewer = { papel: "Diretor de Atendimento e Pós-venda (IA)", foco: "horários, canais, prazos de resposta, reclamações, garantia e trocas coerentes com as outras etapas, e quem resolve cada caso" };
+const OPERACOES: Reviewer = { papel: "Diretor de Operações (IA)", foco: "setores, responsáveis, processos e volumes coerentes entre si; passos que dependem de alguém ou de algo que não existe" };
+export const REVIEWERS: Record<string, Reviewer> = {
+  empresa: COMERCIAL,
+  clientes: COMERCIAL,
+  publicar: COMERCIAL,
+  marca: { papel: "Diretor Comercial e de Marketing (IA)", foco: "jeito de falar, slogan e identidade coerentes com o público, a cultura e o que a empresa promete" },
+  posvenda: ATENDIMENTO,
+  cultura: { papel: "Diretor de Pessoas (IA)", foco: "valores e comportamentos coerentes com o jeito de atender e com as regras; nada que vire avaliação individual de pessoas" },
+  situacao: OPERACOES,
+  setores: OPERACOES,
+  processos: OPERACOES,
+  sistemas: { papel: "Diretor de Tecnologia e Dados (IA)", foco: "sistemas e dados coerentes com os processos; riscos de LGPD (dados pessoais, acesso, guarda, consentimento)" },
+  objetivos: { papel: "Cérebro — visão de CEO (IA)", foco: "objetivos coerentes com a situação, a equipe e os setores; metas que dá para medir" },
+  regras: { papel: "Diretor Administrativo e de Conformidade (IA)", foco: "regras da IA coerentes com as políticas e a lei; promessas proibidas, assuntos jurídicos, médicos ou de dados pessoais" },
+};
+export const reviewerFor = (stageKey: string): Reviewer | null => REVIEWERS[stageKey] ?? null;

@@ -25,6 +25,7 @@ import { VoiceInterview } from "./diagnostico/VoiceInterview";
 import { MicTextarea } from "@/components/MicTextarea";
 import { ExplainAsk } from "./diagnostico/ExplainAsk";
 import { CoverageBar, loadCoverage, pendingOf } from "./diagnostico/CoverageBar";
+import { ReviewPanel, loadReview, openCriticalOf } from "./diagnostico/ReviewPanel";
 import { HowItWorks } from "./diagnostico/HowItWorks";
 import { PresenceTexts, SectorDelegation } from "./diagnostico/Part2";
 
@@ -380,6 +381,11 @@ export default function Diagnostico() {
   const approve = async () => {
     if (!draft) return;
     // Portão do levantamento (desenho 07): avisa o que ainda falta antes de aprovar.
+    // Portão da revisão (desenho 07): ponto importante do diretor da área ainda aberto.
+    const crit = openCriticalOf(await loadReview(org.id, page));
+    if (crit.length && !window.confirm(
+      `O revisor apontou ${crit.length === 1 ? "um ponto importante" : `${crit.length} pontos importantes`} ainda em aberto:\n\n${crit.map((f) => `• ${f.texto}`).join("\n")}\n\n` +
+      "Se o agente seguir isso, pode errar com o cliente. Aprovar mesmo assim? (Você pode marcar \"Corrigi\" ou \"Está certo assim\" na revisão.)")) return;
     const pend = pendingOf(await loadCoverage(org.id, page));
     if (pend.length && !window.confirm(
       `Ainda falta informação nesta etapa:\n\n${pend.map((x) => `• ${x.item} — ${x.porque}`).join("\n")}\n\n` +
@@ -583,6 +589,8 @@ export default function Diagnostico() {
               </div>
               <ExplainAsk key={page} orgId={org.id} step={setor ? "processos" : page} setor={setor} items={setor ? PROC_ASK : step?.ask ?? []} />
               {page !== "plano" && <CoverageBar key={`cov-${page}`} orgId={org.id} stepKey={page} refresh={covTick} />}
+              {page !== "plano" && <ReviewPanel key={`rev-${page}`} orgId={org.id} stepKey={page} refresh={covTick}
+                labelOf={(k) => (k === "processos" ? "Processos" : pageLabel(k))} />}
 
               {setor && (
                 <SectorDelegation key={setor} orgId={org.id} setor={setor} onUse={(t) => {

@@ -1580,6 +1580,24 @@ BEGIN
   PERFORM pg_temp.run(owner_a, format('SELECT public.save_step_review(%L, %L, NULL)', A, 'cultura'));
   PERFORM pg_temp.expect((SELECT NOT (steps -> 'cultura' ? 'review') AND steps -> 'cultura' ->> 'raw' = 'missao e valores' FROM public.company_profiles WHERE organization_id = A), 'cancelar tira so a conferencia');
 
+  -- 99. Revisao de area do Diagnostico: so dono/admin ve; so o servidor grava; "esta certo assim" vale.
+  PERFORM public.service_diag_findings_save(A, 'empresa', 'Diretor Comercial (IA)', '[{"n":1,"tipo":"incoerencia","gravidade":"critica","texto":"Horario 18h x 24h","etapas":["empresa","posvenda"],"sugestao":"s"},{"n":2,"tipo":"inventado","gravidade":"critica","texto":"x","etapas":[]},{"n":3,"tipo":"risco","gravidade":"baixa","texto":"Promete brinde","etapas":["empresa"],"sugestao":""}]');
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT open_critical FROM public.diag_findings WHERE step_key = ''empresa''') = 1, 'dono ve a revisao com 1 critica aberta');
+  PERFORM pg_temp.expect((SELECT jsonb_array_length(items) FROM public.diag_findings WHERE organization_id = A AND step_key = 'empresa') = 2, 'tipo fora da lista nao entra');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.diag_findings') = 0, 'outra org nao ve a revisao');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, 'SELECT count(*) FROM public.diag_findings') = 0, 'atendente nao ve a revisao');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('INSERT INTO public.diag_findings (organization_id, step_key) VALUES (%L, %L)', A, 'x')) LIKE 'err:%', 'navegador nao grava revisao direto');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_diag_findings_save(%L, %L, %L, %L)', A, 'empresa', 'x', '[]'), 'navegador nao usa a funcao do servidor');
+  PERFORM pg_temp.expect_error(owner_b, format('SELECT public.set_finding_status(%L, %L, 1, %L)', A, 'empresa', 'ignorada'), 'outra org nao marca a revisao');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.set_finding_status(%L, %L, 1, %L)', A, 'empresa', 'ignorada'), 'atendente nao marca a revisao');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.set_finding_status(%L, %L, 1, %L)', A, 'empresa', 'apagada'), 'situacao fora da lista recusada');
+  PERFORM pg_temp.run(owner_a, format('SELECT public.set_finding_status(%L, %L, 1, %L)', A, 'empresa', 'ignorada'));
+  PERFORM pg_temp.expect((SELECT open_critical FROM public.diag_findings WHERE organization_id = A AND step_key = 'empresa') = 0, 'esta certo assim fecha a critica');
+  PERFORM public.service_diag_findings_save(A, 'empresa', 'Diretor Comercial (IA)', '[{"n":1,"tipo":"risco","gravidade":"media","texto":"Outro ponto","etapas":["empresa"],"sugestao":""}]');
+  PERFORM pg_temp.expect((SELECT ignored ->> 0 FROM public.diag_findings WHERE organization_id = A AND step_key = 'empresa') = 'Horario 18h x 24h', 'o que o dono confirmou fica guardado para a IA nao repetir');
+  INSERT INTO public.company_profiles (organization_id, steps) VALUES (A, '{"empresa":{}}') ON CONFLICT (organization_id) DO UPDATE SET steps = '{"empresa":{}}';
+  PERFORM pg_temp.run(owner_a, format('SELECT public.reset_company_profile(%L)', A));
+  PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM public.diag_findings WHERE organization_id = A), 'recomecar o Diagnostico apaga a revisao');
   -- 98. Cobertura do Diagnostico: so dono/admin ve; so o servidor grava; marca do dono vale.
   PERFORM public.service_diag_coverage_save(A, 'marca', '[{"n":1,"item":"cores","porque":"p","status":"completo","nota":""},{"n":2,"item":"logo","porque":"p","status":"faltando","nota":""}]');
   PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT complete FROM public.diag_coverage WHERE step_key = ''marca''') = 1, 'dono ve a cobertura');
