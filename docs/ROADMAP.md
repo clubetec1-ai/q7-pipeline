@@ -26,6 +26,14 @@ ANOREG 17–19/11). Primeiro o que trava o piloto e a venda segura, depois o que
 **Ordem de execução definida pelo dono em 06/10:** item 2 (com o dono fazendo o item 1) → Etapa B (melhorias) →
 Etapa C (canais e extras) → Etapa D (segurança, documentos e SLA) → Etapa E (lançamento).
 
+**🔴 PRIORIDADE MÁXIMA (decisão do dono, 06/10) — A empresa completa com IA:** arquitetura em
+`docs/design/07-empresa-com-ia.md` — organograma de agentes (cérebro → diretores → coordenadores → especialistas →
+executores, mais a equipe de apoio: Analista de Diagnóstico, Revisor de área, Arquiteto de processos, Implementador,
+Guardião de segurança e LGPD, Auditor de qualidade), ciclo com portões (levantamento → revisão → organograma → processos
+→ implantação → prova → ir ao ar em degraus → operar → melhorar), níveis de autonomia, crachá de cada agente, rede de
+tarefas entre agentes e 10 fatias. 🙋 Dono aprova o desenho e as 6 decisões do §11; depois as fatias entram antes de
+tudo, na ordem 1 → 10. Prova: a Clubetec do zero sem erro.
+
 **Etapa A — agora**
 1. **Montar a Clubetec do zero pelos Primeiros passos e pelo Diagnóstico** 🙋, anotando o que travar (cada trava vira
    correção imediata). Junto: E10 (teste no WhatsApp real com número de teste) e teste com equipe (convidar atendente,
@@ -36,7 +44,7 @@ Etapa C (canais e extras) → Etapa D (segurança, documentos e SLA) → Etapa E
    "Salvar e próximo" onde houver etapas.
 
 **Etapa B — melhorias do produto (logo depois do item 2)**
-- 🧠 **Primeiro da Etapa B — a empresa completa com IA (visão do dono, 06/10):** o software é uma "rede" de agentes
+- 🧠 *(subiu para PRIORIDADE MÁXIMA em 06/10 — ver o topo e docs/design/07)* **A empresa completa com IA (visão do dono, 06/10):** o software é uma "rede" de agentes
   organizada como uma empresa: o **cérebro** no topo (visão de CEO, ao lado do dono), abaixo **diretores e coordenadores**
   por área e **especialistas** por setor e por processo, conversando entre si. O cérebro decide quais agentes cada empresa
   precisa, delega, busca as informações que faltam, confere segurança e qualidade antes de qualquer coisa ir ao ar, e só
