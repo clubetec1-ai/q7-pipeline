@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Check, PencilRuler, ShieldAlert } from "lucide-react";
+import { Check, PencilRuler, Rocket, ShieldAlert, Workflow } from "lucide-react";
 
 function B({ d, children, primary }: { d: string; children: ReactNode; primary?: boolean }) {
   return <span data-demo={d} className={`inline-flex items-center gap-0.5 rounded border px-1.5 py-0.5 font-medium ${primary ? "bg-primary text-primary-foreground" : "bg-background"}`}>{children}</span>;
@@ -9,6 +9,7 @@ const Chip = ({ c, children }: { c: string; children: ReactNode }) => <span clas
 /** Miniatura da tela Processos para as demonstrações. Dados fictícios. */
 export function ProcessosMock({ state }: { state: string }) {
   const desenhado = state !== "lista";
+  const aprovado = state === "aprovado" || state === "implantado";
   return (
     <div className="h-full p-2 space-y-1.5">
       <p className="font-semibold">Processos da empresa</p>
@@ -17,7 +18,8 @@ export function ProcessosMock({ state }: { state: string }) {
         <div data-demo="processo" className="rounded border p-1 space-y-1">
           <p className="flex items-center justify-between gap-1"><b>Orçamento</b>
             {!desenhado ? <B d="btn-desenhar" primary><PencilRuler className="h-2.5 w-2.5" /> Desenhar com o Arquiteto</B>
-              : state === "aprovado" ? <Chip c="bg-success-soft text-success-text">Aprovado · v1</Chip> : <Chip c="bg-warning-soft text-warning-text">Para aprovar</Chip>}
+              : aprovado ? <Chip c="bg-success-soft text-success-text">Aprovado · v1</Chip> : <Chip c="bg-warning-soft text-warning-text">Para aprovar</Chip>}
+            {state === "implantado" && <span data-demo="implantado"><Chip c="bg-info-soft text-info-text">Implantado</Chip></span>}
             {desenhado && <span data-demo="guardiao-selo" className="rounded bg-success-soft px-1 text-success-text">🛡️ Guardião: aprovado</span>}
           </p>
           {desenhado && (
@@ -29,7 +31,13 @@ export function ProcessosMock({ state }: { state: string }) {
                 <li>4. Lembrar o cliente em 2 dias <Chip c="bg-info-soft text-info-text">Fluxo automático</Chip></li>
               </ol>
               <p data-demo="dados"><ShieldAlert className="inline h-2.5 w-2.5 text-danger-text" /> Dados: Nome · <span className="text-danger-text">CPF (sensível)</span></p>
-              {state !== "aprovado" && <p className="flex gap-1"><B d="btn-aprovar" primary><Check className="h-2.5 w-2.5" /> Aprovar processo</B> <B d="btn-ajuste">Pedir ajuste e redesenhar</B></p>}
+              {aprovado && (
+                <p className="flex flex-wrap gap-1">
+                  <B d="btn-implantar" primary><Rocket className="h-2.5 w-2.5" /> {state === "implantado" ? "Implantar de novo" : "Implantar no atendimento"}</B>
+                  <B d="btn-fluxo"><Workflow className="h-2.5 w-2.5" /> Instalar o fluxo sugerido: Envio de catálogo</B>
+                </p>
+              )}
+              {!aprovado && <p className="flex gap-1"><B d="btn-aprovar" primary><Check className="h-2.5 w-2.5" /> Aprovar processo</B> <B d="btn-ajuste">Pedir ajuste e redesenhar</B></p>}
             </>
           )}
         </div>

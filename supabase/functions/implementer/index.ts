@@ -4,6 +4,10 @@ import { HttpError, requirePermission, requireUser, resolveOrg } from "../_share
 import { forOrg } from "../_shared/tenant.ts";
 import { chatAI, resolveAI } from "../_shared/ai-chat.ts";
 import { companyKnowledge } from "../_shared/company.ts";
+import { checkText } from "../_shared/guardian.ts";
+import { pickTemplate, processDocText } from "../_shared/implementation.ts";
+import { chunkText, sanitize } from "../_shared/knowledge.ts";
+import type { ProcessDesign } from "../_shared/process-design.ts";
 
 /**
  * Agente implementador (org.settings): instala automações PRONTAS como
@@ -58,13 +62,46 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
     const body = await req.json().catch(() => ({}));
-    if (body?.action !== "install") throw new HttpError(400, "Ação inválida");
+    if (body?.action !== "install" && body?.action !== "implement_process") throw new HttpError(400, "Ação inválida");
     const ctx = await requireUser(req);
     const orgId = await resolveOrg(ctx, body?.organization_id);
     await requirePermission(ctx, orgId, "org.settings");
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     await requireModule(admin, orgId, "ia");
     const org = forOrg(admin, orgId);
+
+    // Implantação pelo organograma (desenho 07, fatia 9): processo aprovado → documento "Como funciona" na base
+    // (o agente usa no atendimento) + o fluxo pronto mais adequado (instalação com um clique, em rascunho).
+    if (body?.action === "implement_process") {
+      const { data: proc } = await org.select("process_designs", "id, setor, nome, design, status, department_id, implementation")
+        .eq("id", String(body?.process_id ?? "")).maybeSingle();
+      if (!proc) throw new HttpError(404, "Processo não encontrado");
+      if (proc.status !== "aprovado") throw new HttpError(422, "Aprove o processo antes de implantar");
+      const design = proc.design as ProcessDesign;
+      const text = processDocText(proc.nome, proc.setor, design);
+      // Guardião: o documento vira instrução de quem fala com o cliente.
+      const bloqueios = checkText(text, "documento do processo").filter((f) => f.gravidade === "bloqueia");
+      if (bloqueios.length) throw new HttpError(422, `O Guardião de segurança não deixou implantar: ${bloqueios.map((f) => f.texto).join(" ")}`);
+      // Troca o documento anterior deste processo (se houver).
+      const oldDoc = (proc.implementation as { doc_id?: string } | null)?.doc_id;
+      if (oldDoc) {
+        await org.delete("knowledge_chunks").eq("doc_id", oldDoc);
+        await org.delete("knowledge_docs").eq("id", oldDoc);
+      }
+      const chunks = chunkText(sanitize(text));
+      const { data: doc, error: dErr } = await org.insert("knowledge_docs", {
+        department_id: proc.department_id, title: `Como funciona: ${proc.nome}`.slice(0, 160), kind: "script", visibility: "atendimento",
+        file_name: `como-funciona-${proc.nome}`.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w-]+/g, "-").toLowerCase().slice(0, 80) + ".txt",
+        mime: "text/plain", size: new TextEncoder().encode(text).length, status: "ready", chunks: chunks.length, created_by: ctx.user.id,
+      }).select("id").single();
+      if (dErr || !doc) throw new HttpError(500, "Não consegui criar o documento do processo");
+      const { error: cErr } = await admin.from("knowledge_chunks").insert(chunks.map((content, ord) => ({ organization_id: orgId, doc_id: doc.id, ord, content })));
+      if (cErr) throw new HttpError(500, "Não consegui indexar o documento do processo");
+      const template = pickTemplate(proc.nome, design);
+      const { error: iErr } = await admin.rpc("service_process_implemented", { org: orgId, p_id: proc.id, p_impl: { doc_id: doc.id, template } });
+      if (iErr) throw new HttpError(422, iErr.message);
+      return json({ ok: true, doc_id: doc.id, template, template_name: template ? TEMPLATES[template]?.name ?? null : null });
+    }
 
     // Modelo: direto (página Fluxos) ou de uma sugestão do Diagnóstico.
     const { data: profile } = await org.select("company_profiles", "suggestions").maybeSingle();
@@ -116,6 +153,11 @@ Deno.serve(async (req) => {
           { role: "user", content: knowledge || "Sem informações extras da empresa." },
         ]);
         try { t = JSON.parse(r.reply?.match(/\{[\s\S]*\}/)?.[0] ?? "{}"); } catch { /* usa os textos padrão */ }
+        // Guardião (fatia 9): texto gerado que promete, pede senha ou expõe dado não entra no fluxo — volta para os padrões.
+        if (checkText(JSON.stringify(t), "textos do fluxo").some((f) => f.gravidade === "bloqueia")) {
+          t = {};
+          warnings.push("O Guardião de segurança barrou os textos gerados pela IA: usei textos padrão; revise no editor.");
+        }
       }
       if (!ai) warnings.push("Sem chave de IA configurada: usei textos padrão; ajuste no editor.");
 

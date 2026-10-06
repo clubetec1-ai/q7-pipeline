@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, ArrowLeft, Check, Loader2, PencilRuler, ShieldAlert } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Check, Loader2, PencilRuler, Rocket, ShieldAlert, Workflow } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrg } from "@/contexts/OrgContext";
 import { useToast } from "@/hooks/use-toast";
@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { MicTextarea } from "@/components/MicTextarea";
 import { HowItWorks } from "./diagnostico/HowItWorks";
 import { GuardianBadge, GuardianFindings, type GuardianReview } from "@/components/GuardianBadge";
+import { READY_TEMPLATES, useInstall } from "./fluxos/ReadyTemplates";
 
 type Decisao = "fluxo" | "modelo" | "ia" | "pessoa";
 interface Passo { n: number; o_que: string; quem_detalhe: string; ferramenta: string; prazo: string; decisao: Decisao; motivo: string }
@@ -18,7 +19,8 @@ interface Design {
   gatilho: string; objetivo: string; passos: Passo[]; excecoes: { quando: string; o_que_fazer: string }[];
   dados_cliente: { dado: string; sensivel: boolean }[]; base_legal: string; sla: string; indicadores: string[]; riscos: string[]; dono_do_processo: string;
 }
-interface Row { id: string; setor: string; nome: string; design: Design; status: "proposto" | "aprovado" | "arquivado"; version: number; architect_note: string | null; approved_at: string | null }
+interface Row { id: string; setor: string; nome: string; design: Design; status: "proposto" | "aprovado" | "arquivado"; version: number; architect_note: string | null; approved_at: string | null;
+  implementation: { doc_id?: string | null; template?: string | null; version?: number } | null }
 interface Narr { setor?: string; area?: string; nome: string }
 
 const DECISAO: Record<Decisao, { label: string; cls: string; hint: string }> = {
@@ -45,11 +47,12 @@ export default function Processos() {
   const [note, setNote] = useState<Record<string, string>>({});
   const [guard, setGuard] = useState<Map<string, GuardianReview>>(new Map());
   const owner = can("org.settings");
+  const { install, busy: installing } = useInstall(org?.id ?? "");
 
   const load = useCallback(async () => {
     if (!org) return;
     const [{ data: d }, prof, { data: g }] = await Promise.all([
-      supabase.from("process_designs").select("id, setor, nome, design, status, version, architect_note, approved_at").eq("organization_id", org.id).order("setor").order("nome"),
+      supabase.from("process_designs").select("id, setor, nome, design, status, version, architect_note, approved_at, implementation").eq("organization_id", org.id).order("setor").order("nome"),
       owner ? supabase.from("company_profiles").select("processes").eq("organization_id", org.id).maybeSingle() : Promise.resolve({ data: null }),
       supabase.from("guardian_reviews").select("subject_id, status, findings").eq("organization_id", org.id).eq("subject_type", "processo"),
     ]);
@@ -107,6 +110,17 @@ export default function Processos() {
     setNote({ ...note, [r.id]: "" });
     await design(r.setor, r.nome); // o Arquiteto refaz já com o pedido
   };
+  // Implantação (fatia 9): o processo aprovado vira o documento "Como funciona" que o agente usa no atendimento.
+  const implement = async (r: Row) => {
+    if (!org) return;
+    setBusy(`i:${r.id}`);
+    const res = await callFunction<{ template: string | null }>("implementer", { action: "implement_process", organization_id: org.id, process_id: r.id });
+    setBusy(null);
+    if (!res.ok) return toast({ variant: "destructive", title: "Não implantado", description: res.message });
+    toast({ title: "Processo implantado", description: "O agente de atendimento já usa este processo para responder." });
+    void load();
+  };
+
   const archive = async (r: Row) => {
     if (!window.confirm(`Arquivar o processo "${r.nome}"? Ele sai da implantação (dá para desenhar de novo depois).`)) return;
     const { error } = await supabase.rpc("archive_process_design", { p_id: r.id });
@@ -163,6 +177,10 @@ export default function Processos() {
                         {!row && <Badge variant="outline">Sem desenho</Badge>}
                         {row?.status === "proposto" && <Badge className="bg-warning-soft text-warning-text">Para aprovar</Badge>}
                         {row?.status === "aprovado" && <Badge className="bg-success-soft text-success-text">Aprovado · v{row.version}</Badge>}
+                        {row?.status === "aprovado" && row.implementation?.version === row.version && <Badge className="bg-info-soft text-info-text">Implantado</Badge>}
+                        {row?.status === "aprovado" && row.implementation && row.implementation.version !== row.version && (
+                          <Badge className="bg-warning-soft text-warning-text">Implantação desatualizada</Badge>
+                        )}
                         {row?.status === "arquivado" && <Badge variant="outline">Arquivado</Badge>}
                         {row && row.status !== "arquivado" && <GuardianBadge review={guard.get(row.id)} />}
                         {row && row.status !== "arquivado" && (
@@ -189,8 +207,33 @@ export default function Processos() {
                             {row.status === "proposto" && guard.get(row.id)?.status === "reprovado" && (
                               <span className="self-center text-xs text-danger-text">Corrija o que o Guardião apontou (peça ajuste abaixo) para poder aprovar.</span>
                             )}
+                            {row.status === "aprovado" && owner && (
+                              <Button size="sm" data-demo="btn-implantar" disabled={!!busy || guard.get(row.id)?.status === "reprovado"} onClick={() => void implement(row)}>
+                                {busy === `i:${row.id}` ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Rocket className="w-4 h-4 mr-1" />}
+                                {row.implementation ? "Implantar de novo" : "Implantar no atendimento"}
+                              </Button>
+                            )}
+                            {row.status === "aprovado" && owner && row.implementation?.template && (() => {
+                              const tpl = READY_TEMPLATES.find((t) => t.key === row.implementation?.template);
+                              return tpl ? (
+                                <Button size="sm" variant="outline" data-demo="btn-fluxo" disabled={!!installing}
+                                  title="Cria o fluxo como rascunho: nada vai para o cliente antes de você revisar e publicar."
+                                  onClick={() => void install({ template: tpl.key }, `p:${row.id}`)}>
+                                  {installing === `p:${row.id}` ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Workflow className="w-4 h-4 mr-1" />} Instalar o fluxo sugerido: {tpl.name}
+                                </Button>
+                              ) : null;
+                            })()}
                             <Button size="sm" variant="ghost" onClick={() => void archive(row)}>Arquivar</Button>
                           </div>
+                          {row.status === "aprovado" && (
+                            <p className="text-xs text-muted-foreground">
+                              {row.implementation?.version === row.version
+                                ? "Implantado: o agente de atendimento usa este processo (documento \"Como funciona\" na base de conhecimento)."
+                                : row.implementation
+                                  ? "O processo mudou depois da implantação: implante de novo para o agente usar a versão nova."
+                                  : "Implantar cria o documento \"Como funciona\" que o agente usa para responder, e indica o fluxo pronto mais adequado."}
+                            </p>
+                          )}
                           <p className="text-xs text-muted-foreground">Algo não está certo? Diga (ou fale) o que mudar e o Arquiteto refaz o desenho:</p>
                           {org && (
                             <MicTextarea orgId={org.id} rows={2} maxLength={800} value={note[row.id] ?? ""} onChange={(v) => setNote({ ...note, [row.id]: v })}

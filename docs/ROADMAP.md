@@ -77,7 +77,11 @@ Atendente geral (IA) com prova em dia e, para automático, 14 dias sem tropeço;
 Teste 104. ✅ **Fatia 8 — A rede de agentes (06/10):** o que o agente que atende não encontra vira pergunta (sem dados do
 cliente) que sobe pelo time; cada nível tenta responder com o que o crachá dele vê; o que ninguém sabe chega ao dono em
 "Perguntas do time de IA" no Diagnóstico e a resposta entra na etapa certa; resumo no Cérebro; roda a cada 5 min só quando
-há pergunta; teste 105. Próximo: Fatia 9 — implantação pelo organograma.
+há pergunta; teste 105. ✅ **Fatia 9 — Implantação pelo organograma (06/10):** processo aprovado vira, com um clique, o
+documento "Como funciona" que o agente que atende usa (só o que o cliente precisa saber e quando passar para uma pessoa;
+conferido pelo Guardião) e a indicação do fluxo pronto mais adequado (instalado em rascunho); "Implantação desatualizada"
+quando o processo muda; o bloco de IA dos fluxos passa pela mesma porta de publicação; teste 106. Próximo: Fatia 10 —
+acabamento e prova final.
 🧠 **Fatia 11 nova — Cérebro da plataforma (pedido do dono, 06/10; desenho 07 §12):** o cérebro também gerencia o software
 inteiro para todas as empresas — saúde, falhas, bugs, alertas, correções e melhorias —, com equipes de IA de engenharia
 (front-end, back-end, integrações), segurança, qualidade, design e suporte; só metadados (nunca conversa de cliente);

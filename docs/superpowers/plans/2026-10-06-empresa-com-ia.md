@@ -429,7 +429,7 @@ reprovado), guias atualizados, testes de isolamento 102 (e 100/101 ajustados par
 - [x] Funções `guardian`, `architect`, `orgchart` publicadas.
 - [x] Prova no servidor publicado: texto com promessa e pedido de senha → reprovado; texto legítimo com "nunca peça a senha" → não bloqueado (a IA deu só atenção).
 - [x] Telas, selos e guias; `tsc` e `build` ok.
-- [ ] Propostas de melhoria e fluxos passam pelo Guardião na fatia 9 (implantação), onde os rascunhos são gerados.
+- [x] Textos gerados pela IA ao instalar fluxos passam pelo Guardião (fatia 9).
 
 ---
 
@@ -492,7 +492,7 @@ sino, guia do Assistente (passo dos degraus), teste de isolamento 104.
 - [x] `publish-gate_test.ts` (5) e `orgchart_test.ts` (5) passando; teste 104 visto falhar (o TRUNCATE passava) e depois passar.
 - [x] Publicados: whatsapp-webhook, meta-webhook, sync-email, process-inbound, notify-email, orgchart; webhook responde 200.
 - [x] Telas, sino, e-mail e guia; `tsc` e `build` ok.
-- [ ] Fluxos com bloco de IA também passarem pela porta (fatia 9, implantação).
+- [x] Fluxos com bloco de IA também passam pela porta (fatia 9).
 - [ ] Prova de ponta a ponta com mensagens reais: no teste da Clubetec do zero.
 
 ---
@@ -520,3 +520,29 @@ claim`; `answer_agent_task` (dono; grava na etapa); `private.agent_network_tick`
 - [x] Telas, sino e guia; `tsc` e `build` ok.
 - [ ] Ver a rede respondendo de verdade (time montado, processos aprovados, mensagens reais): no teste da Clubetec do zero.
 - [ ] Próximo uso da rede: o cérebro semanal delegar tarefas por ela (pedir revisão a diretores, alertas) — junto com a fatia 9.
+
+## Fatia 9 — Implantação pelo organograma ✅ (06/10)
+
+**Como funciona:** em Processos, cada processo **aprovado** (e não reprovado pelo Guardião) tem o botão **Implantar no
+atendimento**. O Implementador gera o documento **"Como funciona: {processo}"** (`_shared/implementation.ts`,
+`processDocText`): começo, objetivo, prazo, o que o cliente informa, passos, casos diferentes e **quando passar para uma
+pessoa** — ferramentas internas, base legal, riscos e indicadores ficam de fora. O Guardião confere o texto (bloqueio → não
+implanta). O documento entra na base de conhecimento com visibilidade **atendimento** (o agente que atende já usa) e troca o
+anterior do mesmo processo. Por regra fixa (`pickTemplate`, só da lista do Implementador) indica o **fluxo pronto** mais
+adequado, que o dono instala com um clique **em rascunho**. A implantação guarda a versão do desenho: se o processo mudar,
+aparece "Implantação desatualizada". Os textos que a IA gera ao instalar um fluxo também passam pelo Guardião (bloqueio →
+textos padrão + aviso). O **bloco de IA dos fluxos** agora passa pela mesma porta de publicação do atendimento (modo
+sombra/assistido/automático, trava fixa, `[FALTA: …]` para a rede); se a porta segura a resposta, o atendimento vai para a
+fila e o fluxo para ali.
+
+**Arquivos:** migration `20261006002800_process_implementation.sql` (`process_designs.implementation`/`implemented_at`;
+`service_process_implemented`, só servidor), `_shared/implementation.ts` + teste (2), `implementer` (ação
+`implement_process`; Guardião no `install`), `_shared/flow/ai-agent.ts` (porta de publicação), tela `src/pages/Processos.tsx`
+(Implantar, selo Implantado/desatualizada, Instalar o fluxo sugerido), guia de Processos (passo 5) e `ProcessosMock`,
+teste de isolamento 106.
+
+- [x] `implementation_test.ts` (2) e todos os testes de `_shared` passando (80); teste 106 e bateria completa ok.
+- [x] Publicados: implementer, run-flows, whatsapp-webhook, check-numbers, send-campaigns, payments-cron, payments-webhook,
+  integrations, voice, agent-test, proof (todos que levam o bloco de IA dos fluxos).
+- [x] Tela, guia e tipos; `tsc` e `build` ok.
+- [ ] Ver implantado de verdade (processo aprovado → documento → agente respondendo com ele): no teste da Clubetec do zero.
