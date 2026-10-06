@@ -5,7 +5,8 @@ import { forOrg } from "../_shared/tenant.ts";
 import { audioAI, chatAI, type ChatMsg, platformChain, providerKey, recordUsage, resolveAI, type ResolvedAI } from "../_shared/ai-chat.ts";
 import { SECTIONS, STAGES } from "../_shared/company.ts";
 import { fetchSiteText, lookupCnpj, monthlyCost, USD_BRL } from "../_shared/consulting.ts";
-import { knowledgeContext } from "../_shared/knowledge.ts";
+import { extractDocText, knowledgeContext } from "../_shared/knowledge.ts";
+import { askVision } from "../_shared/media-read.ts";
 import { transcribeAudio } from "../_shared/transcribe.ts";
 
 /**
@@ -63,7 +64,7 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const action = String(body?.action ?? "");
-    if (!["message", "suggest", "research", "plan", "format", "transcribe", "brand_write", "sector_priority", "voice_turn", "speak", "presence_texts"].includes(action)) throw new HttpError(400, "Ação inválida");
+    if (!["message", "suggest", "research", "plan", "format", "transcribe", "brand_write", "sector_priority", "voice_turn", "speak", "presence_texts", "brand_suggest"].includes(action)) throw new HttpError(400, "Ação inválida");
     const ctx = await requireUser(req);
     const orgId = await resolveOrg(ctx, body?.organization_id);
     await requirePermission(ctx, orgId, "org.settings");
@@ -217,6 +218,45 @@ Deno.serve(async (req) => {
     // Marketing: texto de campanha no tom de voz da marca (usa só o retrato público + a voz).
     // --------------------------------------------------------- presence_texts
     // Textos para o perfil no Google e as redes, no tom da marca, só com o que o dono contou.
+    // Marca: a partir do logo (visão) e do manual (texto do PDF), sugere cores, fontes e tom de voz.
+    // Só arquivos da própria empresa no bucket "brand"; nada é gravado: o dono confere e escolhe.
+    if (action === "brand_suggest") {
+      const paths = (Array.isArray(body?.paths) ? body.paths : []).map((p: unknown) => String(p ?? ""))
+        .filter((p: string) => p.startsWith(`${orgId}/`) && !p.includes("..")).slice(0, 4);
+      if (!paths.length) throw new HttpError(400, "Envie o logo ou o manual da marca primeiro.");
+      const parse = (t: string | null) => { try { return t ? JSON.parse(t.slice(t.indexOf("{"), t.lastIndexOf("}") + 1)) : {}; } catch { return {}; } };
+      const HEXRE = /^#[0-9a-f]{6}$/i;
+      const cores: { nome: string; hex: string }[] = [];
+      let fontes = "", voz = "", notas = "";
+      for (const path of paths) {
+        const { data: blob } = await admin.storage.from("brand").download(path);
+        if (!blob) continue;
+        const bytes = new Uint8Array(await blob.arrayBuffer());
+        if (/\.pdf$/i.test(path) || blob.type === "application/pdf") {
+          const doc = await extractDocText(bytes, "manual.pdf", "application/pdf");
+          if (!doc.text) { notas = doc.error ?? notas; continue; }
+          const out = await ask("Você lê o manual de marca de uma empresa e extrai o que ele define. Use SOMENTE o que está escrito; nunca invente. " +
+            'Responda SOMENTE com JSON: {"cores":[{"nome":"","hex":"#RRGGBB"}],"fontes":"fontes de títulos e textos","voz":"tom de voz e palavras que usa/evita, em até 4 linhas"}. ' +
+            "Converta RGB ou CMYK para hexadecimal quando o manual não trouxer o código. Campo sem informação fica vazio.", doc.text.slice(0, 12000));
+          for (const c of (Array.isArray(out.cores) ? out.cores : []) as { nome?: string; hex?: string }[]) {
+            if (HEXRE.test(String(c.hex)) && cores.length < 10) cores.push({ nome: clip(c.nome, 40), hex: String(c.hex).toUpperCase() });
+          }
+          fontes = clip(out.fontes, 200) || fontes;
+          voz = clip(out.voz, 600) || voz;
+        } else if (/^image\/(png|jpeg|webp)$/i.test(blob.type)) {
+          const out = parse(await askVision(admin, orgId, bytes, blob.type,
+            "Este é o logo de uma empresa brasileira. Responda SOMENTE com JSON: " +
+            '{"fonte_logo":"estilo da letra do logo e a fonte gratuita do Google Fonts mais parecida","titulos":"fonte do Google Fonts sugerida para títulos","textos":"fonte do Google Fonts sugerida para textos que combine","estilo":"em uma frase, a personalidade visual do logo"}. ' +
+            "Se não houver texto no logo, sugira fontes que combinem com o estilo. Não invente o nome da empresa.", 300));
+          const f = [out.fonte_logo && `Logo: ${clip(out.fonte_logo, 120)}`, out.titulos && `Títulos: ${clip(out.titulos, 60)}`, out.textos && `Textos: ${clip(out.textos, 60)}`].filter(Boolean).join(" · ");
+          if (f && !fontes) fontes = f;
+          if (out.estilo && !notas) notas = clip(out.estilo, 200);
+        }
+      }
+      if (!cores.length && !fontes && !voz) throw new HttpError(502, notas || "Não consegui ler o logo/manual agora. As cores tiradas do logo continuam valendo.");
+      return json({ ok: true, cores, fontes, voz, notas });
+    }
+
     if (action === "presence_texts") {
       const base = ["empresa", "produtos", "atendimento", "pos_venda", "presenca", "marca_voz"].map((k) => clip(sections[k], 1500)).filter(Boolean);
       if (base.length < 2) throw new HttpError(422, "Aprove antes as etapas Empresa e Publicar e medir.");
