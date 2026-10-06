@@ -969,6 +969,26 @@ Passadas 25 telas logado como dono/operador, sem erros de JavaScript no console.
   **revenda/white label** para agências. Segurar novos canais (Instagram) e WebRTC até clientes pedirem ou a
   central liberar.
 
+### 📌 Site do cliente e redes sociais atrelados à mensalidade (pedido do dono em 05/10 — para depois)
+Ideia de negócio: com tudo o que o sistema já sabe da empresa (Diagnóstico, marca, logo, cores, fontes, produtos,
+serviços, políticas, presença digital), gerar o site do cliente e cuidar das redes. O site fica **junto da
+mensalidade**: ao pensar em cancelar, o cliente sabe que perde também o site com a IA (retenção).
+- **Revenda Hostinger:** verificar com a Hostinger o programa de revenda/parceria (hospedagem e domínios em nome da
+  Clubetec, preço de revenda, API para criar sites/domínios automaticamente, quem dá suporte, contrato). 🙋 Dono:
+  contato comercial com a Hostinger; alternativa a comparar: hospedar nós mesmos (Vercel/Cloudflare) com domínio
+  do cliente.
+- **Montador de página:** página de vendas (produto/serviço, oferta, botão do WhatsApp com a IA) e site institucional
+  (quem somos, missão/visão/valores, serviços, depoimentos, contato, horário, mapa), montados a partir do Diagnóstico
+  e do kit da marca; o cliente escolhe o modelo, ajusta textos e publica no domínio dele, com passo a passo e vídeo
+  (padrão do produto). Formulário e chat do site caem direto em Conversas.
+- **Atualização automática:** produto novo, preço, promoção, horário ou lançamento cadastrado no sistema atualiza o
+  site (o dono aprova antes de publicar — regra dos agentes).
+- **Postagens nas redes:** gerar e agendar posts (Instagram/Facebook, Google Meu Negócio) a partir dos produtos e
+  serviços, no tom de voz e nas cores da marca (já existe a base em "Presença digital" e "Campanhas e Marca"); o dono
+  aprova e o sistema publica pela Meta (depende da aprovação do app da Meta) e mede o resultado.
+- Comercial: definir se entra nos planos (Profissional/Completo) ou como módulo "Site e redes" com valor próprio;
+  cancelamento da assinatura tira o site do ar após aviso e prazo (deixar claro nos termos de uso).
+
 ## Segurança antes da produção (pedido em 30/09)
 Objetivo: o sistema sempre **blindado** — nenhum dado vaza (entre empresas ou para fora) e resiste a ataques,
 invasão, abuso e tentativas de burlar ou derrubar.
