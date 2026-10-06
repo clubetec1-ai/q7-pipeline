@@ -45,7 +45,7 @@ export function DiagMock({ state }: { state: string }) {
             </p>
             <div className="flex flex-wrap items-center gap-1">
               {state === "ouvindo"
-                ? <><span className="text-danger-text">● Ouvindo… 0:12</span><B d="btn-terminei"><Square className="h-2.5 w-2.5" /> Terminei de responder</B></>
+                ? <><span className="text-danger-text">● Ouvindo… 0:12</span><B d="btn-terminei"><Square className="h-2.5 w-2.5" /> Terminei de responder</B><B d="btn-pausar">Pausar</B><B d="btn-recomecar">Recomeçar esta resposta</B></>
                 : <><B d="btn-responder" primary><Mic className="h-2.5 w-2.5" /> Responder</B>
                   {state !== "entrevista" && <B d="btn-anexar-material" primary><Paperclip className="h-2.5 w-2.5" /> Anexar: modelo de orçamento</B>}</>}
               {state === "anexado" && <span className="rounded-full border px-1"><Paperclip className="inline h-2.5 w-2.5" /> orcamento-modelo.pdf</span>}
