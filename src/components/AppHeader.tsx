@@ -9,6 +9,7 @@ import { Logo } from "@/components/Logo";
 import { MainNav } from "@/components/MainNav";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { AppAssistant } from "@/components/AppAssistant";
+import { GuideHost } from "@/guides/GuideHost";
 import { useOrgLogo, useWhiteLabel } from "@/components/OrgTheme";
 import { useTheme } from "@/components/ThemeProvider";
 import {
@@ -55,6 +56,7 @@ export function AppHeader({ active, extra }: { active: ComponentProps<typeof Mai
           <Link to="/chat"><MessagesSquare className="w-4 h-4 xl:mr-1" /><span className="hidden xl:inline">Equipe</span></Link>
         </Button>
         <AppAssistant />
+        <GuideHost />
         <NotificationsBell />
         {/* Menu da pessoa: conta, tema e sair num lugar só (cabeçalho mais limpo). */}
         <DropdownMenu>

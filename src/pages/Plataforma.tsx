@@ -33,7 +33,9 @@ interface OrgRow {
   members: number; numbers: number; mailboxes: number; conversations_30d: number;
   last_activity: string | null; support_until: string | null;
 }
-interface HelpRequest { id: string; organization_id: string; topic: string; message: string; status: string; created_at: string }
+interface HelpRequest { id: string; organization_id: string; topic: string; message: string; status: string; created_at: string; urgency: string; source: string; page: string | null; reply: string | null; transcript: { role: string; content: string }[] | null }
+const URG: Record<string, [string, string]> = { baixa: ["Baixa", "bg-muted text-muted-foreground"], media: ["Média", "bg-info-soft text-info-text"], alta: ["Alta", "bg-warning-soft text-warning-text"], urgente: ["Urgente", "bg-danger-soft text-danger-text"] };
+const URG_ORDER: Record<string, number> = { urgente: 0, alta: 1, media: 2, baixa: 3 };
 const REQ_STATUS: Record<string, string> = { open: "Novo", in_progress: "Em andamento", done: "Concluído", canceled: "Cancelado" };
 const when = (d: string | null) => (d ? new Date(d).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—");
 
@@ -65,9 +67,12 @@ export default function Plataforma() {
     const [o, t, rq] = await Promise.all([
       supabase.rpc("platform_org_overview"),
       supabase.from("org_templates").select("key, name").eq("active", true).order("name"),
-      supabase.from("service_requests").select("id, organization_id, topic, message, status, created_at").order("created_at", { ascending: false }).limit(100),
+      supabase.from("service_requests").select("id, organization_id, topic, message, status, created_at, urgency, source, page, reply, transcript").order("created_at", { ascending: false }).limit(100),
     ]);
-    setRequests((rq.data as HelpRequest[]) ?? []);
+    // Abertos primeiro, por urgência; depois os demais.
+    setRequests(((rq.data ?? []) as unknown as HelpRequest[]).sort((a, b) =>
+      Number(a.status === "done" || a.status === "canceled") - Number(b.status === "done" || b.status === "canceled")
+      || (URG_ORDER[a.urgency] ?? 9) - (URG_ORDER[b.urgency] ?? 9)));
     const { data: ap } = await supabase.rpc("connector_apps_status");
     setApps((ap as Record<string, boolean> | null) ?? {});
     setRows((o.data as OrgRow[]) ?? []);
@@ -251,10 +256,12 @@ export default function Plataforma() {
             <div key={r.id} className="rounded-md border p-3 text-sm space-y-1">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-medium">{rows.find((o) => o.id === r.organization_id)?.name ?? "Empresa"}</span>
-                <span className="text-muted-foreground">· {r.topic} · {when(r.created_at)}</span>
+                <span className={`rounded px-1.5 py-0.5 text-xs ${URG[r.urgency]?.[1] ?? ""}`}>{URG[r.urgency]?.[0] ?? r.urgency}</span>
+                <span className="text-muted-foreground">· {r.topic} · {when(r.created_at)}{r.source === "assistente" ? " · aberto pela Ajuda" : ""}{r.page ? ` · tela ${r.page}` : ""}</span>
                 <select className="ml-auto h-8 rounded-md border bg-background px-2 text-xs" value={r.status}
                   onChange={async (e) => {
-                    const { error } = await supabase.rpc("platform_set_request_status", { request: r.id, new_status: e.target.value });
+                    const reply = e.target.value === "done" || e.target.value === "in_progress" ? window.prompt("Resposta para o cliente (opcional):") : null;
+                    const { error } = await supabase.rpc("platform_set_request_status", { request: r.id, new_status: e.target.value, p_reply: reply ?? undefined });
                     if (error) return toast({ variant: "destructive", title: "Não alterado" });
                     void load();
                   }}>
@@ -262,6 +269,13 @@ export default function Plataforma() {
                 </select>
               </div>
               <p className="whitespace-pre-wrap text-muted-foreground">{r.message}</p>
+              {r.reply && <p className="rounded-md bg-primary/10 p-2 text-xs whitespace-pre-wrap"><b>Nossa resposta:</b> {r.reply}</p>}
+              {!!r.transcript?.length && (
+                <details className="text-xs">
+                  <summary className="cursor-pointer text-muted-foreground">Conversa com a Ajuda ({r.transcript.length})</summary>
+                  <div className="mt-1 space-y-1">{r.transcript.map((m, k) => <p key={k}><b>{m.role === "user" ? "Cliente" : "Ajuda"}:</b> {m.content}</p>)}</div>
+                </details>
+              )}
             </div>
           ))}
         </section>

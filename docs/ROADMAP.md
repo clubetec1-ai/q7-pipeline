@@ -308,6 +308,26 @@ Meta liberar as permissões) → 19b Google Agenda (🙋 precisa de credencial O
   vozes e ritmo, anexos, tudo salvo por etapa. **Princípio do dono:** todo fluxo de autoatendimento ganha um passo a
   passo assim. 📌 Depois: vídeos explicativos curtos em cada passo a passo (gravar quando as telas estabilizarem) e o
   mesmo guia em Números, Agentes, Fluxos e Configurações.
+- ✅ **Diagnóstico não perde mais o que foi escrito (05/10):** texto e anexos de cada etapa salvos sozinhos ("✓ Salvo
+  às hh:mm"); ao atualizar a página volta para a etapa onde a pessoa estava (antes a caixa abria vazia); botão
+  "Salvar e próxima etapa" (organizar e aprovar depois).
+- ✅ **Padrão do produto: autoatendimento guiado (05/10, regra do dono — está no CLAUDE.md):** toda tela que o cliente
+  usa sai com passo a passo (Próximo/Voltar) + vídeo curto do caminho + botão de Ajuda. Estrutura pronta em src/guides:
+  guias por tela (abrem sozinhos na 1ª visita), "vídeo" animado da própria interface (cursor clicando + legenda) ou
+  vídeo gravado. Guias prontos: Diagnóstico (5 passos com vídeo) e Ajuda e suporte.
+  📌 Próximos guias, tela a tela: Números (WhatsApp/e-mail/Facebook), Agentes de IA, Fluxos, Equipe, Etiquetas,
+  Funil, Cobranças, Integrações, API; depois vídeos gravados de verdade nas telas principais.
+- ✅ **Ajuda (?) = base de conhecimento + suporte automático (05/10):** passo a passo e vídeo da tela atual e de todas
+  as telas; "Como faço…?" com IA; depois de cada resposta "Resolveu?" — se não, a própria Ajuda abre o chamado com a
+  conversa, a tela e a urgência avaliada pela IA (baixa/média/alta/urgente). Chamados em Configurações → Suporte
+  (situação + resposta da equipe; aviso no sino quando muda). Equipe Clubetec: sino a cada chamado, e-mail nos de
+  urgência alta/urgente, Plataforma → Pedidos de ajuda ordenado por urgência, com a conversa e campo de resposta.
+  📌 Depois: aviso do chamado urgente também no **WhatsApp do suporte** (quando o número/grupo do suporte estiver
+  configurado na Clubetec).
+- 📌 **Pesquisas para depois que a Clubetec estiver no ar (pedido do dono, 05/10):**
+  (1) **SLA de suporte** de softwares parecidos (prazo de primeira resposta e de solução por urgência, canais,
+  horário) para definir o nosso e mostrar o prazo no chamado; (2) **pesquisa de mercado**: diferenciais dos
+  concorrentes que ainda não temos e pontos de melhoria do nosso produto.
 - ⏳ **Registro da marca "Deixa com a IA" no INPI (prioridade do dono, 05/10):** titular Clubetec (CNPJ); busca prévia
   sem marca igual (classe 35 tem "DEIXA COMIGO" registrada → fora por ora); 3 pedidos: mista classe 42, nominativa
   classe 42, mista classe 9 (GRU código 389 por pedido). Logos prontos em docs/marca/inpi (JPG 945×945, 300 dpi,

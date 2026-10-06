@@ -50,6 +50,30 @@ confirme em que ponto da instalação ele está, com `npm run check`.
 
 ---
 
+## Padrão de produto — autoatendimento guiado (obrigatório em toda tela)
+
+O software é **autogerenciável**: o cliente implementa quase tudo sozinho e só chama o
+suporte na dúvida. Toda funcionalidade nova ou alterada que o cliente usa precisa sair com:
+
+1. **Passo a passo com "Próximo/Voltar"**, com texto curto e autoexplicativo e setas
+   apontando os botões reais. Entra em `src/guides/registry.tsx`, abre sozinho na primeira
+   visita à tela e fica disponível no botão de ajuda.
+2. **Vídeo curto mostrando o caminho**: a demonstração animada do guia (`DemoPlayer`, um
+   cursor percorrendo a tela com legenda) ou um vídeo gravado (`video` no passo). Não
+   precisa ser elaborado; precisa mostrar o caminho.
+3. **Botão de ajuda acessível**: o "?" do cabeçalho reúne os passo a passo e vídeos da
+   tela atual, a base de conhecimento (assistente "Como faço…?") e o pedido ao suporte.
+4. **O caminho mais simples possível**: modelos prontos, validação com mensagem amigável,
+   botões de testar, salvar sozinho (nada se perde ao atualizar a página) e "Salvar e
+   próximo" ao fim de cada etapa.
+5. **Segurança acima de tudo**: as regras de isolamento entre empresas, RLS e segredos
+   continuam valendo, e cada guia novo não pode expor dados.
+
+Uma tarefa só está pronta quando esses itens existem para a tela mexida. Se faltar algum,
+diga isso ao entregar.
+
+---
+
 ## O que é este projeto
 
 CRM de atendimento por WhatsApp onde a **IA responde sozinha**, com funil Kanban e

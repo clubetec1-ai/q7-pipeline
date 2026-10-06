@@ -1572,6 +1572,17 @@ BEGIN
   PERFORM pg_temp.expect((SELECT jsonb_array_length(steps -> 'cultura' -> 'attachments') FROM public.company_profiles WHERE organization_id = A) = 0, 'anexo de outra org nao entra');
   PERFORM pg_temp.expect((SELECT last_page FROM public.company_profiles WHERE organization_id = A) = 'cultura', 'lembra a etapa onde parou');
 
+  -- 97. Chamados de suporte: so da propria empresa; origem/conversa/resposta so pelo servidor.
+  PERFORM pg_temp.expect_error(owner_b, format('INSERT INTO public.service_requests (organization_id, topic, message, created_by) VALUES (%L, %L, %L, %L)', A, 'x', 'y', owner_b), 'outra org nao abre chamado em A');
+  PERFORM pg_temp.expect_error(agent_a, format('INSERT INTO public.service_requests (organization_id, topic, message, created_by) VALUES (%L, %L, %L, %L)', A, 'x', 'y', agent_a), 'atendente nao abre chamado direto');
+  PERFORM pg_temp.expect_error(owner_a, format('INSERT INTO public.service_requests (organization_id, topic, message, created_by, source) VALUES (%L, %L, %L, %L, %L)', A, 'x', 'y', owner_a, 'assistente'), 'navegador nao forja a origem');
+  PERFORM pg_temp.expect_error(owner_a, format('INSERT INTO public.service_requests (organization_id, topic, message, created_by, transcript) VALUES (%L, %L, %L, %L, %L)', A, 'x', 'y', owner_a, '[]'), 'navegador nao grava conversa');
+  PERFORM pg_temp.run(owner_a, format('INSERT INTO public.service_requests (organization_id, topic, message, created_by, urgency, page) VALUES (%L, %L, %L, %L, %L, %L)', A, 'Teste 97', 'ajuda', owner_a, 'urgente', '/x'));
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.service_requests WHERE topic = ''Teste 97''') = 0, 'outra org nao ve o chamado');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.platform_set_request_status((SELECT id FROM public.service_requests WHERE topic = %L), %L, %L)', 'Teste 97', 'done', 'x'), 'cliente nao muda a situacao');
+  PERFORM pg_temp.run(operator, format('SELECT public.platform_set_request_status((SELECT id FROM public.service_requests WHERE topic = %L), %L, %L)', 'Teste 97', 'done', 'Resolvido'));
+  PERFORM pg_temp.expect((SELECT count(*) FROM public.notifications WHERE kind = 'support_status' AND user_id = owner_a AND ref ->> 'reply' = 'Resolvido') = 1, 'quem abriu recebe a resposta');
+
   -- 92. Rede de franquias: unidade entra por codigo; matriz ve so numeros; padrao so configuracao.
   UPDATE public.organizations SET status = 'active' WHERE id = 'bbbbbbbb-0000-0000-0000-000000000001'; -- um grupo anterior suspende B
   PERFORM pg_temp.expect_error(owner_a, format('SELECT public.platform_create_network(%L, %L)', A, 'Rede X'), 'so a Clubetec cria rede');
