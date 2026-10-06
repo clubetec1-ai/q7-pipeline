@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Mic, MicVocal, Paperclip, Play, Square, X } from "lucide-react";
+import { Mic, MicVocal, Pause, Paperclip, Play, RotateCcw, Square, Undo2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { callFunction } from "@/lib/callFunction";
 import { Button } from "@/components/ui/button";
@@ -70,6 +70,9 @@ export function VoiceInterview({ orgId, step, setor, onDone, onAttach, attached 
   attachedRef.current = attached; // lido dentro de callbacks antigos (gravação)
   const [err, setErr] = useState<string | null>(null);
   const [secs, setSecs] = useState(0);
+  // Gravando a resposta: pausar (deu um branco), recomeçar só esta resposta ou cancelar.
+  const [paused, setPaused] = useState(false);
+  const discard = useRef<"none" | "restart" | "cancel">("none");
   const [voice, setVoice] = useState(() => read(VOICE_KEY, "nova"));
   const voiceRef = useRef(voice);
   // Microfone abre sozinho depois da pergunta (ágil) ou só quando a pessoa clica em Responder (dá tempo de pensar).
@@ -93,16 +96,15 @@ export function VoiceInterview({ orgId, step, setor, onDone, onAttach, attached 
 
   useEffect(() => () => { alive.current = false; stopAll(); }, []);
   useEffect(() => {
-    if (phase !== "ouvindo") return;
-    setSecs(0);
+    if (phase !== "ouvindo" || paused) return;
     const t = setInterval(() => setSecs((s) => s + 1), 1000);
     return () => clearInterval(t);
-  }, [phase]);
+  }, [phase, paused]);
 
   const stopAll = () => {
     audio.current?.pause();
     if (typeof window !== "undefined") window.speechSynthesis?.cancel();
-    if (rec.current?.state === "recording") rec.current.stop();
+    if (rec.current && rec.current.state !== "inactive") { discard.current = "cancel"; rec.current.stop(); }
     rec.current?.stream.getTracks().forEach((t) => t.stop());
   };
   const persist = (list: QA[]) => { void supabase.rpc("save_voice_progress", { org: orgId, p_key: key, p_qa: list as never }); };
@@ -141,9 +143,18 @@ export function VoiceInterview({ orgId, step, setor, onDone, onAttach, attached 
       const mr = new MediaRecorder(stream);
       const chunks: Blob[] = [];
       mr.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
-      mr.onstop = () => { stream.getTracks().forEach((t) => t.stop()); void answer(new Blob(chunks, { type: mr.mimeType })); };
+      mr.onstop = () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const d = discard.current;
+        discard.current = "none";
+        if (d === "restart") return void listen(); // apaga o que gravou e começa esta resposta de novo
+        if (d === "cancel") return setPhase((ph) => (ph === "ouvindo" ? "pronto" : ph));
+        void answer(new Blob(chunks, { type: mr.mimeType }));
+      };
       rec.current = mr;
+      discard.current = "none";
       mr.start();
+      setSecs(0); setPaused(false);
       setPhase("ouvindo");
     } catch {
       setErr("Não consegui usar o microfone. Libere o acesso ao microfone no navegador e tente de novo.");
@@ -188,6 +199,25 @@ export function VoiceInterview({ orgId, step, setor, onDone, onAttach, attached 
     setQa(next);
     persist(next); // salva cada resposta na hora
     await ask(next);
+  };
+
+  const pauseRec = () => { if (rec.current?.state === "recording") { rec.current.pause(); setPaused(true); } };
+  const resumeRec = () => { if (rec.current?.state === "paused") { rec.current.resume(); setPaused(false); } };
+  const dropRec = (how: "restart" | "cancel") => {
+    if (!rec.current || rec.current.state === "inactive") return;
+    discard.current = how;
+    rec.current.stop();
+  };
+  // A resposta anterior saiu errada: apaga só ela e volta para a mesma pergunta (as outras ficam).
+  const redoLast = () => {
+    const last = qaRef.current[qaRef.current.length - 1];
+    if (!last || !window.confirm("Refazer a resposta da pergunta anterior? Só a resposta dela é apagada; as outras continuam salvas.")) return;
+    const next = qaRef.current.slice(0, -1);
+    qaRef.current = next; setQa(next); persist(next);
+    stopAll();
+    qRef.current = last.q; lastAudio.current = null;
+    setQuestion(last.q); setMaterial(""); setErr(null);
+    setPhase("pronto");
   };
 
   const finish = (history = qaRef.current) => {
@@ -242,13 +272,27 @@ export function VoiceInterview({ orgId, step, setor, onDone, onAttach, attached 
             {(lastAudio.current || voice === "browser") && (
               <Button type="button" size="sm" variant="ghost" onClick={() => void (voice === "browser" ? playBrowser(qRef.current) : playMp3(lastAudio.current!))}>Ouvir a pergunta de novo</Button>
             )}
+            {qa.length > 0 && (
+              <Button type="button" size="sm" variant="ghost" onClick={redoLast} title="Apaga só a resposta anterior e volta para aquela pergunta">
+                <Undo2 className="w-4 h-4 mr-1" /> Refazer a resposta anterior
+              </Button>
+            )}
           </>
         )}
         {phase === "transcrevendo" && <span className="text-muted-foreground">Entendendo sua resposta…</span>}
         {phase === "ouvindo" && (
           <>
-            <span className="inline-flex items-center gap-1 text-red-600"><Mic className="w-4 h-4 animate-pulse" /> Ouvindo… {Math.floor(secs / 60)}:{String(secs % 60).padStart(2, "0")}</span>
+            {paused
+              ? <span className="inline-flex items-center gap-1 text-warning-text"><Pause className="w-4 h-4" /> Pausado {Math.floor(secs / 60)}:{String(secs % 60).padStart(2, "0")} — respire, pense e continue quando quiser</span>
+              : <span className="inline-flex items-center gap-1 text-red-600"><Mic className="w-4 h-4 animate-pulse" /> Ouvindo… {Math.floor(secs / 60)}:{String(secs % 60).padStart(2, "0")}</span>}
             <Button type="button" size="sm" onClick={() => rec.current?.stop()}><Square className="w-4 h-4 mr-1" /> Terminei de responder</Button>
+            {paused
+              ? <Button type="button" size="sm" variant="outline" onClick={resumeRec}><Play className="w-4 h-4 mr-1" /> Continuar</Button>
+              : <Button type="button" size="sm" variant="outline" onClick={pauseRec} title="Deu um branco? Pause e continue depois">
+                  <Pause className="w-4 h-4 mr-1" /> Pausar</Button>}
+            <Button type="button" size="sm" variant="ghost" onClick={() => dropRec("restart")} title="Apaga o que você falou nesta resposta e começa de novo">
+              <RotateCcw className="w-4 h-4 mr-1" /> Recomeçar esta resposta</Button>
+            <Button type="button" size="sm" variant="ghost" onClick={() => dropRec("cancel")} title="Para sem enviar; a pergunta continua esperando">Cancelar</Button>
           </>
         )}
         {phase === "fim" && (

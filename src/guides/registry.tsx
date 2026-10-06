@@ -1,4 +1,4 @@
-import { CheckCircle2, HelpCircle, LifeBuoy, Mic, MicVocal, Paperclip, PenLine, Play, PlayCircle, Save, Sparkles, ThumbsDown } from "lucide-react";
+import { CheckCircle2, HelpCircle, LifeBuoy, Mic, MicVocal, Paperclip, Pause, PenLine, Play, PlayCircle, RotateCcw, Save, Sparkles, ThumbsDown, Undo2 } from "lucide-react";
 import { Pointer } from "./Pointer";
 import { DiagMock } from "./mocks/DiagMock";
 import { SupportMock } from "./mocks/SupportMock";
@@ -57,6 +57,9 @@ export const GUIDES: Guide[] = [
             <Pointer icon={<Play className="w-4 h-4" />} label="Voz" note="escolha a voz que achar mais agradável (dá para ouvir antes)" />
             <Pointer icon={<Mic className="w-4 h-4" />} label="Responder" note="clique quando estiver pronto; pense com calma antes" />
             <Pointer icon={<CheckCircle2 className="w-4 h-4" />} label="Terminei de responder" note="clique quando acabar de falar" />
+            <Pointer icon={<Pause className="w-4 h-4" />} label="Pausar" note="deu um branco? pause e continue quando quiser" />
+            <Pointer icon={<RotateCcw className="w-4 h-4" />} label="Recomeçar esta resposta" note="errou? apaga só esta resposta e começa de novo" />
+            <Pointer icon={<Undo2 className="w-4 h-4" />} label="Refazer a resposta anterior" note="volta para a pergunta anterior sem perder as outras" />
             <p className="text-muted-foreground">Pode pedir para ouvir a pergunta de novo e encerrar quando quiser. O áudio não fica guardado, só o texto.</p>
           </>
         ),
@@ -64,6 +67,7 @@ export const GUIDES: Guide[] = [
           { state: "pagina", target: "btn-entrevista", caption: "Clique em Entrevista por voz" },
           { state: "entrevista", target: "voz", caption: "Escolha a voz (dá para ouvir antes)" },
           { state: "entrevista", target: "btn-responder", caption: "Pense com calma e clique em Responder" },
+          { state: "ouvindo", target: "btn-pausar", caption: "Deu um branco? Pausar (ou recomeçar só esta resposta)" },
           { state: "ouvindo", target: "btn-terminei", caption: "Fale e clique em Terminei de responder" },
           { state: "pergunta2", caption: "A IA faz a próxima pergunta — cada resposta já fica salva", ms: 3400 },
         ],
