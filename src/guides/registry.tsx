@@ -59,7 +59,7 @@ export const GUIDES: Guide[] = [
             <Pointer icon={<CheckCircle2 className="w-4 h-4" />} label="Terminei de responder" note="clique quando acabar de falar" />
             <Pointer icon={<Pause className="w-4 h-4" />} label="Pausar" note="deu um branco? pause e continue quando quiser" />
             <Pointer icon={<RotateCcw className="w-4 h-4" />} label="Recomeçar esta resposta" note="errou? apaga só esta resposta e começa de novo" />
-            <Pointer icon={<Undo2 className="w-4 h-4" />} label="Refazer a resposta anterior" note="volta para a pergunta anterior sem perder as outras" />
+            <Pointer icon={<Undo2 className="w-4 h-4" />} label="Pergunta anterior" note="volta uma pergunta para responder de novo, sem perder as outras" />
             <p className="text-muted-foreground">Pode pedir para ouvir a pergunta de novo e encerrar quando quiser. O áudio não fica guardado, só o texto.</p>
           </>
         ),
