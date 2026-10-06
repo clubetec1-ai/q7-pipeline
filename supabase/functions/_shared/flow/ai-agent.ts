@@ -24,6 +24,16 @@ const FIELDS: Record<string, { label: string; kind: string }> = {
   document: { label: "cpf_cnpj", kind: "cpf_cnpj" },
 };
 
+/**
+ * O que as ferramentas podem fazer em cada degrau de publicação (fatia 10): em sombra a IA só passa para uma pessoa;
+ * em assistido também anota dado e move no funil (nada chega ao cliente); enviar arquivo e encerrar só no automático.
+ */
+export const TOOLS_BY_MODE: Record<string, string[]> = {
+  sombra: ["transferir_atendimento"],
+  assistido: ["transferir_atendimento", "salvar_dado_cliente", "mover_etapa"],
+  automatico: ["transferir_atendimento", "salvar_dado_cliente", "mover_etapa", "enviar_arquivo", "finalizar_atendimento"],
+};
+
 const ids = (v: unknown) => (Array.isArray(v) ? v.filter((x) => typeof x === "string").slice(0, 50) : []) as string[];
 
 /** Nome → id, só dos itens permitidos no bloco que existem na organização. */
@@ -97,6 +107,10 @@ export async function runAiAgent(p: {
     },
   });
 
+  // Só as ferramentas que o degrau atual permite chegam à IA (e o executor confere de novo abaixo).
+  const permitidas = new Set(TOOLS_BY_MODE[agent.publishMode] ?? TOOLS_BY_MODE.sombra);
+  for (let i = tools.length - 1; i >= 0; i--) if (!permitidas.has(tools[i].name)) tools.splice(i, 1);
+
   const { data: history } = await org.select("messages", "direction, content, media_text, type")
     .eq("ticket_id", ticket.id).order("created_at", { ascending: false }).limit(30);
   const first = String(conv.contact_name ?? "").trim().split(/\s+/)[0];
@@ -137,7 +151,8 @@ export async function runAiAgent(p: {
   for (const c of r.toolCalls ?? []) {
     let outcome = "negado";
     const arg = (k: string) => String(c.args?.[k] ?? "");
-    if (c.name === "transferir_atendimento" && depts.has(arg("departamento")) && !terminal) {
+    if (!permitidas.has(c.name)) outcome = "negado pelo degrau";
+    else if (c.name === "transferir_atendimento" && depts.has(arg("departamento")) && !terminal) {
       terminal = { action: "transfer", dept: depts.get(arg("departamento")) };
       outcome = "ok";
     } else if (c.name === "finalizar_atendimento" && reasons.has(arg("motivo")) && !terminal) {

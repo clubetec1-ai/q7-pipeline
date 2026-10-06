@@ -67,3 +67,21 @@ Deno.test("o Assistente principal sempre entra como Atendente geral (IA), mesmo 
   assertEquals([g.level, g.parent, g.autonomia], ["executor", "cerebro", "A1"]);
   assert(g.cracha.acoes.includes("passar_para_pessoa"));
 });
+
+Deno.test("nome longo de setor ou processo não estoura o limite do cargo (120 letras)", () => {
+  const longo = "Atendimento ".repeat(15);
+  const out = buildOrgChart({
+    members: 8, departments: [D("d1", longo)], areas: [],
+    processes: [P("p1", longo, "Processo ".repeat(15), ["ia"])],
+  });
+  assert(out.every((a) => a.papel.length <= 120 && a.papel.endsWith("(IA)")));
+});
+
+Deno.test("setor contado no Diagnóstico com nome mais longo casa com o setor cadastrado", () => {
+  const out = buildOrgChart({
+    members: 8, departments: [D("d1", "Certidões"), D("d2", "Atendimento")], areas: [],
+    processes: [P("p1", "Certidões e pedidos a distância", "Segunda via", ["ia"])],
+  });
+  assertEquals(out.find((a) => a.key === "esp:p1")!.department_id, "d1");
+  assert(out.some((a) => a.key === "exec:d1"));
+});

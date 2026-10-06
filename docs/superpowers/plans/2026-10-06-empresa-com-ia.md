@@ -63,8 +63,8 @@ npx supabase functions deploy <funcao> --project-ref ulmndwlralgjbwlebxmo
 | 6 ✅ | Prova (cenários) | 7 cenários obrigatórios por executor, modo teste sem enviar a cliente, regressão a cada mudança, tela Prova | Escrever ao começar |
 | 7 ✅ | Degraus + disjuntor + vigia de custo | Sombra → assistido → automático por executor; volta sozinho se errar; botão Parar; aviso de gasto fora do normal com o motivo | Escrever ao começar |
 | 8 ✅ | A rede de agentes | `agent_tasks` (pedir informação, revisar, propor, alertar, escalar), profundidade ≤ 3, orçamento, expiração, perguntas voltando ao Diagnóstico | Escrever ao começar |
-| 9 | Implantação pelo organograma | Implementador monta rascunhos por especialista/executor a partir dos processos aprovados | Escrever ao começar |
-| 10 | Acabamento e prova final | Guias e vídeos, revisão de segurança completa (agente revisor), isolamento, Clubetec do zero ponta a ponta, medição de chamados | Escrever ao começar |
+| 9 ✅ | Implantação pelo organograma | Implementador monta rascunhos por especialista/executor a partir dos processos aprovados | Escrever ao começar |
+| 10 ✅ | Acabamento e prova final | Guias e vídeos, revisão de segurança completa (agente revisor), isolamento, Clubetec do zero ponta a ponta, medição de chamados | Escrever ao começar |
 | 11 | Cérebro da plataforma (pedido do dono, 06/10 — desenho §12) | Sinais → incidentes → equipe de IA dona → diagnóstico → correção proposta → revisão → aprovação humana → verificação; só metadados; nenhum deploy sozinho | Escrever ao começar |
 
 Cada fatia, antes do código, ganha aqui uma seção "Fatia N — tarefas" no mesmo formato da Fatia 1.
@@ -546,3 +546,47 @@ teste de isolamento 106.
   integrations, voice, agent-test, proof (todos que levam o bloco de IA dos fluxos).
 - [x] Tela, guia e tipos; `tsc` e `build` ok.
 - [ ] Ver implantado de verdade (processo aprovado → documento → agente respondendo com ele): no teste da Clubetec do zero.
+
+## Fatia 10 — Acabamento e prova final ✅ (06/10)
+
+**Revisão de segurança completa** (agente revisor, fatias 1–9): nenhum vazamento entre empresas nem escalada de privilégio.
+Corrigido agora:
+- **Follow-up automático** com texto da IA respeita o degrau (sombra: só modelo aprovado ou retorno manual; assistido: passa
+  pela porta) e consome a cota de IA.
+- **Ferramentas do bloco de IA** limitadas pelo degrau (sombra: só passar para pessoa; assistido: + anotar dado e mover no funil;
+  enviar arquivo e encerrar só no automático).
+- **Implementador** confere o Guardião antes de publicar o documento e desfaz se o registro falhar.
+- **Documento implantado** sai do atendimento quando o processo muda, é arquivado ou apagado.
+- **Disjuntor**: um tropeço por conversa em 24 h (um cliente sozinho não derruba o degrau).
+- **Degraus**: descer sempre permitido; subir exige o Guardião aprovando o Atendente geral; pausar o Atendente geral volta para a sombra; agente reprovado não é ativado.
+- **Rede**: dono descarta pergunta ("Descartar"); pergunta esperando o dono vence em 14 dias.
+- **LGPD**: sugestões da IA apagadas na anonimização; expurgo diário (sugestões usadas há 30 dias ou criadas há 90; perguntas encerradas há 90).
+- **Trava**: CPF só com dígito verificador certo (telefone não bloqueia), cartão só com Luhn, negação só logo antes e na mesma frase.
+- **Cerca `<dados>`** nos prompts não pode ser fechada pelo texto de dentro (`_shared/fence.ts`); funções internas fechadas;
+  nome longo não derruba o Time de IA; teste genérico de toda função privilegiada (107).
+
+**Prova de ponta a ponta no Cartório Teste** (empresa fictícia): Arquiteto desenhou 2 processos → Guardião → aprovação →
+Time de IA (20 agentes) → prova do Atendente geral → degrau assistido → implantação (documentos "Como funciona" no setor
+certo) → o atendente responde usando o processo → volta para sombra. Achados corrigidos na hora:
+- **Setor do Diagnóstico ≠ setor cadastrado** ("Certidões e pedidos a distância" × "Certidões"): processo ficava sem setor e
+  sem atendente → regra de casamento por início do nome (banco e organograma; teste 110).
+- **Atendente não oferecia uma pessoa** em reclamação, exceção e recusa → regra 7 na política fixa da plataforma.
+- **Avaliador da prova instável** (reprovava respostas boas) → avalia item por item do esperado, temperatura 0 e segunda
+  leitura só quando as regras fixas passaram. Resultado: 7 de 7 em duas rodadas seguidas.
+
+**Medição de chamados** (§6.3): Plataforma → Pedidos de ajuda mostra, por empresa, os chamados dos primeiros 30 dias e as
+telas com mais chamados (`platform_support_metrics`, só a equipe da plataforma; teste 108).
+
+**Guias**: Conversas (com "Usar sugestão") e Cérebro (rede, pendências) — `ConversasMock`, `CerebroMock`, "Como funciona" no Cérebro.
+
+**Arquivos:** migrations `20261006002900_support_metrics.sql`, `20261006003000_security_review.sql`,
+`20261006003100_setor_match.sql`; `_shared/fence.ts` (+ teste), `guardian.ts`, `proof.ts`, `orgchart.ts`, `ai-policy.ts`,
+`ai-chat.ts` (temperatura), `flow/ai-agent.ts`, `publish-apply.ts`; funções run-followups, implementer, proof, architect,
+guardian, agent-network; telas Plataforma (`SupportMetricsPanel`), TeamQuestions (Descartar), Cérebro; testes de isolamento 107–110.
+
+- [x] Testes Deno (86) e bateria completa de isolamento; `tsc` e `build` ok; funções publicadas.
+- [x] Prova de ponta a ponta no Cartório Teste.
+- [ ] Clubetec do zero ponta a ponta — depois da fatia 11 (decisão do dono).
+- [ ] Pendências da revisão para depois (ROADMAP): prova vencida rebaixar o degrau na hora; `MODE_RULE` na prova e blocos de
+  IA de fluxo com prompt próprio; "Recomeçar o Diagnóstico" arquivar em vez de apagar desenhos/agentes; aprovar processo com
+  a versão vista; pergunta do time entrar limpa no Diagnóstico; leitura da IA do Guardião com falsos "atenção".

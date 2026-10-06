@@ -60,6 +60,9 @@ interface Input {
   processes: { id: string; setor: string; nome: string; status: string; design: { passos?: { decisao?: string }[] } }[];
 }
 
+/** Nome de setor ou processo no cargo: cabe no limite de 120 letras do cargo, com o "(IA)". */
+const clip = (s: string) => String(s ?? "").trim().slice(0, 90);
+
 export function buildOrgChart(inp: Input): Agent[] {
   const small = inp.members <= 5 && inp.departments.length <= 2;
   const out: Agent[] = [];
@@ -80,22 +83,26 @@ export function buildOrgChart(inp: Input): Agent[] {
         cracha: { dados: ["numeros_agregados", "diagnostico", "processos"], acoes: ["delegar", "cobrar", "revisar", "propor_melhoria"] }, autonomia: "A1" });
     }
     for (const d of inp.departments) {
-      add({ key: `coord:${d.id}`, level: "coordenador", parent: `dir:${dirOfDept.get(d.id)}`, papel: `Coordenador do setor ${d.name} (IA)`,
+      add({ key: `coord:${d.id}`, level: "coordenador", parent: `dir:${dirOfDept.get(d.id)}`, papel: `Coordenador do setor ${clip(d.name)} (IA)`,
         department_id: d.id, cracha: { dados: ["numeros_agregados", "processos"], acoes: ["delegar", "revisar", "propor_melhoria"] }, autonomia: "A1" });
     }
   }
   const norm = (s: string) => s.trim().toLowerCase();
-  const deptOf = (setor: string) => inp.departments.find((d) => norm(d.name) === norm(setor)) ?? null;
+  // Mesmo nome; senão o setor cadastrado que começa o nome contado no Diagnóstico (ou o contrário), o mais longo:
+  // "Certidões e pedidos a distância" → setor "Certidões".
+  const deptOf = (setor: string) => inp.departments.find((d) => norm(d.name) === norm(setor))
+    ?? inp.departments.filter((d) => norm(setor).startsWith(norm(d.name) + " ") || norm(d.name).startsWith(norm(setor) + " "))
+      .sort((x, y) => y.name.length - x.name.length)[0] ?? null;
   const automatizavel = new Set<string>();
   for (const p of inp.processes.filter((x) => x.status === "aprovado")) {
     const d = deptOf(p.setor);
     add({ key: `esp:${p.id}`, level: "especialista", parent: !small && d ? `coord:${d.id}` : "cerebro",
-      papel: `Especialista em ${p.nome.trim()} (IA)`, department_id: d?.id ?? null, process_id: p.id,
+      papel: `Especialista em ${clip(p.nome)} (IA)`, department_id: d?.id ?? null, process_id: p.id,
       cracha: { dados: ["processos", "base_conhecimento"], acoes: ["propor_melhoria", "pedir_informacao"] }, autonomia: "A1" });
     if (d && (p.design.passos ?? []).some((s) => s.decisao && s.decisao !== "pessoa")) automatizavel.add(d.id);
   }
   for (const d of inp.departments.filter((x) => automatizavel.has(x.id))) {
-    add({ key: `exec:${d.id}`, level: "executor", parent: small ? "cerebro" : `coord:${d.id}`, papel: `Atendente do setor ${d.name} (IA)`,
+    add({ key: `exec:${d.id}`, level: "executor", parent: small ? "cerebro" : `coord:${d.id}`, papel: `Atendente do setor ${clip(d.name)} (IA)`,
       department_id: d.id,
       cracha: { dados: ["conversa_em_andamento", "base_conhecimento", "processos"], acoes: ["responder_cliente", "passar_para_pessoa", "enviar_modelo", "pedir_informacao"] },
       autonomia: "A1" }); // sombra: a IA sugere e a pessoa envia (decisão 1 do dono)

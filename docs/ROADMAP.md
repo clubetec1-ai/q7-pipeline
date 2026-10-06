@@ -80,8 +80,17 @@ cliente) que sobe pelo time; cada nível tenta responder com o que o crachá del
 há pergunta; teste 105. ✅ **Fatia 9 — Implantação pelo organograma (06/10):** processo aprovado vira, com um clique, o
 documento "Como funciona" que o agente que atende usa (só o que o cliente precisa saber e quando passar para uma pessoa;
 conferido pelo Guardião) e a indicação do fluxo pronto mais adequado (instalado em rascunho); "Implantação desatualizada"
-quando o processo muda; o bloco de IA dos fluxos passa pela mesma porta de publicação; teste 106. Próximo: Fatia 10 —
-acabamento e prova final.
+quando o processo muda; o bloco de IA dos fluxos passa pela mesma porta de publicação; teste 106. ✅ **Fatia 10 —
+Acabamento e prova final (06/10):** revisão de segurança completa (sem vazamento entre empresas; corrigidos follow-up
+automático e ferramentas do bloco de IA que contornavam o degrau, documento implantado órfão, disjuntor acionável por um
+cliente, LGPD das sugestões, trava de CPF/cartão, cercas dos prompts, funções internas); prova de ponta a ponta no Cartório
+Teste (Arquiteto → Guardião → Time de IA → prova 7/7 → assistido → implantação → atendente usando o processo), com 3 achados
+corrigidos (setor do Diagnóstico × setor cadastrado, oferecer pessoa na política fixa, avaliador da prova estável); medição
+de chamados por empresa na Plataforma; guias de Conversas e Cérebro; testes 107–110. Próximo: Fatia 11 — cérebro da
+plataforma. **Pendências da revisão (depois da fatia 11):** prova vencida rebaixar o degrau na hora; regra do degrau na
+prova e blocos de IA de fluxo com prompt próprio; "Recomeçar o Diagnóstico" arquivar em vez de apagar desenhos e agentes;
+aprovar processo com a versão vista; pergunta do time entrar limpa no Diagnóstico; leitura da IA do Guardião com falsos
+"atenção" (ex.: lista de documentos tratada como dado sensível).
 🧠 **Fatia 11 nova — Cérebro da plataforma (pedido do dono, 06/10; desenho 07 §12):** o cérebro também gerencia o software
 inteiro para todas as empresas — saúde, falhas, bugs, alertas, correções e melhorias —, com equipes de IA de engenharia
 (front-end, back-end, integrações), segurança, qualidade, design e suporte; só metadados (nunca conversa de cliente);

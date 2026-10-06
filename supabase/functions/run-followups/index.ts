@@ -2,6 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { getAgentProfile } from "../_shared/get-ai-config.ts";
 import { chatAI, resolveAI } from "../_shared/ai-chat.ts";
+import { gate, MODE_RULE } from "../_shared/publish-gate.ts";
+import { takeFalta } from "../_shared/network.ts";
 import { getUazapiConfig } from "../_shared/get-uazapi-config.ts";
 import * as providers from "../_shared/providers/index.ts";
 import { forOrg } from "../_shared/tenant.ts";
@@ -116,12 +118,20 @@ serve(async (req) => {
 
       // Texto: override manual, senão a IA gera o reengajamento
       let text = (f.text_override || "").trim();
+      // Porta de publicação (fatia 7/10): retorno escrito pela IA segue o degrau da empresa. Em sombra a IA não
+      // fala sozinha com o cliente — só o modelo aprovado pela Meta (texto fixo da empresa) ou o retorno manual saem.
+      let soModelo = false;
 
       if (!text) {
+        const agent = await getAgentProfile(supabase, conv.organization_id);
+        if (agent.publishMode === "sombra") soModelo = true;
+      }
+      if (!text && !soModelo) {
         const [agent, ai] = await Promise.all([
           getAgentProfile(supabase, conv.organization_id), resolveAI(supabase, conv.organization_id),
         ]);
-        if (!ai) {
+        const { data: allowed } = await supabase.rpc("service_ai_take", { org: conv.organization_id });
+        if (!ai || allowed === false) {
           await supabase.from("followups").update({ status: "failed", error: "agent config missing" }).eq("id", f.id);
           continue;
         }
@@ -135,7 +145,7 @@ serve(async (req) => {
           {
             role: "system" as const,
             content:
-              agent.systemPrompt +
+              agent.systemPrompt + "\n\n" + MODE_RULE +
               "\n\nO cliente não respondeu à última mensagem. Escreva UMA mensagem curta e natural de reengajamento (máx. 2 frases). Não se apresente de novo. Não peça desculpas. Não use emojis em excesso." +
               (stage ? `\nEtapa do funil: "${String(stage.name).slice(0, 60)}". Objetivo deste retorno: ${String(stage.followup_hint || "retomar a conversa com gentileza").slice(0, 400)}. Nunca invente preço, desconto, prazo ou condição.` : ""),
           },
@@ -154,7 +164,13 @@ serve(async (req) => {
         ];
         const groq = await chatAI(ai, chat);
         if (groq.ok && groq.reply && groq.reply.trim()) {
-          text = groq.reply.trim();
+          const g = gate(agent.publishMode, takeFalta(groq.reply.trim()).reply);
+          if (!g.send) {
+            // A porta segurou (precisa de pessoa ou a trava pegou): o retorno não sai; a equipe decide.
+            await supabase.from("followups").update({ status: "cancelled", error: `a IA segurou o retorno (${g.motivo})` }).eq("id", f.id);
+            continue;
+          }
+          text = g.reply;
         } else {
           // Fallback: não perde o follow-up se a Groq falhar/vier vazia
           console.warn("[run-followups] Groq vazio/erro, usando fallback:", groq.error);
@@ -180,6 +196,10 @@ serve(async (req) => {
         await supabase.from("conversations").update({ last_message_at: new Date().toISOString() }).eq("id", conv.id);
         await supabase.from("followups").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", f.id);
         processed++;
+        continue;
+      }
+      if (soModelo) {
+        await supabase.from("followups").update({ status: "cancelled", error: "IA em modo sombra: retorno automático só com modelo aprovado ou mensagem manual" }).eq("id", f.id);
         continue;
       }
       if (!windowOpen) {

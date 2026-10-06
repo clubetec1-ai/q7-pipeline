@@ -1,6 +1,8 @@
-import { CheckCircle2, Clock, Network, PencilRuler, Facebook, FlaskConical, HelpCircle, LifeBuoy, Mail, Mic, MicVocal, MoreHorizontal, Paperclip, Pause, PenLine, Play, PlayCircle, Plus, QrCode, Rocket, RotateCcw, Save, ShieldCheck, Sparkles, ThumbsDown, Undo2, Workflow } from "lucide-react";
+import { CheckCircle2, Clock, Network, PencilRuler, Facebook, FlaskConical, HelpCircle, LifeBuoy, Mail, Mic, MicVocal, MoreHorizontal, Paperclip, Pause, PenLine, Play, PlayCircle, Plus, QrCode, Rocket, RotateCcw, Save, Send, ShieldCheck, Sparkles, ThumbsDown, Undo2, Workflow, X } from "lucide-react";
 import { Pointer } from "./Pointer";
 import { AgenteMock } from "./mocks/AgenteMock";
+import { CerebroMock } from "./mocks/CerebroMock";
+import { ConversasMock } from "./mocks/ConversasMock";
 import { DiagMock } from "./mocks/DiagMock";
 import { OrganogramaMock } from "./mocks/OrganogramaMock";
 import { ProcessosMock } from "./mocks/ProcessosMock";
@@ -533,6 +535,105 @@ export const GUIDES: Guide[] = [
         demo: [
           { state: "rede", target: "rede", caption: "A dúvida sobe pelo time; muitas o próprio time resolve" },
           { state: "rede", target: "pergunta-voce", caption: "O que ninguém sabe chega a você no Diagnóstico" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "conversas",
+    title: "Conversas",
+    routes: ["/"],
+    autoOpen: true,
+    mock: (state) => <ConversasMock state={state} />,
+    steps: [
+      {
+        title: "Todas as conversas num lugar só",
+        body: (
+          <>
+            <p>À esquerda ficam as conversas de WhatsApp, Instagram, Facebook e e-mail. A <b>Fila</b> mostra quem está esperando uma pessoa: a IA passa para a fila tudo o que não deve resolver sozinha.</p>
+            <p className="text-muted-foreground">Clique numa conversa para ver o histórico e responder.</p>
+          </>
+        ),
+        demo: [
+          { state: "sombra", target: "lista", caption: "Todas as conversas da empresa" },
+          { state: "sombra", target: "fila", caption: "A Fila: quem está esperando uma pessoa" },
+        ],
+      },
+      {
+        title: "A IA sugere, você decide",
+        body: (
+          <>
+            <p>Quando a IA não pode enviar sozinha — no começo (modo <b>sombra</b>), quando o caso precisa de uma pessoa ou quando a trava de segurança segurou a resposta — a sugestão aparece em cima da caixa de resposta.</p>
+            <Pointer icon={<Sparkles className="w-4 h-4" />} label="Usar sugestão" note="o texto vai para a caixa de resposta: confira, ajuste se quiser e envie" />
+            <Pointer icon={<X className="w-4 h-4" />} label="Dispensar" note="a sugestão some e você responde do seu jeito" />
+            <p className="text-muted-foreground">Sugestão com borda vermelha foi segurada pela trava de segurança: leia com cuidado antes de usar.</p>
+          </>
+        ),
+        demo: [
+          { state: "sombra", target: "sugestao", caption: "A sugestão da IA aparece aqui" },
+          { state: "sombra", target: "btn-usar", caption: "Clique em Usar sugestão" },
+          { state: "usada", target: "caixa", caption: "O texto vai para a caixa: confira e ajuste" },
+          { state: "usada", target: "btn-enviar", caption: "Envie quando estiver certo" },
+        ],
+      },
+      {
+        title: "Quando a IA passa a responder sozinha",
+        body: (
+          <>
+            <p>O dono sobe a IA de degrau em <b>Agente de IA</b>: do sombra para o <b>assistido</b> (ela envia o simples) e depois para o <b>automático</b>. Se ela errar 3 vezes em 24 horas, volta um degrau sozinha e avisa.</p>
+            <Pointer icon={<Send className="w-4 h-4" />} label="Você responde" note="se uma pessoa responde, a IA pausa naquela conversa" />
+          </>
+        ),
+        demo: [
+          { state: "usada", target: "caixa", caption: "Sua resposta sempre vale mais que a da IA" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "cerebro",
+    title: "Cérebro",
+    routes: ["/cerebro"],
+    autoOpen: true,
+    mock: (state) => <CerebroMock state={state} />,
+    steps: [
+      {
+        title: "O cérebro da empresa",
+        body: (
+          <>
+            <p>O <b>cérebro</b> acompanha cada área da empresa: números da semana, metas e o que está esperando a sua aprovação. Os números vêm do sistema; as ideias da IA chegam como <b>propostas</b> e só seguem com o seu sim.</p>
+            <Pointer icon={<Sparkles className="w-4 h-4" />} label="Analisar agora" note="faz a análise da semana na hora (há um limite por mês)" />
+          </>
+        ),
+        demo: [
+          { state: "inicio", target: "area", caption: "Cada área com a meta e como está" },
+          { state: "inicio", target: "btn-analisar", caption: "Analisar agora" },
+          { state: "analisado", target: "resumo", caption: "O resumo da semana: sugestão, a decisão é sua" },
+        ],
+      },
+      {
+        title: "Aprove ou recuse as propostas",
+        body: (
+          <>
+            <p>Em <b>Pendências</b> ficam as propostas de melhoria do time de IA. Aprovou: ela vira um rascunho para você revisar antes de ir ao ar. Recusou: o time aprende e não insiste.</p>
+          </>
+        ),
+        demo: [
+          { state: "analisado", target: "pendencias", caption: "Propostas esperando a sua decisão" },
+        ],
+      },
+      {
+        title: "O time de IA e a rede",
+        body: (
+          <>
+            <Pointer icon={<Network className="w-4 h-4" />} label="Rede do time de IA" note="quantas dúvidas o time resolveu sozinho e quantas chegaram a você" />
+            <p>Os botões <b>Time de IA</b> e <b>Processos</b> levam ao organograma dos agentes e aos processos desenhados — é por lá que você aprova quem faz o quê.</p>
+          </>
+        ),
+        demo: [
+          { state: "analisado", target: "rede", caption: "A rede: dúvidas que o próprio time resolveu" },
+          { state: "analisado", target: "btn-time", caption: "Time de IA: o organograma dos agentes" },
+          { state: "analisado", target: "btn-processos", caption: "Processos: o passo a passo de cada setor" },
         ],
       },
     ],

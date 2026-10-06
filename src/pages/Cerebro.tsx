@@ -9,6 +9,7 @@ import { memberNames, type MemberName } from "@/lib/memberNames";
 import { AppHeader } from "@/components/AppHeader";
 import { SectionTabs } from "@/components/layout/SectionTabs";
 import { NetworkPanel } from "./cerebro/NetworkPanel";
+import { HowItWorks } from "./diagnostico/HowItWorks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -158,6 +159,7 @@ export default function Cerebro() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <HowItWorks guide="cerebro" className="" />
             <Button asChild variant="outline" size="sm"><Link to="/organograma">Time de IA</Link></Button>
             <Button asChild variant="outline" size="sm"><Link to="/processos">Processos</Link></Button>
           </div>
