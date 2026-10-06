@@ -128,7 +128,8 @@ hash do pacote, quem aprovou e quando. Mudança de agente gera versão nova; a a
 
 ### 5.6 Custo e disjuntores
 Franquia mensal por empresa (só a Clubetec muda), orçamento por tarefa entre agentes (chamadas e profundidade máxima 3),
-o mesmo pacote não chama a IA duas vezes, e **disjuntor**: um executor com erro acima do limite (cenário reprovado,
+o mesmo pacote não chama a IA duas vezes, **vigia de custo** (avisa gasto fora do normal com o motivo e se vale
+desligar; decisão 5 do §11) e **disjuntor**: um executor com erro acima do limite (cenário reprovado,
 reclamação, nota baixa, burla detectada) volta sozinho para o assistido e avisa o dono. **Botão de parar:** o dono para um
 agente ou todos; a Clubetec para por empresa ou por agente em toda a plataforma.
 
@@ -191,7 +192,7 @@ Reaproveita: `improvements` (único ciclo de propostas), `org_areas`, `area_goal
 `service_requests`, `knowledge_*`, `flows`, `agent_configs`.
 
 ## 9. Telas (seguindo o padrão de autoatendimento guiado)
-- **Organograma de IA:** árvore com cada agente, status, autonomia, quem aprova e botão Pausar. Clicar mostra o crachá em
+- **Organograma de IA:** árvore com cada agente (cargo + "(IA)" e apelido opcional), status, autonomia, quem aprova e botão Pausar. Clicar mostra o crachá em
   linguagem simples ("vê: números do atendimento; faz: sugere melhorias; fala com: Diretor Comercial").
 - **Diagnóstico com cobertura:** barra "Informação completa" por etapa e a lista do que falta, com o porquê.
 - **Processos:** passo a passo visual, com quem faz cada passo (pessoa, agente ou fluxo) e a decisão de automação.
@@ -219,10 +220,20 @@ Ordem recomendada: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10.
 1 e 2 já ajudam a Clubetec do zero agora; 5, 6 e 7 são as travas de segurança e qualidade antes de qualquer agente novo
 atender cliente.
 
-## 11. Decisões do dono (🙋)
-1. **Autonomia padrão:** executores começam em **sombra** (sugestão) e sobem só por decisão do dono? (recomendado: sim)
-2. **Quem aprova processos:** só o dono, ou o responsável da área também? (recomendado: responsável da área, com o dono vendo tudo)
-3. **Empresas pequenas:** juntar os níveis automaticamente (§1)? (recomendado: sim)
-4. **Cenários obrigatórios:** os 7 tipos de §6.1 para todo executor? (recomendado: sim)
-5. **Custo:** a rede entra na franquia de IA do plano. Mostrar ao cliente o consumo por agente? (recomendado: sim, simples)
-6. **Nomes na tela:** "Diretor Comercial (IA)", "Especialista em Orçamentos (IA)"… ou nomes próprios? (recomendado: cargos, sempre com "(IA)")
+## 11. Decisões do dono (respondidas em 06/10)
+1. **Autonomia padrão:** ✅ executores começam em **sombra** (só sugerem) e sobem de degrau só quando o dono liga.
+2. **Quem aprova processos:** ✅ o responsável da área também aprova; o dono vê tudo e pode desfazer.
+3. **Empresas pequenas (juntar níveis):** 🙋 em análise — explicação abaixo, aguardando o "sim" do dono.
+   *O que é:* numa empresa pequena não se criam "caixas vazias". Ex.: uma loja com 3 pessoas e um setor só. Em vez de
+   Cérebro → Diretor Comercial (IA) → Coordenador de Vendas (IA) → Especialista em Orçamentos (IA) → Atendente (IA),
+   fica Cérebro → Especialista em Orçamentos (IA) → Atendente (IA): o cérebro faz também o papel do diretor e do
+   coordenador. *Por quê:* menos passagens entre agentes = menos chance de erro e menos custo de IA; a segurança e as
+   regras são as mesmas. *Quando abre:* quando a empresa cresce (novo setor, mais pessoas, mais processos), o cérebro
+   propõe abrir o nível que faltava e o dono aprova. O organograma na tela sempre mostra quem faz cada papel.
+4. **Cenários obrigatórios:** ✅ os 7 tipos de §6.1 para todo executor (reduzem erro antes de ir ao ar).
+5. **Custo:** ✅ não mostrar ao cliente o gasto de cada agente; em vez disso, um **vigia de custo**: se um agente gastar
+   muito acima do normal (comparado ao próprio histórico e ao volume de atendimentos), o sistema avisa o dono e a
+   Clubetec com o motivo provável (ex.: conversa em laço, documento enorme repetido, pergunta mal configurada) e diz se
+   vale desligar ou ajustar. O disjuntor (§5.6) segura o gasto enquanto ninguém decide.
+6. **Nomes na tela:** ✅ cargo + "(IA)" (ex.: "Especialista em Orçamentos (IA)"); o cliente pode pôr um **apelido**
+   opcional (ex.: "Bia — Especialista em Orçamentos (IA)"); o "(IA)" nunca sai, para ninguém confundir com uma pessoa.
