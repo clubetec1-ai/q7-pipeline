@@ -90,6 +90,7 @@ export const GUIDES: Guide[] = [
             <Pointer icon={<Save className="w-4 h-4" />} label="Salvar e próxima etapa" note="guarda o que você contou e já leva para a próxima etapa" />
             <Pointer icon={<Sparkles className="w-4 h-4" />} label="Organizar com IA" note="quando quiser, a IA arruma o que você contou para conferir" />
             <Pointer icon={<CheckCircle2 className="w-4 h-4" />} label="Aprovar e seguir" note="você confere, corrige se precisar e aprova" />
+            <Pointer icon={<Mic className="w-4 h-4" />} label="Falar" note="na conferência também: cada caixa tem o microfone para completar falando" />
             <p className="text-muted-foreground">O texto é salvo sozinho enquanto você escreve: se fechar ou atualizar a página, continua de onde parou. Ficou em dúvida? Pode pular e voltar depois.</p>
           </>
         ),
