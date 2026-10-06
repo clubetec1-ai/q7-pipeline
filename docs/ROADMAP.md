@@ -31,7 +31,7 @@ Etapa C (canais e extras) → Etapa D (segurança, documentos e SLA) → Etapa E
    correção imediata). Junto: E10 (teste no WhatsApp real com número de teste) e teste com equipe (convidar atendente,
    setores, fila).
 2. **Padrão de autoatendimento nas telas que faltam** (regra do CLAUDE.md) — **em andamento no código**: passo a passo +
-   vídeo animado + Ajuda em Números (WhatsApp/e-mail/Facebook), Agentes de IA, Fluxos, Equipe, Etiquetas, Funil,
+   vídeo animado + Ajuda em Números ✅ *(06/10: 6 passos — WhatsApp oficial, QR Code, e-mail, Facebook/Instagram, número que caiu — e botão "Como funciona")*, Agentes de IA, Fluxos, Equipe, Etiquetas, Funil,
    Cobranças, Integrações, API e Configurações; microfone e "Não entendi" nas caixas grandes; salvar sozinho e
    "Salvar e próximo" onde houver etapas.
 
