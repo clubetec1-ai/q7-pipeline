@@ -100,14 +100,25 @@ export async function platformChain(admin: any, orgId: string): Promise<Resolved
   return chain;
 }
 
-/** Provedor para transcrever áudio (só OpenAI e Groq têm a API): chave própria ou a IA da Clubetec. */
+/**
+ * Provedor para transcrever áudio (só OpenAI e Groq têm a API): a chave própria do provedor
+ * que a empresa escolheu → a IA da Clubetec (na ordem das posições) → qualquer chave própria antiga.
+ */
 // deno-lint-ignore no-explicit-any
 export async function audioAI(admin: any, orgId: string): Promise<ResolvedAI | null> {
+  const { data: o } = await admin.from("organizations").select("settings").eq("id", orgId).maybeSingle();
+  const chosen = (o?.settings as Record<string, unknown> | null)?.ai_provider;
+  if (chosen === "openai" || chosen === "groq") {
+    const own = await providerKey(admin, orgId, chosen);
+    if (own) return { provider: chosen, apiKey: own, model: "", source: "propria", orgId, admin };
+  }
+  const plat = (await platformChain(admin, orgId)).find((a) => a.provider === "openai" || a.provider === "groq");
+  if (plat) return plat;
   for (const provider of ["openai", "groq"]) {
     const own = await providerKey(admin, orgId, provider);
     if (own) return { provider, apiKey: own, model: "", source: "propria", orgId, admin };
   }
-  return (await platformChain(admin, orgId)).find((a) => a.provider === "openai" || a.provider === "groq") ?? null;
+  return null;
 }
 
 /** Soma o consumo do dia da empresa (nunca derruba a chamada). */
@@ -205,7 +216,8 @@ export interface ResolvedAI {
 
 /**
  * Provedor/modelo para um agente: o do bloco (se escolhido) → o PADRÃO DA
- * EMPRESA (settings.ai_provider / ai_model, em Configurações → Chaves de IA) → Groq.
+ * EMPRESA (settings.ai_provider / ai_model, em Configurações → Chaves de IA) → a IA da
+ * Clubetec (Plataforma → Conectores: OpenAI principal) → chave Groq antiga da empresa.
  * null = a empresa não tem chave para esse provedor.
  */
 // deno-lint-ignore no-explicit-any
@@ -213,12 +225,20 @@ export async function resolveAI(admin: any, orgId: string, override?: { provider
   const { data: o } = await admin.from("organizations").select("settings").eq("id", orgId).maybeSingle();
   const s = (o?.settings ?? {}) as Record<string, unknown>;
   const own = override?.provider && AI_PROVIDERS[override.provider] ? override.provider : null;
-  const provider = own ?? (typeof s.ai_provider === "string" && AI_PROVIDERS[s.ai_provider] ? s.ai_provider : "groq");
-  const apiKey = await providerKey(admin, orgId, provider);
+  const chosen = own ?? (typeof s.ai_provider === "string" && AI_PROVIDERS[s.ai_provider] ? s.ai_provider : null);
+  // Sem provedor escolhido (no bloco ou em Configurações → Chaves de IA): IA da Clubetec
+  // (Principal → reservas). Uma chave Groq antiga da empresa só entra se a plataforma não tiver IA.
+  const provider = chosen ?? "groq";
+  const apiKey = chosen ? await providerKey(admin, orgId, provider) : null;
   if (!apiKey) {
     // Sem chave própria: IA da Clubetec (Principal, com as reservas para chatAI).
     const [first, ...rest] = await platformChain(admin, orgId);
-    return first ? { ...first, fallbacks: rest } : null;
+    if (first) return { ...first, fallbacks: rest };
+    if (chosen) return null;
+    const legacy = await providerKey(admin, orgId, "groq");
+    if (!legacy) return null;
+    const { data: a } = await admin.from("agent_configs").select("groq_model").eq("organization_id", orgId).maybeSingle();
+    return { provider: "groq", apiKey: legacy, model: a?.groq_model || "auto", source: "propria", orgId, admin };
   }
   let model = String(override?.model ?? "").trim();
   if (!model && !own) model = String(s.ai_model ?? "").trim();
