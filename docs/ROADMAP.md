@@ -62,7 +62,15 @@ Cérebro): o cérebro monta o time por regra, sem custo de IA — diretores, coo
 aprovado, quem atende os clientes e a equipe de apoio; empresa pequena junta os níveis; crachá de cada agente (vê / faz /
 fala com) conferido no banco contra o catálogo (só quem atende vê a conversa); cargo com "(IA)" e apelido opcional;
 dono aprova o time, pausa e ajusta a autonomia (executar sozinho só depois da prova); toda mudança vira versão; teste
-101 + testes Deno. Próximo: Fatia 5 — Guardião de segurança e LGPD.
+101 + testes Deno. ✅ **Fatia 5 — Guardião de segurança e LGPD (06/10):** revisa cada desenho de processo (logo depois do
+Arquiteto), cada agente do time e o texto de comportamento do Assistente de IA; só regra fixa bloqueia (promessa proibida,
+pedir senha/cartão, CPF escrito, burla, dado sensível sem base legal, decisão proibida automatizada, cargo sem "(IA)", quem
+atende sem passar para pessoa); a IA só aponta atenção; aprovar processo ou time exige a revisão e recusa reprovado; selo e
+motivos nas telas; teste 102 + testes Deno; provado no servidor. Próximo: Fatia 6 — Prova (cenários de teste).
+🧠 **Fatia 11 nova — Cérebro da plataforma (pedido do dono, 06/10; desenho 07 §12):** o cérebro também gerencia o software
+inteiro para todas as empresas — saúde, falhas, bugs, alertas, correções e melhorias —, com equipes de IA de engenharia
+(front-end, back-end, integrações), segurança, qualidade, design e suporte; só metadados (nunca conversa de cliente);
+nenhuma correção de código vai ao ar sem revisão e aprovação humana com testes. Entra depois da fatia 10.
 - 📋 **Checklist da migração para a VPS (HostGator, pedido do dono em 06/10) — atualizar em todos os serviços:**
   (1) **Meta** (app 1661911518843097): URIs de redirecionamento do OAuth (hoje
   `https://ulmndwlralgjbwlebxmo.supabase.co/functions/v1/meta-connect-callback`), URL do webhook do WhatsApp/Messenger/

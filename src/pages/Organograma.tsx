@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { HowItWorks } from "./diagnostico/HowItWorks";
+import { GuardianBadge, GuardianFindings, type GuardianReview } from "@/components/GuardianBadge";
 
 type Level = "cerebro" | "diretor" | "coordenador" | "especialista" | "executor" | "apoio";
 interface Agent {
@@ -52,12 +53,16 @@ export default function Organograma() {
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [label, setLabel] = useState<Record<string, string>>({});
+  const [guard, setGuard] = useState<Map<string, GuardianReview>>(new Map());
 
   const load = useCallback(async () => {
     if (!org) return;
-    const { data } = await supabase.from("ai_agents").select("id, key, level, parent_id, papel, apelido, cracha, autonomia, status, version")
-      .eq("organization_id", org.id).order("papel");
+    const [{ data }, { data: g }] = await Promise.all([
+      supabase.from("ai_agents").select("id, key, level, parent_id, papel, apelido, cracha, autonomia, status, version").eq("organization_id", org.id).order("papel"),
+      supabase.from("guardian_reviews").select("subject_id, status, findings").eq("organization_id", org.id).eq("subject_type", "agente"),
+    ]);
     setAgents((data as unknown as Agent[]) ?? []);
+    setGuard(new Map(((g as unknown as GuardianReview[]) ?? []).map((x) => [x.subject_id, x])));
     setLoaded(true);
   }, [org]);
   useEffect(() => { void load(); }, [load]);
@@ -73,6 +78,8 @@ export default function Organograma() {
   }, [agents]);
   const byId = useMemo(() => new Map(agents.map((a) => [a.id, a])), [agents]);
   const propostos = agents.filter((a) => a.status === "proposto").length;
+  // Portão do Guardião (fatia 5): proposto sem revisão ou reprovado trava a aprovação do time.
+  const travados = agents.filter((a) => a.status === "proposto" && (!guard.get(a.id) || guard.get(a.id)?.status === "reprovado")).length;
 
   const propose = async () => {
     if (!org) return;
@@ -113,7 +120,9 @@ export default function Organograma() {
             <Badge variant="outline">{LEVEL[a.level].label}</Badge>
             {a.status === "proposto" && <Badge className="bg-warning-soft text-warning-text">Para aprovar</Badge>}
             {a.status === "pausado" && <Badge variant="outline">Pausado</Badge>}
+            {guard.get(a.id)?.status !== "aprovado" && <GuardianBadge review={guard.get(a.id)} />}
           </div>
+          <GuardianFindings review={guard.get(a.id)} />
           <p className="text-xs"><b>Vê:</b> {a.cracha.dados.map((d) => DADOS[d] ?? d).join(", ") || "nada"}</p>
           <p className="text-xs"><b>Faz:</b> {a.cracha.acoes.map((d) => ACOES[d] ?? d).join(", ") || "só acompanha"}</p>
           {talks.length > 0 && <p className="text-xs text-muted-foreground"><b>Fala com:</b> {talks.join(" · ")}</p>}
@@ -188,7 +197,9 @@ export default function Organograma() {
               </Button>
             )}
             {owner && propostos > 0 && (
-              <Button data-demo="btn-aprovar-time" disabled={!!busy} onClick={() => void approveAll()}>
+              <Button data-demo="btn-aprovar-time" disabled={!!busy || travados > 0}
+                title={travados ? `${travados} agente(s) sem revisão ou reprovados pelo Guardião: clique em Atualizar o time` : undefined}
+                onClick={() => void approveAll()}>
                 <Check className="w-4 h-4 mr-1" /> Aprovar o time ({propostos})
               </Button>
             )}

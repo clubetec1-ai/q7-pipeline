@@ -59,12 +59,13 @@ npx supabase functions deploy <funcao> --project-ref ulmndwlralgjbwlebxmo
 | 2 ✅ | Revisores de área | Ao organizar uma etapa, um revisor da área aponta incoerências com as etapas aprovadas e lacunas; o dono aceita/corrige; portão F2 | Escrever ao começar |
 | 3 ✅ | Processos como dado + Arquiteto | Tabela `processes` no formato do §3 do desenho, migração dos atuais, matriz de automação por passo, aprovação por processo (dono ou responsável da área) | Escrever ao começar |
 | 4 ✅ | Organograma de IA | `ai_agents` + `agent_versions`, crachás do catálogo, cérebro propõe a partir de setores e processos (juntando níveis em empresa pequena), tela com cargo + "(IA)" e apelido, Pausar | Escrever ao começar |
-| 5 | Guardião de segurança e LGPD | Revisão obrigatória de propostas, agentes e fluxos antes da prova, com motivos; nada reprovado segue | Escrever ao começar |
+| 5 ✅ | Guardião de segurança e LGPD | Revisão obrigatória de propostas, agentes e fluxos antes da prova, com motivos; nada reprovado segue | Escrever ao começar |
 | 6 | Prova (cenários) | 7 cenários obrigatórios por executor, modo teste sem enviar a cliente, regressão a cada mudança, tela Prova | Escrever ao começar |
 | 7 | Degraus + disjuntor + vigia de custo | Sombra → assistido → automático por executor; volta sozinho se errar; botão Parar; aviso de gasto fora do normal com o motivo | Escrever ao começar |
 | 8 | A rede de agentes | `agent_tasks` (pedir informação, revisar, propor, alertar, escalar), profundidade ≤ 3, orçamento, expiração, perguntas voltando ao Diagnóstico | Escrever ao começar |
 | 9 | Implantação pelo organograma | Implementador monta rascunhos por especialista/executor a partir dos processos aprovados | Escrever ao começar |
 | 10 | Acabamento e prova final | Guias e vídeos, revisão de segurança completa (agente revisor), isolamento, Clubetec do zero ponta a ponta, medição de chamados | Escrever ao começar |
+| 11 | Cérebro da plataforma (pedido do dono, 06/10 — desenho §12) | Sinais → incidentes → equipe de IA dona → diagnóstico → correção proposta → revisão → aprovação humana → verificação; só metadados; nenhum deploy sozinho | Escrever ao começar |
 
 Cada fatia, antes do código, ganha aqui uma seção "Fatia N — tarefas" no mesmo formato da Fatia 1.
 
@@ -401,3 +402,31 @@ guia "organograma" com `OrganogramaMock`, teste de isolamento 101.
 - [x] Função `orgchart` com `deno check`; publicada.
 - [x] Tela, rota, cartões, atalhos e guia; `tsc` e `build` ok.
 - [ ] Prova de ponta a ponta: no teste da Clubetec do zero (com processos aprovados).
+
+---
+
+## Fatia 5 — Guardião de segurança e LGPD ✅ (06/10)
+
+**Princípio:** só regra fixa bloqueia (`_shared/guardian.ts`, testado); a leitura da IA (`GUARDIAN_AI_PROMPT` +
+`parseAIAttention`) só acrescenta atenção — categorias fechadas, no máximo 3, nunca reprova. Frases de proibição ("nunca
+peça a senha") não bloqueiam (checagem de negação).
+
+**Regras que bloqueiam:** promessa de resultado garantido / "sem risco"; pedir senha ou dados de cartão; CPF ou número de
+cartão escrito; tentativa de burla ("ignore as regras"); dado sensível sem base legal; decisão com dinheiro/contrato/saúde/
+jurídico automatizada; cargo sem "(IA)"; contato com cliente fora do executor; quem atende sem "passar para pessoa".
+**Atenção:** dado sensível sem nenhuma pessoa no processo; base "consentimento" sem passo que peça; executor com autonomia
+acima de "sugere" antes da prova; pontos da leitura da IA.
+
+**Arquivos:** `supabase/migrations/20261006002400_guardian.sql` (`guardian_reviews`; `service_guardian_save` recalcula o
+status pelas gravidades e confere que o item é da empresa; gatilhos descartam a revisão quando o desenho ou o crachá muda;
+`approve_process_design` e `approve_org_chart` agora exigem revisão e recusam reprovado), `_shared/guardian.ts` + teste (6),
+`architect` (revisa logo depois de desenhar: regras + IA), `orgchart` (revisa cada agente por regra), função nova
+`guardian` (`check_text`, usada ao salvar o comportamento do Assistente de IA: bloqueia o reprovado, pede confirmação na
+atenção), `src/components/GuardianBadge.tsx` (selo e motivos em Processos e no Time de IA; aprovar travado sem revisão ou
+reprovado), guias atualizados, testes de isolamento 102 (e 100/101 ajustados para revisar antes de aprovar).
+
+- [x] Testes Deno (6) vistos falhar e passar; teste 102 visto falhar; migration aplicada; bateria completa ok.
+- [x] Funções `guardian`, `architect`, `orgchart` publicadas.
+- [x] Prova no servidor publicado: texto com promessa e pedido de senha → reprovado; texto legítimo com "nunca peça a senha" → não bloqueado (a IA deu só atenção).
+- [x] Telas, selos e guias; `tsc` e `build` ok.
+- [ ] Propostas de melhoria e fluxos passam pelo Guardião na fatia 9 (implantação), onde os rascunhos são gerados.

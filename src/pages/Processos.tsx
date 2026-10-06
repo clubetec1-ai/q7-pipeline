@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MicTextarea } from "@/components/MicTextarea";
 import { HowItWorks } from "./diagnostico/HowItWorks";
+import { GuardianBadge, GuardianFindings, type GuardianReview } from "@/components/GuardianBadge";
 
 type Decisao = "fluxo" | "modelo" | "ia" | "pessoa";
 interface Passo { n: number; o_que: string; quem_detalhe: string; ferramenta: string; prazo: string; decisao: Decisao; motivo: string }
@@ -42,14 +43,17 @@ export default function Processos() {
   const [busy, setBusy] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
   const [note, setNote] = useState<Record<string, string>>({});
+  const [guard, setGuard] = useState<Map<string, GuardianReview>>(new Map());
   const owner = can("org.settings");
 
   const load = useCallback(async () => {
     if (!org) return;
-    const [{ data: d }, prof] = await Promise.all([
+    const [{ data: d }, prof, { data: g }] = await Promise.all([
       supabase.from("process_designs").select("id, setor, nome, design, status, version, architect_note, approved_at").eq("organization_id", org.id).order("setor").order("nome"),
       owner ? supabase.from("company_profiles").select("processes").eq("organization_id", org.id).maybeSingle() : Promise.resolve({ data: null }),
+      supabase.from("guardian_reviews").select("subject_id, status, findings").eq("organization_id", org.id).eq("subject_type", "processo"),
     ]);
+    setGuard(new Map(((g as unknown as GuardianReview[]) ?? []).map((x) => [x.subject_id, x])));
     setRows((d as unknown as Row[]) ?? []);
     setNarr(((prof.data?.processes as unknown as Narr[]) ?? []).filter((p) => p?.nome));
     setLoaded(true);
@@ -160,6 +164,7 @@ export default function Processos() {
                         {row?.status === "proposto" && <Badge className="bg-warning-soft text-warning-text">Para aprovar</Badge>}
                         {row?.status === "aprovado" && <Badge className="bg-success-soft text-success-text">Aprovado · v{row.version}</Badge>}
                         {row?.status === "arquivado" && <Badge variant="outline">Arquivado</Badge>}
+                        {row && row.status !== "arquivado" && <GuardianBadge review={guard.get(row.id)} />}
                         {row && row.status !== "arquivado" && (
                           <Button size="sm" variant="ghost" onClick={() => setOpen(isOpen ? null : row.id)}>{isOpen ? "Fechar" : "Ver desenho"}</Button>
                         )}
@@ -169,14 +174,20 @@ export default function Processos() {
                           </Button>
                         )}
                       </div>
+                      {row && isOpen && <GuardianFindings review={guard.get(row.id)} />}
                       {row && isOpen && <DesignView row={row} />}
                       {row && isOpen && row.status !== "arquivado" && (
                         <div className="space-y-2 border-t pt-2">
                           <div className="flex flex-wrap gap-2">
                             {row.status === "proposto" && (
-                              <Button size="sm" data-demo="btn-aprovar" disabled={!!busy} onClick={() => void approve(row)}>
+                              <Button size="sm" data-demo="btn-aprovar" disabled={!!busy || !guard.get(row.id) || guard.get(row.id)?.status === "reprovado"}
+                                title={!guard.get(row.id) ? "Aguardando a revisão do Guardião de segurança" : guard.get(row.id)?.status === "reprovado" ? "O Guardião reprovou: peça ajuste ao Arquiteto" : undefined}
+                                onClick={() => void approve(row)}>
                                 <Check className="w-4 h-4 mr-1" /> Aprovar processo
                               </Button>
+                            )}
+                            {row.status === "proposto" && guard.get(row.id)?.status === "reprovado" && (
+                              <span className="self-center text-xs text-danger-text">Corrija o que o Guardião apontou (peça ajuste abaixo) para poder aprovar.</span>
                             )}
                             <Button size="sm" variant="ghost" onClick={() => void archive(row)}>Arquivar</Button>
                           </div>

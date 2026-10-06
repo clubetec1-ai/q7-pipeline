@@ -5,6 +5,7 @@ import { forOrg } from "../_shared/tenant.ts";
 import { chatAI, resolveAI } from "../_shared/ai-chat.ts";
 import { BRAIN_MODELS } from "../_shared/brain/rules.ts";
 import { METRIC_KEYS, parseDesign } from "../_shared/process-design.ts";
+import { checkProcess, GUARDIAN_AI_PROMPT, parseAIAttention, verdict } from "../_shared/guardian.ts";
 
 /**
  * Arquiteto de processos (desenho 07, fatia 3): transforma um processo contado no Diagnóstico num desenho
@@ -95,7 +96,21 @@ Deno.serve(async (req) => {
     if (!design) throw new HttpError(502, "O Arquiteto não conseguiu desenhar este processo. Complete o passo a passo no Diagnóstico e tente de novo.");
     const { data: id, error } = await admin.rpc("service_process_design_save", { org: orgId, p_setor: setor, p_nome: nome, p_design: design });
     if (error) throw new HttpError(500, "Não consegui gravar o desenho");
-    return json({ ok: true, id, design });
+
+    // Guardião de segurança e LGPD (fatia 5): regras fixas (podem bloquear) + leitura da IA (só atenção).
+    const findings = checkProcess(design);
+    try {
+      const g = await chatAI({ ...ai, model }, [
+        { role: "system", content: GUARDIAN_AI_PROMPT },
+        { role: "user", content: `Processo "${nome}" do setor "${setor}":\n<dados>\n${JSON.stringify(design).slice(0, 8000)}\n</dados>` },
+      ], undefined, { json: true, timeoutMs: 45_000 });
+      if (g.ok && g.reply) findings.push(...parseAIAttention(JSON.parse(g.reply.match(/\{[\s\S]*\}/)?.[0] ?? "{}")));
+    } catch { /* a leitura da IA é um extra: as regras fixas já foram aplicadas */ }
+    const { data: row } = await org.select("process_designs", "version").eq("id", id).maybeSingle();
+    const { data: guardiao, error: gErr } = await admin.rpc("service_guardian_save",
+      { org: orgId, p_type: "processo", p_id: id, p_version: row?.version ?? 1, p_findings: findings });
+    if (gErr) console.error("[architect] revisão do Guardião não gravada", gErr.message);
+    return json({ ok: true, id, design, guardiao: gErr ? null : { status: guardiao ?? verdict(findings), findings } });
   } catch (e) {
     const status = e instanceof HttpError ? e.status : 500;
     if (status === 500) console.error("[architect]", e instanceof Error ? e.message : e);

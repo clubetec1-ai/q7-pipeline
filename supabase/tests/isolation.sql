@@ -1592,6 +1592,7 @@ BEGIN
   PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_process_design_save(%L, %L, %L, %L)', A, 'D1', 'x', '{}'), 'navegador nao usa a funcao do servidor');
   PERFORM pg_temp.expect_error(agent2_a, format('SELECT public.approve_process_design(%L)', (SELECT id FROM public.process_designs WHERE organization_id = A AND nome = 'Orcamento')), 'outro atendente nao aprova');
   PERFORM pg_temp.expect_error(owner_b, format('SELECT public.approve_process_design(%L)', (SELECT id FROM public.process_designs WHERE organization_id = A AND nome = 'Orcamento')), 'outra org nao aprova');
+  PERFORM public.service_guardian_save(A, 'processo', (SELECT id FROM public.process_designs WHERE organization_id = A AND nome = 'Orcamento'), 1, '[]');
   PERFORM pg_temp.run(agent_a, format('SELECT public.approve_process_design(%L)', (SELECT id FROM public.process_designs WHERE organization_id = A AND nome = 'Orcamento')));
   PERFORM pg_temp.expect((SELECT status FROM public.process_designs WHERE organization_id = A AND nome = 'Orcamento') = 'aprovado', 'responsavel da area aprova');
   PERFORM public.service_process_design_save(A, 'D1', 'Orcamento', '{"gatilho":"pedido novo","passos":[{"n":1,"o_que":"responder","decisao":"pessoa"}]}');
@@ -1616,6 +1617,7 @@ BEGIN
   PERFORM pg_temp.expect(pg_temp.run(NULL, format('SELECT public.service_org_chart_save(%L, %L)', A, '[{"key":"dir:x","level":"diretor","parent":null,"papel":"Diretor X (IA)","cracha":{"dados":["senhas_do_cofre"],"acoes":[]},"autonomia":"A1"}]')) LIKE 'err:%', 'item fora do catalogo recusado');
   PERFORM pg_temp.expect_error(agent_a, format('SELECT public.approve_org_chart(%L)', A), 'responsavel nao aprova o time inteiro');
   PERFORM pg_temp.expect_error(owner_b, format('SELECT public.approve_org_chart(%L)', A), 'outra org nao aprova');
+  PERFORM public.service_guardian_save(A, 'agente', id, version, '[]') FROM public.ai_agents WHERE organization_id = A;
   PERFORM pg_temp.run(owner_a, format('SELECT public.approve_org_chart(%L)', A));
   PERFORM pg_temp.expect((SELECT count(*) FROM public.ai_agents WHERE organization_id = A AND status = 'ativo') = 4, 'dono aprova o time');
   PERFORM pg_temp.expect_error(owner_a, format('SELECT public.set_agent_autonomy(%L, %L)', (SELECT id FROM public.ai_agents WHERE organization_id = A AND key = 'exec:d1'), 'A4'), 'executar sozinho so depois da prova');
@@ -1630,6 +1632,27 @@ BEGIN
   PERFORM public.service_org_chart_save(A, '[{"key":"cerebro","level":"cerebro","parent":null,"papel":"Cérebro — visão de CEO (IA)","cracha":{"dados":["numeros_agregados"],"acoes":["delegar"]},"autonomia":"A1"},{"key":"dir:comercial","level":"diretor","parent":"cerebro","papel":"Diretor Comercial (IA)","cracha":{"dados":["numeros_agregados"],"acoes":["revisar"]},"autonomia":"A1"},{"key":"coord:d1","level":"coordenador","parent":"dir:comercial","papel":"Coordenador do setor D1 (IA)","department_id":"aaaaaaaa-0000-0000-0001-000000000001","cracha":{"dados":["processos"],"acoes":["revisar"]},"autonomia":"A1"}]');
   PERFORM pg_temp.expect((SELECT status || ':' || coalesce(apelido, '') FROM public.ai_agents WHERE organization_id = A AND key = 'exec:d1') = 'pausado:Bia', 'agente que saiu do desenho fica pausado (nao some)');
   PERFORM pg_temp.expect((SELECT status FROM public.ai_agents WHERE organization_id = A AND key = 'dir:comercial') = 'pausado', 'remontar o time nao religa o que o dono pausou');
+  -- 102. Guardiao: so o servidor grava a revisao (o status sai das regras, nao de quem chama); sem revisao ou reprovado nao aprova.
+  PERFORM public.service_process_design_save(A, 'D1', 'Proc G', '{"gatilho":"x","passos":[{"n":1,"o_que":"y","decisao":"pessoa"}]}');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.approve_process_design(%L)', (SELECT id FROM public.process_designs WHERE organization_id = A AND nome = 'Proc G')), 'sem revisao do Guardiao nao aprova');
+  PERFORM public.service_guardian_save(A, 'processo', (SELECT id FROM public.process_designs WHERE organization_id = A AND nome = 'Proc G'), 1,
+    '[{"regra":"sensivel_sem_base_legal","gravidade":"bloqueia","texto":"falta base legal","onde":"dados"}]');
+  PERFORM pg_temp.expect((SELECT status FROM public.guardian_reviews WHERE organization_id = A AND subject_type = 'processo' AND subject_id = (SELECT id FROM public.process_designs WHERE organization_id = A AND nome = 'Proc G')) = 'reprovado', 'regra que bloqueia reprova');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.approve_process_design(%L)', (SELECT id FROM public.process_designs WHERE organization_id = A AND nome = 'Proc G')), 'reprovado pelo Guardiao nao aprova');
+  PERFORM public.service_guardian_save(A, 'processo', (SELECT id FROM public.process_designs WHERE organization_id = A AND nome = 'Proc G'), 1,
+    '[{"regra":"sensivel_sem_pessoa","gravidade":"atencao","texto":"confira","onde":"processo"}]');
+  PERFORM pg_temp.run(owner_a, format('SELECT public.approve_process_design(%L)', (SELECT id FROM public.process_designs WHERE organization_id = A AND nome = 'Proc G')));
+  PERFORM pg_temp.expect((SELECT status FROM public.process_designs WHERE organization_id = A AND nome = 'Proc G') = 'aprovado', 'com atencao (sem bloqueio) aprova');
+  PERFORM public.service_process_design_save(A, 'D1', 'Proc G', '{"gatilho":"mudou","passos":[{"n":1,"o_que":"y","decisao":"pessoa"}]}');
+  PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM public.guardian_reviews WHERE organization_id = A AND subject_type = 'processo' AND subject_id = (SELECT id FROM public.process_designs WHERE organization_id = A AND nome = 'Proc G')), 'desenho mudou: revisao antiga descartada');
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT count(*) FROM public.guardian_reviews') >= 1, 'dono ve as revisoes');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.guardian_reviews') = 0, 'outra org nao ve as revisoes');
+  PERFORM pg_temp.expect(pg_temp.q(agent2_a, 'SELECT count(*) FROM public.guardian_reviews') = 0, 'outro atendente nao ve as revisoes');
+  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('INSERT INTO public.guardian_reviews (organization_id, subject_type, subject_id, status) VALUES (%L, %L, %L, %L)', A, 'agente', gen_random_uuid(), 'aprovado')) LIKE 'err:%', 'navegador nao grava revisao direto');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_guardian_save(%L, %L, %L, 1, %L)', A, 'processo', (SELECT id FROM public.process_designs WHERE organization_id = A AND nome = 'Proc G'), '[]'), 'navegador nao aprova pelo Guardiao');
+  PERFORM pg_temp.expect(pg_temp.run(NULL, format('SELECT public.service_guardian_save(%L, %L, %L, 1, %L)', 'bbbbbbbb-0000-0000-0000-000000000001', 'processo', (SELECT id FROM public.process_designs WHERE organization_id = A AND nome = 'Proc G'), '[]')) LIKE 'err:%', 'revisao de item de outra empresa recusada');
+  PERFORM public.service_org_chart_save(A, '[{"key":"apoio:guardiao","level":"apoio","parent":null,"papel":"Guardiao (IA)","cracha":{"dados":["processos"],"acoes":["revisar"]},"autonomia":"A1"}]');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.approve_org_chart(%L)', A), 'time sem revisao do Guardiao nao aprova');
   -- 99. Revisao de area do Diagnostico: so dono/admin ve; so o servidor grava; "esta certo assim" vale.
   PERFORM public.service_diag_findings_save(A, 'empresa', 'Diretor Comercial (IA)', '[{"n":1,"tipo":"incoerencia","gravidade":"critica","texto":"Horario 18h x 24h","etapas":["empresa","posvenda"],"sugestao":"s"},{"n":2,"tipo":"inventado","gravidade":"critica","texto":"x","etapas":[]},{"n":3,"tipo":"risco","gravidade":"baixa","texto":"Promete brinde","etapas":["empresa"],"sugestao":""}]');
   PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT open_critical FROM public.diag_findings WHERE step_key = ''empresa''') = 1, 'dono ve a revisao com 1 critica aberta');

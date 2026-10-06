@@ -237,3 +237,39 @@ atender cliente.
    vale desligar ou ajustar. O disjuntor (§5.6) segura o gasto enquanto ninguém decide.
 6. **Nomes na tela:** ✅ cargo + "(IA)" (ex.: "Especialista em Orçamentos (IA)"); o cliente pode pôr um **apelido**
    opcional (ex.: "Bia — Especialista em Orçamentos (IA)"); o "(IA)" nunca sai, para ninguém confundir com uma pessoa.
+
+## 12. Cérebro da plataforma — o software se gerenciando (pedido do dono, 06/10)
+
+**Papel:** além do cérebro de cada empresa, um **cérebro da plataforma (Clubetec)** cuida do software inteiro, para todas
+as empresas: se está funcionando, falhas, bugs, alertas, correções e melhorias, delegando a equipes de IA especializadas.
+
+**Organograma da plataforma (nível P):**
+
+| Diretor (IA) | Equipe (IA) | Cuida de |
+|---|---|---|
+| Diretor de Engenharia | Front-end, Back-end e banco, Integrações (WhatsApp, Meta, e-mail, Asaas, telefonia) | erros nas funções, filas, cron, integrações caindo |
+| Diretor de Segurança e LGPD | Guardião da plataforma, Auditor de isolamento | testes de isolamento, avisos do Supabase, acessos estranhos, segredos |
+| Diretor de Qualidade | Testes (QA), Monitor de saúde | regressões, testes automáticos, saúde por empresa (só números) |
+| Diretor de Design e Experiência | UX, guias e vídeos, textos | telas com mais chamados, guias faltando, pontos onde o cliente trava |
+| Diretor de Operações e Suporte | Triagem de chamados, SLA, base de conhecimento | chamados por tema e urgência, prazos, artigos que faltam |
+| Analista de custos | — | consumo de IA e infraestrutura fora do normal |
+
+**Ciclo de um problema:** sinal → **incidente** (agrupa sinais parecidos, gravidade, quantas empresas afetadas — em número,
+sem dados delas) → **triagem** (qual equipe é dona) → **diagnóstico** (hipótese com evidência) → **proposta de correção**
+(plano; quando for código, uma tarefa ou rascunho de mudança com os testes) → **revisão** do Guardião da plataforma e do
+QA → **aprovação humana** (operador Clubetec) → publicação pelo caminho normal (testes passando) → **verificação** (o
+sinal parou?) → **aprendizado** (vira teste de regressão, guia ou artigo da base).
+
+**Sinais (só metadados, nunca conteúdo de conversa):** erros por função e hora (logs das Edge Functions), falhas de
+cron/pg_net, webhooks e integrações com falha, troca para a IA reserva, números desconectados, filas paradas, chamados de
+suporte (tema e urgência), regressões nos testes, avisos de segurança do Supabase, consumo de IA por empresa fora do normal,
+monitor do INPI.
+
+**Travas (não mudam):** nenhum agente publica código nem mexe no banco de produção sozinho — toda correção de código passa
+por revisão e aprovação humana, com testes; a equipe de IA da plataforma vê só metadados e logs com dados pessoais
+removidos; isolamento entre empresas mantido; botão de parar por função e por empresa; orçamento de IA próprio.
+
+**Entrega (fatia 11, depois da 10):** (11a) coleta de sinais + incidentes agrupados por regra + painel na Plataforma +
+alertas (sino/e-mail; WhatsApp do suporte para crítico); (11b) organograma da plataforma e triagem (regra primeiro, IA
+para o texto livre); (11c) diagnóstico e proposta de correção pela IA com evidência; (11d) ligação com o desenvolvimento:
+tarefa/rascunho de mudança, testes automáticos a cada mudança e verificação depois da correção.

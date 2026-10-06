@@ -22,7 +22,7 @@ const clip = (v: unknown, n: number) => String(v ?? "").trim().slice(0, n);
 const list = (v: unknown) => (Array.isArray(v) ? v : []);
 
 // Decisões que nunca saem de uma pessoa (a IA pode preparar o resumo).
-const SO_PESSOA = /(desconto|reembols|estorn|negocia|contrat|jur[ií]dic|advog|processo judicial|m[eé]dic|sa[uú]de|diagn[oó]stico m|cancelament|multa|cr[eé]dito|isen[çc][ãa]o|dados? de cart[ãa]o|senha)/i;
+export const SO_PESSOA = /(desconto|reembols|estorn|negocia|contrat|jur[ií]dic|advog|processo judicial|m[eé]dic|sa[uú]de|diagn[oó]stico m|cancelament|multa|cr[eé]dito|isen[çc][ãa]o|dados? de cart[ãa]o|senha)/i;
 const SENSIVEL = /(cpf|\brg\b|documento|sa[uú]de|doen[çc]a|religi|biom|digital|cart[ãa]o|senha|conta banc|renda|sal[áa]rio|filia[çc][ãa]o|sindic|sexual|ra[çc]a|etnia|crian[çc]a|menor de idade|antecedente)/i;
 
 export function parseDesign(raw: unknown, metricKeys: string[]): ProcessDesign | null {

@@ -1,4 +1,5 @@
 import { AiPolicyCard } from "@/components/AiPolicyCard";
+import { callFunction } from "@/lib/callFunction";
 import { MicTextarea } from "@/components/MicTextarea";
 import { HowItWorks } from "./diagnostico/HowItWorks";
 import { useCallback, useEffect, useState } from "react";
@@ -81,6 +82,25 @@ export default function Agente() {
       return;
     }
     setSaving(true);
+    // Guardião de segurança e LGPD (fatia 5): o texto vira instrução de quem fala com o cliente.
+    // Regra fixa bloqueia (promessa proibida, pedir senha/cartão, dado pessoal escrito, burla); a IA só aponta atenção.
+    if (!next && org) {
+      const g = await callFunction<{ status: string; findings: { texto: string; gravidade: string }[] }>("guardian", {
+        action: "check_text", organization_id: org.id, texto: prompt.trim() || SUGGESTED, onde: "comportamento do assistente",
+      });
+      if (g.ok) {
+        const bloq = g.data.findings.filter((f) => f.gravidade === "bloqueia");
+        if (bloq.length) {
+          setSaving(false);
+          return toast({ variant: "destructive", title: "🛡️ O Guardião de segurança não deixou salvar", description: bloq.map((f) => f.texto).join(" ") });
+        }
+        const at = g.data.findings.filter((f) => f.gravidade === "atencao");
+        if (at.length && !window.confirm(`🛡️ O Guardião de segurança apontou pontos de atenção:\n\n${at.map((f) => `• ${f.texto}`).join("\n")}\n\nSalvar mesmo assim?`)) {
+          setSaving(false);
+          return;
+        }
+      }
+    }
     const { error } = await supabase.from("agent_configs").upsert({
       user_id: user.id, system_prompt: prompt.trim() || SUGGESTED, enabled: on,
       followup_inactivity_minutes: followOn ? Math.max(5, followMin) : null,

@@ -353,7 +353,7 @@ export const GUIDES: Guide[] = [
           <>
             <Pointer icon={<Save className="w-4 h-4" />} label="Salvar" note="guarda o comportamento e o follow-up" />
             <p>Testou e gostou? Ligue o agente na chave do topo. A partir daí ele responde os atendimentos que estão com a IA. Se um cliente pedir uma pessoa, ou o assunto for difícil, ele passa para a equipe.</p>
-            <p className="text-muted-foreground">Dá para desligar a qualquer momento: os atendimentos vão direto para a equipe.</p>
+            <p className="text-muted-foreground">Ao salvar, o 🛡️ Guardião de segurança confere o texto: promessas proibidas, pedido de senha ou cartão e dado pessoal escrito não passam. Dá para desligar a qualquer momento: os atendimentos vão direto para a equipe.</p>
           </>
         ),
         demo: [
@@ -397,16 +397,18 @@ export const GUIDES: Guide[] = [
         ],
       },
       {
-        title: "Travas de segurança que não mudam",
+        title: "Travas de segurança e o Guardião",
         body: (
           <>
             <Pointer icon={<ShieldCheck className="w-4 h-4" />} label="Dinheiro, contrato, saúde ou jurídico" note="sempre fica com uma pessoa — a IA só prepara o resumo" />
             <Pointer icon={<ShieldCheck className="w-4 h-4" />} label="Dados sensíveis do cliente" note="CPF, saúde, dados financeiros ficam marcados, com a base legal da LGPD" />
+            <p>Depois de cada desenho, o <b>🛡️ Guardião de segurança e LGPD (IA)</b> revisa tudo. Se ele <b>reprovar</b> (ex.: dado sensível sem base legal, promessa proibida), o processo não pode ser aprovado até corrigir — ele mostra o motivo. "Atenção" são pontos para você conferir.</p>
           </>
         ),
         demo: [
           { state: "desenhado", target: "trava", caption: "Desconto é decisão de pessoa: regra fixa" },
           { state: "desenhado", target: "dados", caption: "Dado sensível sempre marcado" },
+          { state: "desenhado", target: "guardiao-selo", caption: "O Guardião de segurança revisa antes de aprovar" },
         ],
       },
       {
@@ -467,7 +469,7 @@ export const GUIDES: Guide[] = [
           <>
             <Pointer icon={<CheckCircle2 className="w-4 h-4" />} label="Aprovar o time" note="todos começam só sugerindo: você decide o que vai para o cliente" />
             <Pointer icon={<Pause className="w-4 h-4" />} label="Pausar" note="desliga um agente na hora" />
-            <p className="text-muted-foreground">"Executa sozinho" só fica disponível depois que o agente passar na prova dos cenários de teste.</p>
+            <p className="text-muted-foreground">"Executa sozinho" só fica disponível depois que o agente passar na prova dos cenários de teste. Antes de aprovar, o 🛡️ Guardião de segurança confere o crachá de cada agente.</p>
           </>
         ),
         demo: [

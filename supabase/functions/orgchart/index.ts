@@ -3,6 +3,7 @@ import { requireModule } from "../_shared/modules.ts";
 import { HttpError, requirePermission, requireUser, resolveOrg } from "../_shared/auth.ts";
 import { forOrg } from "../_shared/tenant.ts";
 import { buildOrgChart } from "../_shared/orgchart.ts";
+import { checkAgent } from "../_shared/guardian.ts";
 
 /**
  * Organograma de IA (desenho 07, fatia 4): o cérebro monta o time de agentes POR REGRA (sem IA, sem custo)
@@ -45,7 +46,16 @@ Deno.serve(async (req) => {
       console.error("[orgchart] não gravou", error.message);
       throw new HttpError(500, "Não consegui montar o time agora. Tente de novo.");
     }
-    return json({ ok: true, ...(data as Record<string, unknown>) });
+    // Guardião (fatia 5): revisa cada agente (só regras fixas — o time sai de regra, sem IA).
+    const { data: saved } = await org.select("ai_agents", "id, version, level, papel, autonomia, cracha");
+    let reprovados = 0;
+    for (const a of (saved ?? []) as { id: string; version: number; level: string; papel: string; autonomia: string; cracha: { dados: string[]; acoes: string[] } }[]) {
+      const { data: st, error: gErr } = await admin.rpc("service_guardian_save",
+        { org: orgId, p_type: "agente", p_id: a.id, p_version: a.version, p_findings: checkAgent(a) });
+      if (gErr) console.error("[orgchart] revisão do Guardião não gravada", gErr.message);
+      if (st === "reprovado") reprovados++;
+    }
+    return json({ ok: true, ...(data as Record<string, unknown>), reprovados });
   } catch (e) {
     const status = e instanceof HttpError ? e.status : 500;
     if (status === 500) console.error("[orgchart]", e instanceof Error ? e.message : e);
