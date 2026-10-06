@@ -312,17 +312,14 @@ Meta liberar as permissões) → 19b Google Agenda (🙋 precisa de credencial O
   às hh:mm"); ao atualizar a página volta para a etapa onde a pessoa estava (antes a caixa abria vazia); botão
   "Salvar e próxima etapa" (organizar e aprovar depois). Microfone (🎤 Falar) em todas as caixas da conferência. A **conferência**
   ("Confira e ajuste") também é salva sozinha e volta ao atualizar; some só ao aprovar ou cancelar.
-- ⏳ **IA principal = OpenAI em todo o sistema (pedido do dono em 05/10 — fazer depois, sem gastar créditos agora):**
-  em Plataforma a ordem já é Principal **OpenAI** → Reserva 1 **Groq**, mas o código ainda cai na Groq primeiro.
-  Causa encontrada: `resolveAI` (supabase/functions/_shared/ai-chat.ts) usa `"groq"` como padrão quando a empresa não
-  escolheu provedor e procura uma chave da Groq (legado da instalação: chave em agent_configs/variável GROQ_API_KEY);
-  achando, trata como "chave própria" e pula a ordem da Plataforma. Fazer: (1) sem `ai_provider` escolhido pela empresa,
-  usar sempre a cadeia da Plataforma (Principal → reservas); (2) revisar todas as áreas que chamam IA — atendimento
-  (whatsapp-webhook, meta, e-mail), entrevistador, cérebro, assistente "Como faço…?", campanhas, avaliações,
-  transcrição (audioAI), leitura de imagem (askVision), voz (TTS) — e os modelos fixos "auto"/llama no código;
-  (3) tirar o fallback da variável GROQ_API_KEY ou deixá-la só como reserva; (4) teste automatizado garantindo que a
-  1ª chamada vai para a Principal da Plataforma. Sintoma visto: a leitura do logo falhou porque o modelo de visão da
-  Groq foi descontinuado (já há reserva para OpenAI na leitura de imagem desde 05/10).
+- ✅ **IA principal = OpenAI em todo o sistema (pedido do dono em 05/10; feito em 06/10):** a Clubetec tinha uma chave
+  Groq própria antiga e nenhum provedor escolhido; `resolveAI` (supabase/functions/_shared/ai-chat.ts) tratava essa chave
+  como "própria" e pulava a ordem da Plataforma. Agora: provedor escolhido pela empresa (no bloco ou em Configurações →
+  Chaves de IA) com chave própria → usa a dela; senão → IA da Clubetec na ordem de Plataforma → Conectores (Principal
+  **OpenAI** → Reserva 1 **Groq**); a chave Groq antiga só entra se a plataforma não tiver IA (ou a empresa recusou).
+  Transcrição (`audioAI`) segue a mesma ordem; voz (TTS) e leitura de imagem já usavam OpenAI. Todas as funções que
+  chamam IA foram republicadas. Teste: `_shared/ai-chat_test.ts`. Pendente menor: os modelos fixos "llama-3.3" em
+  avaliações/melhorias só valem quando o provedor é Groq (reserva) — revisar junto com a escolha de modelos por tarefa.
 - ✅ **Marca no Diagnóstico começa pelo logo (05/10, pedido do dono):** o dono envia o logo (e o manual, se tiver) e o
   sistema sugere: cores com código lidas do logo no próprio navegador (sem IA, o arquivo não sai), fontes parecidas com
   a do logo e que combinam (IA com visão) e, do manual em PDF, cores/fontes/tom de voz definidos; o dono confere e clica
