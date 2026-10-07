@@ -1,3 +1,4 @@
+import { headTail, repeatedOf } from "../_shared/repeat-guard.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { requireModule } from "../_shared/modules.ts";
 import { HttpError, requirePermission, requireUser, resolveOrg } from "../_shared/auth.ts";
@@ -181,7 +182,8 @@ Deno.serve(async (req) => {
       const sabemos = Object.entries(SECTIONS)
         .filter(([k]) => typeof secs[k] === "string" && String(secs[k]).trim())
         .map(([k, x]) => `## ${x.label}\n${String(secs[k]).trim().slice(0, 1200)}`).join("\n\n").slice(0, 6000);
-      const stepRaw = clip(((prof?.steps ?? {}) as Record<string, { raw?: string }>)[stage.key === "processos" ? `proc:${setor}` : stage.key]?.raw, 3000);
+      // Texto da etapa: começo e FIM (o que foi respondido por último numa entrevista anterior não pode sumir — senão ela repete).
+      const stepRaw = headTail(String(((prof?.steps ?? {}) as Record<string, { raw?: string }>)[stage.key === "processos" ? `proc:${setor}` : stage.key]?.raw ?? "").trim());
       const faltamDe = (v: unknown) => (Array.isArray(v) ? v : []).map((x) => clip(x, 120)).filter(Boolean).slice(0, 8);
       // Despedida pronta (não é pergunta: nada fica sem resposta). Se ficou algo importante sem resposta, diz o quê e por quê.
       const sayBye = async (faltamIn?: string[]) => {
@@ -209,7 +211,7 @@ Deno.serve(async (req) => {
       }
       // Depois de 12 respostas, encerra sem pedir outra (o que faltar fica registrado).
       if (qa.length >= 12) return await sayBye();
-      const turn = () => ask(
+      const turn = (aviso = "") => ask(
         `Você é ${spec ? `um ${spec.papel}` : "um consultor"} entrevistando o dono da empresa POR VOZ, na etapa "${tema}" de um diagnóstico. Objetivo da etapa: ${stage.guide} ` +
         "O diagnóstico existe para os agentes de IA atenderem os clientes sem errar: quanto mais informação correta e completa, menos falhas e menos chamados. " +
         (spec
@@ -228,6 +230,8 @@ Deno.serve(async (req) => {
         "pergunte \"quando vocês respondem um cliente no WhatsApp, chamam de você ou de senhor? usam emoji?\"). " +
         'Em "exemplos", dê 2 ou 3 exemplos curtos de resposta para inspirar (genéricos, sem inventar dados da empresa); na despedida, "exemplos" fica vazio. ' +
         "Na primeira pergunta, cumprimente e diga em uma frase o tema. Use as respostas anteriores para aprofundar só o que ficou vago ou faltou; não repita o que ele já disse. " +
+        "NUNCA repita nem reformule uma pergunta já feita (veja \"Respostas até agora\" e o texto da etapa): pedir para \"confirmar\" algo já respondido também é repetição. " +
+        "Se o assunto já foi respondido, mesmo que de forma curta, considere completo e siga para outro item ou encerre. " +
         (docsText
           ? "O dono já anexou documentos desta etapa (texto abaixo): leia-os ANTES de cada pergunta. Na primeira pergunta, diga em uma frase o que você leu neles " +
             "(ex.: \"li o documento de vocês, vi a missão, a visão e os valores\") e pergunte só o que NÃO está nos documentos ou o que precisa de um exemplo do dia a dia; " +
@@ -248,13 +252,24 @@ Deno.serve(async (req) => {
           (stepRaw ? `\nO que o dono já escreveu nesta etapa:\n"""\n${stepRaw}\n"""\n` : "") +
           (anexos.length ? `Arquivos já anexados nesta etapa: ${anexos.join(", ")}\n` : "") +
           (docsText ? `\nTexto dos documentos anexados (já lido; não pergunte o que já está aqui):\n"""\n${docsText}\n"""\n\n` : "") + "Respostas até agora:\n" +
-          (qa.map((x: { q: string; a: string }, i: number) => `${i + 1}. Pergunta: ${x.q}\nResposta: ${x.a}`).join("\n") || "(nenhuma ainda)"),
+          (qa.map((x: { q: string; a: string }, i: number) => `${i + 1}. Pergunta: ${x.q}\nResposta: ${x.a}`).join("\n") || "(nenhuma ainda)") +
+          (aviso ? `\n\nATENÇÃO: ${aviso}` : ""),
       );
       let out = await turn();
       // A IA às vezes encerra sem escrever a despedida: usa a pronta. Pergunta vazia: tenta mais uma vez.
       if (!clip(out.pergunta, 500) && out.terminou) return await sayBye(faltamDe(out.faltam));
       if (!clip(out.pergunta, 500)) out = await turn();
-      const question = clip(out.pergunta, 500);
+      let question = clip(out.pergunta, 500);
+      // Trava fixa contra pergunta repetida: tenta outro assunto uma vez; se repetir de novo, encerra a etapa.
+      // Já feitas: as desta entrevista e as de entrevistas anteriores que ficaram no texto da etapa (linhas terminadas em "?").
+      const feitas = [...qa.map((x: { q: string }) => x.q), ...stepRaw.split("\n").map((l) => l.trim()).filter((l) => l.endsWith("?") && l.length > 20)].slice(-60);
+      const repetida = question && !out.terminou ? repeatedOf(question, feitas) : null;
+      if (repetida) {
+        console.log("[interviewer] pergunta repetida barrada", { etapa: stage.key, respostas: qa.length });
+        out = await turn(`a pergunta "${question}" repete uma que já foi respondida ("${repetida}"). O dono JÁ RESPONDEU esse assunto: considere completo, não pergunte de novo nem peça para confirmar; pergunte sobre outro item que ainda falta ou encerre.`);
+        question = clip(out.pergunta, 500);
+        if (!question || (!out.terminou && repeatedOf(question, feitas))) return await sayBye(faltamDe(out.faltam));
+      }
       if (!question && (out.terminou || qa.length >= 5)) return await sayBye(faltamDe(out.faltam));
       if (!question) throw new HttpError(502, "A IA não formulou a próxima pergunta. Clique em Tentar de novo — suas respostas estão salvas.");
       // Texto e voz juntos (uma chamada só): a pergunta aparece e já começa a ser falada.

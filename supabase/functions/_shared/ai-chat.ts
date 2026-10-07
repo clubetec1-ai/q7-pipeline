@@ -195,10 +195,19 @@ export async function chatAI(ai: ResolvedAI, messages: ChatMsg[], tools?: ToolDe
   return r;
 }
 
+/** Modelo mais capaz por provedor para tarefas de análise (entrevista, Arquiteto, avaliações, prova…). */
+export const ANALYSIS_MODEL: Record<string, string> = { openai: "gpt-4.1-mini", gemini: "gemini-2.5-flash", anthropic: "claude-haiku-4-5" };
+
 export async function chat(apiKey: string, provider: string, model: string, messages: ChatMsg[], tools?: ToolDef[], opts: ChatOpts = {}): Promise<ChatResult> {
   const p = AI_PROVIDERS[provider] ?? AI_PROVIDERS.groq;
   const chosen = String(model || "").trim() || p.model;
   const o = { ...opts, jsonMode: !!opts.json && !tools?.length && JSON_MODE.has(provider) };
+  // Análise sem modelo escolhido pela posição: o mais capaz do provedor; indisponível → o padrão (barato e rápido).
+  const strong = opts.task === "analise" && !String(model || "").trim() ? ANALYSIS_MODEL[provider] : undefined;
+  if (strong) {
+    const r = await once(p.endpoint, apiKey, strong, messages, tools, o);
+    if (r.ok || !r.status || ![400, 403, 404].includes(r.status)) return r;
+  }
   if (provider !== "groq") return once(p.endpoint, apiKey, chosen, messages, tools, o);
   let last: ChatResult = { ok: false, error: "nenhum modelo disponível" };
   for (const m of await resolveModelChain(apiKey, chosen, opts.task)) {
