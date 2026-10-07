@@ -133,11 +133,13 @@ que for urgente.** Fontes: alertas do Supabase (segurança e desempenho), regist
 dependências e leitura do código.
 - ✅ *Feito na hora (urgente):* backup semanal voltou a funcionar (tinha parado com o problema de conexão de 05/10; o de
   segunda falharia) — rodado em 06/10: 104 tabelas.
-- 🔴 **Cota das funções do servidor:** 8 rotinas rodam a cada minuto (+2 a cada 5/15 min) ≈ 12 mil chamadas/dia ≈ 357 mil/mês,
-  ~70% da cota do plano Free (500 mil/mês) antes de qualquer cliente. Fazer: o banco só chama a função quando há trabalho
-  pendente (checagem em SQL antes do pg_net) ou um despachante único; acompanhar no vigia de custo. Antes do 2º cliente.
-- 🔴 **sync-email:** 90 erros/24 h "conexão fechada sem encerramento" (servidor de e-mail fecha a conexão segura); fechar a
-  conexão IMAP corretamente (LOGOUT) e tratar a queda, para não perder e-mail nem encher o registro de erros.
+- ✅ **Cota das funções do servidor (06/10):** medido de verdade: ~3,1 mil chamadas/dia (~93 mil/mês, ~19% da cota Free) — as
+  rotinas já só chamavam a função com trabalho pendente, menos a dos retornos (run-followups, ~1.200/dia à toa), que agora
+  também confere no banco antes (migration 20261006003300; setup/cron.sql atualizado). Fica o sync-email a cada minuto
+  (necessário para o e-mail chegar rápido) e o calls-sync a cada 5 min quando há telefonia.
+- ✅ **sync-email (06/10):** os 503 eram a função caindo inteira quando o servidor de e-mail fechava a conexão segura sem aviso
+  (erro sem tratador no cliente IMAP — 94/24 h). Agora o erro é escutado e vira só aviso; o vigia da plataforma confirma
+  quando o sinal parar (incidente "Chamadas internas com erro 503").
 - 🟠 **Teste automático das 155 funções do banco que o usuário pode chamar:** garantir, a cada mudança, que toda função
   SECURITY DEFINER pública confere permissão (has_permission, operador ou o próprio usuário) ou é só do servidor — hoje é
   regra de código, sem verificação automática.
