@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     const action = String(body?.action ?? "");
-    if (!["message", "suggest", "research", "plan", "format", "transcribe", "brand_write", "sector_priority", "voice_turn", "speak", "presence_texts", "brand_suggest", "explain_ask"].includes(action)) throw new HttpError(400, "Ação inválida");
+    if (!["message", "suggest", "research", "plan", "format", "transcribe", "brand_write", "sector_priority", "voice_turn", "speak", "presence_texts", "brand_suggest", "explain_ask", "brand_no_logo"].includes(action)) throw new HttpError(400, "Ação inválida");
     const ctx = await requireUser(req);
     const orgId = await resolveOrg(ctx, body?.organization_id);
     // Explicar as perguntas e transcrever a fala também servem a quem foi convidado a contar os processos do setor.
@@ -334,6 +334,25 @@ Deno.serve(async (req) => {
       }
       if (!cores.length && !fontes && !voz) throw new HttpError(502, notas || "Não consegui ler o logo/manual agora. As cores tiradas do logo continuam valendo.");
       return json({ ok: true, cores, fontes, voz, notas });
+    }
+
+    // Sem logo ainda (Etapa B, item 9): sugere paleta e fontes gratuitas a partir do que o dono contou da empresa.
+    if (action === "brand_no_logo") {
+      const base = ["empresa", "produtos", "clientes", "marca_voz", "cultura"].map((k) => clip(sections[k], 1200)).filter(Boolean);
+      if (!base.length) throw new HttpError(422, "Conte um pouco da empresa no Diagnóstico (etapa Empresa) para a sugestão ter a cara dela.");
+      const out = await ask(
+        "Você é designer de marcas de pequenas empresas brasileiras. A empresa ainda não tem logo. Sugira uma paleta e fontes que " +
+        "combinem com o ramo, o público e o jeito de falar dela. Fontes SOMENTE gratuitas do Google Fonts. Cores com bom contraste " +
+        "para leitura (texto escuro em fundo claro). " +
+        'Responda SOMENTE com JSON: {"cores":[{"nome":"Principal|Secundária|Destaque|Fundo|Texto","hex":"#RRGGBB"}],' +
+        '"titulos":"fonte para títulos","textos":"fonte para textos","porque":"em até 2 frases, por que combina com a empresa"}',
+        `Empresa: ${clip(orgRow?.name, 80)}\n${base.join("\n\n")}`);
+      const HEXRE = /^#[0-9a-f]{6}$/i;
+      const cores = (Array.isArray(out.cores) ? out.cores : []).filter((c: { hex?: string }) => HEXRE.test(String(c?.hex)))
+        .slice(0, 5).map((c: { nome?: string; hex: string }) => ({ nome: clip(c.nome, 40), hex: String(c.hex).toUpperCase() }));
+      const fontes = [out.titulos && `Títulos: ${clip(out.titulos, 60)}`, out.textos && `Textos: ${clip(out.textos, 60)}`].filter(Boolean).join(" · ");
+      if (!cores.length) throw new HttpError(502, "Não consegui sugerir agora. Tente de novo.");
+      return json({ ok: true, cores, fontes, voz: "", notas: clip(out.porque, 300) });
     }
 
     // "Não entendi": reescreve a lista do que responder na etapa com palavras do dia a dia e um exemplo.

@@ -214,7 +214,9 @@ dependências e leitura do código.
    resposta sozinha 3 s depois que a pessoa para de falar (aprende o ruído do ambiente; pausa não conta; dá para desligar e
    usar o botão) — `src/lib/endOfSpeech.ts` + teste.
 8. Vídeos gravados de verdade nas telas principais (hoje são as demonstrações animadas).
-9. Manual da marca completo como complemento pago; paleta e fontes sugeridas para quem não tem logo.
+9. 🟡 **Marca (06/10):** ✅ quem ainda não tem logo recebe paleta (principal, secundária, destaque, fundo, texto) e fontes
+   gratuitas sugeridas pela IA a partir do que contou no Diagnóstico ("Ainda não tenho logo" no kit da marca). 🙋 Falta a
+   decisão do dono: preço e conteúdo do **manual completo como complemento pago** (mais páginas, mockups, versões do logo).
 10. E-mail: Microsoft 365 por OAuth e Google direto.
 
 **Etapa C — canais e extras (depois da Etapa B)**

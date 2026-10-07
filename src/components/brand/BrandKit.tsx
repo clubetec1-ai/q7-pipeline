@@ -64,6 +64,15 @@ export function BrandKit({ orgId, editable = false, kit, onSaved, onSuggestText 
       from: fromManual.length ? "do manual da marca" : "do logo" });
   };
 
+  // Ainda sem logo: a IA sugere paleta e fontes gratuitas pelo que o dono contou da empresa (Etapa B, item 9).
+  const suggestNoLogo = async () => {
+    setReading(true);
+    const r = await callFunction<{ cores: { nome: string; hex: string }[]; fontes: string; notas: string }>("interviewer", { action: "brand_no_logo", organization_id: orgId });
+    setReading(false);
+    if (!r.ok) return toast({ variant: "destructive", title: "Não consegui sugerir agora", description: r.message });
+    setSug({ cores: r.data.cores.map((c) => ({ name: c.nome ?? "", hex: c.hex })), fontes: r.data.fontes ?? "", voz: "", notas: r.data.notas ?? "", from: "para a sua empresa (sem logo)" });
+  };
+
   useEffect(() => { setBrand(kit?.brand ?? {}); }, [kit]);
   useEffect(() => {
     const files = kit?.brand?.files ?? [];
@@ -168,6 +177,14 @@ export function BrandKit({ orgId, editable = false, kit, onSaved, onSuggestText 
       {editable && <p className="text-xs text-muted-foreground"><b>1. Comece pelo logo</b> (e pelo manual da marca, se tiver): o sistema já sugere as cores com os códigos e as fontes. Você só confere.</p>}
       {filesBlock}
 
+      {editable && !reading && !sug && logos.length === 0 && manuals.length === 0 && (
+        <div className="rounded-md border border-dashed p-2 text-sm">
+          <Button size="sm" variant="outline" onClick={() => void suggestNoLogo()}>
+            <Sparkles className="w-4 h-4 mr-1" /> Ainda não tenho logo: sugerir cores e fontes
+          </Button>
+          <p className="mt-1 text-xs text-muted-foreground">A IA sugere uma paleta e fontes gratuitas que combinam com o que você contou da empresa. Você confere antes de usar.</p>
+        </div>
+      )}
       {editable && (reading || sug || logos.length > 0 || manuals.length > 0) && (
         <div className="rounded-md border border-dashed border-primary/50 bg-primary/5 p-2 space-y-2 text-sm">
           {reading && <p className="text-muted-foreground">Lendo o logo/manual para sugerir cores e fontes…</p>}
