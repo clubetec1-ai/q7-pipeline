@@ -2036,6 +2036,60 @@ export type Database = {
           },
         ]
       }
+      flow_http_debug: {
+        Row: {
+          body: string | null
+          created_at: string
+          error: string | null
+          flow_id: string
+          id: number
+          ms: number
+          node_id: string
+          ok: boolean
+          organization_id: string
+          status: number | null
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          error?: string | null
+          flow_id: string
+          id?: never
+          ms?: number
+          node_id: string
+          ok: boolean
+          organization_id: string
+          status?: number | null
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          error?: string | null
+          flow_id?: string
+          id?: never
+          ms?: number
+          node_id?: string
+          ok?: boolean
+          organization_id?: string
+          status?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flow_http_debug_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "flows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flow_http_debug_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       flow_http_usage: {
         Row: {
           minute: string
@@ -2244,6 +2298,7 @@ export type Database = {
         Row: {
           created_at: string
           description: string | null
+          http_debug_until: string | null
           id: string
           name: string
           organization_id: string
@@ -2252,6 +2307,7 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string | null
+          http_debug_until?: string | null
           id?: string
           name: string
           organization_id: string
@@ -2260,6 +2316,7 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string | null
+          http_debug_until?: string | null
           id?: string
           name?: string
           organization_id?: string
@@ -3066,6 +3123,67 @@ export type Database = {
           },
           {
             foreignKeyName: "knowledge_docs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lgpd_requests: {
+        Row: {
+          canal: string
+          contact_id: string
+          conversation_id: string | null
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          motivo: string | null
+          organization_id: string
+          status: string
+        }
+        Insert: {
+          canal?: string
+          contact_id: string
+          conversation_id?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          motivo?: string | null
+          organization_id: string
+          status?: string
+        }
+        Update: {
+          canal?: string
+          contact_id?: string
+          conversation_id?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          motivo?: string | null
+          organization_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lgpd_requests_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lgpd_requests_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lgpd_requests_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -5713,6 +5831,10 @@ export type Database = {
         }
         Returns: string
       }
+      decline_lgpd_request: {
+        Args: { p_id: string; p_motivo: string }
+        Returns: undefined
+      }
       delete_extension: { Args: { ext: string }; Returns: undefined }
       delete_http_secret: {
         Args: { org: string; secret_key: string }
@@ -6343,6 +6465,19 @@ export type Database = {
         Args: { org: string; p_agent: string; p_scenarios: Json }
         Returns: number
       }
+      service_flow_http_debug_log: {
+        Args: {
+          org: string
+          p_body: string
+          p_error: string
+          p_flow: string
+          p_ms: number
+          p_node: string
+          p_ok: boolean
+          p_status: number
+        }
+        Returns: boolean
+      }
       service_get_secret: { Args: { secret_name: string }; Returns: string }
       service_guardian_save: {
         Args: {
@@ -6369,6 +6504,15 @@ export type Database = {
       }
       service_inpi_watch: { Args: never; Returns: Json }
       service_install_sales_funnel: { Args: { org: string }; Returns: Json }
+      service_lgpd_request_create: {
+        Args: {
+          org: string
+          p_canal: string
+          p_contact: string
+          p_conv: string
+        }
+        Returns: boolean
+      }
       service_mark_message_deleted: {
         Args: { org: string; pmid: string; who: string }
         Returns: number
@@ -6584,6 +6728,10 @@ export type Database = {
       set_finding_status: {
         Args: { org: string; p_key: string; p_n: number; p_status: string }
         Returns: Json
+      }
+      set_flow_http_debug: {
+        Args: { p_flow: string; p_on: boolean }
+        Returns: string
       }
       set_http_secret: {
         Args: { org: string; secret_key: string; secret_value: string }

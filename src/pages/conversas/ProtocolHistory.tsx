@@ -17,15 +17,17 @@ export function ProtocolHistory({ orgId, contactId, nameOf }: {
 }) {
   const [rows, setRows] = useState<Row[]>([]);
   const [depts, setDepts] = useState<Map<string, string>>(new Map());
+  const [prefDepts, setPrefDepts] = useState<Set<string>>(new Set());
   const [q, setQ] = useState("");
 
   useEffect(() => {
     (async () => {
       const [{ data: convs }, { data: d }] = await Promise.all([
         supabase.from("conversations").select("id").eq("organization_id", orgId).eq("contact_id", contactId),
-        supabase.from("departments").select("id, name").eq("organization_id", orgId),
+        supabase.from("departments").select("id, name, preferred_agent").eq("organization_id", orgId),
       ]);
       setDepts(new Map((d ?? []).map((x) => [x.id, x.name])));
+      setPrefDepts(new Set((d ?? []).filter((x) => x.preferred_agent).map((x) => x.id)));
       const ids = (convs ?? []).map((c) => c.id);
       if (!ids.length) return setRows([]);
       const { data } = await supabase.from("tickets")
@@ -36,8 +38,18 @@ export function ProtocolHistory({ orgId, contactId, nameOf }: {
   }, [orgId, contactId]);
 
   const shown = rows.filter((r) => !q.trim() || r.protocol.includes(q.trim()));
+  // Atendente preferencial: quem atendeu este cliente por último (é para essa pessoa que ele volta nos setores com a opção ligada).
+  const last = rows.find((r) => r.assigned_to);
   return (
     <div className="space-y-2">
+      {last && (
+        <p className="rounded-md bg-muted/50 p-2 text-xs">
+          <b>Atendente preferencial:</b> {nameOf(last.assigned_to!)} (atendeu por último em {fmt(last.created_at)}).{" "}
+          {last.department_id && prefDepts.has(last.department_id)
+            ? "Quando este cliente voltar, o atendimento vai direto para essa pessoa se ela estiver online."
+            : "O setor não usa o atendente preferencial (liga em Equipe → Departamentos)."}
+        </p>
+      )}
       <Input className="h-8" placeholder="Buscar protocolo" value={q} onChange={(e) => setQ(e.target.value)} />
       {shown.length === 0 && <p className="text-xs text-muted-foreground">Nenhum atendimento encontrado.</p>}
       {shown.map((r) => (

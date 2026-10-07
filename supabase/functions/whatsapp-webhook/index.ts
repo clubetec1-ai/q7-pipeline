@@ -9,7 +9,7 @@ import { cancelPendingFollowups, scheduleInactivityFollowup } from "../_shared/f
 import * as providers from "../_shared/providers/index.ts";
 import { transcribeAudio } from "../_shared/transcribe.ts";
 import { LIMITS, storeMedia } from "../_shared/media.ts";
-import { handleOptOut, instForSend, runFlow, runPostClose, withProtocol } from "../_shared/flow/executor.ts";
+import { handleDataRequest, handleOptOut, instForSend, runFlow, runPostClose, withProtocol } from "../_shared/flow/executor.ts";
 import { toChatText } from "../_shared/ai-policy.ts";
 import { companyKnowledge } from "../_shared/company.ts";
 import { setContactField } from "../_shared/contact-fields.ts";
@@ -630,6 +630,10 @@ async function handle(req: Request, ctx: QueueCtx): Promise<Response> {
 
     // SAIR/PARAR: deixa de receber mensagens automáticas (confirma e para aqui).
     if (await handleOptOut({ admin: supabase, orgId, inst: instRow, conv, ticket, text: String(text ?? "") })) {
+      return ok();
+    }
+    // Pedido do titular para apagar os dados (LGPD): registra para o dono/admin, confirma e para aqui.
+    if (await handleDataRequest({ admin: supabase, orgId, inst: instRow, conv, ticket, text: String(text ?? "") })) {
       return ok();
     }
 

@@ -37,6 +37,7 @@ const TEXT: Record<string, (r: Record<string, string>) => string> = {
   agent_question: (r) => `💬 Pergunta do time de IA para você: "${r.pergunta ?? ""}" — responda no Diagnóstico`,
   breaker_stepdown: (r) => `🛡️ A IA voltou um degrau sozinha (${r.de ?? ""} → ${r.para ?? ""}) depois de ${r.tropecos ?? 3} tropeços em 24 h — veja o motivo no Assistente de IA`,
   cost_alert: (r) => `💰 Uso de IA fora do normal: ${r.ontem ?? "?"} chamadas ontem (média ${r.media ?? "?"}) — ${r.motivo ?? ""}`,
+  lgpd_request: () => "🔒 Um cliente pediu para apagar os dados dele (LGPD) — responda em até 15 dias na ficha do cliente",
   platform_incident: (r) => `${r.gravidade === "critica" ? "🚨" : "⚠"} Plataforma (${r.gravidade ?? ""}${r.piorou ? ", piorou" : ""}): ${r.titulo ?? "incidente"}${r.empresas ? ` — ${r.empresas} empresa(s)` : ""}`,
   platform_incident_ok: (r) => `✅ Correção verificada: o sinal parou — ${r.titulo ?? "incidente"}`,
   inpi_conflict: (r) => `INPI: marca parecida com a nossa — "${r.marca ?? ""}" (${r.titulares ?? "outro titular"})`,
@@ -83,6 +84,7 @@ export function NotificationsBell() {
     else if (n.kind === "team_mention") navigate("/chat");
     else if (n.kind === "inpi" || n.kind === "inpi_conflict" || n.kind === "support_ticket") navigate("/plataforma");
     else if (n.kind === "platform_incident" || n.kind === "platform_incident_ok") navigate("/plataforma?aba=saude");
+    else if (n.kind === "lgpd_request") navigate(n.ref.conversation_id ? `/?open=${n.ref.conversation_id}` : "/clientes");
     else if (n.kind === "support_status" || n.kind === "support_received") navigate("/configuracoes/suporte");
     else if (n.kind === "breaker_stepdown" || n.kind === "cost_alert") navigate("/agente");
     else if (n.kind === "agent_question") navigate("/diagnostico");

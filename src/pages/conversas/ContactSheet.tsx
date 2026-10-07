@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProtocolHistory } from "./ProtocolHistory";
+import { LgpdRequestBanner } from "./LgpdRequestBanner";
 import { ContactRecords } from "./ContactRecords";
 import { ContactCalls } from "./ContactCalls";
 import { RecordForm } from "../registros/RecordForm";
@@ -214,6 +215,7 @@ export function ContactSheet({
                   <div className="space-y-1.5"><Label>Observações</Label>
                     <Textarea rows={3} value={c.notes ?? ""} onChange={(e) => setC({ ...c, notes: e.target.value })} /></div>
                   <Button size="sm" onClick={saveContact}>Salvar</Button>
+                  {can("org.settings") && org && contactId && <LgpdRequestBanner orgId={org.id} contactId={contactId} />}
                   {can("org.settings") && !c.name?.startsWith("Anonimizado") && (
                     <div className="mt-6 rounded-md border border-destructive/40 p-3 space-y-2">
                       {!anon.open ? (

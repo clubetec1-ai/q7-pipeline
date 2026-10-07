@@ -59,16 +59,18 @@ export default function Supervisor() {
     setExporting(true);
     const { data: r, error: e } = await supabase.rpc("export_contacts", { org: org.id });
     setExporting(false);
-    const res = r as { ok: boolean; error?: string; count?: number; rows?: Record<string, unknown>[] } | null;
+    const res = r as { ok: boolean; error?: string; count?: number; rows?: Record<string, unknown>[]; codigo?: string; marca?: string } | null;
     if (e || !res?.ok) return toast({ variant: "destructive", title: "Exportação bloqueada", description: res?.error ?? e?.message });
     const cols = ["nome", "telefone", "email", "documento", "criado_em"];
-    const csv = "\uFEFF" + [cols.join(";"), ...(res.rows ?? []).map((row) => cols.map((c) => csvCell(row[c])).join(";"))].join("\r\n");
+    // Marca d'água: quem exportou, quando e o código da exportação (registrado na auditoria) no topo e em cada linha.
+    const csv = "\uFEFF" + [csvCell(res.marca ?? ""), [...cols, "codigo_exportacao"].join(";"),
+      ...(res.rows ?? []).map((row) => [...cols.map((c) => csvCell(row[c])), csvCell(res.codigo ?? "")].join(";"))].join("\r\n");
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     const a = Object.assign(document.createElement("a"), { href: url, download: `contatos-${new Date().toISOString().slice(0, 10)}.csv` });
     a.click();
     URL.revokeObjectURL(url);
     const n = res.count ?? 0;
-    toast({ title: n === 1 ? "1 contato exportado" : `${n} contatos exportados`, description: "A exportação ficou registrada na auditoria." });
+    toast({ title: n === 1 ? "1 contato exportado" : `${n} contatos exportados`, description: `Código ${res.codigo ?? ""}: a exportação ficou registrada na auditoria (até 3 por dia).` });
   };
 
   const load = useCallback(async () => {

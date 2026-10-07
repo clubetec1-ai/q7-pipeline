@@ -3,6 +3,8 @@
  * contexto, chama o motor puro e aplica as ações — tudo pela organização do
  * atendimento (forOrg). O motor nunca toca banco, rede nem relógio.
  */
+import { redact } from "../review.ts";
+import { isDataDeletionRequest, LGPD_REPLY } from "../lgpd-request.ts";
 import { forOrg } from "../tenant.ts";
 import { getUazapiConfig } from "../get-uazapi-config.ts";
 import { getSecret, withInstanceToken } from "../secrets.ts";
@@ -92,6 +94,22 @@ export async function handleOptOut(p: {
   });
   const reply = typeof settings.opt_out_reply === "string" ? settings.opt_out_reply : DEFAULT_OPT_OUT_REPLY;
   await sendAndStore(org, inst, conv, ticket.id, reply);
+  return true;
+}
+
+/**
+ * Pedido do titular (LGPD art. 18): "quero que apaguem meus dados" vira pedido para o dono/admin (sino) e o cliente
+ * recebe a confirmação com o prazo. Devolve true se a mensagem era esse pedido (a IA não responde por cima).
+ */
+export async function handleDataRequest(p: {
+  // deno-lint-ignore no-explicit-any
+  admin: any; orgId: string; inst: any; conv: any; ticket: any; text: string;
+}): Promise<boolean> {
+  const { admin, orgId, inst, conv, ticket, text } = p;
+  if (!conv.contact_id || !isDataDeletionRequest(text)) return false;
+  const { data: novo, error } = await admin.rpc("service_lgpd_request_create", { org: orgId, p_contact: conv.contact_id, p_conv: conv.id, p_canal: "whatsapp" });
+  if (error) { console.error("[lgpd] pedido não registrado", error.message); return false; }
+  if (novo) await sendAndStore(forOrg(admin, orgId), inst, conv, ticket.id, LGPD_REPLY);
   return true;
 }
 
@@ -279,6 +297,14 @@ export async function runFlow(p: {
         vars: result.vars, name: conv.contact_name ?? "", phone: conv.contact_phone ?? "", protocol: ticket.protocol ?? "",
       });
       console.log("[flow/http]", { node: node.id, ok: out.ok, status: out.status, ms: out.ms, error: out.error });
+      // Depuração (dono liga por 1 hora no editor): guarda o resultado sem dados pessoais; o banco decide se está ligada.
+      const { data: fv } = await org.select("flow_versions", "flow_id").eq("id", run.flow_version_id).maybeSingle();
+      if (fv?.flow_id) {
+        await admin.rpc("service_flow_http_debug_log", {
+          org: orgId, p_flow: fv.flow_id, p_node: String(node.id), p_ok: out.ok, p_status: out.status ?? null, p_ms: out.ms,
+          p_error: out.error ?? null, p_body: out.body === undefined ? null : redact(JSON.stringify(out.body)).slice(0, 2000),
+        }).then(() => {}, () => {});
+      }
       result = advance(graph, node.id, null, {
         ...ctx, timerFired: false, attempts: result.attempts, aiTurns: result.aiTurns,
         vars: out.ok ? mapResponse(out.body, node.data?.map, result.vars) : result.vars,

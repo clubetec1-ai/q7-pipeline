@@ -1810,6 +1810,35 @@ BEGIN
   PERFORM private.platform_watch_tick();
   PERFORM pg_temp.expect((SELECT status FROM public.platform_incidents WHERE fingerprint = 'chamado_urgente' ORDER BY first_seen DESC LIMIT 1) = 'resolvido', 'o sinal parou: correcao verificada');
   PERFORM pg_temp.expect(NOT has_function_privilege('authenticated', 'private.platform_watch_tick()', 'EXECUTE'), 'vigia so pelo agendamento');
+  -- 112. Exportacao com limite e codigo; pedido do titular (LGPD) pelo WhatsApp: so o servidor cria, so dono/admin ve e decide.
+  PERFORM pg_temp.expect(pg_temp.t(owner_a, format('SELECT public.export_contacts(%L) ->> %L', A, 'codigo')) LIKE 'EXP-%', 'exportacao leva codigo');
+  PERFORM pg_temp.t(owner_a, format('SELECT public.export_contacts(%L) ->> %L', A, 'ok'));
+  PERFORM pg_temp.t(owner_a, format('SELECT public.export_contacts(%L) ->> %L', A, 'ok'));
+  PERFORM pg_temp.expect(pg_temp.t(owner_a, format('SELECT public.export_contacts(%L) ->> %L', A, 'ok')) = 'false', 'no maximo 3 exportacoes por dia');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_lgpd_request_create(%L, %L, NULL, %L)', A, (SELECT contact_id FROM public.conversations WHERE id = 'aaaaaaaa-0000-0000-0004-000000000001'), 'whatsapp'), 'navegador nao cria pedido de titular');
+  PERFORM pg_temp.expect(pg_temp.run(NULL, format('SELECT public.service_lgpd_request_create(%L, %L, NULL, %L)', 'bbbbbbbb-0000-0000-0000-000000000001', (SELECT contact_id FROM public.conversations WHERE id = 'aaaaaaaa-0000-0000-0004-000000000001'), 'whatsapp')) LIKE 'err:%', 'outra org nao cria pedido com contato de A');
+  PERFORM pg_temp.expect(public.service_lgpd_request_create(A, (SELECT contact_id FROM public.conversations WHERE id = 'aaaaaaaa-0000-0000-0004-000000000001'), NULL, 'whatsapp'), 'pedido criado');
+  PERFORM pg_temp.expect(NOT public.service_lgpd_request_create(A, (SELECT contact_id FROM public.conversations WHERE id = 'aaaaaaaa-0000-0000-0004-000000000001'), NULL, 'whatsapp'), 'pedido repetido nao duplica');
+  PERFORM pg_temp.expect(EXISTS (SELECT 1 FROM public.notifications WHERE organization_id = A AND kind = 'lgpd_request'), 'dono avisado');
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT count(*) FROM public.lgpd_requests') = 1, 'dono ve o pedido');
+  PERFORM pg_temp.expect(pg_temp.q(agent_a, 'SELECT count(*) FROM public.lgpd_requests') = 0, 'atendente nao ve');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.lgpd_requests') = 0, 'outra org nao ve');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.decline_lgpd_request(%L, %L)', (SELECT id FROM public.lgpd_requests WHERE organization_id = A), 'nao'), 'recusar exige motivo');
+  UPDATE public.contacts SET anonymized_at = now() WHERE id = (SELECT contact_id FROM public.conversations WHERE id = 'aaaaaaaa-0000-0000-0004-000000000001');
+  PERFORM pg_temp.expect((SELECT status FROM public.lgpd_requests WHERE organization_id = A) = 'atendido', 'anonimizar atende o pedido');
+  UPDATE public.contacts SET anonymized_at = NULL WHERE id = (SELECT contact_id FROM public.conversations WHERE id = 'aaaaaaaa-0000-0000-0004-000000000001');
+  -- 113. Depuracao do bloco HTTP: so o dono liga (1 hora); so o servidor grava; desligado nao grava; outra org nao ve.
+  INSERT INTO public.flows (id, organization_id, name) VALUES ('aaaaaaaa-0000-0000-0113-000000000001', A, 'Fluxo depuracao');
+  PERFORM pg_temp.expect(NOT public.service_flow_http_debug_log(A, 'aaaaaaaa-0000-0000-0113-000000000001', 'n1', true, 200, 10, NULL, '{}'), 'desligado nao grava');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.set_flow_http_debug(%L, true)', 'aaaaaaaa-0000-0000-0113-000000000001'), 'atendente nao liga a depuracao');
+  PERFORM pg_temp.run(owner_a, format('SELECT public.set_flow_http_debug(%L, true)', 'aaaaaaaa-0000-0000-0113-000000000001'));
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.service_flow_http_debug_log(%L, %L, %L, true, 200, 10, NULL, NULL)', A, 'aaaaaaaa-0000-0000-0113-000000000001', 'n1'), 'navegador nao grava depuracao');
+  PERFORM pg_temp.expect(NOT public.service_flow_http_debug_log('bbbbbbbb-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0113-000000000001', 'n1', true, 200, 10, NULL, NULL), 'outra org nao grava no fluxo de A');
+  PERFORM pg_temp.expect(public.service_flow_http_debug_log(A, 'aaaaaaaa-0000-0000-0113-000000000001', 'n1', false, 500, 10, 'erro do cliente joao@x.com', '{"ok":false}'), 'ligado grava');
+  PERFORM pg_temp.expect((SELECT error FROM public.flow_http_debug WHERE flow_id = 'aaaaaaaa-0000-0000-0113-000000000001') !~ '@', 'erro sem e-mail');
+  PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.flow_http_debug') = 0, 'outra org nao ve');
+  UPDATE public.flows SET http_debug_until = now() + interval '30 days' WHERE id = 'aaaaaaaa-0000-0000-0113-000000000001';
+  PERFORM pg_temp.expect(NOT public.service_flow_http_debug_log(A, 'aaaaaaaa-0000-0000-0113-000000000001', 'n1', true, 200, 10, NULL, NULL), 'prazo longo forcado na tabela nao vale');
   -- 99. Revisao de area do Diagnostico: so dono/admin ve; so o servidor grava; "esta certo assim" vale.
   PERFORM public.service_diag_findings_save(A, 'empresa', 'Diretor Comercial (IA)', '[{"n":1,"tipo":"incoerencia","gravidade":"critica","texto":"Horario 18h x 24h","etapas":["empresa","posvenda"],"sugestao":"s"},{"n":2,"tipo":"inventado","gravidade":"critica","texto":"x","etapas":[]},{"n":3,"tipo":"risco","gravidade":"baixa","texto":"Promete brinde","etapas":["empresa"],"sugestao":""}]');
   PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT open_critical FROM public.diag_findings WHERE step_key = ''empresa''') = 1, 'dono ve a revisao com 1 critica aberta');
