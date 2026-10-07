@@ -11,7 +11,7 @@ import { checkPublicHost } from "./flow/http.ts";
 export interface MailAccount {
   id: string; organization_id: string; name: string; address: string; username: string;
   imap_host: string; imap_port: number; smtp_host: string; smtp_port: number;
-  signature?: string | null; last_uid?: number | null; uidvalidity?: number | null; department_id?: string | null;
+  signature?: string | null; last_uid?: number | null; uidvalidity?: number | null; department_id?: string | null; login_failures?: number;
 }
 
 // deno-lint-ignore no-explicit-any

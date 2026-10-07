@@ -39,6 +39,13 @@ Deno.test("assunto, html e citacao", () => {
 
 Deno.test("erros amigaveis", () => {
   assertEquals(friendlyMailError({ authenticationFailed: true }), "Usuário ou senha incorretos. No Gmail e no Outlook, use uma senha de app.");
-  assertEquals(friendlyMailError(new Error("Unexpected close")).startsWith("Usuário ou senha"), true);
+  assertEquals(friendlyMailError(new Error("Unexpected close")).startsWith("A conexão"), true); // queda de conexão não é senha errada (07/10)
   assertEquals(friendlyMailError(new Error("getaddrinfo ENOTFOUND x")), "Servidor não encontrado. Confira o endereço.");
+});
+
+Deno.test("conexão que caiu no login não é senha errada; recusa do servidor é", () => {
+  assertEquals(friendlyMailError(new Error("Unexpected close")).startsWith("A conexão"), true);
+  assertEquals(friendlyMailError(new Error("peer closed connection without sending TLS close_notify")).startsWith("A conexão"), true);
+  assertEquals(friendlyMailError({ authenticationFailed: true, message: "Command failed" }).startsWith("Usuário ou senha"), true);
+  assertEquals(friendlyMailError(new Error("[AUTHENTICATIONFAILED] Invalid credentials (Failure)")).startsWith("Usuário ou senha"), true);
 });
