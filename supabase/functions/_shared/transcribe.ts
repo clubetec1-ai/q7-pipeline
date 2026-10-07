@@ -27,6 +27,8 @@ export async function transcribeAudio(
   bytes: Uint8Array,
   fileName = "audio.ogg",
   provider = "groq",
+  /** Dica de vocabulário (nome da empresa, cidades, marcas) para escrever certo os nomes próprios. */
+  prompt?: string,
 ): Promise<string | null> {
   const stt = STT[provider];
   if (!apiKey || !stt) return null;
@@ -42,6 +44,7 @@ export async function transcribeAudio(
     form.append("model", stt.model);
     form.append("language", "pt");
     form.append("response_format", "json");
+    if (prompt) form.append("prompt", prompt.slice(0, 800));
 
     const res = await fetch(stt.endpoint, {
       method: "POST",
