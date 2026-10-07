@@ -2,7 +2,7 @@ import { fence } from "../_shared/fence.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { requireModule } from "../_shared/modules.ts";
 import { HttpError, requirePermission, requireUser, resolveOrg } from "../_shared/auth.ts";
-import { chatAI, resolveAI, forTask } from "../_shared/ai-chat.ts";
+import { chatAI, resolveAI, forAgent } from "../_shared/ai-chat.ts";
 import { checkText, GUARDIAN_AI_PROMPT, parseAIAttention, verdict } from "../_shared/guardian.ts";
 
 /**
@@ -35,7 +35,7 @@ Deno.serve(async (req) => {
       const ai = allowed === false ? null : await resolveAI(admin, orgId);
       if (ai) {
         try {
-          const r = await chatAI(forTask(ai, "analise"), [{ role: "system", content: GUARDIAN_AI_PROMPT }, { role: "user", content: `<dados>\n${fence(texto)}\n</dados>` }],
+          const r = await chatAI(await forAgent(admin, ai, "guardiao"), [{ role: "system", content: GUARDIAN_AI_PROMPT }, { role: "user", content: `<dados>\n${fence(texto)}\n</dados>` }],
             undefined, { json: true, timeoutMs: 30_000 });
           if (r.ok && r.reply) findings.push(...parseAIAttention(JSON.parse(r.reply.match(/\{[\s\S]*\}/)?.[0] ?? "{}")));
         } catch { /* a leitura da IA é um extra */ }

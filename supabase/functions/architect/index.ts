@@ -3,7 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { requireModule } from "../_shared/modules.ts";
 import { HttpError, requireUser, resolveOrg } from "../_shared/auth.ts";
 import { forOrg } from "../_shared/tenant.ts";
-import { chatAI, resolveAI, forTask } from "../_shared/ai-chat.ts";
+import { chatAI, resolveAI, forAgent } from "../_shared/ai-chat.ts";
 import { BRAIN_MODELS } from "../_shared/brain/rules.ts";
 import { METRIC_KEYS, parseDesign } from "../_shared/process-design.ts";
 import { checkProcess, GUARDIAN_AI_PROMPT, parseAIAttention, verdict } from "../_shared/guardian.ts";
@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
       .filter((k) => p[k]).map((k) => `${k}: ${clip(p[k], 3000)}`).join("\n");
     const modelos = Object.entries(BRAIN_MODELS).map(([k, v]) => `${k} (${v})`).join(", ");
 
-    const r = await chatAI(forTask(ai, "analise"), [
+    const r = await chatAI(await forAgent(admin, ai, "arquiteto"), [
       { role: "system", content: RULES },
       { role: "user", content:
         `Desenhe o processo "${nome}" do setor "${setor}".\n` +
@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
     // Guardião de segurança e LGPD (fatia 5): regras fixas (podem bloquear) + leitura da IA (só atenção).
     const findings = checkProcess(design);
     try {
-      const g = await chatAI(forTask(ai, "analise"), [
+      const g = await chatAI(await forAgent(admin, ai, "arquiteto"), [
         { role: "system", content: GUARDIAN_AI_PROMPT },
         { role: "user", content: `Processo "${nome}" do setor "${setor}":\n<dados>\n${fence(JSON.stringify(design).slice(0, 8000))}\n</dados>` },
       ], undefined, { json: true, timeoutMs: 45_000 });

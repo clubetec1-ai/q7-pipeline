@@ -2,7 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { requireModule } from "../_shared/modules.ts";
 import { HttpError, requirePermission, requireUser, resolveOrg } from "../_shared/auth.ts";
 import { forOrg } from "../_shared/tenant.ts";
-import { chatAI, resolveAI } from "../_shared/ai-chat.ts";
+import { chatAI, resolveAI, forAgent } from "../_shared/ai-chat.ts";
 import { companyKnowledge } from "../_shared/company.ts";
 import { checkText } from "../_shared/guardian.ts";
 import { pickTemplate, processDocText } from "../_shared/implementation.ts";
@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
       const ai = await resolveAI(admin, orgId);
       const { data: allowed } = await admin.rpc("service_ai_take", { org: orgId });
       if (ai && allowed !== false) {
-        const r = await chatAI(ai, [
+        const r = await chatAI(await forAgent(admin, ai, "arquiteto"), [
           { role: "system", content: `Você escreve textos de atendimento por WhatsApp em português do Brasil, curtos, simpáticos e claros, para a empresa "${orgRow?.name ?? ""}". Use {nome} para o primeiro nome do cliente quando fizer sentido. Não invente preços nem promessas. Responda SOMENTE com JSON no formato: ${tpl.texts}` },
           { role: "user", content: knowledge || "Sem informações extras da empresa." },
         ]);

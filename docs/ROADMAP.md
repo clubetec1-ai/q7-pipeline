@@ -23,6 +23,10 @@ Critério: outubro = piloto da Clubetec estável e seguro; fim de outubro = mark
 ANOREG 17–19/11). Primeiro o que trava o piloto e a venda segura, depois o que o lançamento exige, depois profundidade.
 🙋 = depende do dono ou de terceiros. Detalhes de cada item nas seções abaixo.
 
+**⛔ PRIMEIRA PREMISSA (dono, 07/10): nada muda sozinho.** Modelo de IA, configuração, versão nova, correção ou melhoria: testes → revisão do cérebro → segurança (Guardião) → aprovação do dono/equipe Clubetec → aplicar → verificar. Nunca adoção ou ativação automática (também na regra 0 do CLAUDE.md).
+
+✅ **Modelo por tipo de agente (07/10, pedido do dono):** três níveis fixos e aprovados — rápido (atendimento, avaliações, Guardião: gpt-4o-mini, com teto de resposta para gastar menos tokens), capaz (entrevista, Arquiteto, prova, relatórios: gpt-4.1-mini) e máximo (cérebro da empresa e da plataforma: gpt-4.1); a equipe Clubetec troca por agente em Plataforma → IA (teste 117); modelo inválido volta ao padrão aprovado. Entrevista do Diagnóstico não repete pergunta já respondida (trava fixa) e vê o começo e o fim do texto da etapa (antes só 3 mil caracteres). 📋 **Depois:** vigia de modelos — detecta versão nova, roda a bateria de testes (JSON, regras da resposta ao cliente, resistência a burla, tempo), vira **sugestão para o cérebro**, passa pela segurança e só é adotada com aprovação; trocar para modelo fora da lista aprovada exigirá teste aprovado.
+
 **Ordem de execução definida pelo dono em 06/10:** item 2 (com o dono fazendo o item 1) → Etapa B (melhorias) →
 Etapa C (canais e extras) → Etapa D (segurança, documentos e SLA) → Etapa E (lançamento).
 

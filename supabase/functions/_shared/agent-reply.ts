@@ -5,7 +5,7 @@
  */
 import { forOrg } from "./tenant.ts";
 import { getAgentProfile } from "./get-ai-config.ts";
-import { chatAI, type ResolvedAI } from "./ai-chat.ts";
+import { chatAI, type ResolvedAI, forAgent } from "./ai-chat.ts";
 import { withProtocol } from "./flow/executor.ts";
 import { toChatText } from "./ai-policy.ts";
 import { companyKnowledge } from "./company.ts";
@@ -24,7 +24,7 @@ export async function agentReply(admin: any, orgId: string, ai: ResolvedAI, msgs
   ]);
   const system = [withProtocol(opts.draft || profile.systemPrompt, "TESTE"), company, knowledge,
     opts.situacao ? `Situação atual (informada pelo sistema): ${opts.situacao}` : ""].filter(Boolean).join("\n\n");
-  const r = await chatAI(ai, [{ role: "system", content: system }, ...msgs]);
+  const r = await chatAI(await forAgent(admin, ai, "atendimento"), [{ role: "system", content: system }, ...msgs]);
   if (!r.ok || !r.reply) return { ok: false, reply: "", error: r.error ?? "A IA não respondeu.", used: { empresa: !!company, base: !!knowledge } };
   return { ok: true, reply: toChatText(String(r.reply)).slice(0, 4000), used: { empresa: !!company, base: !!knowledge } };
 }

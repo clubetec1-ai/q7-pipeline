@@ -1,7 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { requireModule } from "../_shared/modules.ts";
 import { HttpError, requirePermission, requireUser, resolveOrg } from "../_shared/auth.ts";
-import { chatAI, resolveAI, forTask } from "../_shared/ai-chat.ts";
+import { chatAI, resolveAI, forAgent } from "../_shared/ai-chat.ts";
 
 /**
  * Relatório de melhorias para a supervisão (reports.view): junta as falhas de
@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
       "Feedbacks aos atendentes:", ...rows.slice(0, 60).map((r) => `- ${r.agent_feedback ?? ""}`),
     ].join("\n").slice(0, 14000);
 
-    const r = await chatAI(forTask(ai, "analise"), [{ role: "system", content: PROMPT }, { role: "user", content: data }]);
+    const r = await chatAI(await forAgent(admin, ai, "relatorios"), [{ role: "system", content: PROMPT }, { role: "user", content: data }]);
     if (!r.ok || !r.reply) throw new HttpError(502, "A IA não respondeu. Tente de novo.");
     await admin.from("audit_log").insert({ organization_id: orgId, actor_id: ctx.user.id, action: "reviews.report", meta: { days, count: rows.length } });
     return json({ ok: true, report: r.reply, count: rows.length, satisfied: sat, avg: Number(avg.toFixed(1)) });

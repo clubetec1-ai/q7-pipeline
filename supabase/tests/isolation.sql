@@ -1881,6 +1881,15 @@ BEGIN
   UPDATE public.pipeline_stages SET followup_days = '{3}' WHERE organization_id = A AND lower(name) = 'proposta enviada';
   PERFORM private.install_sales_funnel(A);
   PERFORM pg_temp.expect((SELECT followup_days FROM public.pipeline_stages WHERE organization_id = A AND lower(name) = 'proposta enviada') = '{3}', 'configuracao da empresa preservada');
+  -- 117. Modelo por tipo de agente: so a equipe da plataforma escolhe e ve; valor invalido recusado; vazio volta ao sugerido.
+  PERFORM pg_temp.expect_error(owner_a, 'SELECT public.platform_ai_agent_model_set(''entrevista'', ''openai'', ''gpt-4.1'')', 'dono de empresa nao escolhe o modelo da plataforma');
+  PERFORM pg_temp.run(operator, 'SELECT public.platform_ai_agent_model_set(''entrevista'', ''openai'', ''gpt-4.1'')');
+  PERFORM pg_temp.expect((SELECT model FROM public.platform_ai_agent_models WHERE agent = 'entrevista' AND provider = 'openai') = 'gpt-4.1', 'equipe escolhe');
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT count(*) FROM public.platform_ai_agent_models') = 0, 'empresa nao ve');
+  PERFORM pg_temp.expect_error(operator, 'SELECT public.platform_ai_agent_model_set(''entrevista'', ''openai'', ''x; drop table'')', 'modelo invalido recusado');
+  PERFORM pg_temp.expect_error(operator, 'SELECT public.platform_ai_agent_model_set(''qualquer'', ''openai'', ''gpt-4.1'')', 'agente fora da lista recusado');
+  PERFORM pg_temp.run(operator, 'SELECT public.platform_ai_agent_model_set(''entrevista'', ''openai'', '''')');
+  PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM public.platform_ai_agent_models WHERE agent = 'entrevista'), 'vazio volta ao sugerido');
   -- 99. Revisao de area do Diagnostico: so dono/admin ve; so o servidor grava; "esta certo assim" vale.
   PERFORM public.service_diag_findings_save(A, 'empresa', 'Diretor Comercial (IA)', '[{"n":1,"tipo":"incoerencia","gravidade":"critica","texto":"Horario 18h x 24h","etapas":["empresa","posvenda"],"sugestao":"s"},{"n":2,"tipo":"inventado","gravidade":"critica","texto":"x","etapas":[]},{"n":3,"tipo":"risco","gravidade":"baixa","texto":"Promete brinde","etapas":["empresa"],"sugestao":""}]');
   PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT open_critical FROM public.diag_findings WHERE step_key = ''empresa''') = 1, 'dono ve a revisao com 1 critica aberta');

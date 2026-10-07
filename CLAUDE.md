@@ -24,6 +24,13 @@ confirme em que ponto da instalação ele está, com `npm run check`.
 
 ## Regras invioláveis
 
+0. **PRIMEIRA PREMISSA — nada muda sozinho.** O sistema nunca decide nem aplica mudanças automaticamente (modelo de IA,
+   configuração, versão nova, correção, melhoria). Toda mudança passa por: **testes** que provam que não há erro →
+   **revisão do cérebro** → **verificação de segurança (Guardião)** → **aprovação do dono / equipe Clubetec** → só então
+   aplica, e depois verifica. Nunca proponha nem construa adoção ou ativação automática. Ações automáticas só valem para
+   *reduzir* risco dentro de limites já aprovados (ex.: disjuntor descendo um degrau, voltar ao modelo padrão aprovado
+   quando uma chamada falha) e sempre com aviso. Na dúvida, pergunte antes de construir.
+
 1. **O banco tem que existir ANTES do primeiro cadastro de usuário.**
    Um gatilho (`on_auth_user_created`) transforma o primeiro usuário em admin e cria
    o funil. Ele só dispara no momento do cadastro. Quem se cadastra antes da
