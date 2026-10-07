@@ -1,9 +1,9 @@
+import { MicTextarea } from "@/components/MicTextarea";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 
 export const DEFAULT_GREETING = "Olá! Aqui é {nome}, vou continuar o seu atendimento. 😊";
 
@@ -58,8 +58,8 @@ export function GreetingSetting({ orgId, canEdit }: { orgId: string; canEdit: bo
         <div key={f.key} className="rounded-lg border p-4 space-y-2">
           <Label htmlFor={f.key}>{f.label}</Label>
           <p className="text-xs text-muted-foreground">{f.help} Deixe vazio para não enviar.</p>
-          <Textarea id={f.key} rows={2} value={values[f.key]} disabled={!canEdit} maxLength={1000}
-            onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))} />
+          <MicTextarea orgId={orgId} id={f.key} rows={2} value={values[f.key]} disabled={!canEdit} maxLength={1000}
+            onChange={(t) => setValues((v) => ({ ...v, [f.key]: t }))} />
           {canEdit && (
             <div className="flex gap-2">
               <Button size="sm" onClick={() => save(f.key)} disabled={saving === f.key}>

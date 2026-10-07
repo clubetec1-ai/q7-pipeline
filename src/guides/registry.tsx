@@ -1,8 +1,9 @@
-import { CheckCircle2, Clock, Network, PencilRuler, Facebook, FlaskConical, HelpCircle, LifeBuoy, Mail, Mic, MicVocal, MoreHorizontal, Paperclip, Pause, PenLine, Play, PlayCircle, Plus, QrCode, Rocket, RotateCcw, Save, Send, ShieldCheck, Sparkles, ThumbsDown, Undo2, Workflow, X } from "lucide-react";
+import { CheckCircle2, Clock, Network, PencilRuler, Facebook, FlaskConical, HelpCircle, LifeBuoy, Mail, Mic, MicVocal, MoreHorizontal, Paperclip, Pause, PenLine, Play, PlayCircle, Plus, QrCode, Rocket, RotateCcw, Save, Send, ShieldCheck, Sparkles, ThumbsDown, Undo2, Workflow, X, KeyRound, Lock, Plug, UserPlus, Webhook, GripVertical, CreditCard, Settings } from "lucide-react";
 import { Pointer } from "./Pointer";
 import { AgenteMock } from "./mocks/AgenteMock";
 import { CerebroMock } from "./mocks/CerebroMock";
 import { ConversasMock } from "./mocks/ConversasMock";
+import { ApiMock, CobrancasMock, ConfiguracoesMock, EquipeMock, EtiquetasMock, FluxosMock, FunilMock, IntegracoesMock } from "./mocks/TelasMock";
 import { DiagMock } from "./mocks/DiagMock";
 import { OrganogramaMock } from "./mocks/OrganogramaMock";
 import { ProcessosMock } from "./mocks/ProcessosMock";
@@ -536,6 +537,314 @@ export const GUIDES: Guide[] = [
           { state: "rede", target: "rede", caption: "A dúvida sobe pelo time; muitas o próprio time resolve" },
           { state: "rede", target: "pergunta-voce", caption: "O que ninguém sabe chega a você no Diagnóstico" },
         ],
+      },
+    ],
+  },
+  {
+    id: "fluxos",
+    title: "Menus e respostas automáticas",
+    routes: ["/fluxos"],
+    autoOpen: true,
+    mock: (state) => <FluxosMock state={state} />,
+    steps: [
+      {
+        title: "O que é um fluxo",
+        body: (
+          <>
+            <p>O fluxo recebe o cliente, faz perguntas e decide o caminho: responder com a IA, passar para um setor, avisar que está fechado ou finalizar. <b>Sem fluxo</b>, a IA da empresa responde normalmente.</p>
+            <p className="text-muted-foreground">Comece por um modelo pronto: ele já vem montado e entra como rascunho para você revisar.</p>
+          </>
+        ),
+        demo: [
+          { state: "inicio", target: "prontos", caption: "Comece por um modelo pronto" },
+          { state: "inicio", target: "btn-modelo", caption: "Instalar: entra como rascunho" },
+        ],
+      },
+      {
+        title: "Criar e publicar",
+        body: (
+          <>
+            <Pointer icon={<Plus className="w-4 h-4" />} label="Criar" note="dê um nome e monte os blocos arrastando no editor" />
+            <p>No editor, teste no <b>simulador</b> antes de publicar. Só fluxo publicado vai para os clientes; o rascunho nunca fala com ninguém.</p>
+          </>
+        ),
+        demo: [
+          { state: "inicio", target: "nome", caption: "Escreva o nome do fluxo" },
+          { state: "inicio", target: "btn-criar", caption: "Clique em Criar e monte no editor" },
+          { state: "inicio", target: "lista", caption: "Publicado mostra a versão; rascunho, não" },
+        ],
+      },
+      {
+        title: "Qual fluxo cada número usa",
+        body: (
+          <>
+            <p>Escolha o fluxo <b>padrão da empresa</b>, um fluxo diferente para cada número (se quiser) e a <b>pesquisa</b> que vai depois que um atendente finaliza.</p>
+            <p className="text-muted-foreground">Vale para os atendimentos novos. Quem pediu para não receber mensagens não recebe a pesquisa.</p>
+          </>
+        ),
+        demo: [{ state: "numeros", target: "numeros", caption: "Escolha o fluxo de cada número", ms: 3600 }],
+      },
+    ],
+  },
+  {
+    id: "equipe",
+    title: "Equipe e permissões",
+    routes: ["/equipe"],
+    autoOpen: true,
+    mock: (state) => <EquipeMock state={state} />,
+    steps: [
+      {
+        title: "Convide quem atende",
+        body: (
+          <>
+            <Pointer icon={<UserPlus className="w-4 h-4" />} label="Convidar pessoa" note="por e-mail; a pessoa cria a senha dela" />
+            <p>Escolha o papel de cada um: o <b>atendente</b> só vê as conversas do setor dele; o <b>supervisor</b> acompanha a equipe; o <b>administrador</b> e o <b>dono</b> configuram a empresa.</p>
+          </>
+        ),
+        demo: [
+          { state: "membros", target: "membros", caption: "Quem já está na equipe e o papel de cada um" },
+          { state: "membros", target: "btn-convidar", caption: "Convidar pessoa por e-mail" },
+        ],
+      },
+      {
+        title: "Setores e fila",
+        body: (
+          <>
+            <p>Em <b>Departamentos</b>, crie os setores (Comercial, Suporte…) e diga quem atende cada um. O atendimento entra na fila do setor e vai para quem estiver disponível.</p>
+          </>
+        ),
+        demo: [{ state: "setores", target: "setores", caption: "Cada setor com a sua equipe e a sua fila" }],
+      },
+      {
+        title: "Mensagens automáticas",
+        body: (
+          <>
+            <p>Na aba <b>Mensagens automáticas</b> ficam a saudação com o número do protocolo e o aviso de fora do horário. Escreva do jeito da sua empresa.</p>
+          </>
+        ),
+        demo: [{ state: "mensagens", target: "mensagens", caption: "Saudação com protocolo e aviso de fora do horário" }],
+      },
+    ],
+  },
+  {
+    id: "etiquetas",
+    title: "Etiquetas e grupos",
+    routes: ["/etiquetas"],
+    autoOpen: true,
+    mock: () => <EtiquetasMock />,
+    steps: [
+      {
+        title: "Etiquetas para organizar",
+        body: (
+          <>
+            <p>Etiquetas marcam o cliente (VIP, Urgente, Retornar contato…) para achar e filtrar rápido nas conversas.</p>
+            <Pointer icon={<Sparkles className="w-4 h-4" />} label="Padrão" note="cria as etiquetas mais usadas de uma vez" />
+            <Pointer icon={<Plus className="w-4 h-4" />} label="Novo" note="clique no nome colorido para trocar cor e ícone" />
+          </>
+        ),
+        demo: [
+          { state: "inicio", target: "btn-padrao", caption: "Comece pelas etiquetas padrão" },
+          { state: "inicio", target: "etiquetas", caption: "Cores e ícones para achar rápido" },
+        ],
+      },
+      {
+        title: "Quem vê cada etiqueta",
+        body: (
+          <>
+            <p>Marque os setores que podem usar cada etiqueta: o atendente só vê as gerais e as do setor dele.</p>
+          </>
+        ),
+        demo: [{ state: "inicio", target: "setores", caption: "Marque os setores de cada etiqueta" }],
+      },
+      {
+        title: "Grupos de clientes",
+        body: (
+          <>
+            <p>Grupos juntam clientes para campanhas e relatórios. Um grupo <b>sensível</b> (ex.: inadimplentes) fica escondido dos atendentes.</p>
+            <Pointer icon={<Lock className="w-4 h-4" />} label="Sensível" note="atendentes não veem (ex.: inadimplentes)" />
+            <p className="text-muted-foreground">Excluir uma etiqueta ou grupo só tira a marcação: o cliente continua cadastrado.</p>
+          </>
+        ),
+        demo: [
+          { state: "inicio", target: "grupos", caption: "Grupos para campanhas e relatórios" },
+          { state: "inicio", target: "btn-sensivel", caption: "Grupo sensível: atendentes não veem" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "funil",
+    title: "Funil",
+    routes: ["/kanban"],
+    autoOpen: true,
+    mock: (state) => <FunilMock state={state} />,
+    steps: [
+      {
+        title: "Cada cliente numa etapa",
+        body: (
+          <>
+            <p>O funil mostra em que pé está cada cliente: novo lead, em negociação, fechado… Cada cartão é uma conversa.</p>
+            <p className="text-muted-foreground">Funil vazio? Clique em "Criar etapas padrão" ou instale o funil de vendas completo em Funil de vendas.</p>
+          </>
+        ),
+        demo: [{ state: "inicio", target: "colunas", caption: "Uma coluna para cada etapa" }],
+      },
+      {
+        title: "Arraste para mudar de etapa",
+        body: (
+          <>
+            <Pointer icon={<GripVertical className="w-4 h-4" />} label="Arrastar o cartão" note="solte na etapa nova; a conversa acompanha" />
+            <p className="text-muted-foreground">A etapa pode disparar um retorno automático (ex.: lembrar em 2 dias quem está em negociação).</p>
+          </>
+        ),
+        demo: [
+          { state: "inicio", target: "cartao", caption: "Pegue o cartão do cliente" },
+          { state: "movido", target: "destino", caption: "Solte na etapa nova" },
+        ],
+      },
+      {
+        title: "Ajuste as etapas",
+        body: (
+          <>
+            <p>Em <b>Editar etapas</b> você cria, renomeia e reordena as etapas e define o retorno automático de cada uma.</p>
+          </>
+        ),
+        demo: [{ state: "inicio", target: "btn-etapas", caption: "Editar etapas" }],
+      },
+    ],
+  },
+  {
+    id: "cobrancas",
+    title: "Cobranças",
+    routes: ["/cobrancas"],
+    autoOpen: true,
+    mock: () => <CobrancasMock />,
+    steps: [
+      {
+        title: "Conecte o Asaas uma vez",
+        body: (
+          <>
+            <p>As cobranças saem pelo <b>Asaas</b> (PIX, boleto ou cartão) e o pagamento atualiza sozinho aqui e na conversa.</p>
+            <Pointer icon={<CreditCard className="w-4 h-4" />} label="Conectar o Asaas" note="cole a chave da sua conta Asaas em Configurações → Cobranças" />
+          </>
+        ),
+        demo: [{ state: "inicio", target: "btn-asaas", caption: "Conecte o Asaas uma vez" }],
+      },
+      {
+        title: "Cobre pelo WhatsApp",
+        body: (
+          <>
+            <p>Busque o cliente pelo nome ou telefone e clique em <b>Cobrar</b>: o link vai pela conversa dele. O CPF ou CNPJ precisa estar na ficha.</p>
+            <p className="text-muted-foreground">Também dá para cobrar de dentro da conversa, no botão de cobrança.</p>
+          </>
+        ),
+        demo: [
+          { state: "inicio", target: "cliente", caption: "Busque o cliente" },
+          { state: "inicio", target: "btn-cobrar", caption: "Cobrar: o link vai pelo WhatsApp" },
+        ],
+      },
+      {
+        title: "Acompanhe",
+        body: <p>Em aberto, recebido nos últimos 30 dias e a lista de cobranças com filtro. Lembretes e avisos de pagamento são configurados em Configurações → Cobranças.</p>,
+        demo: [{ state: "inicio", target: "resumo", caption: "Quanto está em aberto e quanto entrou" }],
+      },
+    ],
+  },
+  {
+    id: "integracoes",
+    title: "Integrações",
+    routes: ["/integracoes"],
+    autoOpen: true,
+    mock: () => <IntegracoesMock />,
+    steps: [
+      {
+        title: "Conectores prontos",
+        body: (
+          <>
+            <p>Para os sistemas mais usados (Google Agenda, Bling…) basta <b>Conectar</b> e autorizar. A IA e os fluxos passam a consultar os dados de verdade.</p>
+            <Pointer icon={<Plug className="w-4 h-4" />} label="Conectar" note="você autoriza na tela do próprio sistema" />
+          </>
+        ),
+        demo: [{ state: "inicio", target: "conectores", caption: "Conectores prontos: um clique" }],
+      },
+      {
+        title: "Outro sistema",
+        body: (
+          <>
+            <p>Em <b>Nova integração</b>, diga o sistema e o que quer (ex.: "consultar o status do pedido pelo telefone do cliente"). A IA monta o passo a passo.</p>
+            <p>Você guarda a chave (fica no cofre, ninguém vê), configura, <b>testa</b> e cria o fluxo em rascunho.</p>
+            <p className="text-muted-foreground">Integração complexa? "Pedir ajuda ao time Clubetec".</p>
+          </>
+        ),
+        demo: [
+          { state: "inicio", target: "btn-nova", caption: "Nova integração: diga o sistema e o objetivo" },
+          { state: "inicio", target: "passos", caption: "Chave no cofre, teste e fluxo em rascunho" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "api",
+    title: "API e webhooks",
+    routes: ["/configuracoes/api"],
+    autoOpen: true,
+    mock: () => <ApiMock />,
+    steps: [
+      {
+        title: "Chaves de API",
+        body: (
+          <>
+            <p>Para ligar com n8n, Make, Zapier ou o sistema da empresa. Crie <b>uma chave por sistema</b>, só com as permissões que ele precisa.</p>
+            <Pointer icon={<KeyRound className="w-4 h-4" />} label="Nova chave" note="ela aparece uma vez só: guarde num lugar seguro" />
+            <p className="text-muted-foreground">Nunca coloque a chave em site ou aplicativo aberto ao público. Vazou? Clique em Revogar.</p>
+          </>
+        ),
+        demo: [
+          { state: "inicio", target: "btn-chave", caption: "Uma chave para cada sistema" },
+          { state: "inicio", target: "btn-revogar", caption: "Vazou? Revogue na hora" },
+        ],
+      },
+      {
+        title: "Webhooks",
+        body: (
+          <>
+            <p>O webhook <b>avisa outro sistema</b> quando algo acontece aqui (ex.: cliente mudou de etapa). Cadastre o endereço, escolha os eventos e envie um teste.</p>
+            <Pointer icon={<Webhook className="w-4 h-4" />} label="Novo endereço" note="depois de muitas falhas ele pausa e avisa no sino" />
+          </>
+        ),
+        demo: [
+          { state: "inicio", target: "btn-endereco", caption: "Cadastre o endereço do outro sistema" },
+          { state: "inicio", target: "btn-teste", caption: "Envie um teste" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "configuracoes",
+    title: "Configurações",
+    routes: ["/configuracoes"],
+    autoOpen: true,
+    mock: () => <ConfiguracoesMock />,
+    steps: [
+      {
+        title: "Tudo em ordem de implantação",
+        body: (
+          <>
+            <p>As configurações seguem a ordem de quem está começando: <b>1</b> onde os clientes falam com você, <b>2</b> sua empresa, <b>3</b> assistente de IA, <b>4</b> equipe e <b>5</b> vendas e cobrança.</p>
+            <Pointer icon={<Settings className="w-4 h-4" />} label="Clique num cartão" note="cada um abre a tela com o próprio passo a passo" />
+          </>
+        ),
+        demo: [
+          { state: "inicio", target: "whatsapp", caption: "1. Conecte o WhatsApp" },
+          { state: "inicio", target: "diagnostico", caption: "2. Conte sobre a empresa" },
+          { state: "inicio", target: "ia", caption: "3. Ligue e teste o assistente" },
+          { state: "inicio", target: "equipe", caption: "4. Convide a equipe" },
+        ],
+      },
+      {
+        title: "Ajuda sempre à mão",
+        body: <p>Ficou com dúvida em qualquer tela? Clique no <b>?</b> do topo: tem o passo a passo da tela, o assistente "Como faço…?" e o pedido ao suporte.</p>,
+        demo: [{ state: "inicio", target: "horario", caption: "Cada tela tem o seu Como funciona" }],
       },
     ],
   },

@@ -1,3 +1,4 @@
+import { HowItWorks } from "./diagnostico/HowItWorks";
 import { useCallback, useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { Navigate, useNavigate } from "react-router-dom";
@@ -172,6 +173,7 @@ export default function EtiquetasGrupos() {
       <main className="flex-1 w-full max-w-4xl mx-auto p-4 sm:p-6 space-y-4">
         <div>
           <h1 className="font-brand text-2xl leading-tight">Etiquetas e grupos</h1>
+          <HowItWorks guide="etiquetas" className="" />
           <p className="text-sm text-muted-foreground">Clique no nome colorido para trocar cor e ícone. Em cada etiqueta, marque os setores que podem usá-la:
             o atendente só vê as gerais e as do seu setor. As etiquetas <b>padrão</b> são um ponto de partida — edite, troque os setores ou crie outras.
             Excluir só tira a marcação: o cliente continua cadastrado.</p>

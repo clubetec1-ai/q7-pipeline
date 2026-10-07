@@ -1,3 +1,4 @@
+import { MicTextarea } from "@/components/MicTextarea";
 import { useCallback, useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { ArrowLeft, Clock } from "lucide-react";
@@ -9,7 +10,6 @@ import { NumberHealthBanner } from "@/components/NumberHealthBanner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { HoursEditor, hoursValid, type Hours } from "@/components/HoursEditor";
-import { Textarea } from "@/components/ui/textarea";
 
 const DEFAULT_HOURS: Hours = Object.fromEntries([1, 2, 3, 4, 5].map((d) => [String(d), [{ start: "08:00", end: "18:00" }]]));
 const DEFAULT_OPT_OUT = ["SAIR", "PARAR"];
@@ -110,7 +110,7 @@ export default function ConfigAtendimento() {
           </div>
           <div className="space-y-1">
             <span className="text-sm">Confirmação enviada ao cliente</span>
-            <Textarea rows={2} value={reply} maxLength={500} onChange={(e) => setOptReply(e.target.value)} />
+            <MicTextarea orgId={org?.id ?? ""} rows={2} value={reply} maxLength={500} onChange={(t) => setOptReply(t)} />
           </div>
           <Button variant="outline" disabled={optWords === null && optReply === null} onClick={saveOptOut}>Salvar</Button>
         </section>

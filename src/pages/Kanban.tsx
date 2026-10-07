@@ -1,3 +1,4 @@
+import { HowItWorks } from "./diagnostico/HowItWorks";
 import { NumberHealthBanner } from "@/components/NumberHealthBanner";
 import { AppHeader } from "@/components/AppHeader";
 import { useEffect, useMemo, useState } from "react";
@@ -428,6 +429,7 @@ export default function Kanban() {
               ))}
             </div>
           )}
+          <HowItWorks guide="funil" className="" />
           <span className="text-xs text-muted-foreground">{visible.length} contato(s)</span>
           {manage && (
             <div className="ml-auto flex gap-2">
