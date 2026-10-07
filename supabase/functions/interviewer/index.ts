@@ -2,7 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { requireModule } from "../_shared/modules.ts";
 import { HttpError, requirePermission, requireUser, resolveOrg } from "../_shared/auth.ts";
 import { forOrg } from "../_shared/tenant.ts";
-import { audioAI, chatAI, type ChatMsg, platformChain, providerKey, recordUsage, resolveAI, type ResolvedAI } from "../_shared/ai-chat.ts";
+import { audioAI, chatAI, type ChatMsg, platformChain, providerKey, recordUsage, resolveAI, type ResolvedAI, forTask } from "../_shared/ai-chat.ts";
 import { SECTIONS, STAGES } from "../_shared/company.ts";
 import { fetchSiteText, lookupCnpj, monthlyCost, USD_BRL } from "../_shared/consulting.ts";
 import { extractDocText, knowledgeContext } from "../_shared/knowledge.ts";
@@ -138,8 +138,7 @@ Deno.serve(async (req) => {
     // então na Groq usa o modelo maior quando nenhum foi escolhido (o "auto" começa pelo 8b).
     const ai = await resolveAI(admin, orgId, { provider: settings.interviewer_provider ?? null, model: settings.interviewer_model ?? null });
     if (!ai) throw new HttpError(409, "Configure a chave do provedor de IA (Configurações → Chaves de IA) para usar o entrevistador.");
-    const model = ai.provider === "groq" && (!ai.model || ai.model === "auto") ? "llama-3.3-70b-versatile" : ai.model;
-    const aiM = { ...ai, model };
+    const aiM = forTask(ai, "analise");
     const ask = async (system: string, user: string, long = false) => {
       const r = await chatAI(aiM, [{ role: "system", content: system }, { role: "user", content: user }], undefined,
         { json: true, ...(long ? { timeoutMs: 90_000, maxTokens: 8000 } : {}) });
@@ -528,7 +527,7 @@ Deno.serve(async (req) => {
         plano_acao: list(out.plano_acao, 25).map((p: any) => ({ acao: clip(p?.acao, 300), responsavel: clip(p?.responsavel, 80), prazo: clip(p?.prazo, 60) })).filter((p) => p.acao),
         custo: { groq_mes: sum("groq"), claude_mes: sum("claude"), dolar: USD_BRL,
           premissas: "Estimativa por resposta de IA: simples ≈ 1.500 tokens de entrada e 200 de saída; complexa ≈ 4.000 e 600. Automações sem IA não têm custo de IA." },
-        modelo: `${ai.provider}:${model}`,
+        modelo: `${ai.provider}:${ai.model || "auto"}`,
       };
       if (!plan.diagnostico && !autos.length) throw new HttpError(502, "Não consegui montar o planejamento. Tente de novo.");
       // Compatível com o implementador: automações viram sugestões instaláveis.

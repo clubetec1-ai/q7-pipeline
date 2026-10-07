@@ -1,7 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { requireModule } from "../_shared/modules.ts";
 import { HttpError, requirePermission, requireUser, resolveOrg } from "../_shared/auth.ts";
-import { chatAI, resolveAI } from "../_shared/ai-chat.ts";
+import { chatAI, resolveAI, forTask } from "../_shared/ai-chat.ts";
 
 /**
  * Relatório de melhorias para a supervisão (reports.view): junta as falhas de
@@ -55,7 +55,6 @@ Deno.serve(async (req) => {
     const s = (o?.settings ?? {}) as Record<string, string>;
     const ai = await resolveAI(admin, orgId, { provider: s.review_provider ?? null, model: s.review_model ?? null });
     if (!ai) throw new HttpError(409, "Configure a chave do provedor de IA (Configurações → Chaves de IA).");
-    const model = ai.provider === "groq" && (!ai.model || ai.model === "auto") ? "llama-3.3-70b-versatile" : ai.model;
 
     const sat = rows.filter((r) => r.satisfied === "sim").length;
     const avg = rows.reduce((a, r) => a + (r.score ?? 0), 0) / rows.length;
@@ -66,7 +65,7 @@ Deno.serve(async (req) => {
       "Feedbacks aos atendentes:", ...rows.slice(0, 60).map((r) => `- ${r.agent_feedback ?? ""}`),
     ].join("\n").slice(0, 14000);
 
-    const r = await chatAI({ ...ai, model }, [{ role: "system", content: PROMPT }, { role: "user", content: data }]);
+    const r = await chatAI(forTask(ai, "analise"), [{ role: "system", content: PROMPT }, { role: "user", content: data }]);
     if (!r.ok || !r.reply) throw new HttpError(502, "A IA não respondeu. Tente de novo.");
     await admin.from("audit_log").insert({ organization_id: orgId, actor_id: ctx.user.id, action: "reviews.report", meta: { days, count: rows.length } });
     return json({ ok: true, report: r.reply, count: rows.length, satisfied: sat, avg: Number(avg.toFixed(1)) });

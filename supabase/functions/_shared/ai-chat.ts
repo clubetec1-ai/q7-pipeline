@@ -7,7 +7,7 @@
 import { getSecret } from "./secrets.ts";
 import { withPolicy } from "./ai-policy.ts";
 import { esc, sendSystemEmail } from "./email.ts";
-import { resolveModelChain, translateAIError } from "./get-ai-config.ts";
+import { type AITask, resolveModelChain, translateAIError } from "./get-ai-config.ts";
 
 export const AI_PROVIDERS: Record<string, { endpoint: string; model: string }> = {
   groq: { endpoint: "https://api.groq.com/openai/v1/chat/completions", model: "auto" },
@@ -34,7 +34,10 @@ const FAILOVER = new Set([400, 404, 413, 422, 429, 500, 502, 503, 504]);
 const JSON_MODE = new Set(["groq", "openai", "openrouter", "gemini", "deepseek"]);
 
 /** json: pede resposta em JSON válido (quando o provedor aceita); timeoutMs/maxTokens para respostas longas. */
-export interface ChatOpts { json?: boolean; timeoutMs?: number; maxTokens?: number; temperature?: number }
+export interface ChatOpts { json?: boolean; timeoutMs?: number; maxTokens?: number; temperature?: number; task?: AITask }
+
+/** A mesma IA resolvida (com as reservas) marcada para uma tarefa. */
+export const forTask = (ai: ResolvedAI, task: AITask): ResolvedAI => ({ ...ai, task, fallbacks: ai.fallbacks?.map((f) => ({ ...f, task })) });
 
 async function once(endpoint: string, apiKey: string, model: string, messages: ChatMsg[], tools?: ToolDef[], opts: ChatOpts & { jsonMode?: boolean } = {}): Promise<ChatResult> {
   try {
@@ -176,7 +179,8 @@ const SWITCH = new Set([401, 403, 404, 408, 429, 500, 502, 503, 504]);
  * da plataforma na ordem. Registra o consumo da empresa e a falha da posição.
  */
 export async function chatAI(ai: ResolvedAI, messages: ChatMsg[], tools?: ToolDef[], opts: ChatOpts = {}): Promise<ChatResult> {
-  let r = await chat(ai.apiKey, ai.provider, ai.model, messages, tools, opts);
+  const task = ai.task;
+  let r = await chat(ai.apiKey, ai.provider, ai.model, messages, tools, { task, ...opts });
   if (r.ok) { await recordUsage(ai, r.usage); return r; }
   for (const next of ai.fallbacks ?? []) {
     if (r.status && !SWITCH.has(r.status)) break;
@@ -184,7 +188,7 @@ export async function chatAI(ai: ResolvedAI, messages: ChatMsg[], tools?: ToolDe
     console.error("[ia] trocando para a reserva", { de: ai.slot, para: next.slot, status: r.status });
     await alertFailover(ai, next, r.error);
     ai = next;
-    r = await chat(next.apiKey, next.provider, next.model, messages, tools, opts);
+    r = await chat(next.apiKey, next.provider, next.model, messages, tools, { task, ...opts });
     if (r.ok) { await recordUsage(next, r.usage); return r; }
   }
   if (!r.ok) await markSlotError(ai, r.error);
@@ -197,7 +201,7 @@ export async function chat(apiKey: string, provider: string, model: string, mess
   const o = { ...opts, jsonMode: !!opts.json && !tools?.length && JSON_MODE.has(provider) };
   if (provider !== "groq") return once(p.endpoint, apiKey, chosen, messages, tools, o);
   let last: ChatResult = { ok: false, error: "nenhum modelo disponível" };
-  for (const m of await resolveModelChain(apiKey, chosen)) {
+  for (const m of await resolveModelChain(apiKey, chosen, opts.task)) {
     last = await once(p.endpoint, apiKey, m, messages, tools, o);
     if (last.ok || !last.status || !FAILOVER.has(last.status)) break;
   }
@@ -206,6 +210,8 @@ export async function chat(apiKey: string, provider: string, model: string, mess
 
 export interface ResolvedAI {
   provider: string; apiKey: string; model: string;
+  /** Tarefa (escolhe o modelo quando a posição não fixou um): atendimento = rápido; analise = o mais capaz. */
+  task?: AITask;
   /** "propria" = chave da empresa; "plataforma" = IA da Clubetec (posição em slot). */
   source?: "propria" | "plataforma"; slot?: string;
   /** Reservas da plataforma, na ordem, usadas por chatAI se esta falhar. */

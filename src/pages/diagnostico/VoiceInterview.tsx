@@ -2,10 +2,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { HelpCircle, Mic, MicVocal, Pause, Paperclip, Play, RotateCcw, Square, Undo2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { callFunction } from "@/lib/callFunction";
+import { createSilenceDetector } from "@/lib/endOfSpeech";
 import { Button } from "@/components/ui/button";
 
 type Phase = "pensando" | "falando" | "pronto" | "ouvindo" | "transcrevendo" | "falhou" | "fim";
 const AUTO_KEY = "clubecrm:voz-auto";
+const END_KEY = "clubecrm:voz-fim-sozinho";
 const VOICE_KEY = "clubecrm:voz-entrevista";
 const VOICES: [string, string][] = [
   ["nova", "Voz 1 (feminina)"], ["shimmer", "Voz 2 (feminina)"], ["coral", "Voz 3 (feminina)"],
@@ -89,6 +91,17 @@ export function VoiceInterview({ orgId, step, setor, onDone, onAttach, attached 
   // Microfone abre sozinho depois da pergunta (ágil) ou só quando a pessoa clica em Responder (dá tempo de pensar).
   const [auto, setAuto] = useState(() => read(AUTO_KEY, "0") === "1");
   const autoRef = useRef(auto);
+  // Fim da fala: 3 s de silêncio depois de falar enviam a resposta sozinhos (ligado por padrão; desligado = botão).
+  const [autoEnd, setAutoEnd] = useState(() => read(END_KEY, "1") === "1");
+  const autoEndRef = useRef(autoEnd);
+  const pausedRef = useRef(false);
+  const vad = useRef<{ timer: number; ctx: AudioContext } | null>(null);
+  const stopVad = () => {
+    if (!vad.current) return;
+    window.clearInterval(vad.current.timer);
+    void vad.current.ctx.close().catch(() => {});
+    vad.current = null;
+  };
   const rec = useRef<MediaRecorder | null>(null);
   const audio = useRef<HTMLAudioElement | null>(null);
   const lastAudio = useRef<string | null>(null);
@@ -113,6 +126,7 @@ export function VoiceInterview({ orgId, step, setor, onDone, onAttach, attached 
   }, [phase, paused]);
 
   const stopAll = () => {
+    stopVad();
     audio.current?.pause();
     if (typeof window !== "undefined") window.speechSynthesis?.cancel();
     if (rec.current && rec.current.state !== "inactive") { discard.current = "cancel"; rec.current.stop(); }
@@ -155,6 +169,7 @@ export function VoiceInterview({ orgId, step, setor, onDone, onAttach, attached 
       const chunks: Blob[] = [];
       mr.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
       mr.onstop = () => {
+        stopVad();
         stream.getTracks().forEach((t) => t.stop());
         const d = discard.current;
         discard.current = "none";
@@ -165,6 +180,24 @@ export function VoiceInterview({ orgId, step, setor, onDone, onAttach, attached 
       rec.current = mr;
       discard.current = "none";
       mr.start();
+      pausedRef.current = false;
+      if (autoEndRef.current) {
+        try {
+          const ctx = new AudioContext();
+          const an = ctx.createAnalyser();
+          an.fftSize = 1024;
+          ctx.createMediaStreamSource(stream).connect(an);
+          const buf = new Float32Array(an.fftSize);
+          const det = createSilenceDetector();
+          const timer = window.setInterval(() => {
+            an.getFloatTimeDomainData(buf);
+            let sum = 0;
+            for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
+            if (det.update(Math.sqrt(sum / buf.length), 100, pausedRef.current) && mr.state === "recording") mr.stop();
+          }, 100);
+          vad.current = { timer, ctx };
+        } catch { /* navegador sem Web Audio: fica o botão "Terminei de responder" */ }
+      }
       setSecs(0); setPaused(false);
       setPhase("ouvindo");
     } catch {
@@ -233,8 +266,8 @@ export function VoiceInterview({ orgId, step, setor, onDone, onAttach, attached 
     await sayQuestion(r.data.question, r.data.audio);
     if (alive.current) setPhase("pronto");
   };
-  const pauseRec = () => { if (rec.current?.state === "recording") { rec.current.pause(); setPaused(true); } };
-  const resumeRec = () => { if (rec.current?.state === "paused") { rec.current.resume(); setPaused(false); } };
+  const pauseRec = () => { if (rec.current?.state === "recording") { rec.current.pause(); pausedRef.current = true; setPaused(true); } };
+  const resumeRec = () => { if (rec.current?.state === "paused") { rec.current.resume(); pausedRef.current = false; setPaused(false); } };
   const dropRec = (how: "restart" | "cancel") => {
     if (!rec.current || rec.current.state === "inactive") return;
     discard.current = how;
@@ -341,7 +374,8 @@ export function VoiceInterview({ orgId, step, setor, onDone, onAttach, attached 
           <>
             {paused
               ? <span className="inline-flex items-center gap-1 text-warning-text"><Pause className="w-4 h-4" /> Pausado {Math.floor(secs / 60)}:{String(secs % 60).padStart(2, "0")} — respire, pense e continue quando quiser</span>
-              : <span className="inline-flex items-center gap-1 text-red-600"><Mic className="w-4 h-4 animate-pulse" /> Ouvindo… {Math.floor(secs / 60)}:{String(secs % 60).padStart(2, "0")}</span>}
+              : <span className="inline-flex items-center gap-1 text-red-600"><Mic className="w-4 h-4 animate-pulse" /> Ouvindo… {Math.floor(secs / 60)}:{String(secs % 60).padStart(2, "0")}
+                  {autoEnd && <span className="text-muted-foreground">· envio sozinho 3 s depois que você parar de falar</span>}</span>}
             <Button type="button" size="sm" onClick={() => rec.current?.stop()}><Square className="w-4 h-4 mr-1" /> Terminei de responder</Button>
             {paused
               ? <Button type="button" size="sm" variant="outline" onClick={resumeRec}><Play className="w-4 h-4 mr-1" /> Continuar</Button>
@@ -408,6 +442,10 @@ export function VoiceInterview({ orgId, step, setor, onDone, onAttach, attached 
       <label className="flex items-center gap-2 text-xs">
         <input type="checkbox" checked={auto} onChange={(e) => { setAuto(e.target.checked); autoRef.current = e.target.checked; write(AUTO_KEY, e.target.checked ? "1" : "0"); }} />
         Abrir o microfone sozinho depois de cada pergunta (desligado: você clica em “Responder” quando estiver pronto)
+      </label>
+      <label className="flex items-center gap-2 text-xs">
+        <input type="checkbox" checked={autoEnd} onChange={(e) => { setAutoEnd(e.target.checked); autoEndRef.current = e.target.checked; write(END_KEY, e.target.checked ? "1" : "0"); }} />
+        Enviar a resposta sozinho quando eu parar de falar (3 segundos de silêncio; desligado: você clica em “Terminei de responder”)
       </label>
       <p className="text-xs text-muted-foreground">Fale à vontade, como numa conversa. Cada resposta é salva na hora: se a página fechar, é só clicar em “Continuar entrevista”. O áudio não fica guardado, só o texto.</p>
     </div>

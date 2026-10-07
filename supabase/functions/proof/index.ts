@@ -3,7 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { requireModule } from "../_shared/modules.ts";
 import { HttpError, requirePermission, requireUser, resolveOrg } from "../_shared/auth.ts";
 import { forOrg } from "../_shared/tenant.ts";
-import { chatAI, resolveAI } from "../_shared/ai-chat.ts";
+import { chatAI, resolveAI, forTask } from "../_shared/ai-chat.ts";
 import { agentReply } from "../_shared/agent-reply.ts";
 import { checkReply, combine, type Criterio, needsSecondOpinion, FIXED_SCENARIOS, GEN_PROMPT, JUDGE_PROMPT, parseJudge, parseScenarios, type Scenario } from "../_shared/proof.ts";
 
@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
       const { data: procs } = await org.select("process_designs", "nome, design").eq("status", "aprovado").eq("department_id", agent.department_id);
       let gerados: Scenario[] = [];
       if ((procs ?? []).length) {
-        const r = await chatAI(ai, [{ role: "system", content: GEN_PROMPT }, { role: "user", content:
+        const r = await chatAI(forTask(ai, "analise"), [{ role: "system", content: GEN_PROMPT }, { role: "user", content:
           `Processos aprovados do setor:\n<dados>\n${fence(JSON.stringify(procs).slice(0, 10_000))}\n</dados>` }], undefined, { json: true, timeoutMs: 60_000 });
         if (r.ok) gerados = parseScenarios(parse(r.reply));
       }
@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
     } else {
       checks = checkReply(resp.reply, ev.criterios as Criterio[]);
       const judge = async (temperature?: number) => {
-        const j = await chatAI(ai, [{ role: "system", content: JUDGE_PROMPT }, { role: "user", content:
+        const j = await chatAI(forTask(ai, "analise"), [{ role: "system", content: JUDGE_PROMPT }, { role: "user", content:
           `Cenário (mensagem do cliente): <dados>${fence(ev.mensagem)}</dados>\n${ev.contexto ? `Situação: ${ev.contexto}\n` : ""}` +
           `O que o agente deve fazer: ${ev.esperado}\nResposta do agente: <dados>${fence(resp.reply)}</dados>` }], undefined, { json: true, timeoutMs: 45_000, temperature });
         return j.ok ? parseJudge(parse(j.reply)) : { passou: false, motivo: "O avaliador não respondeu." };

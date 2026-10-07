@@ -1,7 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { HttpError, requirePermission, requireUser, resolveOrg } from "../_shared/auth.ts";
 import { forOrg } from "../_shared/tenant.ts";
-import { chatAI, resolveAI } from "../_shared/ai-chat.ts";
+import { chatAI, resolveAI, forTask } from "../_shared/ai-chat.ts";
 import { runHttp } from "../_shared/flow/executor.ts";
 import { checkUrl } from "../_shared/flow/http.ts";
 
@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
       const ai = await resolveAI(admin, orgId);
       if (!ai) throw new HttpError(409, "Configure a chave de IA em Configurações → Chaves de IA.");
       const secretName = slug(system);
-      const r = await chatAI({ ...ai, model: ai.provider === "groq" && (!ai.model || ai.model === "auto") ? "llama-3.3-70b-versatile" : ai.model }, [
+      const r = await chatAI(forTask(ai, "analise"), [
         { role: "system", content: [
           "Você é especialista em integrações de sistemas brasileiros (ERPs, agendas, lojas virtuais, bancos) com APIs REST.",
           "Monte um guia para um dono de pequena empresa, em português simples, para o CRM consultar esse sistema pelo bloco HTTP.",
