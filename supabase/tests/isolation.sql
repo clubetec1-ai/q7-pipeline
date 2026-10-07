@@ -1986,10 +1986,12 @@ BEGIN
   ON CONFLICT (organization_id, module) DO UPDATE SET enabled = true;
   PERFORM pg_temp.expect_error(agent_a, format('SELECT public.save_extension(%L, NULL, %L, %L, %L, %L, %L, %L, %L)', A, '7101', '7101', 'pbx.exemplo.com', 'wss://pbx.exemplo.com/ws', '3cx', 'Teste', 'senha123'), 'atendente nao cadastra ramal');
   PERFORM pg_temp.expect_error(owner_b, format('SELECT public.save_extension(%L, NULL, %L, %L, %L, %L, %L, %L, %L)', A, '7101', '7101', 'pbx.exemplo.com', 'wss://pbx.exemplo.com/ws', '3cx', 'Teste', 'senha123'), 'outra org nao cadastra em A');
-  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.save_extension(%L, NULL, %L, %L, %L, %L, %L, %L, %L)', A, '7102', '7102', 'pbx.exemplo.com', 'wss://pbx.exemplo.com/ws', 'qualquer', 'Teste', ''), 'central fora da lista recusada');
-  PERFORM pg_temp.expect(pg_temp.run(owner_a, format('SELECT public.save_extension(%L, NULL, %L, %L, %L, %L, %L, %L, %L)', A, '7101', '7101', 'pbx.exemplo.com', 'wss://pbx.exemplo.com/ws', '3cx', 'Teste', 'senha123')) LIKE 'ok:%', 'dono cadastra ramal da propria central');
+  PERFORM pg_temp.expect_error(operator, format('SELECT public.save_extension(%L, NULL, %L, %L, %L, %L, %L, %L, %L)', A, '7102', '7102', 'pbx.exemplo.com', 'wss://pbx.exemplo.com/ws', 'qualquer', 'Teste', ''), 'central fora da lista recusada');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.save_extension(%L, NULL, %L, %L, %L, %L, %L, %L, %L)', A, '7101', '7101', 'pbx.exemplo.com', 'wss://pbx.exemplo.com/ws', '3cx', 'Teste', 'senha123'), 'dono nao cadastra ramal nem senha (so a Clubetec)');
+  PERFORM pg_temp.expect(pg_temp.run(operator, format('SELECT public.save_extension(%L, NULL, %L, %L, %L, %L, %L, %L, %L)', A, '7101', '7101', 'pbx.exemplo.com', 'wss://pbx.exemplo.com/ws', '3cx', 'Teste', 'senha123')) LIKE 'ok:%', 'Clubetec cadastra o ramal da empresa');
   PERFORM pg_temp.expect(pg_temp.run(owner_a, 'SELECT has_password FROM public.pbx_extensions WHERE number = ''7101''') LIKE 'ok:%', 'senha marcada sem voltar ao navegador');
   PERFORM pg_temp.expect_error(owner_b, format('SELECT public.delete_extension((SELECT id FROM public.pbx_extensions WHERE organization_id = %L AND number = %L))', A, '7101'), 'outra org nao apaga ramal de A');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.delete_extension((SELECT id FROM public.pbx_extensions WHERE organization_id = %L AND number = %L))', A, '7101'), 'dono nao apaga ramal (so a Clubetec)');
   PERFORM pg_temp.expect(pg_temp.t(owner_a, format('SELECT public.create_api_key(%L, %L, %L) ->> %L LIKE %L', A, 'central', '{calls:write}', 'key', 'dca_%')) = 'true', 'chave com permissao de ligacoes');
 
   -- 90. Campanhas: arquivo so da propria empresa; resultado so para quem gerencia.

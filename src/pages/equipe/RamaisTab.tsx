@@ -6,14 +6,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import type { EquipeData } from "./useEquipeData";
 import { useOrg } from "@/contexts/OrgContext";
 import { NvoipCard } from "./NvoipCard";
-import { RamaisPanel } from "../plataforma/RamaisPanel";
 
 interface Ext { id: string; number: string; label: string | null; wss_url: string | null; has_password: boolean; user_id: string | null; mode: string; reg_state: string | null; reg_detail: string | null; reg_at: string | null }
 const MODES: [string, string][] = [["webrtc", "Navegador (WebRTC)"], ["sip", "MicroSIP / aparelho"], ["off", "Desligado"]];
 
 /**
- * Ramais que a Clubetec entregou: o dono/admin escolhe o atendente de cada um e
- * o modo (o atendente também troca o modo no próprio telefone).
+ * Ramais que a Clubetec entregou: usuário, senha e central são cadastrados UMA vez pela equipe Clubetec
+ * (Plataforma → Ramais) e a senha nunca aparece para a empresa. Aqui o dono/admin escolhe o atendente de cada
+ * ramal e o modo; ao entrar no sistema, o atendente já fica com o ramal dele conectado, sem configurar nada.
  */
 export function RamaisTab({ orgId, data }: { orgId: string; data: EquipeData }) {
   const { toast } = useToast();
@@ -36,10 +36,8 @@ export function RamaisTab({ orgId, data }: { orgId: string; data: EquipeData }) 
   const active = data.members.filter((m) => m.status === "active");
 
   const card = can("org.settings") ? <NvoipCard orgId={orgId} /> : null;
-  // Dono/admin: cadastra a própria central e os ramais (o operador da Clubetec também pode fazer por ele).
-  if (can("org.settings")) return <div className="space-y-4">{card}<RamaisPanel orgs={[{ id: orgId, name: "" }]} self /></div>;
   if (!rows.length) {
-    return <>{card}<p className="text-sm text-muted-foreground">Nenhum ramal ainda. Ao contratar o PBX com a Clubetec, os ramais chegam aqui prontos e já associados à equipe; você pode trocar o atendente quando quiser.</p></>;
+    return <>{card}<p className="text-sm text-muted-foreground">Nenhum ramal ainda. Os ramais (usuário, senha e central) são cadastrados uma vez pela equipe Clubetec e chegam aqui prontos; você só escolhe quem usa cada um.</p></>;
   }
   return (
     <div className="overflow-x-auto">
@@ -72,7 +70,7 @@ export function RamaisTab({ orgId, data }: { orgId: string; data: EquipeData }) 
           ))}
         </TableBody>
       </Table>
-      <p className="text-xs text-muted-foreground mt-2">Cada pessoa tem um ramal e vê o botão 📞 no canto da tela. <b>Navegador</b>: liga e atende dentro do sistema
+      <p className="text-xs text-muted-foreground mt-2">Os ramais são cadastrados pela equipe Clubetec (as senhas ficam guardadas e não aparecem aqui). Ao entrar no sistema, cada atendente já fica com o ramal dele conectado. Cada pessoa tem um ramal e vê o botão 📞 no canto da tela. <b>Navegador</b>: liga e atende dentro do sistema
         (precisa do endereço WebRTC da central). <b>MicroSIP/aparelho</b>: liga pelo MicroSIP; o sistema identifica o cliente pelo número e continua o
         atendimento no WhatsApp. 🟢 online · 🔴 erro · ⚪ desconectado · 🔵 MicroSIP (fora do navegador).</p>
     </div>
