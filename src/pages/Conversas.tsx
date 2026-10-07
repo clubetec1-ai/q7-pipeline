@@ -1,3 +1,4 @@
+import { AddToKnowledgeButton, KnowledgeDocsPicker } from "./conversas/KnowledgeDocs";
 import { AudioRecorderButton } from "./conversas/AudioRecorderButton";
 import { StatusBadge } from "@/components/layout/StatusBadge";
 import { AiSuggestion } from "./conversas/AiSuggestion";
@@ -924,6 +925,7 @@ export default function Conversas() {
                       </div>
                     )}
                     <MessageMedia m={m} />
+                    {m.media_path && m.direction === "inbound" && org && can("org.settings") && <AddToKnowledgeButton orgId={org.id} messageId={m.id} />}
                     {m.media_text && (
                       <details className="text-xs mb-1 opacity-90">
                         <summary className="cursor-pointer">🔎 Lido pela IA</summary>
@@ -993,6 +995,7 @@ export default function Conversas() {
                 </Button>
                 {org && <LibraryPicker orgId={org.id} disabled={sending} onPick={(f) => { setPendingLib(f); setPendingFile(null); }} />}
                 {!isMeta(active) && <AudioRecorderButton disabled={sending} onRecorded={(f) => { setPendingFile(f); setPendingLib(null); }} />}
+                {!isMeta(active) && org && <KnowledgeDocsPicker orgId={org.id} conversationId={active.id} disabled={sending} onFile={(f) => { setPendingFile(f); setPendingLib(null); }} onText={(t) => setInput(t)} />}
                 <Input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}

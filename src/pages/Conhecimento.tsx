@@ -31,7 +31,7 @@ const VIS: Record<string, [string, string]> = {
   atendimento: ["Atendimento", "A IA que conversa com o cliente também usa para responder."],
   enviavel: ["Pode ser enviado", "Além de orientar a IA, pode ser enviado como arquivo ao cliente."],
 };
-const ACCEPT = ".pdf,.docx,.xlsx,.csv,.txt,.md";
+const ACCEPT = ".pdf,.docx,.xlsx,.csv,.txt,.md,.jpg,.jpeg,.png,.webp,.mp3,.m4a,.ogg,.wav,.mp4,.webm";
 
 /** Base de conhecimento: documentos da empresa por setor, lidos e usados pelos agentes. */
 export default function Conhecimento() {
@@ -161,7 +161,7 @@ export default function Conhecimento() {
 
         <section className="rounded-lg border p-4 space-y-3">
           <p className="font-medium">Anexar documento</p>
-          <FilePicker accept={ACCEPT} file={file} onFile={setFile} hint="PDF, Word (.docx), Excel (.xlsx), CSV ou texto, até 10 MB" />
+          <FilePicker accept={ACCEPT} file={file} onFile={setFile} hint="PDF (também digitalizado), Word, Excel, CSV, texto, foto de documento, áudio ou vídeo — até 10 MB" />
           <div className="grid gap-2 sm:grid-cols-2">
             <Input placeholder="Título (opcional)" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
             <select className="h-9 rounded-md border bg-background px-2 text-sm" value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value })}>
@@ -175,7 +175,7 @@ export default function Conhecimento() {
               {Object.entries(VIS).map(([k, [label]]) => <option key={k} value={k}>{label}</option>)}
             </select>
           </div>
-          <p className="text-xs text-muted-foreground">{VIS[form.visibility][1]} Linhas com senha, token e números de cartão são removidas automaticamente. PDF, Word (.docx), Excel (.xlsx), CSV ou texto, até 10 MB.</p>
+          <p className="text-xs text-muted-foreground">{VIS[form.visibility][1]} Linhas com senha, token e números de cartão são removidas automaticamente. PDF (também digitalizado), Word, Excel, CSV, texto, foto de documento, áudio ou vídeo, até 10 MB — o que não tem texto a IA lê ou transcreve. Em contratos e orçamentos, use campos como {"{{nome}}"} e {"{{cpf_cnpj}}"} para preencher com os dados do cliente na conversa.</p>
           <Button disabled={!file || busy === "upload" || (!manage && !form.department)} onClick={upload}>
             <Upload className="w-4 h-4 mr-1" /> {busy === "upload" ? "Lendo o documento..." : "Enviar para a base"}
           </Button>
