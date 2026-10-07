@@ -57,7 +57,7 @@ export function sniffMime(b: Uint8Array, name?: string | null): string {
   if (ascii(b, 4, 4) === "ftyp") {
     const brand = ascii(b, 8, 4);
     if (brand.startsWith("3gp")) return "video/3gpp";
-    if (brand.startsWith("M4A")) return "audio/mp4";
+    if (brand.startsWith("M4A") || ext === "m4a") return "audio/mp4"; // áudio gravado no navegador (Chrome grava MP4 com marca genérica)
     return "video/mp4";
   }
   if (b[0] === 0x50 && b[1] === 0x4b && b[2] === 0x03 && b[3] === 0x04) {

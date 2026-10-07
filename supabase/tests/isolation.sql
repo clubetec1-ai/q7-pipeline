@@ -1839,6 +1839,41 @@ BEGIN
   PERFORM pg_temp.expect(pg_temp.q(owner_b, 'SELECT count(*) FROM public.flow_http_debug') = 0, 'outra org nao ve');
   UPDATE public.flows SET http_debug_until = now() + interval '30 days' WHERE id = 'aaaaaaaa-0000-0000-0113-000000000001';
   PERFORM pg_temp.expect(NOT public.service_flow_http_debug_log(A, 'aaaaaaaa-0000-0000-0113-000000000001', 'n1', true, 200, 10, NULL, NULL), 'prazo longo forcado na tabela nao vale');
+  -- 114. Outro setor ajudando sem transferir: so quem atende convida; o setor convidado ve a conversa e recebe aviso;
+  -- outra org nunca ve; finalizar o atendimento encerra a ajuda.
+  INSERT INTO public.conversations (id, instance_id, contact_phone) VALUES ('aaaaaaaa-0000-0000-0114-000000000001', 'aaaaaaaa-0000-0000-0003-000000000001', '5511900001140');
+  INSERT INTO public.tickets (id, organization_id, conversation_id, protocol, status, assigned_to, department_id, opened_at)
+  VALUES ('aaaaaaaa-0000-0000-0114-000000000002', A, 'aaaaaaaa-0000-0000-0114-000000000001', 'T-114', 'open', agent_a, 'aaaaaaaa-0000-0000-0001-000000000001', now());
+  UPDATE public.conversations SET department_id = 'aaaaaaaa-0000-0000-0001-000000000001', assigned_to = agent_a WHERE id = 'aaaaaaaa-0000-0000-0114-000000000001';
+  PERFORM pg_temp.expect(pg_temp.q(agent2_a, format('SELECT count(*) FROM public.conversations WHERE id = %L', 'aaaaaaaa-0000-0000-0114-000000000001')) = 0, 'setor D2 nao ve antes do convite');
+  PERFORM pg_temp.expect_error(agent2_a, format('SELECT public.invite_department_help(%L, %L)', 'aaaaaaaa-0000-0000-0114-000000000001', 'aaaaaaaa-0000-0000-0001-000000000002'), 'quem nao atende nao convida');
+  PERFORM pg_temp.expect_error(agent_b, format('SELECT public.invite_department_help(%L, %L)', 'aaaaaaaa-0000-0000-0114-000000000001', 'aaaaaaaa-0000-0000-0001-000000000002'), 'outra org nao convida');
+  PERFORM pg_temp.expect_error(agent_a, format('SELECT public.invite_department_help(%L, %L)', 'aaaaaaaa-0000-0000-0114-000000000001', 'bbbbbbbb-0000-0000-0001-000000000001'), 'setor de outra org nao');
+  PERFORM pg_temp.run(agent_a, format('SELECT public.invite_department_help(%L, %L, %L)', 'aaaaaaaa-0000-0000-0114-000000000001', 'aaaaaaaa-0000-0000-0001-000000000002', 'ajuda com o boleto'));
+  PERFORM pg_temp.expect(pg_temp.q(agent2_a, format('SELECT count(*) FROM public.conversations WHERE id = %L', 'aaaaaaaa-0000-0000-0114-000000000001')) = 1, 'setor convidado ve a conversa');
+  PERFORM pg_temp.expect(pg_temp.q(agent2_a, format('SELECT count(*) FROM public.tickets WHERE conversation_id = %L', 'aaaaaaaa-0000-0000-0114-000000000001')) = 1, 'e o atendimento');
+  PERFORM pg_temp.expect(EXISTS (SELECT 1 FROM public.notifications WHERE user_id = agent2_a AND kind = 'help_invite'), 'setor convidado e avisado');
+  PERFORM pg_temp.expect(pg_temp.q(agent_b, format('SELECT count(*) FROM public.conversations WHERE id = %L', 'aaaaaaaa-0000-0000-0114-000000000001')) = 0, 'outra org nunca ve');
+  PERFORM pg_temp.expect_error(agent2_a, format('SELECT public.take_over_ticket(%L)', 'aaaaaaaa-0000-0000-0114-000000000002'), 'ajudante nao assume o atendimento');
+  UPDATE public.tickets SET status = 'closed', closed_at = now() WHERE id = 'aaaaaaaa-0000-0000-0114-000000000002';
+  PERFORM pg_temp.expect(NOT EXISTS (SELECT 1 FROM public.conversation_helpers WHERE conversation_id = 'aaaaaaaa-0000-0000-0114-000000000001' AND active), 'finalizar encerra a ajuda');
+  PERFORM pg_temp.expect(pg_temp.q(agent2_a, format('SELECT count(*) FROM public.conversations WHERE id = %L', 'aaaaaaaa-0000-0000-0114-000000000001')) = 0, 'depois de finalizado o ajudante deixa de ver');
+  -- 115. Retencao automatica: desligada nao apaga; ligada apaga so o antigo, so de conversa sem atendimento aberto, so da
+  -- propria empresa; navegador nao chama.
+  INSERT INTO public.messages (id, organization_id, conversation_id, direction, sender, content, media_path, created_at) VALUES
+    ('aaaaaaaa-0000-0000-0115-000000000001', A, 'aaaaaaaa-0000-0000-0114-000000000001', 'inbound', 'contact', 'mensagem antiga', A::text || '/velho.ogg', now() - interval '13 months'),
+    ('aaaaaaaa-0000-0000-0115-000000000002', A, 'aaaaaaaa-0000-0000-0114-000000000001', 'inbound', 'contact', 'mensagem recente', NULL, now() - interval '1 month');
+  PERFORM pg_temp.expect_error(owner_a, 'SELECT public.service_retention_batch(10)', 'navegador nao roda a retencao');
+  PERFORM public.service_retention_batch(100);
+  PERFORM pg_temp.expect((SELECT content FROM public.messages WHERE id = 'aaaaaaaa-0000-0000-0115-000000000001') = 'mensagem antiga', 'desligada nao apaga');
+  UPDATE public.organizations SET settings = settings || '{"retencao_meses": 12}' WHERE id = A;
+  PERFORM pg_temp.expect((public.service_retention_batch(100) -> 'media') ? (A::text || '/velho.ogg'), 'devolve o arquivo para tirar do armazenamento');
+  PERFORM pg_temp.expect((SELECT content FROM public.messages WHERE id = 'aaaaaaaa-0000-0000-0115-000000000001') = '[apagado pela política de retenção]', 'antigo apagado');
+  PERFORM pg_temp.expect((SELECT content FROM public.messages WHERE id = 'aaaaaaaa-0000-0000-0115-000000000002') = 'mensagem recente', 'recente fica');
+  UPDATE public.organizations SET settings = settings || '{"retencao_meses": 1}' WHERE id = A;
+  PERFORM public.service_retention_batch(100);
+  PERFORM pg_temp.expect((SELECT content FROM public.messages WHERE id = 'aaaaaaaa-0000-0000-0115-000000000002') = 'mensagem recente', 'menos de 6 meses nao vale');
+  UPDATE public.organizations SET settings = settings - 'retencao_meses' WHERE id = A;
   -- 99. Revisao de area do Diagnostico: so dono/admin ve; so o servidor grava; "esta certo assim" vale.
   PERFORM public.service_diag_findings_save(A, 'empresa', 'Diretor Comercial (IA)', '[{"n":1,"tipo":"incoerencia","gravidade":"critica","texto":"Horario 18h x 24h","etapas":["empresa","posvenda"],"sugestao":"s"},{"n":2,"tipo":"inventado","gravidade":"critica","texto":"x","etapas":[]},{"n":3,"tipo":"risco","gravidade":"baixa","texto":"Promete brinde","etapas":["empresa"],"sugestao":""}]');
   PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT open_critical FROM public.diag_findings WHERE step_key = ''empresa''') = 1, 'dono ve a revisao com 1 critica aberta');

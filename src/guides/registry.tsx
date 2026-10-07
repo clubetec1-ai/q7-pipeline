@@ -860,7 +860,7 @@ export const GUIDES: Guide[] = [
         body: (
           <>
             <p>À esquerda ficam as conversas de WhatsApp, Instagram, Facebook e e-mail. A <b>Fila</b> mostra quem está esperando uma pessoa: a IA passa para a fila tudo o que não deve resolver sozinha.</p>
-            <p className="text-muted-foreground">Clique numa conversa para ver o histórico e responder. A busca acha nome, telefone, protocolo ou texto; em <b>Filtros</b> você separa por canal, setor, atendente e período.</p>
+            <p className="text-muted-foreground">Clique numa conversa para ver o histórico e responder. A busca acha nome, telefone, protocolo ou texto; em <b>Filtros</b> você separa por canal, setor, atendente e período. Precisa de outro setor? Em <b>Mais → Pedir ajuda de outro setor</b> ele vê a conversa sem você transferir.</p>
           </>
         ),
         demo: [

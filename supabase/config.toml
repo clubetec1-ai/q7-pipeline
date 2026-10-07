@@ -79,3 +79,6 @@ verify_jwt = false
 
 [functions.agent-network]
 verify_jwt = false
+
+[functions.retention]
+verify_jwt = false

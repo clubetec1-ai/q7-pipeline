@@ -1,3 +1,5 @@
+import { HeartHandshake } from "lucide-react";
+import { HelpersBadges, HelpInviteDialog } from "./DepartmentHelp";
 import { StatusBadge } from "@/components/layout/StatusBadge";
 import { firstName, memberNames } from "@/lib/memberNames";
 import { useEffect, useState } from "react";
@@ -36,6 +38,8 @@ export function TicketBar({ ticket, onChanged, greet = true }: { ticket: Ticket 
   const [busy, setBusy] = useState(false);
   const [dialog, setDialog] = useState<"transfer" | "close" | "take" | null>(null);
   const [proposalOpen, setProposalOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [helpRefresh, setHelpRefresh] = useState(0);
   const [owner, setOwner] = useState("");
   const [departments, setDepartments] = useState<Option[]>([]);
   const [people, setPeople] = useState<Option[]>([]);
@@ -129,6 +133,7 @@ export function TicketBar({ ticket, onChanged, greet = true }: { ticket: Ticket 
       </StatusBadge>
       <span className="text-xs text-muted-foreground">#{ticket.protocol}</span>
       {owner && <span className="text-xs text-muted-foreground">· com {owner}</span>}
+      {org && <HelpersBadges orgId={org.id} conversationId={ticket.conversation_id} refresh={helpRefresh} />}
       {/* Uma ação principal visível (Assumir ou Finalizar); o resto fica em "Mais". */}
       {canTake && (
         <Button size="sm" className="h-8" disabled={busy}
@@ -155,6 +160,11 @@ export function TicketBar({ ticket, onChanged, greet = true }: { ticket: Ticket 
                 <ArrowRightLeft className="w-4 h-4" /> Transferir
               </DropdownMenuItem>
             )}
+            {canAct && (
+              <DropdownMenuItem className="gap-2" onSelect={() => setHelpOpen(true)}>
+                <HeartHandshake className="w-4 h-4" /> Pedir ajuda de outro setor
+              </DropdownMenuItem>
+            )}
             {canAct && ticket.status !== "bot" && (
               <DropdownMenuItem className="gap-2" onSelect={() => void rpc("return_ticket_to_ai", { ticket: ticket.id }, "Atendimento devolvido para a IA")}>
                 <Bot className="w-4 h-4" /> Devolver à IA
@@ -174,6 +184,10 @@ export function TicketBar({ ticket, onChanged, greet = true }: { ticket: Ticket 
         </DropdownMenu>
       )}
 
+      {org && (
+        <HelpInviteDialog orgId={org.id} conversationId={ticket.conversation_id} currentDept={ticket.department_id ?? null}
+          open={helpOpen} onClose={() => setHelpOpen(false)} onDone={() => setHelpRefresh((n) => n + 1)} />
+      )}
       {proposalOpen && (
         <ProposalDialog conversationId={ticket.conversation_id} open onClose={() => setProposalOpen(false)} onSent={onChanged} />
       )}
