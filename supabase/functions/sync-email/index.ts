@@ -54,9 +54,15 @@ async function syncAccount(admin: any, acc: MailAccount) {
   try {
     client = await openImap(acc, pass);
   } catch (e) {
-    await org.update("email_accounts", { health_status: "critical", health_error: friendlyMailError(e), last_sync_at: new Date().toISOString() })
-      .eq("id", acc.id);
-    return { error: "login" };
+    // Falha de login: só marca problema depois de 3 seguidas (queda passageira não vira alarme).
+    const fails = (acc.login_failures ?? 0) + 1;
+    const err = friendlyMailError(e);
+    const auth = err.startsWith("Usuário ou senha");
+    await org.update("email_accounts", {
+      login_failures: fails, last_sync_at: new Date().toISOString(),
+      ...(fails >= 3 ? { health_status: auth ? "critical" : "warning", health_error: err } : {}),
+    }).eq("id", acc.id);
+    return { error: "login", fails };
   }
 
   // Remetentes que a equipe marcou como "Não é atendimento".
@@ -122,7 +128,7 @@ async function syncAccount(admin: any, acc: MailAccount) {
     await client.logout().catch(() => {});
   }
   await org.update("email_accounts", {
-    last_uid: last, uidvalidity: validity, last_sync_at: new Date().toISOString(),
+    last_uid: last, uidvalidity: validity, last_sync_at: new Date().toISOString(), login_failures: 0,
     ...(failed ? { health_status: "warning", health_error: "Falha ao ler alguns e-mails; tentando de novo" } : { health_status: "ok", health_error: null }),
   }).eq("id", acc.id);
   return { imported };
@@ -138,7 +144,7 @@ Deno.serve(async (req) => {
   if (!expected || !safeEqual(req.headers.get("x-cron-secret") ?? "", expected)) return ok({ ok: false, error: "unauthorized" }, 401);
 
   const { data: accounts, error } = await admin.from("email_accounts")
-    .select("id, organization_id, name, address, username, imap_host, imap_port, smtp_host, smtp_port, last_uid, uidvalidity, organizations!inner(status)")
+    .select("id, organization_id, name, address, username, imap_host, imap_port, smtp_host, smtp_port, last_uid, uidvalidity, login_failures, organizations!inner(status)")
     .eq("status", "active").eq("has_password", true).eq("organizations.status", "active").order("last_sync_at", { ascending: true, nullsFirst: true }).limit(MAX_ACCOUNTS);
   if (error) return ok({ ok: false, error: error.message }, 500);
 

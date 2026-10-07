@@ -56,9 +56,11 @@ export function stripQuoted(text: string): string {
 export function friendlyMailError(e: unknown): string {
   const any = e as { message?: string; code?: string; authenticationFailed?: boolean; responseCode?: number };
   const msg = String(any?.message ?? e ?? "");
-  if (any?.authenticationFailed || any?.code === "EAUTH" || /auth|invalid credentials|login|535|unexpected close/i.test(msg)) {
+  // Senha errada só quando o servidor RECUSA o login. Conexão que caiu no meio ("unexpected close") é queda passageira.
+  if (any?.authenticationFailed || any?.code === "EAUTH" || /invalid credentials|authentication ?failed|AUTHENTICATIONFAILED|535|username and password not accepted/i.test(msg)) {
     return "Usuário ou senha incorretos. No Gmail e no Outlook, use uma senha de app.";
   }
+  if (/unexpected close|connection (closed|reset)|ECONNRESET|socket|close_notify|EOF/i.test(msg)) return "A conexão com o servidor de e-mail caiu; tentando de novo.";
   if (/ENOTFOUND|getaddrinfo|não encontrado|name or service/i.test(msg)) return "Servidor não encontrado. Confira o endereço.";
   if (/timed? ?out|ETIMEDOUT|ECONNREFUSED/i.test(msg)) return "O servidor não respondeu. Confira o endereço e a porta.";
   if (/certificate|self signed|TLS/i.test(msg)) return "Problema no certificado de segurança do servidor.";
