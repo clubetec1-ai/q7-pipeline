@@ -3,7 +3,7 @@ import { Pointer } from "./Pointer";
 import { AgenteMock } from "./mocks/AgenteMock";
 import { CerebroMock } from "./mocks/CerebroMock";
 import { ConversasMock } from "./mocks/ConversasMock";
-import { ApiMock, CobrancasMock, ConfiguracoesMock, EquipeMock, EtiquetasMock, FluxosMock, FunilMock, IntegracoesMock } from "./mocks/TelasMock";
+import { ApiMock, CobrancasMock, ConfiguracoesMock, EquipeMock, EtiquetasMock, FluxosMock, FunilMock, FunilVendasMock, IntegracoesMock } from "./mocks/TelasMock";
 import { DiagMock } from "./mocks/DiagMock";
 import { OrganogramaMock } from "./mocks/OrganogramaMock";
 import { ProcessosMock } from "./mocks/ProcessosMock";
@@ -845,6 +845,41 @@ export const GUIDES: Guide[] = [
         title: "Ajuda sempre à mão",
         body: <p>Ficou com dúvida em qualquer tela? Clique no <b>?</b> do topo: tem o passo a passo da tela, o assistente "Como faço…?" e o pedido ao suporte.</p>,
         demo: [{ state: "inicio", target: "horario", caption: "Cada tela tem o seu Como funciona" }],
+      },
+    ],
+  },
+  {
+    id: "funil-vendas",
+    title: "Funil de vendas",
+    routes: ["/funil"],
+    autoOpen: true,
+    mock: () => <FunilVendasMock />,
+    steps: [
+      {
+        title: "Instale o funil pronto",
+        body: (
+          <>
+            <p><b>Instalar funil</b> cria as etapas (Novo lead → … → Teste grátis → Cliente), as etiquetas de lead quente, morno e frio e um fluxo de qualificação em rascunho.</p>
+            <p className="text-muted-foreground">Já vem com retornos automáticos: proposta (2, 5 e 10 dias), teste grátis (1, 3 e 6 dias) e pós-venda (implantação, pesquisa e indicação). Ajuste em Funil → Editar etapas.</p>
+          </>
+        ),
+        demo: [
+          { state: "inicio", target: "btn-instalar", caption: "Instalar funil" },
+          { state: "inicio", target: "relatorio", caption: "Quantos contatos em cada etapa e de onde vieram" },
+        ],
+      },
+      {
+        title: "Links e página de captação",
+        body: (
+          <>
+            <p>Crie um <b>link do WhatsApp por canal</b> (Instagram, anúncio, indicação): quem chega por ele entra com a origem marcada.</p>
+            <p>A <b>página de captação</b> é uma página simples e pública com seu título, um texto curto e o botão "Falar no WhatsApp" — boa para a bio do Instagram ou um QR Code.</p>
+          </>
+        ),
+        demo: [
+          { state: "inicio", target: "link", caption: "Um link por canal, com a origem marcada" },
+          { state: "inicio", target: "btn-publicar", caption: "Publique a página de captação" },
+        ],
       },
     ],
   },

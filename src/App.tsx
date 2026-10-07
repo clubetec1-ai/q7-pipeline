@@ -1,3 +1,4 @@
+import CapturePage from "./pages/CapturePage";
 import ConfigPlano from "./pages/ConfigPlano";
 import Planos from "./pages/Planos";
 import { Toaster } from "@/components/ui/toaster";
@@ -72,6 +73,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/c/:slug" element={<CapturePage />} />
             <Route path="/planos" element={<Planos />} />
             <Route path="/" element={<ProtectedRoute><Conversas /></ProtectedRoute>} />
             <Route path="/kanban" element={<ProtectedRoute><Kanban /></ProtectedRoute>} />

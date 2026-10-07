@@ -109,3 +109,14 @@ export function ConfiguracoesMock() {
     </div>
   );
 }
+
+export function FunilVendasMock() {
+  return (
+    <div className="h-full p-2 space-y-1.5">
+      <p className="flex justify-between font-semibold">Funil de vendas <B d="btn-instalar" primary>Instalar funil</B></p>
+      <Box d="relatorio"><p className="font-medium">Contatos por etapa (30 dias)</p><p>Novo lead 12 · Proposta 5 · Teste grátis 3 · Cliente 2</p></Box>
+      <Box d="link"><p className="font-medium">Link de captação</p><p className="font-mono">wa.me/5511…?text=Olá (cód. instagram)</p></Box>
+      <Box d="pagina"><p className="flex justify-between font-medium">Página de captação <B d="btn-publicar">Publicar página</B></p><p>deixacomaia.com.br/c/sua-empresa</p></Box>
+    </div>
+  );
+}

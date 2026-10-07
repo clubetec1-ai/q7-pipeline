@@ -1,3 +1,6 @@
+import { HowItWorks } from "./diagnostico/HowItWorks";
+import { Globe } from "lucide-react";
+import { MicTextarea } from "@/components/MicTextarea";
 import { SectionTabs } from "@/components/layout/SectionTabs";
 import { useCallback, useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
@@ -33,6 +36,9 @@ export default function Funil() {
   const [nums, setNums] = useState<Num[]>([]);
   const [installing, setInstalling] = useState(false);
   const [link, setLink] = useState({ phone: "", origem: "instagram", msg: "Olá! Quero saber mais." });
+  // Página de captação pública (/c/<empresa>): título, texto e o link do WhatsApp acima.
+  const [orgSlug, setOrgSlug] = useState("");
+  const [cap, setCap] = useState({ ativo: false, titulo: "", texto: "" });
 
   const load = useCallback(async () => {
     if (!org) return;
@@ -43,6 +49,10 @@ export default function Funil() {
     ]);
     setRep(data as unknown as Report);
     setNums((n as Num[]) ?? []);
+    const { data: o } = await supabase.from("organizations").select("slug, settings").eq("id", org.id).maybeSingle();
+    setOrgSlug(o?.slug ?? "");
+    const c = ((o?.settings ?? {}) as Record<string, any>).captacao;
+    if (c) setCap({ ativo: !!c.ativo, titulo: c.titulo ?? "", texto: c.texto ?? "" });
     setLink((l) => (l.phone || !n?.[0]?.phone ? l : { ...l, phone: String(n[0].phone).replace(/\D/g, "") }));
   }, [org, days]);
   useEffect(() => { void load(); }, [load]);
@@ -50,6 +60,19 @@ export default function Funil() {
   if (!org) return null;
   const manage = can("org.settings");
   if (!manage && !can("reports.view")) return <Navigate to="/" replace />;
+
+  const saveCapture = async (ativo: boolean) => {
+    const phoneOk = link.phone.replace(/\D/g, "").length >= 10;
+    if (ativo && (!phoneOk || !cap.titulo.trim())) return toast({ variant: "destructive", title: "Falta o título ou o número de WhatsApp" });
+    const { data } = await supabase.from("organizations").select("settings").eq("id", org.id).maybeSingle();
+    const next = { ...((data?.settings ?? {}) as Record<string, unknown>),
+      captacao: { ativo, titulo: cap.titulo.trim().slice(0, 80), texto: cap.texto.trim().slice(0, 600), phone: link.phone.replace(/\D/g, ""), origem: link.origem || "site", msg: link.msg } };
+    const { error } = await supabase.from("organizations").update({ settings: next as never }).eq("id", org.id);
+    if (error) return toast({ variant: "destructive", title: "Não salvo", description: error.message });
+    setCap({ ...cap, ativo });
+    toast({ title: ativo ? "Página publicada" : "Página despublicada" });
+  };
+  const pageUrl = orgSlug ? `${window.location.origin}/c/${orgSlug}` : "";
 
   const install = async () => {
     setInstalling(true);
@@ -81,6 +104,7 @@ export default function Funil() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="font-brand text-2xl leading-tight">Funil de vendas</h1>
+            <HowItWorks guide="funil-vendas" className="" />
             <p className="text-sm text-muted-foreground">Quantos contatos estão em cada etapa e de onde vieram. Os contatos se movem pelo Kanban, pelo fluxo de qualificação ou pela IA.</p>
           </div>
           <div className="flex gap-1">
@@ -152,6 +176,31 @@ export default function Funil() {
                 <Button size="sm" variant="outline" onClick={() => void copy()}><Copy className="w-4 h-4 mr-1" /> Copiar</Button>
               </div>
             ) : <p className="text-xs text-muted-foreground">Informe o número e a origem para gerar o link.</p>}
+          </section>
+        )}
+
+        {manage && (
+          <section className="rounded-xl border bg-card p-5 space-y-3">
+            <p className="font-medium flex items-center gap-2"><Globe className="w-4 h-4" /> Página de captação</p>
+            <p className="text-sm text-muted-foreground">
+              Uma página simples, pública, com o seu título, um texto curto e o botão "Falar no WhatsApp" — usa o número, a origem e a
+              mensagem do link acima. Bom para colocar na bio do Instagram, em anúncios ou num QR Code. Só aparece o que você escrever aqui.
+            </p>
+            <label className="text-sm space-y-1 block"><span>Título</span>
+              <Input value={cap.titulo} maxLength={80} placeholder="Ex.: Certidões sem fila: peça pelo WhatsApp" onChange={(e) => setCap({ ...cap, titulo: e.target.value })} /></label>
+            <label className="text-sm space-y-1 block"><span>Texto curto</span>
+              <MicTextarea orgId={org.id} rows={3} maxLength={600} value={cap.texto} onChange={(t) => setCap({ ...cap, texto: t })}
+                placeholder="Ex.: Atendemos de segunda a sexta, das 9h às 17h. Clique e fale com a nossa equipe." /></label>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button size="sm" onClick={() => void saveCapture(true)}>{cap.ativo ? "Salvar e manter publicada" : "Publicar página"}</Button>
+              {cap.ativo && <Button size="sm" variant="ghost" onClick={() => void saveCapture(false)}>Despublicar</Button>}
+              {cap.ativo && pageUrl && (
+                <>
+                  <code className="text-xs break-all rounded bg-muted px-2 py-1">{pageUrl}</code>
+                  <Button size="sm" variant="outline" onClick={() => void navigator.clipboard.writeText(pageUrl).then(() => toast({ title: "Endereço copiado" }), () => {})}><Copy className="w-4 h-4 mr-1" /> Copiar</Button>
+                </>
+              )}
+            </div>
           </section>
         )}
       </main>
