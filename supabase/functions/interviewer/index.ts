@@ -1,3 +1,4 @@
+import { sttHint } from "../_shared/stt-hint.ts";
 import { headTail, repeatedOf } from "../_shared/repeat-guard.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { requireModule } from "../_shared/modules.ts";
@@ -90,7 +91,14 @@ Deno.serve(async (req) => {
       let bytes: Uint8Array;
       try { bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)); } catch { throw new HttpError(400, "Áudio inválido"); }
       const ext = /mp4|m4a/.test(String(body?.mime ?? "")) ? "m4a" : /ogg/.test(String(body?.mime ?? "")) ? "ogg" : "webm";
-      const text = await transcribeAudio(stt.apiKey, bytes, `fala.${ext}`, stt.provider);
+      // Dica de vocabulário: nome da empresa e nomes próprios que já aparecem no Diagnóstico (cidades, marcas, siglas).
+      const [{ data: on }, { data: pf }] = await Promise.all([
+        admin.from("organizations").select("name").eq("id", orgId).maybeSingle(),
+        org.select("company_profiles", "sections, steps").maybeSingle(),
+      ]);
+      const textos = [...Object.values((pf?.sections ?? {}) as Record<string, unknown>), ...Object.values((pf?.steps ?? {}) as Record<string, { raw?: unknown }>).map((x) => x?.raw)]
+        .filter((x): x is string => typeof x === "string").map((x) => x.slice(0, 6000));
+      const text = await transcribeAudio(stt.apiKey, bytes, `fala.${ext}`, stt.provider, sttHint(String(on?.name ?? ""), textos));
       if (text) await recordUsage(stt, undefined, 1);
       if (!text) throw new HttpError(502, "Não consegui entender o áudio. Tente falar de novo, mais perto do microfone.");
       return json({ ok: true, text });
