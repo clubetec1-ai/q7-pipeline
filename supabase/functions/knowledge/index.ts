@@ -3,6 +3,8 @@ import { requireModule } from "../_shared/modules.ts";
 import { HttpError, permissionsIn, requireUser, resolveOrg } from "../_shared/auth.ts";
 import { forOrg } from "../_shared/tenant.ts";
 import { chunkText, extractDocText, sanitize } from "../_shared/knowledge.ts";
+import { aiKindOf, extractWithAI } from "../_shared/knowledge-ai.ts";
+import { fillTemplate } from "../_shared/fill-template.ts";
 
 /**
  * Base de conhecimento (dono/admin na empresa toda; supervisor nos setores dele):
@@ -106,7 +108,9 @@ Deno.serve(async (req) => {
         await org.delete("knowledge_docs").eq("id", doc.id);
         throw new HttpError(500, "Não foi possível guardar o arquivo");
       }
-      const ex = await extractDocText(bytes, fileName, mime);
+      let ex = await extractDocText(bytes, fileName, mime);
+      // PDF digitalizado, foto de documento, áudio ou vídeo: a IA lê/transcreve (Etapa B, item 4).
+      if (!ex.text && aiKindOf(fileName, mime)) ex = await extractWithAI(admin, orgId, bytes, fileName, mime);
       if (!ex.text) {
         await org.update("knowledge_docs", { file_path: path, status: "failed", error: ex.error, updated_at: new Date().toISOString() }).eq("id", doc.id);
         await audit("knowledge.upload", doc.id, { ok: false });
@@ -121,6 +125,94 @@ Deno.serve(async (req) => {
       }).eq("id", doc.id);
       await audit("knowledge.upload", doc.id, { ok: !cErr, chunks: chunks.length });
       return json({ ok: true, id: doc.id, status: cErr ? "failed" : "ready", chunks: chunks.length });
+    }
+
+
+    // ---- Etapa B, item 4 -------------------------------------------------------------------------------------------
+    // Documentos "Pode ser enviado" que esta pessoa pode mandar no atendimento (empresa toda + setores dela).
+    const sendableFilter = async () => {
+      const perms = await permissionsIn(ctx, orgId);
+      if (!perms.includes("conversations.attend")) throw new HttpError(403, "Sem permissão para atender");
+      if (perms.includes("org.settings")) return null;
+      const { data } = await ctx.userClient.from("department_members").select("department_id").eq("user_id", ctx.user.id);
+      return (data ?? []).map((r: { department_id: string }) => r.department_id) as string[];
+    };
+    if (action === "sendables") {
+      const depts = await sendableFilter();
+      let q = org.select("knowledge_docs", "id, title, file_name, department_id, kind").eq("visibility", "enviavel").not("file_path", "is", null).order("title").limit(100);
+      if (depts) q = depts.length ? q.or(`department_id.is.null,department_id.in.(${depts.join(",")})`) : q.is("department_id", null);
+      const { data } = await q;
+      return json({ ok: true, docs: data ?? [] });
+    }
+    if (action === "send_link") {
+      const depts = await sendableFilter();
+      const { data: d } = await org.select("knowledge_docs", "id, file_path, file_name, mime, visibility, department_id").eq("id", String(body?.doc_id ?? "")).maybeSingle();
+      if (!d || d.visibility !== "enviavel" || !d.file_path?.startsWith(`${orgId}/`)) throw new HttpError(404, "Documento não disponível para envio");
+      if (depts && d.department_id && !depts.includes(d.department_id)) throw new HttpError(403, "Documento de outro setor");
+      const { data } = await admin.storage.from("knowledge").createSignedUrl(d.file_path, 120);
+      await audit("knowledge.send_link", d.id);
+      return json({ ok: true, url: data?.signedUrl ?? null, file_name: d.file_name, mime: d.mime });
+    }
+    // Anexo recebido no atendimento (ex.: e-mail) entra na base. Quem ve a conversa e cuida da base.
+    if (action === "from_message") {
+      const { data: m } = await ctx.userClient.from("messages").select("id, organization_id, media_path, media_name, media_mime")
+        .eq("id", String(body?.message_id ?? "")).maybeSingle();
+      if (!m || m.organization_id !== orgId || !m.media_path?.startsWith(`${orgId}/`)) throw new HttpError(404, "Anexo não encontrado");
+      const dept = await deptOf(body?.department_id);
+      await canManage(dept);
+      const { data: blob, error: dl } = await admin.storage.from("media").download(m.media_path);
+      if (dl || !blob) throw new HttpError(404, "Arquivo não encontrado");
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      if (!bytes.length || bytes.length > MAX_BYTES) throw new HttpError(413, "Arquivo vazio ou acima de 10 MB");
+      const fileName = clip(m.media_name, 200).replace(/[^\w.\-() À-ú]/g, "_") || "anexo";
+      const mime = clip(m.media_mime, 120) || "application/octet-stream";
+      const { data: doc, error } = await org.insert("knowledge_docs", {
+        department_id: dept, title: clip(body?.title, 160) || fileName, kind: KINDS.includes(body?.kind) ? body.kind : "outro",
+        visibility: VIS.includes(body?.visibility) ? body.visibility : "interno", file_name: fileName, mime, size: bytes.length, created_by: ctx.user.id,
+      }).select("id").single();
+      if (error || !doc) throw new HttpError(400, "Não foi possível criar o documento");
+      const storageName = fileName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z0-9._() -]/g, "_");
+      const path = `${orgId}/${doc.id}/${storageName}`;
+      const up = await admin.storage.from("knowledge").upload(path, bytes, { contentType: mime, upsert: false });
+      if (up.error) { await org.delete("knowledge_docs").eq("id", doc.id); throw new HttpError(500, "Não foi possível guardar o arquivo"); }
+      let ex = await extractDocText(bytes, fileName, mime);
+      if (!ex.text && aiKindOf(fileName, mime)) ex = await extractWithAI(admin, orgId, bytes, fileName, mime);
+      if (!ex.text) {
+        await org.update("knowledge_docs", { file_path: path, status: "failed", error: ex.error, updated_at: new Date().toISOString() }).eq("id", doc.id);
+        await audit("knowledge.from_message", doc.id, { ok: false });
+        return json({ ok: true, id: doc.id, status: "failed", error: ex.error });
+      }
+      const chunks = chunkText(sanitize(ex.text));
+      const { error: cErr } = await admin.from("knowledge_chunks").insert(chunks.map((content, ord) => ({ organization_id: orgId, doc_id: doc.id, ord, content })));
+      await org.update("knowledge_docs", { file_path: path, status: cErr ? "failed" : "ready", error: cErr ? "Falha ao indexar" : null,
+        chunks: cErr ? 0 : chunks.length, updated_at: new Date().toISOString() }).eq("id", doc.id);
+      await audit("knowledge.from_message", doc.id, { ok: !cErr, chunks: chunks.length });
+      return json({ ok: true, id: doc.id, status: cErr ? "failed" : "ready" });
+    }
+    // Contrato/orçamento preenchido com os dados do cliente da conversa (texto para conferir e enviar).
+    if (action === "fill") {
+      const depts = await sendableFilter();
+      const { data: conv } = await ctx.userClient.from("conversations").select("id, organization_id, contact_id, contact_name, contact_phone, contact_email")
+        .eq("id", String(body?.conversation_id ?? "")).maybeSingle();
+      if (!conv || conv.organization_id !== orgId) throw new HttpError(404, "Conversa não encontrada");
+      const { data: d } = await org.select("knowledge_docs", "id, title, kind, visibility, department_id").eq("id", String(body?.doc_id ?? "")).maybeSingle();
+      if (!d || !["contrato", "orcamento"].includes(d.kind) || d.visibility === "interno") throw new HttpError(404, "Modelo não encontrado");
+      if (depts && d.department_id && !depts.includes(d.department_id)) throw new HttpError(403, "Modelo de outro setor");
+      const { data: parts } = await org.select("knowledge_chunks", "content").eq("doc_id", d.id).order("ord");
+      const raw = (parts ?? []).map((p: { content: string }) => p.content).join("\n\n");
+      const { data: ct } = conv.contact_id ? await org.select("contacts", "name, phone, email, document, custom").eq("id", conv.contact_id).maybeSingle() : { data: null };
+      const { data: tk } = await org.select("tickets", "protocol").eq("conversation_id", conv.id).neq("status", "closed").maybeSingle();
+      const { data: o } = await admin.from("organizations").select("name").eq("id", orgId).maybeSingle();
+      const custom = (ct?.custom ?? {}) as Record<string, unknown>;
+      const vars: Record<string, string> = {
+        ...Object.fromEntries(Object.entries(custom).filter(([, v]) => typeof v === "string" || typeof v === "number").map(([k, v]) => [k, String(v)])),
+        nome: ct?.name || conv.contact_name || "", telefone: ct?.phone || conv.contact_phone || "", email: ct?.email || conv.contact_email || "",
+        cpf_cnpj: ct?.document || "", documento: ct?.document || "", protocolo: tk?.protocol || "", empresa: o?.name || "",
+        data: new Date().toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }),
+      };
+      const r = fillTemplate(raw, vars);
+      await audit("knowledge.fill", d.id, { faltando: r.faltando.length });
+      return json({ ok: true, title: d.title, text: r.text.slice(0, 20_000), faltando: r.faltando });
     }
 
     const docId = String(body?.doc_id ?? "");

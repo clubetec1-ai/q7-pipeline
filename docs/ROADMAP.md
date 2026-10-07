@@ -193,8 +193,11 @@ dependências e leitura do código.
    tinham o funil ganharam onde estava vazio (teste 116). **Página de captação** pública em `/c/<empresa>` (título, texto e
    botão do WhatsApp com a origem marcada; função `capture-page` que só entrega o que o dono publicou) e passo a passo da
    tela Funil de vendas. Falta: endereço personalizável da página (hoje usa o código da empresa) e logo da empresa nela.
-4. Base de conhecimento: preencher contrato/orçamento com os dados do cliente, enviar documento pelo atendimento, PDF
-   digitalizado (OCR), vídeo e anexos de e-mail.
+4. ✅ **Base de conhecimento (06/10):** PDF digitalizado (a IA lê o PDF), foto de documento (visão), áudio e vídeo
+   (transcrição) entram na base; anexo recebido no atendimento (ex.: e-mail) → "Adicionar à base"; documentos "Pode ser
+   enviado" saem pela conversa (📄); contrato e orçamento com campos {{nome}}, {{cpf_cnpj}}, {{telefone}}, {{protocolo}},
+   {{data}}, {{empresa}} e campos da ficha saem preenchidos para conferir (o que falta fica "[preencher: …]"). Fica:
+   manter a formatação do Word ao preencher (hoje o preenchido sai como texto).
 5. Cobrança: IA gerando cobrança (com permissão), recorrente ligada a "Conta a receber", Mercado Pago/Efí.
 6. ✅ **Atendimento (06/10):** outro setor ajudando sem transferir ("Mais → Pedir ajuda de outro setor": o setor vê a
    conversa e anota, aviso no sino, termina ao finalizar; teste 114); filtros na busca (canal, setor, atendente, período);
