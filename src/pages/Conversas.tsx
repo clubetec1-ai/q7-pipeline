@@ -163,6 +163,13 @@ export default function Conversas() {
   const [groupsOf, setGroupsOf] = useState<Map<string, string[]>>(new Map());
   const [mailboxes, setMailboxes] = useState<Map<string, string>>(new Map());
   const [numberFilter, setNumberFilter] = useState("");
+  // Mais filtros da busca: tipo de canal, setor, atendente e período (sobre o que a pessoa já pode ver).
+  const [showFilters, setShowFilters] = useState(false);
+  const [kindFilter, setKindFilter] = useState("");
+  const [deptFilter, setDeptFilter] = useState("");
+  const [agentFilter, setAgentFilter] = useState("");
+  const [periodFilter, setPeriodFilter] = useState("");
+  const [team, setTeam] = useState<Map<string, { name: string }>>(new Map());
   const isMeta = (c: Conversation) => c.channel === "messenger" || c.channel === "instagram";
   const channelKey = (c: Conversation) => (c.channel === "email" ? `e:${c.email_account_id}` : isMeta(c) ? `m:${c.meta_page_id}:${c.channel}` : `n:${c.instance_id}`);
   // Sem telefone nem e-mail (Messenger/Instagram): mostra o canal.
@@ -199,6 +206,7 @@ export default function Conversas() {
       .then(({ data }) => setMailboxes(new Map((data ?? []).map((m) => [m.id, m.name]))));
     supabase.from("departments").select("id, name, color").eq("organization_id", org.id)
       .then(({ data }) => setDepts(new Map((data ?? []).map((d) => [d.id, { name: d.name, color: d.color }]))));
+    void memberNames(org.id).then((m) => setTeam(new Map([...m].map(([id, x]) => [id, { name: x.name }]))));
     void loadMarks();
   }, [org, loadMarks]);
   const groupById = useMemo(() => new Map(allGroups.map((g) => [g.id, g])), [allGroups]);
@@ -273,6 +281,15 @@ export default function Conversas() {
       || !!protocolHits?.has(c.id);
   };
   const { byConversation, inTab, reload: reloadTickets } = useTickets(org?.id, user?.id);
+  const inFilters = (c: Conversation) => {
+    const t = byConversation.get(c.id);
+    if (kindFilter && (kindFilter === "whatsapp" ? (c.channel === "email" || isMeta(c)) : c.channel !== kindFilter)) return false;
+    if (deptFilter && (deptFilter === "none" ? !!t?.department_id : t?.department_id !== deptFilter)) return false;
+    if (agentFilter && (agentFilter === "none" ? !!t?.assigned_to : t?.assigned_to !== agentFilter)) return false;
+    if (periodFilter && (!c.last_message_at || Date.now() - new Date(c.last_message_at).getTime() > Number(periodFilter) * 86_400_000)) return false;
+    return true;
+  };
+  const filtersOn = [kindFilter, deptFilter, agentFilter, periodFilter].filter(Boolean).length;
 
   const active = useMemo(
     () => conversations.find((c) => c.id === activeId) || null,
@@ -596,8 +613,37 @@ export default function Conversas() {
               </div>
             )}
             <div className="p-2 border-b">
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} className="h-8 text-sm"
-                placeholder="Buscar nome, telefone, protocolo ou mensagem" />
+              <div className="flex gap-1">
+                <Input value={search} onChange={(e) => setSearch(e.target.value)} className="h-8 text-sm"
+                  placeholder="Buscar nome, telefone, protocolo ou mensagem" />
+                <Button type="button" size="sm" variant={filtersOn ? "default" : "outline"} className="h-8 px-2 text-xs shrink-0"
+                  onClick={() => setShowFilters((v) => !v)} title="Filtrar por canal, setor, atendente e período">
+                  Filtros{filtersOn ? ` (${filtersOn})` : ""}
+                </Button>
+              </div>
+              {showFilters && (
+                <div className="mt-2 grid grid-cols-2 gap-1">
+                  <select className="h-8 rounded-md border bg-background px-1 text-xs" value={kindFilter} onChange={(e) => setKindFilter(e.target.value)} title="Canal">
+                    <option value="">Todo canal</option><option value="whatsapp">WhatsApp</option><option value="email">E-mail</option>
+                    <option value="messenger">Facebook</option><option value="instagram">Instagram</option>
+                  </select>
+                  <select className="h-8 rounded-md border bg-background px-1 text-xs" value={periodFilter} onChange={(e) => setPeriodFilter(e.target.value)} title="Última mensagem">
+                    <option value="">Qualquer data</option><option value="1">Últimas 24 h</option><option value="7">Últimos 7 dias</option><option value="30">Últimos 30 dias</option>
+                  </select>
+                  <select className="h-8 rounded-md border bg-background px-1 text-xs" value={deptFilter} onChange={(e) => setDeptFilter(e.target.value)} title="Setor do atendimento">
+                    <option value="">Todo setor</option><option value="none">Sem setor</option>
+                    {[...depts].map(([id, d]) => <option key={id} value={id}>{d.name}</option>)}
+                  </select>
+                  <select className="h-8 rounded-md border bg-background px-1 text-xs" value={agentFilter} onChange={(e) => setAgentFilter(e.target.value)} title="Atendente responsável">
+                    <option value="">Todo atendente</option><option value="none">Sem atendente</option>
+                    {[...team].map(([id, m]) => <option key={id} value={id}>{m.name}</option>)}
+                  </select>
+                  {filtersOn > 0 && (
+                    <button type="button" className="col-span-2 text-left text-xs text-muted-foreground underline"
+                      onClick={() => { setKindFilter(""); setDeptFilter(""); setAgentFilter(""); setPeriodFilter(""); }}>Limpar filtros</button>
+                  )}
+                </div>
+              )}
             </div>
             {multiChannel && (
               <div className="px-2 pt-2">
@@ -611,7 +657,7 @@ export default function Conversas() {
             )}
             <div className="flex gap-1 p-2 border-b">
               {(["meus", "fila", "ia", "todos"] as TicketTab[]).map((k) => {
-                const pool = conversations.filter(inChannel);
+                const pool = conversations.filter((c) => inChannel(c) && inFilters(c));
                 const n = k === "todos" ? pool.length : pool.filter((c) => inTab(c.id, k)).length;
                 return (
                   <button key={k} onClick={() => setTab(k)}
@@ -621,7 +667,7 @@ export default function Conversas() {
                 );
               })}
             </div>
-            {conversations.filter((c) => inTab(c.id, tab) && matchesSearch(c) && inChannel(c)).map((c) => (
+            {conversations.filter((c) => inTab(c.id, tab) && matchesSearch(c) && inChannel(c) && inFilters(c)).map((c) => (
               <button
                 key={c.id}
                 onClick={() => setActiveId(c.id)}
