@@ -65,7 +65,7 @@ npx supabase functions deploy <funcao> --project-ref ulmndwlralgjbwlebxmo
 | 8 ✅ | A rede de agentes | `agent_tasks` (pedir informação, revisar, propor, alertar, escalar), profundidade ≤ 3, orçamento, expiração, perguntas voltando ao Diagnóstico | Escrever ao começar |
 | 9 ✅ | Implantação pelo organograma | Implementador monta rascunhos por especialista/executor a partir dos processos aprovados | Escrever ao começar |
 | 10 ✅ | Acabamento e prova final | Guias e vídeos, revisão de segurança completa (agente revisor), isolamento, Clubetec do zero ponta a ponta, medição de chamados | Escrever ao começar |
-| 11 | Cérebro da plataforma (pedido do dono, 06/10 — desenho §12) | Sinais → incidentes → equipe de IA dona → diagnóstico → correção proposta → revisão → aprovação humana → verificação; só metadados; nenhum deploy sozinho | Escrever ao começar |
+| 11 ✅ | Cérebro da plataforma (pedido do dono, 06/10 — desenho §12) | Sinais → incidentes → equipe de IA dona → diagnóstico → correção proposta → revisão → aprovação humana → verificação; só metadados; nenhum deploy sozinho | Escrever ao começar |
 
 Cada fatia, antes do código, ganha aqui uma seção "Fatia N — tarefas" no mesmo formato da Fatia 1.
 
@@ -590,3 +590,32 @@ guardian, agent-network; telas Plataforma (`SupportMetricsPanel`), TeamQuestions
 - [ ] Pendências da revisão para depois (ROADMAP): prova vencida rebaixar o degrau na hora; `MODE_RULE` na prova e blocos de
   IA de fluxo com prompt próprio; "Recomeçar o Diagnóstico" arquivar em vez de apagar desenhos/agentes; aprovar processo com
   a versão vista; pergunta do time entrar limpa no Diagnóstico; leitura da IA do Guardião com falsos "atenção".
+
+## Fatia 11 — Cérebro da plataforma ✅ (06/10)
+
+**Como funciona:** o vigia (`private.platform_watch_tick`, a cada 15 min) lê ~22 sinais por regra em todas as empresas — só
+metadados: rotinas agendadas falhando, chamadas internas com erro (503/504/tempo esgotado), retornos, fluxos, avaliações,
+cérebro e documentos com erro, IA principal caindo para a reserva, INPI; mensagens recebidas/enviadas falhando, webhooks de
+saída, números, e-mail, Meta, conectores e telefonia com problema; chamados urgentes e telas com muitos chamados; disjuntor,
+custo fora do normal e alertas de segurança. Erros passam por `private.scrub` (sem e-mail nem número). Cada sinal vira (ou
+atualiza) um **incidente** com equipe dona (triagem por regra), gravidade por regra e quantas empresas afetadas (número).
+Alta/crítica avisam a equipe Clubetec no sino e por e-mail. Na Plataforma → **Saúde**: organograma da plataforma (diretores e
+equipes de IA), incidentes, **Diagnosticar com a IA** (função `platform-brain`: a equipe dona dá hipótese, evidência, plano,
+arquivos prováveis, testes, risco e verificação; até 30 por dia; só metadados no prompt) → revisão por **regra fixa** do
+Guardião da plataforma (nada de desligar RLS, chave de serviço, apagar dados, pular testes, publicar direto; sem dado
+pessoal) e do QA (código só com teste; verificação obrigatória) → **Aprovar correção** (operador) → **Copiar tarefa para o
+desenvolvimento** (markdown com plano, testes obrigatórios, verificação e travas) → o vigia marca **resolvido** quando o
+sinal para por 6 h e avisa "correção verificada" → **Marcar resolvido** com o aprendizado (teste, guia ou artigo). "Ignorar
+por 7 dias" silencia o sinal.
+
+**Arquivos:** migration `20261006003200_platform_brain.sql` (`platform_incidents` só leitura da equipe da plataforma;
+`private.platform_signals`, `incident_gravidade`, `platform_watch_tick` + cron `platform-watch`; `service_platform_incident_propose`;
+`platform_incident_decide`; e-mail de `platform_incident`), `_shared/platform-brain.ts` + teste (3), função `platform-brain`,
+`notify-email`, tela `src/pages/plataforma/PlatformHealthPanel.tsx` (aba Saúde; `?aba=saude`), sino, teste de isolamento 111.
+
+- [x] Teste 111 e bateria completa; testes Deno (89); `tsc` e `build`; funções publicadas.
+- [x] Vigia rodou de verdade: 2 incidentes reais (chamadas internas com 503; telefonia Nvoip negando o histórico — 403);
+  diagnóstico da IA e revisão por regra nos dois.
+- [ ] Depois (ROADMAP): WhatsApp do suporte para incidente crítico; triagem por IA do texto livre dos chamados; botão de parar
+  por função e por empresa; guardar a URL das chamadas internas (o 503 hoje não diz qual função); sinais de erro do navegador,
+  dos logs das funções e dos avisos de segurança do Supabase (exigem coleta nova); testes automáticos a cada mudança (CI).

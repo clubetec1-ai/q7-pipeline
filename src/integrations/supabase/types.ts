@@ -4177,6 +4177,75 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_incidents: {
+        Row: {
+          decided_at: string | null
+          decided_by: string | null
+          diagnostico: Json | null
+          empresas: number
+          equipe: string
+          evidencia: Json
+          fingerprint: string
+          first_seen: string
+          gravidade: string
+          id: string
+          kind: string
+          last_seen: string
+          nota: string | null
+          ocorrencias: number
+          pico: number
+          resolved_at: string | null
+          revisao: Json | null
+          status: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          decided_at?: string | null
+          decided_by?: string | null
+          diagnostico?: Json | null
+          empresas?: number
+          equipe: string
+          evidencia?: Json
+          fingerprint: string
+          first_seen?: string
+          gravidade: string
+          id?: string
+          kind: string
+          last_seen?: string
+          nota?: string | null
+          ocorrencias?: number
+          pico?: number
+          resolved_at?: string | null
+          revisao?: Json | null
+          status?: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          decided_at?: string | null
+          decided_by?: string | null
+          diagnostico?: Json | null
+          empresas?: number
+          equipe?: string
+          evidencia?: Json
+          fingerprint?: string
+          first_seen?: string
+          gravidade?: string
+          id?: string
+          kind?: string
+          last_seen?: string
+          nota?: string | null
+          ocorrencias?: number
+          pico?: number
+          resolved_at?: string | null
+          revisao?: Json | null
+          status?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       platform_operators: {
         Row: {
           created_at: string
@@ -5852,6 +5921,10 @@ export type Database = {
         Args: { hq: string; p_name: string }
         Returns: string
       }
+      platform_incident_decide: {
+        Args: { p_decisao: string; p_id: string; p_nota?: string }
+        Returns: undefined
+      }
       platform_inpi_remove_process: {
         Args: { p_numero: string }
         Returns: undefined
@@ -6311,6 +6384,10 @@ export type Database = {
         Returns: Json
       }
       service_platform_alert_recipients: { Args: never; Returns: string[] }
+      service_platform_incident_propose: {
+        Args: { p_diag: Json; p_id: string; p_rev: Json }
+        Returns: string
+      }
       service_process_design_save: {
         Args: { org: string; p_design: Json; p_nome: string; p_setor: string }
         Returns: string

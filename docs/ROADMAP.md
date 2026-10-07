@@ -86,8 +86,16 @@ automático e ferramentas do bloco de IA que contornavam o degrau, documento imp
 cliente, LGPD das sugestões, trava de CPF/cartão, cercas dos prompts, funções internas); prova de ponta a ponta no Cartório
 Teste (Arquiteto → Guardião → Time de IA → prova 7/7 → assistido → implantação → atendente usando o processo), com 3 achados
 corrigidos (setor do Diagnóstico × setor cadastrado, oferecer pessoa na política fixa, avaliador da prova estável); medição
-de chamados por empresa na Plataforma; guias de Conversas e Cérebro; testes 107–110. Próximo: Fatia 11 — cérebro da
-plataforma. **Pendências da revisão (depois da fatia 11):** prova vencida rebaixar o degrau na hora; regra do degrau na
+de chamados por empresa na Plataforma; guias de Conversas e Cérebro; testes 107–110. ✅ **Fatia 11 — Cérebro da
+plataforma (06/10):** vigia a cada 15 min transforma ~22 sinais (só metadados) em incidentes com equipe de IA dona,
+gravidade e empresas afetadas; aviso no sino e e-mail (alta/crítica); Plataforma → Saúde com o organograma da plataforma,
+diagnóstico da IA com evidência, revisão por regra fixa (Guardião da plataforma + QA), aprovação do operador, tarefa para o
+desenvolvimento (com testes) e verificação automática quando o sinal para; teste 111. Já achou 2 problemas reais (chamadas
+internas com 503; telefonia Nvoip negando o histórico). **TODAS AS FATIAS DO CÉREBRO (1–11) PRONTAS.** Próximo, na ordem do
+dono: teste da Clubetec do zero, guias das telas que faltam, migração para a VPS. **Pendências da fatia 11 (depois):**
+WhatsApp do suporte para incidente crítico; triagem por IA do texto livre dos chamados; parar por função e por empresa;
+guardar a URL das chamadas internas (o 503 não diz qual função); sinais de erro do navegador, logs das funções e avisos do
+Supabase; CI com testes a cada mudança. **Pendências da revisão (depois da fatia 11):** prova vencida rebaixar o degrau na hora; regra do degrau na
 prova e blocos de IA de fluxo com prompt próprio; "Recomeçar o Diagnóstico" arquivar em vez de apagar desenhos e agentes;
 aprovar processo com a versão vista; pergunta do time entrar limpa no Diagnóstico; leitura da IA do Guardião com falsos
 "atenção" (ex.: lista de documentos tratada como dado sensível).

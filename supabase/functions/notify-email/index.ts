@@ -15,7 +15,7 @@ function ok(body: unknown = { ok: true }, status = 200) {
 
 const STATUS: Record<string, string> = { disconnected: "desconectado" };
 const KINDS = ["number_health", "email_health", "security_alert", "brain_weekly", "brain_goal", "brain_reminder", "support_ticket", "support_received", "support_status",
-  "breaker_stepdown", "cost_alert"];
+  "breaker_stepdown", "cost_alert", "platform_incident"];
 const URG_PT: Record<string, string> = { baixa: "baixa", media: "média", alta: "alta", urgente: "urgente" };
 const STATUS_PT: Record<string, string> = { open: "aberto", in_progress: "em andamento", done: "resolvido", canceled: "cancelado" };
 
@@ -79,6 +79,15 @@ Deno.serve(async (req) => {
     text = `Olá!\n\n${corpo}\n\n${link ? `Veja em Assistente de IA: ${link}` : "Veja em Assistente de IA."}\n\nDeixa com a IA`;
     html = `<p>Olá!</p><p>${esc(corpo).replace(/\n/g, "<br>")}</p>` +
       `<p>${link ? `<a href="${esc(link)}">Ver em Assistente de IA</a>` : "Veja em Assistente de IA."}</p><p>Deixa com a IA</p>`;
+  } else if (n.kind === "platform_incident") {
+    // Cérebro da plataforma (fatia 11): incidente alta/crítica para a equipe Clubetec. Só metadados.
+    const link = base ? `${base}/plataforma?aba=saude` : "";
+    const corpo = `Incidente ${r.gravidade === "critica" ? "CRÍTICO" : "de gravidade alta"}${r.piorou ? " (piorou)" : ""}: ${r.titulo ?? ""}.` +
+      `${r.empresas ? `\nEmpresas afetadas: ${r.empresas}.` : ""}\n\nA equipe de IA dona pode diagnosticar e propor a correção; nada é publicado sem a sua aprovação.`;
+    subject = `[Deixa com a IA] ${r.gravidade === "critica" ? "🚨 Incidente crítico" : "Incidente"} na plataforma`;
+    text = `Olá!\n\n${corpo}\n\n${link ? `Veja em Plataforma → Saúde: ${link}` : "Veja em Plataforma → Saúde."}\n\nDeixa com a IA`;
+    html = `<p>Olá!</p><p>${esc(corpo).replace(/\n/g, "<br>")}</p>` +
+      `<p>${link ? `<a href="${esc(link)}">Ver em Plataforma → Saúde</a>` : "Veja em Plataforma → Saúde."}</p><p>Deixa com a IA</p>`;
   } else if (n.kind.startsWith("brain_")) {
     const link = base ? `${base}/cerebro` : "";
     const empresa = o?.name ?? "";

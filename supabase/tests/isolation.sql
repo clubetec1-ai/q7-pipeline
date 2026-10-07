@@ -1788,6 +1788,28 @@ BEGIN
   -- 110. Setor do Diagnostico com nome mais longo casa com o setor cadastrado (achado da prova de ponta a ponta).
   PERFORM public.service_process_design_save(A, (SELECT name FROM public.departments WHERE id = 'aaaaaaaa-0000-0000-0001-000000000001') || ' e pedidos a distancia', 'Proc Setor', '{}');
   PERFORM pg_temp.expect((SELECT department_id FROM public.process_designs WHERE organization_id = A AND nome = 'Proc Setor') = 'aaaaaaaa-0000-0000-0001-000000000001', 'processo ganha o setor cadastrado');
+  -- 111. Cerebro da plataforma (fatia 11): sinais viram incidente so com metadados; so a equipe da plataforma ve e decide;
+  -- so o servidor grava diagnostico; aprovar exige revisao nao reprovada; o sinal parou = resolvido.
+  PERFORM pg_temp.expect(private.scrub('fale com joao@x.com no 11 98888-7777') !~ '(@|98888)', 'erro sem e-mail nem telefone');
+  INSERT INTO public.service_requests (organization_id, topic, message, urgency) VALUES (A, 'Socorro: cliente Joao Silva', 'detalhe pessoal', 'urgente');
+  PERFORM private.platform_watch_tick();
+  PERFORM pg_temp.expect((SELECT id FROM public.platform_incidents WHERE fingerprint = 'chamado_urgente' AND status NOT IN ('resolvido', 'ignorado')) IS NOT NULL, 'chamado urgente vira incidente da equipe de suporte');
+  PERFORM pg_temp.expect((SELECT evidencia::text || titulo FROM public.platform_incidents WHERE id = (SELECT id FROM public.platform_incidents WHERE fingerprint = 'chamado_urgente' AND status NOT IN ('resolvido', 'ignorado'))) !~ '(Joao|pessoal)', 'incidente sem o texto do chamado');
+  PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT count(*) FROM public.platform_incidents') = 0, 'dono de empresa nao ve incidentes da plataforma');
+  PERFORM pg_temp.expect(pg_temp.q(operator, 'SELECT count(*) FROM public.platform_incidents WHERE fingerprint = ''chamado_urgente''') >= 1, 'equipe da plataforma ve');
+  PERFORM pg_temp.expect_error(owner_a, format('SELECT public.platform_incident_decide(%L, %L)', (SELECT id FROM public.platform_incidents WHERE fingerprint = 'chamado_urgente' AND status NOT IN ('resolvido', 'ignorado')), 'ignorar'), 'dono de empresa nao decide');
+  PERFORM pg_temp.expect_error(operator, format('SELECT public.service_platform_incident_propose(%L, %L, %L)', (SELECT id FROM public.platform_incidents WHERE fingerprint = 'chamado_urgente' AND status NOT IN ('resolvido', 'ignorado')), '{}', '{}'), 'navegador nao grava diagnostico');
+  PERFORM pg_temp.expect_error(operator, format('SELECT public.platform_incident_decide(%L, %L)', (SELECT id FROM public.platform_incidents WHERE fingerprint = 'chamado_urgente' AND status NOT IN ('resolvido', 'ignorado')), 'aprovar'), 'sem proposta nao se aprova');
+  PERFORM public.service_platform_incident_propose((SELECT id FROM public.platform_incidents WHERE fingerprint = 'chamado_urgente' AND status NOT IN ('resolvido', 'ignorado')), '{"hipotese":"x"}', '{"status":"reprovado"}');
+  PERFORM pg_temp.expect((SELECT status FROM public.platform_incidents WHERE id = (SELECT id FROM public.platform_incidents WHERE fingerprint = 'chamado_urgente' AND status NOT IN ('resolvido', 'ignorado'))) = 'aberto', 'revisao reprovada mantem aberto');
+  PERFORM public.service_platform_incident_propose((SELECT id FROM public.platform_incidents WHERE fingerprint = 'chamado_urgente' AND status NOT IN ('resolvido', 'ignorado')), '{"hipotese":"x"}', '{"status":"aprovado"}');
+  PERFORM pg_temp.run(operator, format('SELECT public.platform_incident_decide(%L, %L)', (SELECT id FROM public.platform_incidents WHERE fingerprint = 'chamado_urgente' AND status NOT IN ('resolvido', 'ignorado')), 'aprovar'));
+  PERFORM pg_temp.expect((SELECT status FROM public.platform_incidents WHERE fingerprint = 'chamado_urgente' ORDER BY first_seen DESC LIMIT 1) = 'aprovado', 'operador aprova a correcao');
+  UPDATE public.service_requests SET status = 'done' WHERE organization_id = A;
+  UPDATE public.platform_incidents SET last_seen = now() - interval '7 hours' WHERE fingerprint = 'chamado_urgente' AND status = 'aprovado';
+  PERFORM private.platform_watch_tick();
+  PERFORM pg_temp.expect((SELECT status FROM public.platform_incidents WHERE fingerprint = 'chamado_urgente' ORDER BY first_seen DESC LIMIT 1) = 'resolvido', 'o sinal parou: correcao verificada');
+  PERFORM pg_temp.expect(NOT has_function_privilege('authenticated', 'private.platform_watch_tick()', 'EXECUTE'), 'vigia so pelo agendamento');
   -- 99. Revisao de area do Diagnostico: so dono/admin ve; so o servidor grava; "esta certo assim" vale.
   PERFORM public.service_diag_findings_save(A, 'empresa', 'Diretor Comercial (IA)', '[{"n":1,"tipo":"incoerencia","gravidade":"critica","texto":"Horario 18h x 24h","etapas":["empresa","posvenda"],"sugestao":"s"},{"n":2,"tipo":"inventado","gravidade":"critica","texto":"x","etapas":[]},{"n":3,"tipo":"risco","gravidade":"baixa","texto":"Promete brinde","etapas":["empresa"],"sugestao":""}]');
   PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT open_critical FROM public.diag_findings WHERE step_key = ''empresa''') = 1, 'dono ve a revisao com 1 critica aberta');

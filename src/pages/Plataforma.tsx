@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { PlatformAIPanel } from "./plataforma/PlatformAIPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AppHeader } from "@/components/AppHeader";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { LogOut, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,6 +18,7 @@ import { NetworksPanel } from "./plataforma/NetworksPanel";
 import { CompanyPanel } from "./plataforma/CompanyPanel";
 import { InpiPanel } from "./plataforma/InpiPanel";
 import { SupportMetricsPanel } from "./plataforma/SupportMetricsPanel";
+import { PlatformHealthPanel } from "./plataforma/PlatformHealthPanel";
 import { MainNav } from "@/components/MainNav";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Badge } from "@/components/ui/badge";
@@ -46,6 +47,7 @@ export default function Plataforma() {
   const { isOperator, reload: reloadOrgs } = useOrg();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [params] = useSearchParams();
   const [rows, setRows] = useState<OrgRow[]>([]);
   const [templates, setTemplates] = useState<{ key: string; name: string }[]>([]);
   const [creating, setCreating] = useState<{ name: string; template: string; email: string } | null>(null);
@@ -131,9 +133,10 @@ export default function Plataforma() {
           <Button onClick={() => setCreating({ name: "", template: "generico", email: "" })}><Plus className="w-4 h-4 mr-1" /> Nova empresa</Button>
         </div>
 
-        <Tabs defaultValue="empresas">
+        <Tabs defaultValue={params.get("aba") === "saude" ? "saude" : "empresas"}>
           <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="empresas">Empresas</TabsTrigger>
+            <TabsTrigger value="saude">Saúde</TabsTrigger>
             <TabsTrigger value="planos">Planos</TabsTrigger>
             <TabsTrigger value="modulos">Módulos</TabsTrigger>
             <TabsTrigger value="ramais">Ramais</TabsTrigger>
@@ -183,6 +186,7 @@ export default function Plataforma() {
           </Table>
         </div>
           </TabsContent>
+          <TabsContent value="saude" className="pt-4"><PlatformHealthPanel /></TabsContent>
           <TabsContent value="planos" className="pt-4 space-y-4"><CompanyPanel /><InpiPanel /><PlansPanel orgs={rows} /><NetworksPanel orgs={rows} /></TabsContent>
           <TabsContent value="modulos" className="pt-4 space-y-4"><ModulesPanel orgs={rows} /><BrainUsagePanel /></TabsContent>
           <TabsContent value="ramais" className="pt-4"><RamaisPanel orgs={rows} /></TabsContent>
