@@ -33,7 +33,8 @@ export const CENTRAIS: { key: string; label: string; domain: string; wss: string
     tip: "Use o usuário e a senha de autenticação do ramal (em Ramal → Telefone IP). O telefone do navegador do 3CX é próprio: aqui o ramal funciona pelo MicroSIP/aparelho." },
   { key: "nvoip", label: "Nvoip", domain: "app.nvoip.com.br", wss: "",
     tip: "Os mesmos dados do MicroSIP. Para o histórico e o clique-para-ligar, conecte a Nvoip no cartão acima." },
-  { key: "handphone", label: "Handphone", domain: "pbx.handphone.com.br", wss: "", tip: "Os mesmos dados que a Handphone enviou para o MicroSIP." },
+  { key: "handphone", label: "Handphone (nuvem)", domain: "endereco-da-central.handphone.com.br", wss: "wss://endereco-da-central.handphone.com.br:8089/ws",
+    tip: "Ramal e senha do ramal e o endereço da central (o mesmo do MicroSIP, porta 7048). Para o telefone no navegador, peça à Handphone para ativar a opção ramal-web no ramal; o endereço WebRTC é o da central na porta 8089 (doc. API Nuvem v5.0.3.1). Sem ramal-web, use o MicroSIP." },
   { key: "outro", label: "Outra central SIP", domain: "", wss: "",
     tip: "Qualquer central SIP: servidor, usuário e senha do ramal. Para o telefone no navegador, a central precisa oferecer WebRTC (endereço wss://)." },
 ];
