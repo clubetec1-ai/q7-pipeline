@@ -128,6 +128,10 @@ async function syncAccount(admin: any, acc: MailAccount) {
   return { imported };
 }
 
+// Rede: erro de socket que escapa de uma biblioteca (TLS fechado sem aviso) não pode derrubar a rodada inteira.
+globalThis.addEventListener("unhandledrejection", (e) => { e.preventDefault(); console.warn("[sync-email] erro de rede ignorado:", String(e.reason).slice(0, 120)); });
+globalThis.addEventListener("error", (e) => { e.preventDefault(); console.warn("[sync-email] erro de rede ignorado:", String(e.message).slice(0, 120)); });
+
 Deno.serve(async (req) => {
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   const expected = await getSecret(admin, "platform:cron_secret");

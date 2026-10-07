@@ -30,6 +30,9 @@ export async function openImap(acc: Pick<MailAccount, "imap_host" | "imap_port" 
     host: acc.imap_host, port: acc.imap_port, secure: acc.imap_port === 993,
     auth: { user: acc.username, pass }, logger: false, socketTimeout: 30_000, greetingTimeout: 15_000,
   });
+  // Servidor que fecha a conexão segura sem aviso (comum depois do LOGOUT) emite "error" no cliente. Sem quem escute,
+  // o erro derruba a função inteira (503). Escutando, vira só um aviso e a leitura segue/termina normalmente.
+  client.on("error", (e: unknown) => console.warn("[imap] conexão encerrada pelo servidor:", e instanceof Error ? e.message.slice(0, 120) : String(e)));
   await client.connect();
   return client;
 }
