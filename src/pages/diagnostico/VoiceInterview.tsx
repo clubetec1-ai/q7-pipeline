@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 
 type Phase = "pensando" | "falando" | "pronto" | "ouvindo" | "transcrevendo" | "falhou" | "fim";
 const AUTO_KEY = "clubecrm:voz-auto";
-const END_KEY = "clubecrm:voz-fim-sozinho";
+// Desligado por padrão (o cliente liga se quiser): chave nova para que ninguém fique com o envio automático ligado sem escolher.
+const END_KEY = "clubecrm:voz-fim-sozinho-v2";
 const VOICE_KEY = "clubecrm:voz-entrevista";
 const VOICES: [string, string][] = [
   ["nova", "Voz 1 (feminina)"], ["shimmer", "Voz 2 (feminina)"], ["coral", "Voz 3 (feminina)"],
@@ -91,8 +92,8 @@ export function VoiceInterview({ orgId, step, setor, onDone, onAttach, attached 
   // Microfone abre sozinho depois da pergunta (ágil) ou só quando a pessoa clica em Responder (dá tempo de pensar).
   const [auto, setAuto] = useState(() => read(AUTO_KEY, "0") === "1");
   const autoRef = useRef(auto);
-  // Fim da fala: 3 s de silêncio depois de falar enviam a resposta sozinhos (ligado por padrão; desligado = botão).
-  const [autoEnd, setAutoEnd] = useState(() => read(END_KEY, "1") === "1");
+  // Fim da fala: 3 s de silêncio depois de falar enviam a resposta sozinhos (DESLIGADO por padrão; quem quiser liga).
+  const [autoEnd, setAutoEnd] = useState(() => read(END_KEY, "0") === "1");
   const autoEndRef = useRef(autoEnd);
   const pausedRef = useRef(false);
   const vad = useRef<{ timer: number; ctx: AudioContext } | null>(null);
@@ -209,14 +210,14 @@ export function VoiceInterview({ orgId, step, setor, onDone, onAttach, attached 
     setPhase("pensando"); setErr(null);
     const r = await callFunction<{ question: string; done: boolean; audio: string | null; material?: string; exemplos?: string[]; porque?: string; faltam?: string[] }>("interviewer", {
       action: "voice_turn", organization_id: orgId, step, setor: setor ?? undefined, qa: history, voice: voiceRef.current, anexos: attachedRef.current, docs: docsRef.current,
-      faltam: faltamRef.current,
+      faltam: faltamRef.current, skip_audio: true,
     });
     if (!alive.current) return;
     // Falhou ao gerar a próxima pergunta: não deixa a pergunta antiga na tela (a resposta dela já foi salva).
     if (!r.ok) { setErr(r.message); setPhase(history.length && qRef.current ? "falhou" : "pronto"); return; }
     qRef.current = r.data.question;
     lastAudio.current = null;
-    // Texto e voz ao mesmo tempo.
+    // A pergunta aparece na hora; a voz é pedida logo em seguida (não espera a voz para mostrar o texto).
     setQuestion(r.data.question);
     setMaterial(r.data.material ?? "");
     setExemplos(r.data.exemplos ?? []);
@@ -224,7 +225,13 @@ export function VoiceInterview({ orgId, step, setor, onDone, onAttach, attached 
     faltamRef.current = r.data.faltam ?? [];
     setFaltam(faltamRef.current);
     setPhase("falando");
-    await sayQuestion(r.data.question, r.data.audio);
+    let b64 = r.data.audio;
+    if (!b64 && voiceRef.current !== "browser") {
+      const v = await callFunction<{ audio: string | null }>("interviewer", { action: "speak", organization_id: orgId, voice: voiceRef.current, text: r.data.question });
+      b64 = v.ok ? v.data.audio : null;
+    }
+    if (!alive.current) return;
+    await sayQuestion(r.data.question, b64);
     if (!alive.current) return;
     if (r.data.done) { finish(history); return; }
     if (autoRef.current) await listen();
