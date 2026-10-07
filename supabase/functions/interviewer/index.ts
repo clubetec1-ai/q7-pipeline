@@ -108,14 +108,17 @@ Deno.serve(async (req) => {
         : (await platformChain(admin, orgId)).find((a) => a.provider === "openai");
       if (!tts) return null;
       const voice = VOICES.includes(String(voiceIn)) ? String(voiceIn) : "nova";
-      const res = await fetch("https://api.openai.com/v1/audio/speech", {
+      // Voz: uma segunda tentativa com mais tempo se a primeira demorar ou falhar (o serviço de voz às vezes demora).
+      const speak = (ms: number) => fetch("https://api.openai.com/v1/audio/speech", {
         method: "POST",
         headers: { Authorization: `Bearer ${tts.apiKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({ model: "gpt-4o-mini-tts", voice, input: text, response_format: "mp3",
           instructions: "Fale em português do Brasil, com sotaque brasileiro natural (sem sotaque estrangeiro). Voz simpática, sorridente e acolhedora, " +
             "ritmo de conversa tranquilo, como uma consultora gentil numa entrevista. Pronuncie bem as palavras em português." }),
-        signal: AbortSignal.timeout(15_000),
+        signal: AbortSignal.timeout(ms),
       }).catch(() => null);
+      let res = await speak(15_000);
+      if (!res?.ok && (!res || res.status === 429 || res.status >= 500)) res = await speak(25_000);
       if (!res?.ok) {
         console.error("[interviewer] voz falhou", { status: res?.status });
         return null;
@@ -140,9 +143,9 @@ Deno.serve(async (req) => {
     const ai = await resolveAI(admin, orgId, { provider: settings.interviewer_provider ?? null, model: settings.interviewer_model ?? null });
     if (!ai) throw new HttpError(409, "Configure a chave do provedor de IA (Configurações → Chaves de IA) para usar o entrevistador.");
     const aiM = await forAgent(admin, ai, "entrevista");
-    const ask = async (system: string, user: string, long = false) => {
+    const ask = async (system: string, user: string, long = false, maxTokens?: number) => {
       const r = await chatAI(aiM, [{ role: "system", content: system }, { role: "user", content: user }], undefined,
-        { json: true, ...(long ? { timeoutMs: 90_000, maxTokens: 8000 } : {}) });
+        { json: true, ...(long ? { timeoutMs: 90_000, maxTokens: 8000 } : maxTokens ? { maxTokens } : {}) });
       if (!r.ok || !r.reply) throw new HttpError(502, r.status === 429 ? "A IA está no limite de uso agora. Tente de novo em 1 minuto." : "A IA não respondeu. Tente de novo.");
       const out = parseJson(r.reply);
       if (!Object.keys(out).length) console.warn("[interviewer] resposta fora do JSON", { chars: r.reply.length });
@@ -183,7 +186,7 @@ Deno.serve(async (req) => {
         .filter(([k]) => typeof secs[k] === "string" && String(secs[k]).trim())
         .map(([k, x]) => `## ${x.label}\n${String(secs[k]).trim().slice(0, 1200)}`).join("\n\n").slice(0, 6000);
       // Texto da etapa: começo e FIM (o que foi respondido por último numa entrevista anterior não pode sumir — senão ela repete).
-      const stepRaw = headTail(String(((prof?.steps ?? {}) as Record<string, { raw?: string }>)[stage.key === "processos" ? `proc:${setor}` : stage.key]?.raw ?? "").trim());
+      const stepRaw = headTail(String(((prof?.steps ?? {}) as Record<string, { raw?: string }>)[stage.key === "processos" ? `proc:${setor}` : stage.key]?.raw ?? "").trim(), 1500, 4500);
       const faltamDe = (v: unknown) => (Array.isArray(v) ? v : []).map((x) => clip(x, 120)).filter(Boolean).slice(0, 8);
       // Despedida pronta (não é pergunta: nada fica sem resposta). Se ficou algo importante sem resposta, diz o quê e por quê.
       const sayBye = async (faltamIn?: string[]) => {
@@ -193,7 +196,7 @@ Deno.serve(async (req) => {
             ? `Ficou faltando: ${faltam.join("; ")}. Sem isso, o agente pode não conseguir resolver esses casos sozinho; você pode completar depois, escrevendo, falando ou anexando um documento. `
             : "Com isso já tenho o suficiente desta etapa. ") +
           "Se tiver algum material desta etapa, como modelos, planilhas ou documentos, pode anexar logo abaixo.";
-        return json({ ok: true, question: bye, done: true, faltam, audio: body?.voice === "browser" ? null : await synth(bye, body?.voice), mime: "audio/mpeg" });
+        return json({ ok: true, question: bye, done: true, faltam, audio: body?.voice === "browser" || body?.skip_audio ? null : await synth(bye, body?.voice), mime: "audio/mpeg" });
       };
       const exemplosDe = (v: unknown) => (Array.isArray(v) ? v : []).map((x) => clip(x, 160)).filter(Boolean).slice(0, 3);
       // "Não entendi a pergunta": a mesma pergunta em palavras mais simples, com exemplos (não conta como resposta).
@@ -206,7 +209,7 @@ Deno.serve(async (req) => {
           "como se explicasse para alguém que nunca ouviu falar do assunto. Dê 3 exemplos curtos de resposta para inspirar (genéricos, sem inventar dados da empresa). " +
           'Responda SOMENTE com JSON: {"pergunta":"","exemplos":["","",""]}', `Empresa: ${orgRow?.name ?? ""}`);
         const simple = clip(out.pergunta, 500) || q;
-        const audio = body?.voice === "browser" ? null : await synth(simple, body?.voice);
+        const audio = body?.voice === "browser" || body?.skip_audio ? null : await synth(simple, body?.voice);
         return json({ ok: true, question: simple, done: false, audio, mime: "audio/mpeg", exemplos: exemplosDe(out.exemplos) });
       }
       // Depois de 12 respostas, encerra sem pedir outra (o que faltar fica registrado).
@@ -254,6 +257,7 @@ Deno.serve(async (req) => {
           (docsText ? `\nTexto dos documentos anexados (já lido; não pergunte o que já está aqui):\n"""\n${docsText}\n"""\n\n` : "") + "Respostas até agora:\n" +
           (qa.map((x: { q: string; a: string }, i: number) => `${i + 1}. Pergunta: ${x.q}\nResposta: ${x.a}`).join("\n") || "(nenhuma ainda)") +
           (aviso ? `\n\nATENÇÃO: ${aviso}` : ""),
+        false, 600,
       );
       let out = await turn();
       // A IA às vezes encerra sem escrever a despedida: usa a pronta. Pergunta vazia: tenta mais uma vez.
@@ -273,7 +277,7 @@ Deno.serve(async (req) => {
       if (!question && (out.terminou || qa.length >= 5)) return await sayBye(faltamDe(out.faltam));
       if (!question) throw new HttpError(502, "A IA não formulou a próxima pergunta. Clique em Tentar de novo — suas respostas estão salvas.");
       // Texto e voz juntos (uma chamada só): a pergunta aparece e já começa a ser falada.
-      const audio = body?.voice === "browser" ? null : await synth(question, body?.voice);
+      const audio = body?.voice === "browser" || body?.skip_audio ? null : await synth(question, body?.voice);
       // Se a IA disse que terminou mas ainda fez uma pergunta, deixa o dono responder (a próxima volta encerra).
       const done = !!out.terminou && !question.includes("?");
       const material = done ? "" : clip(out.material, 60);
