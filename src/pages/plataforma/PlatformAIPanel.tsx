@@ -1,3 +1,4 @@
+import { AgentModelsPanel } from "./AgentModelsPanel";
 import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -192,6 +193,7 @@ export function PlatformAIPanel() {
           </div>
         )}
       </div>
+      <AgentModelsPanel providers={rows.filter((r) => r.has_key).map((r) => r.provider)} />
     </section>
   );
 }

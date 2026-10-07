@@ -1,4 +1,4 @@
-import { chatAI, resolveAI } from "./ai-chat.ts";
+import { chatAI, resolveAI, forAgent } from "./ai-chat.ts";
 import { getAgentProfile } from "./get-ai-config.ts";
 import { applyPublishGate } from "./publish-apply.ts";
 import { MODE_RULE } from "./publish-gate.ts";
@@ -54,7 +54,7 @@ export async function replyEmailByAI(p: {
       .filter((m) => m.content && !/^\[(image|document|audio|video)\]/.test(m.content))
       .map((m) => ({ role: (m.direction === "inbound" ? "user" : "assistant") as "user" | "assistant", content: String(m.content).slice(0, 4000) })),
   ];
-  const r = await chatAI(ai, chat);
+  const r = await chatAI(await forAgent(admin, ai, "atendimento"), chat);
   if (!r.ok || !r.reply?.trim()) return false;
   // Porta de publicação (fatia 7).
   const reply = await applyPublishGate(admin, orgId, profile.publishMode, conv, ticket, plain(r.reply).slice(0, 8000));

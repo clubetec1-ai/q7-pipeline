@@ -1,7 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { HttpError, permissionsIn, requireUser, resolveOrg } from "../_shared/auth.ts";
 import { getSecret, safeEqual } from "../_shared/secrets.ts";
-import { chatAI, type ChatMsg, resolveAI, type ResolvedAI } from "../_shared/ai-chat.ts";
+import { chatAI, type ChatMsg, resolveAI, type ResolvedAI, forAgent } from "../_shared/ai-chat.ts";
 import { AREA_FOCUS, BRAIN_MODELS, BRAIN_RULES, kindsOf } from "../_shared/brain/rules.ts";
 import { type Packet, type PacketArea, packetHash, sanitizePacket, validateOrchestration, validateProposals } from "../_shared/brain/validate.ts";
 
@@ -42,7 +42,7 @@ interface Usage { calls: number; tin: number; tout: number }
 
 async function ask(ai: ResolvedAI, system: string, user: string, u: Usage, maxTokens: number) {
   const msgs: ChatMsg[] = [{ role: "system", content: `${BRAIN_RULES}\n\n${system}` }, { role: "user", content: user }];
-  const r = await chatAI(ai, msgs, undefined, { json: true, maxTokens, timeoutMs: 45_000 });
+  const r = await chatAI(await forAgent(ai.admin, ai, "cerebro"), msgs, undefined, { json: true, maxTokens, timeoutMs: 45_000 });
   u.calls += 1; u.tin += r.usage?.in ?? 0; u.tout += r.usage?.out ?? 0;
   if (!r.ok) throw new Error(r.error || "IA indisponível");
   return parseJson(r.reply);

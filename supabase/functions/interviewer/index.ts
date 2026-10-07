@@ -3,7 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { requireModule } from "../_shared/modules.ts";
 import { HttpError, requirePermission, requireUser, resolveOrg } from "../_shared/auth.ts";
 import { forOrg } from "../_shared/tenant.ts";
-import { audioAI, chatAI, type ChatMsg, platformChain, providerKey, recordUsage, resolveAI, type ResolvedAI, forTask } from "../_shared/ai-chat.ts";
+import { audioAI, chatAI, type ChatMsg, platformChain, providerKey, recordUsage, resolveAI, type ResolvedAI, forAgent } from "../_shared/ai-chat.ts";
 import { SECTIONS, STAGES } from "../_shared/company.ts";
 import { fetchSiteText, lookupCnpj, monthlyCost, USD_BRL } from "../_shared/consulting.ts";
 import { extractDocText, knowledgeContext } from "../_shared/knowledge.ts";
@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
     // então na Groq usa o modelo maior quando nenhum foi escolhido (o "auto" começa pelo 8b).
     const ai = await resolveAI(admin, orgId, { provider: settings.interviewer_provider ?? null, model: settings.interviewer_model ?? null });
     if (!ai) throw new HttpError(409, "Configure a chave do provedor de IA (Configurações → Chaves de IA) para usar o entrevistador.");
-    const aiM = forTask(ai, "analise");
+    const aiM = await forAgent(admin, ai, "entrevista");
     const ask = async (system: string, user: string, long = false) => {
       const r = await chatAI(aiM, [{ role: "system", content: system }, { role: "user", content: user }], undefined,
         { json: true, ...(long ? { timeoutMs: 90_000, maxTokens: 8000 } : {}) });

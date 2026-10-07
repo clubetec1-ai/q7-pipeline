@@ -4287,6 +4287,30 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_ai_agent_models: {
+        Row: {
+          agent: string
+          model: string
+          provider: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          agent: string
+          model: string
+          provider: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          agent?: string
+          model?: string
+          provider?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       platform_ai_slots: {
         Row: {
           last_alert_at: string | null
@@ -6074,6 +6098,10 @@ export type Database = {
       org_health: { Args: { org: string }; Returns: Json }
       org_setup_status: { Args: { org: string }; Returns: Json }
       org_theme: { Args: { org: string }; Returns: Json }
+      platform_ai_agent_model_set: {
+        Args: { p_agent: string; p_model: string; p_provider: string }
+        Returns: undefined
+      }
       platform_ai_available: { Args: { org: string }; Returns: boolean }
       platform_ai_clear: { Args: { slot_name: string }; Returns: undefined }
       platform_ai_set: {
@@ -6628,6 +6656,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      service_retention_batch: { Args: { p_limit: number }; Returns: Json }
       service_search_knowledge: {
         Args: {
           depts?: string[]

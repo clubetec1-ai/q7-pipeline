@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { HttpError, permissionsIn, requireUser, resolveOrg } from "../_shared/auth.ts";
-import { chatAI, resolveAI } from "../_shared/ai-chat.ts";
+import { chatAI, resolveAI, forAgent } from "../_shared/ai-chat.ts";
 import { toChatText } from "../_shared/ai-policy.ts";
 import { APP_GUIDE } from "../_shared/app-guide.ts";
 
@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
       const convo = msgs.map((m: { role: string; content: string }) => `${m.role === "user" ? "Pessoa" : "Assistente"}: ${m.content}`).join("\n");
       let out: Record<string, unknown> = {};
       if (ai) {
-        const r = await chatAI(ai, [{ role: "system", content:
+        const r = await chatAI(await forAgent(admin, ai, "atendimento"), [{ role: "system", content:
           "Você abre chamados de suporte do sistema Deixa com a IA. A partir da conversa (o assistente não resolveu), responda SOMENTE com JSON " +
           '{"titulo":"","resumo":"","urgencia":"media"}. titulo: até 80 caracteres. resumo: o problema e o que já foi tentado, em até 6 linhas, sem dados pessoais de clientes. ' +
           "urgencia: urgente = atendimento parado, clientes sem resposta, número/caixa desconectados, cobrança ou segurança; alta = função importante não funciona; " +
@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
       "Escreva em português do Brasil, simples e direto, sem tabelas.",
       `\nMAPA DO SISTEMA:\n${APP_GUIDE}`,
     ].filter(Boolean).join(" ");
-    const r = await chatAI(ai, [{ role: "system", content: system }, ...msgs]);
+    const r = await chatAI(await forAgent(admin, ai, "atendimento"), [{ role: "system", content: system }, ...msgs]);
     if (!r.ok || !r.reply) throw new HttpError(502, "O assistente não respondeu. Tente de novo.");
     return json({ ok: true, reply: toChatText(String(r.reply)).slice(0, 3000) });
   } catch (e) {

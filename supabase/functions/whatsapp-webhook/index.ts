@@ -4,7 +4,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { getAgentProfile } from "../_shared/get-ai-config.ts";
 import { applyPublishGate } from "../_shared/publish-apply.ts";
 import { MODE_RULE } from "../_shared/publish-gate.ts";
-import { audioAI, chatAI, recordUsage, resolveAI } from "../_shared/ai-chat.ts";
+import { audioAI, chatAI, recordUsage, resolveAI, forAgent } from "../_shared/ai-chat.ts";
 import { cancelPendingFollowups, scheduleInactivityFollowup } from "../_shared/followups.ts";
 import * as providers from "../_shared/providers/index.ts";
 import { transcribeAudio } from "../_shared/transcribe.ts";
@@ -685,7 +685,7 @@ async function handle(req: Request, ctx: QueueCtx): Promise<Response> {
       })),
     ];
 
-    const groq = await chatAI(ai, chat);
+    const groq = await chatAI(await forAgent(supabase, ai, "atendimento"), chat);
     if (!groq.ok || !groq.reply) {
       console.error("[webhook] groq failed", groq.error);
       return ok();

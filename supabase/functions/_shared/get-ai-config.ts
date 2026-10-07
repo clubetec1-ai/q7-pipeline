@@ -41,8 +41,9 @@ export const ANALYSIS_PREFERENCE = [
   "llama-3.1-8b-instant",
   "groq/compound-mini",
 ];
-export type AITask = "atendimento" | "analise";
-export const preferenceFor = (task?: AITask) => (task === "analise" ? ANALYSIS_PREFERENCE : MODEL_PREFERENCE);
+/** atendimento = rápido e barato; analise = capaz; maxima = o mais robusto (cérebro). */
+export type AITask = "atendimento" | "analise" | "maxima";
+export const preferenceFor = (task?: AITask) => (task === "analise" || task === "maxima" ? ANALYSIS_PREFERENCE : MODEL_PREFERENCE);
 
 /** Áudio, TTS, classificadores e guardrails — não respondem chat. */
 const NON_CHAT = /whisper|orpheus|prompt-guard|safeguard|allam|tts|guard/i;

@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { HttpError, permissionsIn, requireUser, resolveOrg } from "../_shared/auth.ts";
-import { chatAI, resolveAI } from "../_shared/ai-chat.ts";
+import { chatAI, resolveAI, forAgent } from "../_shared/ai-chat.ts";
 import { toChatText } from "../_shared/ai-policy.ts";
 import { knowledgeContext } from "../_shared/knowledge.ts";
 import { requireModule } from "../_shared/modules.ts";
@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
       "</dados>",
       "Escreva agora o rascunho da proposta, só ele.",
     ].filter(Boolean).join("\n\n");
-    const r = await chatAI(ai, [{ role: "system", content: system }, { role: "user", content: user }]);
+    const r = await chatAI(await forAgent(admin, ai, "relatorios"), [{ role: "system", content: system }, { role: "user", content: user }]);
     if (!r.ok || !r.reply) throw new HttpError(502, "A IA não respondeu. Tente de novo.");
     await admin.from("audit_log").insert({ organization_id: orgId, actor_id: ctx.user.id, action: "proposal.drafted", target: convId });
     return json({ ok: true, text: toChatText(String(r.reply)).slice(0, 4000) });

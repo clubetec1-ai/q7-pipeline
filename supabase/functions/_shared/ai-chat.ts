@@ -4,6 +4,8 @@
  * Vault da organização (org:<org>:<provedor>_api_key); nunca do navegador.
  * Groq mantém a cadeia de modelos com failover de get-ai-config.
  */
+import { effortFor, isReasoning } from "./model-pick.ts";
+import { AGENT_MODELS, type AgentKey, modelFor } from "./ai-agents-models.ts";
 import { getSecret } from "./secrets.ts";
 import { withPolicy } from "./ai-policy.ts";
 import { esc, sendSystemEmail } from "./email.ts";
@@ -36,6 +38,33 @@ const JSON_MODE = new Set(["groq", "openai", "openrouter", "gemini", "deepseek"]
 /** json: pede resposta em JSON válido (quando o provedor aceita); timeoutMs/maxTokens para respostas longas. */
 export interface ChatOpts { json?: boolean; timeoutMs?: number; maxTokens?: number; temperature?: number; task?: AITask }
 
+/**
+ * Modelo por tipo de agente (catálogo em ai-agents-models.ts + escolha da Clubetec em platform_ai_agent_models, cache de
+ * 5 min). Empresa com chave própria e modelo escolhido continua com o dela. As reservas recebem o modelo do agente no
+ * fornecedor delas.
+ */
+let agentCache: { at: number; map: Record<string, string> } = { at: 0, map: {} };
+// deno-lint-ignore no-explicit-any
+async function agentOverrides(admin: any): Promise<Record<string, string>> {
+  if (Date.now() - agentCache.at < 300_000) return agentCache.map;
+  try {
+    const { data } = await admin.from("platform_ai_agent_models").select("agent, provider, model");
+    agentCache = { at: Date.now(), map: Object.fromEntries((data ?? []).map((r: { agent: string; provider: string; model: string }) => [`${r.agent}:${r.provider}`, r.model])) };
+  } catch { agentCache = { at: Date.now(), map: {} }; }
+  return agentCache.map;
+}
+// deno-lint-ignore no-explicit-any
+export async function forAgent(admin: any, ai: ResolvedAI, agent: AgentKey): Promise<ResolvedAI> {
+  const spec = AGENT_MODELS[agent];
+  const ov = await agentOverrides(admin);
+  const one = (x: ResolvedAI): ResolvedAI => ({
+    ...x, task: spec.capacidade,
+    model: x.source === "propria" && x.model ? x.model : modelFor(agent, x.provider, ov) || x.model,
+    opts: { ...(spec.maxTokens ? { maxTokens: spec.maxTokens } : {}), ...(spec.temperature !== undefined ? { temperature: spec.temperature } : {}) },
+  });
+  return { ...one(ai), fallbacks: ai.fallbacks?.map(one) };
+}
+
 /** A mesma IA resolvida (com as reservas) marcada para uma tarefa. */
 export const forTask = (ai: ResolvedAI, task: AITask): ResolvedAI => ({ ...ai, task, fallbacks: ai.fallbacks?.map((f) => ({ ...f, task })) });
 
@@ -48,8 +77,10 @@ async function once(endpoint: string, apiKey: string, model: string, messages: C
         model, messages: withPolicy(messages),
         ...(tools?.length ? { tools: tools.map((t) => ({ type: "function", function: t })), tool_choice: "auto" } : {}),
         ...(opts.jsonMode ? { response_format: { type: "json_object" } } : {}),
-        ...(opts.maxTokens ? { max_tokens: opts.maxTokens } : {}),
-        ...(typeof opts.temperature === "number" ? { temperature: opts.temperature } : {}),
+        // Modelos que raciocinam: teto inclui o raciocínio, sem temperatura e com esforço menor fora do cérebro (menos tokens).
+        ...(isReasoning(model)
+          ? { ...(opts.maxTokens ? { max_completion_tokens: opts.maxTokens * 4 + 1000 } : {}), reasoning_effort: effortFor(opts.task) }
+          : { ...(opts.maxTokens ? { max_tokens: opts.maxTokens } : {}), ...(typeof opts.temperature === "number" ? { temperature: opts.temperature } : {}) }),
       }),
       signal: AbortSignal.timeout(opts.timeoutMs ?? 30_000),
     });
@@ -180,7 +211,7 @@ const SWITCH = new Set([401, 403, 404, 408, 429, 500, 502, 503, 504]);
  */
 export async function chatAI(ai: ResolvedAI, messages: ChatMsg[], tools?: ToolDef[], opts: ChatOpts = {}): Promise<ChatResult> {
   const task = ai.task;
-  let r = await chat(ai.apiKey, ai.provider, ai.model, messages, tools, { task, ...opts });
+  let r = await chat(ai.apiKey, ai.provider, ai.model, messages, tools, { task, ...ai.opts, ...opts });
   if (r.ok) { await recordUsage(ai, r.usage); return r; }
   for (const next of ai.fallbacks ?? []) {
     if (r.status && !SWITCH.has(r.status)) break;
@@ -188,12 +219,15 @@ export async function chatAI(ai: ResolvedAI, messages: ChatMsg[], tools?: ToolDe
     console.error("[ia] trocando para a reserva", { de: ai.slot, para: next.slot, status: r.status });
     await alertFailover(ai, next, r.error);
     ai = next;
-    r = await chat(next.apiKey, next.provider, next.model, messages, tools, { task, ...opts });
+    r = await chat(next.apiKey, next.provider, next.model, messages, tools, { task, ...next.opts, ...opts });
     if (r.ok) { await recordUsage(next, r.usage); return r; }
   }
   if (!r.ok) await markSlotError(ai, r.error);
   return r;
 }
+
+/** Nível máximo (cérebro): o mais robusto conhecido e aprovado por fornecedor. */
+export const MAX_MODEL: Record<string, string> = { openai: "gpt-4.1", gemini: "gemini-2.5-pro", anthropic: "claude-haiku-4-5" };
 
 /** Modelo mais capaz por provedor para tarefas de análise (entrevista, Arquiteto, avaliações, prova…). */
 export const ANALYSIS_MODEL: Record<string, string> = { openai: "gpt-4.1-mini", gemini: "gemini-2.5-flash", anthropic: "claude-haiku-4-5" };
@@ -202,13 +236,16 @@ export async function chat(apiKey: string, provider: string, model: string, mess
   const p = AI_PROVIDERS[provider] ?? AI_PROVIDERS.groq;
   const chosen = String(model || "").trim() || p.model;
   const o = { ...opts, jsonMode: !!opts.json && !tools?.length && JSON_MODE.has(provider) };
-  // Análise sem modelo escolhido pela posição: o mais capaz do provedor; indisponível → o padrão (barato e rápido).
-  const strong = opts.task === "analise" && !String(model || "").trim() ? ANALYSIS_MODEL[provider] : undefined;
-  if (strong) {
-    const r = await once(p.endpoint, apiKey, strong, messages, tools, o);
-    if (r.ok || !r.status || ![400, 403, 404].includes(r.status)) return r;
+  // Sem modelo escolhido: o modelo fixo do nível (análise ou máximo); atendimento usa o padrão do fornecedor.
+  const auto = !String(model || "").trim() || model === "auto";
+  const pick = auto && opts.task === "maxima" ? MAX_MODEL[provider] ?? ANALYSIS_MODEL[provider] ?? chosen
+    : auto && opts.task === "analise" ? ANALYSIS_MODEL[provider] ?? chosen : chosen;
+  if (provider !== "groq") {
+    const r = await once(p.endpoint, apiKey, pick, messages, tools, o);
+    // Modelo escolhido inexistente ou sem acesso: volta para o padrão do fornecedor (nunca deixa o agente sem resposta).
+    if (!r.ok && pick !== p.model && r.status && [400, 403, 404].includes(r.status)) return once(p.endpoint, apiKey, p.model, messages, tools, o);
+    return r;
   }
-  if (provider !== "groq") return once(p.endpoint, apiKey, chosen, messages, tools, o);
   let last: ChatResult = { ok: false, error: "nenhum modelo disponível" };
   for (const m of await resolveModelChain(apiKey, chosen, opts.task)) {
     last = await once(p.endpoint, apiKey, m, messages, tools, o);
@@ -221,6 +258,8 @@ export interface ResolvedAI {
   provider: string; apiKey: string; model: string;
   /** Tarefa (escolhe o modelo quando a posição não fixou um): atendimento = rápido; analise = o mais capaz. */
   task?: AITask;
+  /** Padrões do tipo de agente (teto de tokens, temperatura); a chamada pode sobrescrever. */
+  opts?: ChatOpts;
   /** "propria" = chave da empresa; "plataforma" = IA da Clubetec (posição em slot). */
   source?: "propria" | "plataforma"; slot?: string;
   /** Reservas da plataforma, na ordem, usadas por chatAI se esta falhar. */
