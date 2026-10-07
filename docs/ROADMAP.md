@@ -224,6 +224,7 @@ dependências e leitura do código.
 10. E-mail: Microsoft 365 por OAuth e Google direto.
 
 **Etapa C — canais e extras (depois da Etapa B)**
+- 📞 **Handphone nuvem (doc. API Nuvem v5.0.3.1 enviada pelo dono em 07/10):** ramal SIP UDP/TCP na porta 7048 (MicroSIP) e WebRTC na porta 8089 (wss) com a opção **ramal-web** ativada no ramal — o telefone dentro do sistema já existe (sip.js) e precisa só de ramal, senha e endereço; modelo da Handphone já preenche o endereço WebRTC. API (clicktocall, statusreport com histórico e gravações, statusramais para abrir a ficha na chamada, statusoperacoes, discador): exige login, senha, token e **um IP de origem fixo** — as funções do Supabase não têm IP fixo, então a API entra junto com a VPS (IP fixo) ou um intermediário com IP fixo. Gravações vêm em .gsm (precisam ser convertidas para ouvir no navegador e transcrever). 🙋 Precisa: Handphone ativar ramal-web nos ramais e liberar a instância da API com o IP da VPS.
 11. Voz: WSS, gravações e transcrição das ligações, agente de voz/URA, fluxos na ligação, avaliação das ligações
     (🙋 respostas da Handphone e da Nvoip).
 12. Microsoft Teams para ramais.
