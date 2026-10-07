@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { HttpError, isPlatformOperator, requireUser } from "../_shared/auth.ts";
-import { chatAI, platformChain } from "../_shared/ai-chat.ts";
+import { chatAI, platformChain, forTask } from "../_shared/ai-chat.ts";
 import { fence } from "../_shared/fence.ts";
 import { buildDevTask, DIAG_PROMPT, type Equipe, parseDiag, reviewDiag, SYSTEM_MAP, TEAMS } from "../_shared/platform-brain.ts";
 
@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
     if (!ai) throw new HttpError(503, "IA da plataforma indisponível");
 
     const team = TEAMS[inc.equipe as Equipe];
-    const r = await chatAI(ai, [
+    const r = await chatAI(forTask(ai, "analise"), [
       { role: "system", content: `${DIAG_PROMPT}\n\nVocê é: ${team?.equipe ?? inc.equipe}, que cuida de ${team?.cuida ?? "-"}.\n\nMapa do sistema:\n${SYSTEM_MAP}` },
       { role: "user", content: `Incidente:\n<dados>\n${fence(JSON.stringify({
         regra: inc.kind, titulo: inc.titulo, gravidade: inc.gravidade, empresas_afetadas: inc.empresas, ocorrencias_na_janela: inc.ocorrencias,

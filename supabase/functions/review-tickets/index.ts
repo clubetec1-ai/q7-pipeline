@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 import { getSecret, safeEqual } from "../_shared/secrets.ts";
-import { chatAI, resolveAI } from "../_shared/ai-chat.ts";
+import { chatAI, resolveAI, forTask } from "../_shared/ai-chat.ts";
 import { forOrg } from "../_shared/tenant.ts";
 import { parseReview, redact, REVIEW_PROMPT } from "../_shared/review.ts";
 
@@ -61,9 +61,8 @@ Deno.serve(async (req) => {
       await org.update("ticket_reviews", { attempts, error, status: attempts >= 3 ? "failed" : "pending" }).eq("id", r.id);
     };
     if (!ai) { await fail("sem chave de IA (Configurações → Chaves de IA)"); continue; }
-    const model = ai.provider === "groq" && (!ai.model || ai.model === "auto") ? "llama-3.3-70b-versatile" : ai.model;
 
-    const res = await chatAI({ ...ai, model }, [
+    const res = await chatAI(forTask(ai, "analise"), [
       { role: "system", content: REVIEW_PROMPT },
       { role: "user", content: `${facts}\n\nHistórico:\n${transcript}` },
     ]);
@@ -73,7 +72,7 @@ Deno.serve(async (req) => {
     await org.update("ticket_reviews", {
       status: "done", satisfied: out.satisfied, score: out.score, reason: out.reason,
       agent_feedback: out.agent_feedback, process_issues: out.process_issues,
-      model: `${ai.provider}:${model}`, error: null, reviewed_at: new Date().toISOString(),
+      model: `${ai.provider}:${ai.model || "auto"}`, error: null, reviewed_at: new Date().toISOString(),
     }).eq("id", r.id);
     done++;
   }

@@ -195,7 +195,11 @@ dependências e leitura do código.
 6. Atendimento: convidar outro setor sem transferir, sino para quem ajuda, filtros na busca, anonimização pedida pelo
    WhatsApp, retenção automática, limite e marca d'água na exportação, gravar áudio no navegador, depuração do bloco
    HTTP, atendente preferencial na ficha do cliente.
-7. IA: modelo certo por tarefa (tirar os "llama" fixos), entrevista detectando sozinha o fim da fala.
+7. ✅ **IA (06/10):** modelo por tarefa — atendimento usa os rápidos e com mais cota; análise (Arquiteto, entrevista,
+   avaliações, relatórios, melhorias, integrações, prova, Guardião, cérebro da plataforma) usa os mais capazes, inclusive
+   quando cai para a reserva (`forTask`, `ANALYSIS_PREFERENCE`; sem "llama" fixo nas funções). Entrevista por voz envia a
+   resposta sozinha 3 s depois que a pessoa para de falar (aprende o ruído do ambiente; pausa não conta; dá para desligar e
+   usar o botão) — `src/lib/endOfSpeech.ts` + teste.
 8. Vídeos gravados de verdade nas telas principais (hoje são as demonstrações animadas).
 9. Manual da marca completo como complemento pago; paleta e fontes sugeridas para quem não tem logo.
 10. E-mail: Microsoft 365 por OAuth e Google direto.

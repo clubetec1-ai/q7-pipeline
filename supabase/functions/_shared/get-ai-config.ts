@@ -29,6 +29,21 @@ export const MODEL_PREFERENCE = [
   "groq/compound-mini",
 ];
 
+/**
+ * Tarefas de análise (desenhar processo, entrevista, avaliar atendimento, diagnóstico, prova): o modelo mais capaz
+ * primeiro; o rápido fica por último. Atendimento usa MODEL_PREFERENCE (rápido e com mais cota).
+ */
+export const ANALYSIS_PREFERENCE = [
+  "openai/gpt-oss-120b",
+  "llama-3.3-70b-versatile",
+  "qwen/qwen3.6-27b",
+  "openai/gpt-oss-20b",
+  "llama-3.1-8b-instant",
+  "groq/compound-mini",
+];
+export type AITask = "atendimento" | "analise";
+export const preferenceFor = (task?: AITask) => (task === "analise" ? ANALYSIS_PREFERENCE : MODEL_PREFERENCE);
+
 /** Áudio, TTS, classificadores e guardrails — não respondem chat. */
 const NON_CHAT = /whisper|orpheus|prompt-guard|safeguard|allam|tts|guard/i;
 
@@ -91,19 +106,20 @@ export async function listChatModels(apiKey: string): Promise<string[]> {
  * existe e ainda está viva; "auto" (ou modelo decomissionado) cai direto na
  * ordem de preferência filtrada pelo que a Groq diz estar disponível.
  */
-export async function resolveModelChain(apiKey: string, preferred?: string): Promise<string[]> {
+export async function resolveModelChain(apiKey: string, preferred?: string, task?: AITask): Promise<string[]> {
+  const PREF = preferenceFor(task);
   const available = await listChatModels(apiKey);
   const wanted = (preferred ?? "").trim();
   const isAuto = !wanted || wanted.toLowerCase() === "auto";
 
   // Sem lista da Groq (rede caiu, chave sem permissão): usa o palpite estático.
   if (!available.length) {
-    return isAuto ? [...MODEL_PREFERENCE] : [wanted, ...MODEL_PREFERENCE.filter((m) => m !== wanted)];
+    return isAuto ? [...PREF] : [wanted, ...PREF.filter((m) => m !== wanted)];
   }
 
   const chain: string[] = [];
   if (!isAuto && available.includes(wanted)) chain.push(wanted);
-  for (const m of MODEL_PREFERENCE) {
+  for (const m of PREF) {
     if (available.includes(m) && !chain.includes(m)) chain.push(m);
   }
   // Nenhum preferido sobreviveu — aceita qualquer chat model que a conta tenha.
