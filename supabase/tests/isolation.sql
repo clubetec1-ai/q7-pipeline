@@ -1874,6 +1874,13 @@ BEGIN
   PERFORM public.service_retention_batch(100);
   PERFORM pg_temp.expect((SELECT content FROM public.messages WHERE id = 'aaaaaaaa-0000-0000-0115-000000000002') = 'mensagem recente', 'menos de 6 meses nao vale');
   UPDATE public.organizations SET settings = settings - 'retencao_meses' WHERE id = A;
+  -- 116. Funil pronto com retornos: teste gratis e pos-venda; o que a empresa ja configurou nao muda.
+  PERFORM private.install_sales_funnel(A);
+  PERFORM pg_temp.expect((SELECT followup_days FROM public.pipeline_stages WHERE organization_id = A AND lower(name) = 'teste grátis') = '{1,3,6}', 'teste gratis acompanhado');
+  PERFORM pg_temp.expect((SELECT followup_days FROM public.pipeline_stages WHERE organization_id = A AND lower(name) = 'cliente') = '{2,7,30}', 'pos-venda');
+  UPDATE public.pipeline_stages SET followup_days = '{3}' WHERE organization_id = A AND lower(name) = 'proposta enviada';
+  PERFORM private.install_sales_funnel(A);
+  PERFORM pg_temp.expect((SELECT followup_days FROM public.pipeline_stages WHERE organization_id = A AND lower(name) = 'proposta enviada') = '{3}', 'configuracao da empresa preservada');
   -- 99. Revisao de area do Diagnostico: so dono/admin ve; so o servidor grava; "esta certo assim" vale.
   PERFORM public.service_diag_findings_save(A, 'empresa', 'Diretor Comercial (IA)', '[{"n":1,"tipo":"incoerencia","gravidade":"critica","texto":"Horario 18h x 24h","etapas":["empresa","posvenda"],"sugestao":"s"},{"n":2,"tipo":"inventado","gravidade":"critica","texto":"x","etapas":[]},{"n":3,"tipo":"risco","gravidade":"baixa","texto":"Promete brinde","etapas":["empresa"],"sugestao":""}]');
   PERFORM pg_temp.expect(pg_temp.q(owner_a, 'SELECT open_critical FROM public.diag_findings WHERE step_key = ''empresa''') = 1, 'dono ve a revisao com 1 critica aberta');

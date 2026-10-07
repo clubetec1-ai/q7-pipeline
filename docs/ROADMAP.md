@@ -188,7 +188,11 @@ dependências e leitura do código.
   Diagnóstico com os especialistas de área (segunda opinião antes de aprovar); (3) os agentes trocando informações entre
   si com registro e auditoria; (4) o painel do organograma de IA para o dono. Fazer o desenho (docs/design) para o dono
   aprovar antes do código.
-3. Funil de vendas, resto: acompanhamento do teste grátis, pós-venda (implantação, pesquisa, indicação) e página de captação.
+3. ✅ **Funil de vendas (06/10):** o funil pronto já vem com retornos automáticos — proposta (2, 5 e 10 dias), teste grátis
+   (1, 3 e 6 dias) e pós-venda em "Cliente" (2, 7 e 30 dias: implantação, pesquisa de 1 a 5 e indicação); empresas que já
+   tinham o funil ganharam onde estava vazio (teste 116). **Página de captação** pública em `/c/<empresa>` (título, texto e
+   botão do WhatsApp com a origem marcada; função `capture-page` que só entrega o que o dono publicou) e passo a passo da
+   tela Funil de vendas. Falta: endereço personalizável da página (hoje usa o código da empresa) e logo da empresa nela.
 4. Base de conhecimento: preencher contrato/orçamento com os dados do cliente, enviar documento pelo atendimento, PDF
    digitalizado (OCR), vídeo e anexos de e-mail.
 5. Cobrança: IA gerando cobrança (com permissão), recorrente ligada a "Conta a receber", Mercado Pago/Efí.
