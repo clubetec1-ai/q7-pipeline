@@ -1556,6 +1556,64 @@ export type Database = {
           },
         ]
       }
+      conversation_helpers: {
+        Row: {
+          active: boolean
+          conversation_id: string
+          created_at: string
+          department_id: string
+          ended_at: string | null
+          id: string
+          invited_by: string | null
+          note: string | null
+          organization_id: string
+        }
+        Insert: {
+          active?: boolean
+          conversation_id: string
+          created_at?: string
+          department_id: string
+          ended_at?: string | null
+          id?: string
+          invited_by?: string | null
+          note?: string | null
+          organization_id: string
+        }
+        Update: {
+          active?: boolean
+          conversation_id?: string
+          created_at?: string
+          department_id?: string
+          ended_at?: string | null
+          id?: string
+          invited_by?: string | null
+          note?: string | null
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_helpers_conv_fk"
+            columns: ["conversation_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "conversation_helpers_dept_fk"
+            columns: ["department_id", "organization_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id", "organization_id"]
+          },
+          {
+            foreignKeyName: "conversation_helpers_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           ai_enabled: boolean
@@ -5861,6 +5919,7 @@ export type Database = {
         Returns: undefined
       }
       dismiss_agent_task: { Args: { p_task: string }; Returns: undefined }
+      end_department_help: { Args: { p_id: string }; Returns: undefined }
       ensure_team_channels: { Args: { org: string }; Returns: undefined }
       export_contacts: { Args: { org: string }; Returns: Json }
       flow_stats: {
@@ -5884,6 +5943,10 @@ export type Database = {
         Returns: string
       }
       implantation_compare: { Args: { org: string }; Returns: Json }
+      invite_department_help: {
+        Args: { p_conv: string; p_dept: string; p_note?: string }
+        Returns: string
+      }
       leave_team_group: { Args: { ch: string }; Returns: undefined }
       link_improvement_artifact: {
         Args: { aid: string; akind: string; improvement: string }

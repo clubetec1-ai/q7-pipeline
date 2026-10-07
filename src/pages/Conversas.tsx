@@ -1,3 +1,4 @@
+import { AudioRecorderButton } from "./conversas/AudioRecorderButton";
 import { StatusBadge } from "@/components/layout/StatusBadge";
 import { AiSuggestion } from "./conversas/AiSuggestion";
 import { firstName, memberNames } from "@/lib/memberNames";
@@ -991,6 +992,7 @@ export default function Conversas() {
                   <Paperclip className="w-4 h-4" />
                 </Button>
                 {org && <LibraryPicker orgId={org.id} disabled={sending} onPick={(f) => { setPendingLib(f); setPendingFile(null); }} />}
+                {!isMeta(active) && <AudioRecorderButton disabled={sending} onRecorded={(f) => { setPendingFile(f); setPendingLib(null); }} />}
                 <Input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}

@@ -114,6 +114,25 @@ export default function ConfigAtendimento() {
           </div>
           <Button variant="outline" disabled={optWords === null && optReply === null} onClick={saveOptOut}>Salvar</Button>
         </section>
+
+        <section className="rounded-xl border bg-card p-4 space-y-3">
+          <h2 className="font-semibold">Por quanto tempo guardar as conversas (LGPD)</h2>
+          <p className="text-xs text-muted-foreground">
+            A LGPD pede para guardar dados pessoais só pelo tempo necessário. Ligada, a retenção apaga todo dia o texto e os arquivos
+            das mensagens e as notas internas mais antigas que o prazo, de conversas sem atendimento aberto. Ficam o cadastro do
+            cliente, os protocolos e os números dos relatórios. <b>Não dá para desfazer</b> — se a sua área exige guardar por mais
+            tempo (ex.: registros obrigatórios), escolha um prazo maior ou deixe desligada.
+          </p>
+          <select className="h-9 rounded-md border bg-background px-2 text-sm" value={String(settings.retencao_meses ?? "")}
+            onChange={(e) => {
+              const v = e.target.value ? Number(e.target.value) : null;
+              if (v && !window.confirm(`Apagar o conteúdo das conversas com mais de ${v} meses, todo dia, sem volta?`)) return;
+              void saveSettings({ retencao_meses: v });
+            }}>
+            <option value="">Desligada (guardar sempre)</option>
+            {[6, 12, 24, 36, 60, 120].map((m) => <option key={m} value={m}>{m} meses</option>)}
+          </select>
+        </section>
       </main>
     </div>
   );

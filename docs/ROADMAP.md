@@ -192,9 +192,15 @@ dependências e leitura do código.
 4. Base de conhecimento: preencher contrato/orçamento com os dados do cliente, enviar documento pelo atendimento, PDF
    digitalizado (OCR), vídeo e anexos de e-mail.
 5. Cobrança: IA gerando cobrança (com permissão), recorrente ligada a "Conta a receber", Mercado Pago/Efí.
-6. Atendimento: convidar outro setor sem transferir, sino para quem ajuda, filtros na busca, anonimização pedida pelo
-   WhatsApp, retenção automática, limite e marca d'água na exportação, gravar áudio no navegador, depuração do bloco
-   HTTP, atendente preferencial na ficha do cliente.
+6. ✅ **Atendimento (06/10):** outro setor ajudando sem transferir ("Mais → Pedir ajuda de outro setor": o setor vê a
+   conversa e anota, aviso no sino, termina ao finalizar; teste 114); filtros na busca (canal, setor, atendente, período);
+   pedido do titular pelo WhatsApp ("quero que apaguem meus dados" → pedido para dono/admin com prazo de 15 dias, aviso
+   no sino e na ficha; anonimizar atende, recusar exige motivo; teste 112); retenção automática opcional (6 a 120 meses,
+   apaga texto e arquivos das conversas sem atendimento aberto, todo dia; teste 115); exportação com limite (3 por dia,
+   20 mil contatos) e marca d'água (quem, quando e código em cada linha); gravar áudio no navegador (formato aceito pelo
+   WhatsApp); depuração do bloco HTTP por 1 hora no editor do fluxo (teste 113); atendente preferencial na ficha;
+   Instagram marca "apagada pelo cliente". Fica: e-mail apagado na caixa (o registro do sistema continua valendo) e
+   confirmar com teste real o formato de mensagem apagada do Instagram e do Messenger.
 7. ✅ **IA (06/10):** modelo por tarefa — atendimento usa os rápidos e com mais cota; análise (Arquiteto, entrevista,
    avaliações, relatórios, melhorias, integrações, prova, Guardião, cérebro da plataforma) usa os mais capazes, inclusive
    quando cai para a reserva (`forTask`, `ANALYSIS_PREFERENCE`; sem "llama" fixo nas funções). Entrevista por voz envia a

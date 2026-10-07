@@ -78,6 +78,11 @@ async function handleEvent(admin: Any, page: Any, channel: "messenger" | "instag
   const personId = String(echo ? ev?.recipient?.id : ev?.sender?.id ?? "");
   if (!ID.test(personId) || personId === entryId) return false;
   const org = forOrg(admin, page.organization_id);
+  // Apagada pela pessoa (Instagram manda o mesmo mid com is_deleted): o histórico fica; só marca, como no WhatsApp.
+  if (msg.is_deleted) {
+    await admin.rpc("service_mark_message_deleted", { org: page.organization_id, pmid: clip(msg.mid, 200), who: echo ? "phone" : "contact" });
+    return true;
+  }
 
   const seen = async () => !!(await org.select("messages", "id").eq("provider_message_id", clip(msg.mid, 200)).maybeSingle()).data;
   if (await seen()) return false;
