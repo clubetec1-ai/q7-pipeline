@@ -29,6 +29,19 @@ export async function transcribeAudio(
   provider = "groq",
   /** Dica de vocabulário (nome da empresa, cidades, marcas) para escrever certo os nomes próprios. */
   prompt?: string,
+  /** Modelo mais preciso aprovado para um uso específico (ex.: Diagnóstico); falhou → o padrão do fornecedor. */
+  model?: string,
+): Promise<string | null> {
+  if (model && STT[provider] && model !== STT[provider].model) {
+    const best = await transcribeAudioWith(apiKey, bytes, fileName, provider, prompt, model);
+    if (best) return best;
+    console.log("[transcribe] modelo preciso falhou; usando o padrão", { model });
+  }
+  return transcribeAudioWith(apiKey, bytes, fileName, provider, prompt);
+}
+
+async function transcribeAudioWith(
+  apiKey: string, bytes: Uint8Array, fileName: string, provider: string, prompt?: string, model?: string,
 ): Promise<string | null> {
   const stt = STT[provider];
   if (!apiKey || !stt) return null;
@@ -41,7 +54,7 @@ export async function transcribeAudio(
   try {
     const form = new FormData();
     form.append("file", new Blob([bytes as unknown as BlobPart]), fileName);
-    form.append("model", stt.model);
+    form.append("model", model || stt.model);
     form.append("language", "pt");
     form.append("response_format", "json");
     if (prompt) form.append("prompt", prompt.slice(0, 800));

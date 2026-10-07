@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
       if (!stt) throw new HttpError(409, "Para usar o microfone, a IA precisa de um fornecedor que transcreva áudio (OpenAI ou Groq).");
       let bytes: Uint8Array;
       try { bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)); } catch { throw new HttpError(400, "Áudio inválido"); }
-      const ext = /mp4|m4a/.test(String(body?.mime ?? "")) ? "m4a" : /ogg/.test(String(body?.mime ?? "")) ? "ogg" : "webm";
+      const ext = /mp4|m4a/.test(String(body?.mime ?? "")) ? "m4a" : /ogg/.test(String(body?.mime ?? "")) ? "ogg" : /mpeg|mp3/.test(String(body?.mime ?? "")) ? "mp3" : "webm";
       // Dica de vocabulário: nome da empresa e nomes próprios que já aparecem no Diagnóstico (cidades, marcas, siglas).
       const [{ data: on }, { data: pf }] = await Promise.all([
         admin.from("organizations").select("name").eq("id", orgId).maybeSingle(),
@@ -98,7 +98,9 @@ Deno.serve(async (req) => {
       ]);
       const textos = [...Object.values((pf?.sections ?? {}) as Record<string, unknown>), ...Object.values((pf?.steps ?? {}) as Record<string, { raw?: unknown }>).map((x) => x?.raw)]
         .filter((x): x is string => typeof x === "string").map((x) => x.slice(0, 6000));
-      const text = await transcribeAudio(stt.apiKey, bytes, `fala.${ext}`, stt.provider, sttHint(String(on?.name ?? ""), textos));
+      // Diagnóstico (uma vez por cliente; custo entra na instalação — aprovado pelo dono em 07/10): o modelo mais preciso da OpenAI.
+      const text = await transcribeAudio(stt.apiKey, bytes, `fala.${ext}`, stt.provider, sttHint(String(on?.name ?? ""), textos),
+        stt.provider === "openai" ? "gpt-4o-transcribe" : undefined);
       if (text) await recordUsage(stt, undefined, 1);
       if (!text) throw new HttpError(502, "Não consegui entender o áudio. Tente falar de novo, mais perto do microfone.");
       return json({ ok: true, text });
