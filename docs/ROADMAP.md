@@ -167,7 +167,11 @@ dependências e leitura do código.
 1. **Montar a Clubetec do zero pelos Primeiros passos e pelo Diagnóstico** 🙋, anotando o que travar (cada trava vira
    correção imediata). Junto: E10 (teste no WhatsApp real com número de teste) e teste com equipe (convidar atendente,
    setores, fila).
-2. **Padrão de autoatendimento nas telas que faltam** (regra do CLAUDE.md) — **em andamento no código**: passo a passo +
+2. ✅ **Padrão de autoatendimento nas telas que faltam (06/10):** passo a passo com demonstração animada e botão "Como
+   funciona" em Fluxos, Equipe, Etiquetas, Funil (Kanban), Cobranças, Integrações, API e Configurações (além de Conversas,
+   Cérebro, Processos, Time de IA, Números, Agente e Diagnóstico); microfone nas caixas de texto de saudação, retorno por
+   etapa, integrações e confirmação de saída. Fica para quando houver vídeo gravado: trocar demonstrações por vídeos (item 8).
+   Histórico: passo a passo +
    vídeo animado + Ajuda em Números ✅ *(06/10: 6 passos — WhatsApp oficial, QR Code, e-mail, Facebook/Instagram, número que caiu — e botão "Como funciona")*, Agentes de IA ✅ *(06/10: 5 passos, "Como funciona" e microfone na caixa de comportamento)*, Fluxos, Equipe, Etiquetas, Funil,
    Cobranças, Integrações, API e Configurações; microfone e "Não entendi" nas caixas grandes; salvar sozinho e
    "Salvar e próximo" onde houver etapas.

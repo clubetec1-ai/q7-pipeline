@@ -1,3 +1,5 @@
+import { MicTextarea } from "@/components/MicTextarea";
+import { HowItWorks } from "./diagnostico/HowItWorks";
 import { useCallback, useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
@@ -157,6 +159,7 @@ export default function Integracoes() {
           <section className="text-sm text-muted-foreground space-y-4">
             <ConnectorsPanel orgId={org.id} />
             <h1 className="font-brand text-2xl leading-tight">Integrações</h1>
+            <HowItWorks guide="integracoes" className="" />
             <p>Conecte o Deixa com a IA a outro sistema (ERP, agenda, loja) para a IA e os fluxos consultarem dados de verdade — por exemplo, o status do pedido pelo telefone do cliente.</p>
             <p>Clique em “Nova integração”: a IA monta o passo a passo, você guarda a chave, testa e cria o fluxo em rascunho.</p>
           </section>
@@ -246,7 +249,7 @@ export default function Integracoes() {
 
             <div className="rounded-lg border p-4 space-y-2">
               <p className="font-semibold">4. Resposta ao cliente e fluxo</p>
-              <Textarea rows={3} value={msg} onChange={(e) => setMsg(e.target.value)} placeholder="Seu pedido está {var.status}." />
+              <MicTextarea orgId={org.id} rows={3} value={msg} onChange={(t) => setMsg(t)} placeholder="Seu pedido está {var.status}." />
               <p className="text-xs text-muted-foreground">Se o sistema não responder, o fluxo avisa o cliente e passa para um atendente. Tudo fica em rascunho para você testar no simulador e publicar.</p>
               <Button onClick={install} disabled={!!busy || g.status === "draft"}>
                 {busy === "install" ? "Criando..." : g.flow_id ? "Criar outro fluxo" : "Criar fluxo (rascunho)"}
@@ -267,7 +270,7 @@ export default function Integracoes() {
           {creating && (
             <div className="space-y-2">
               <Input placeholder="Sistema (ex.: Bling, Omie, Google Agenda, meu ERP)" maxLength={80} value={creating.system} onChange={(e) => setCreating({ ...creating, system: e.target.value })} />
-              <Textarea rows={3} maxLength={500} placeholder="O que você quer (ex.: consultar o status do pedido pelo telefone do cliente)" value={creating.goal} onChange={(e) => setCreating({ ...creating, goal: e.target.value })} />
+              <MicTextarea orgId={org.id} rows={3} maxLength={500} placeholder="O que você quer (ex.: consultar o status do pedido pelo telefone do cliente)" value={creating.goal} onChange={(t) => setCreating({ ...creating, goal: t })} />
               <div className="flex flex-wrap gap-1">
                 {EXAMPLES.map(([s, goal]) => <Button key={s} size="sm" variant="outline" className="h-7 text-xs" onClick={() => setCreating({ system: s, goal })}>{s}</Button>)}
               </div>
@@ -283,7 +286,7 @@ export default function Integracoes() {
             <DialogTitle>Pedir ajuda ao time Clubetec</DialogTitle>
             <DialogDescription>Para integrações mais complexas, nossa equipe faz para você (serviço orçado à parte).</DialogDescription>
           </DialogHeader>
-          <Textarea rows={4} maxLength={2000} placeholder="O que você precisa integrar e para quê" value={help ?? ""} onChange={(e) => setHelp(e.target.value)} />
+          <MicTextarea orgId={org.id} rows={4} maxLength={2000} placeholder="O que você precisa integrar e para quê" value={help ?? ""} onChange={(t) => setHelp(t)} />
           <DialogFooter><Button onClick={askHelp} disabled={!help?.trim()}>Enviar pedido</Button></DialogFooter>
         </DialogContent>
       </Dialog>

@@ -1,3 +1,4 @@
+import { HowItWorks } from "./diagnostico/HowItWorks";
 import { Link, Navigate } from "react-router-dom";
 import {
   Bot, BookOpen, LifeBuoy, Braces, Building2, Clock, Facebook, CreditCard, Filter, Network, KeyRound, Library, Mail, MessageSquare, Palette, PencilRuler, PhoneCall, Plug, Server, Settings2, Shuffle, Tags, Target, UsersRound, Wallet, Workflow, type LucideIcon,
@@ -110,6 +111,7 @@ export default function Configuracoes() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="font-brand text-2xl leading-tight">Configurações</h1>
+            <HowItWorks guide="configuracoes" className="" />
             <p className="text-sm text-muted-foreground">Tudo que é instalação da {org.name} está aqui. Comece pelos pendentes.</p>
           </div>
           {all.length > 0 && (

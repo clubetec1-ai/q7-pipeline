@@ -1,3 +1,4 @@
+import { HowItWorks } from "./diagnostico/HowItWorks";
 import { SectionTabs } from "@/components/layout/SectionTabs";
 import { useCallback, useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
@@ -103,6 +104,7 @@ export default function Cobrancas() {
       <main className="flex-1 w-full max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
         <div>
           <h1 className="font-brand text-2xl leading-tight">Cobranças</h1>
+          <HowItWorks guide="cobrancas" className="" />
           <p className="text-sm text-muted-foreground">Cobre pelo WhatsApp com PIX, boleto ou cartão. O pagamento é atualizado sozinho.</p>
         </div>
 

@@ -1,9 +1,10 @@
+import { MicTextarea } from "@/components/MicTextarea";
+import { useOrg } from "@/contexts/OrgContext";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -22,6 +23,7 @@ const parseDays = (s: string) =>
  * cliente falar, só passa modelo aprovado: por isso o campo do modelo.
  */
 export function StageFollowups({ stage, open, onClose, onSaved }: { stage: StageFollowupCfg; open: boolean; onClose: () => void; onSaved: () => void }) {
+  const { org } = useOrg();
   const { toast } = useToast();
   const [days, setDays] = useState("");
   const [hint, setHint] = useState("");
@@ -66,7 +68,7 @@ export function StageFollowups({ stage, open, onClose, onSaved }: { stage: Stage
           </label>
           <label className="block space-y-1.5 text-sm">
             <span className="font-medium">O que a IA deve fazer no retorno</span>
-            <Textarea rows={3} maxLength={400} value={hint} onChange={(e) => setHint(e.target.value)}
+            <MicTextarea orgId={org?.id ?? ""} rows={3} maxLength={400} value={hint} onChange={(t) => setHint(t)}
               placeholder="Ex.: perguntar se ficou alguma dúvida na proposta e oferecer uma conversa rápida. Sem pressão." />
             <span className="text-xs text-muted-foreground">A IA nunca inventa preço, desconto, prazo ou condição.</span>
           </label>

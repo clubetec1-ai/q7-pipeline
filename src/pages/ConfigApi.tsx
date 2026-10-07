@@ -1,3 +1,4 @@
+import { HowItWorks } from "./diagnostico/HowItWorks";
 import { useCallback, useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { ArrowLeft, Copy, KeyRound, Plus, Send, Trash2, Webhook } from "lucide-react";
@@ -168,6 +169,7 @@ export default function ConfigApi() {
         <div>
           <Link to="/configuracoes" className="text-sm text-muted-foreground inline-flex items-center gap-1 hover:text-foreground"><ArrowLeft className="w-4 h-4" /> Configurações</Link>
           <h1 className="font-brand text-2xl leading-tight mt-1">API e webhooks</h1>
+          <HowItWorks guide="api" className="" />
           <p className="text-sm text-muted-foreground">
             Para ligar o Deixa com a IA a outros sistemas — n8n, Make, Zapier ou o sistema da sua empresa. Quem configura costuma ser a pessoa de TI.
           </p>
